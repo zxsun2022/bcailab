@@ -1,10 +1,15 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { useLoaderData } from "@remix-run/react";
+import { useLoaderData, Link } from "@remix-run/react";
 import { getPostById } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
 
-const formatDate = (value: string) => new Date(value).toLocaleString();
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const id = params.id;
@@ -27,17 +32,14 @@ export default function TextPost() {
   const { post, canEdit } = useLoaderData<typeof loader>();
 
   return (
-    <div style={{ padding: "40px 0 80px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <h1>Published Text</h1>
-          <div className="post-meta">Updated {formatDate(post.updated_at)}</div>
-        </div>
-        {canEdit ? (
-          <a className="btn btn-ghost btn-sm" href={`/text/${post.id}/edit`}>
+    <div className="tool-page">
+      <div className="post-view-header">
+        <div className="post-meta">{formatDate(post.updated_at)}</div>
+        {canEdit && (
+          <Link to={`/text/${post.id}/edit`} className="btn btn-ghost btn-sm">
             Edit
-          </a>
-        ) : null}
+          </Link>
+        )}
       </div>
       <article className="markdown" dangerouslySetInnerHTML={{ __html: post.content_html }} />
     </div>

@@ -9,7 +9,7 @@ import {
   LiveReload,
   useLoaderData
 } from "@remix-run/react";
-import globalStyles from "~/styles/global.css";
+import globalStyles from "~/styles/global.css?url";
 import { Header } from "~/components/Header";
 import { getOptionalUser } from "~/utils/auth.server";
 
@@ -30,6 +30,7 @@ export default function App() {
   return (
     <html lang="en">
       <head>
+        <meta charSet="utf-8" />
         <Meta />
         <Links />
       </head>

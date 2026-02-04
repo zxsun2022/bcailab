@@ -1,10 +1,13 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { useActionData, useLoaderData } from "@remix-run/react";
-import { Button, Card, Textarea } from "@bcailab/ui";
+import { Button, Card } from "@bcailab/ui";
 import { getPostById, softDeletePost, updatePost } from "@bcailab/db";
+import { AutosizeTextarea } from "~/components/AutosizeTextarea";
 import { renderMarkdown } from "~/utils/markdown.server";
 import { requireUser } from "~/utils/auth.server";
+import { MAX_TEXT_LENGTH } from "~/utils/text";
+import * as React from "react";
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -42,6 +45,12 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   if (!content) {
     return json({ error: "Content cannot be empty." }, { status: 400 });
   }
+  if (content.length > MAX_TEXT_LENGTH) {
+    return json(
+      { error: `Content exceeds ${MAX_TEXT_LENGTH.toLocaleString()} characters.` },
+      { status: 400 }
+    );
+  }
 
   const contentHtml = await renderMarkdown(content);
   await updatePost(context.env.DB, {
@@ -57,16 +66,28 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 export default function EditPost() {
   const { post } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const [content, setContent] = React.useState(post.content_md);
+  const characterCount = content.length;
 
   return (
-    <div style={{ padding: "40px 0 80px" }}>
-      <h1>Edit Post</h1>
-      <Card style={{ marginTop: "24px" }}>
+    <div className="tool-page">
+      <Card>
         <form method="post">
-          <Textarea name="content" defaultValue={post.content_md} />
-          {actionData?.error ? (
+          <AutosizeTextarea
+            name="content"
+            value={content}
+            onChange={(event) => setContent(event.currentTarget.value)}
+            maxLength={MAX_TEXT_LENGTH}
+          />
+          <div className="textarea-meta">
+            <span>Markdown supported</span>
+            <span className="textarea-count">
+              {characterCount.toLocaleString()} / {MAX_TEXT_LENGTH.toLocaleString()}
+            </span>
+          </div>
+          {actionData?.error && (
             <div style={{ color: "var(--accent)", marginTop: "12px" }}>{actionData.error}</div>
-          ) : null}
+          )}
           <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
             <Button type="submit">Save changes</Button>
             <Button type="submit" name="_intent" value="delete" variant="danger">

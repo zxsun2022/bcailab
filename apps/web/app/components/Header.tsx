@@ -1,11 +1,19 @@
 import * as React from "react";
 import { Button } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
-import { Link } from "@remix-run/react";
+import { Link, useMatches } from "@remix-run/react";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
 
+type BreadcrumbHandle = {
+  breadcrumb?: { label: string; href?: string };
+};
+
 export const Header: React.FC<{ user: User | null }> = ({ user }) => {
+  const matches = useMatches();
+  const breadcrumbs = matches
+    .filter((match) => (match.handle as BreadcrumbHandle)?.breadcrumb)
+    .map((match) => (match.handle as BreadcrumbHandle).breadcrumb!);
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -46,9 +54,31 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
   return (
     <header className="site-header">
       <div className="container header-inner">
-        <Link to="/" className="logo">
-          bcailab
-        </Link>
+        <div className="header-nav">
+          <Link to="/" className="logo">
+            <span className="logo-bc">bc</span>
+            <span className="logo-dot" />
+            <span className="logo-ai">ai</span>
+            <span className="logo-dot" />
+            <span className="logo-lab">lab</span>
+          </Link>
+          {breadcrumbs.length > 0 && (
+            <nav className="breadcrumb">
+              {breadcrumbs.map((crumb, i) => (
+                <React.Fragment key={i}>
+                  <span className="breadcrumb-sep">/</span>
+                  {crumb.href ? (
+                    <Link to={crumb.href} className="breadcrumb-link">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span className="breadcrumb-current">{crumb.label}</span>
+                  )}
+                </React.Fragment>
+              ))}
+            </nav>
+          )}
+        </div>
         <div className="nav-actions" ref={menuRef}>
           {!user ? (
             <Button type="button" onClick={handleLogin}>

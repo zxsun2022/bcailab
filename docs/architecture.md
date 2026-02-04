@@ -8,6 +8,12 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 - **D1**: Primary relational store for users, sessions, and tool data.
 - **R2**: Reserved for future asset storage.
 
+## Design System
+See [design-system.md](./design-system.md) for visual design guidelines including:
+- Color palette, typography, spacing
+- Border radius system (coordinated with serif fonts)
+- Component patterns and usage examples
+
 ## Key Flows
 - Google OAuth handled in the Remix app; sessions are stored in D1 and referenced by a secure cookie.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published text pages).
