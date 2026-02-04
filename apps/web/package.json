@@ -1,0 +1,36 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "remix vite:dev",
+    "build": "remix vite:build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "echo 'lint not configured'"
+  },
+  "dependencies": {
+    "@bcailab/auth": "workspace:*",
+    "@bcailab/db": "workspace:*",
+    "@bcailab/ui": "workspace:*",
+    "@remix-run/cloudflare": "^2.13.1",
+    "@remix-run/cloudflare-pages": "^2.13.1",
+    "@remix-run/react": "^2.13.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "rehype-sanitize": "^6.0.0",
+    "rehype-stringify": "^10.0.0",
+    "remark-gfm": "^4.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.0.0",
+    "unified": "^11.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240105.0",
+    "@remix-run/dev": "^2.13.1",
+    "@types/react": "^18.2.63",
+    "@types/react-dom": "^18.2.19",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.10",
+    "wrangler": "^3.114.0"
+  }
+}

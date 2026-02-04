@@ -1,0 +1,11 @@
+{
+  "name": "@bcailab/auth",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@bcailab/db": "workspace:*",
+    "@remix-run/cloudflare": "^2.13.1"
+  }
+}

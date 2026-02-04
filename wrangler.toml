@@ -1,0 +1,15 @@
+name = "bcailab"
+compatibility_date = "2025-01-01"
+
+# Cloudflare Pages output (Remix build)
+pages_build_output_dir = "apps/web/build/client"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "bcailab-db"
+database_id = "7048b3f2-affb-492a-a9a4-18ab5cd2fc4e"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "bcailab-assets"
+preview_bucket_name = "bcailab-assets-preview"
