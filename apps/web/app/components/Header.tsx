@@ -60,8 +60,8 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
               className="logo-image"
               src="/brand/logo-64.png"
               srcSet="/brand/logo-64.png 1x, /brand/logo-128.png 2x"
-              width={32}
-              height={32}
+              width={36}
+              height={36}
               alt="bcailab"
             />
             <span className="logo-text">bc<span className="logo-ai">ai</span>lab</span>

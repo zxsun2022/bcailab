@@ -156,7 +156,7 @@ main.container {
 
 /* Logo */
 .logo {
-  font-size: 1.35rem;
+  font-size: 1.5rem;
   font-weight: 400;
   letter-spacing: 0.02em;
   display: flex;
@@ -164,8 +164,8 @@ main.container {
 }
 
 .logo-image {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   object-fit: contain;
   display: block;
 }
