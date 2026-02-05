@@ -113,7 +113,7 @@ export default function TextTool() {
         Write a note in Markdown and publish it instantly.
       </p>
 
-      <Card style={{ marginTop: "24px" }}>
+      <Card className="tool-card-stack">
         <fetcher.Form method="post">
           <AutosizeTextarea
             name="content"
@@ -128,10 +128,8 @@ export default function TextTool() {
               {characterCount.toLocaleString()} / {MAX_TEXT_LENGTH.toLocaleString()}
             </span>
           </div>
-          {errorMessage ? (
-            <div style={{ color: "var(--accent)", marginTop: "12px" }}>{errorMessage}</div>
-          ) : null}
-          <div style={{ marginTop: "16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
+          <div className="form-actions">
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Publishing..." : "Publish"}
             </Button>
@@ -144,9 +142,9 @@ export default function TextTool() {
       </Card>
 
       {published ? (
-        <div className="banner" style={{ marginTop: "24px" }}>
+        <div className="banner published-banner">
           <div>
-            Published! URL: <strong>{published.url}</strong>
+            Published! URL: <strong className="published-url">{published.url}</strong>
           </div>
           <Button
             type="button"

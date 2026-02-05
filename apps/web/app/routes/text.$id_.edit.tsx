@@ -85,10 +85,8 @@ export default function EditPost() {
               {characterCount.toLocaleString()} / {MAX_TEXT_LENGTH.toLocaleString()}
             </span>
           </div>
-          {actionData?.error && (
-            <div style={{ color: "var(--accent)", marginTop: "12px" }}>{actionData.error}</div>
-          )}
-          <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
+          {actionData?.error && <div className="form-error">{actionData.error}</div>}
+          <div className="form-actions form-actions-inline">
             <Button type="submit">Save changes</Button>
             <Button type="submit" name="_intent" value="delete" variant="danger">
               Delete
