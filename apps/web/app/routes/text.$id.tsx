@@ -3,6 +3,7 @@ import { json } from "@remix-run/cloudflare";
 import { useLoaderData, Link } from "@remix-run/react";
 import { getPostById } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
+import * as React from "react";
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString(undefined, {
@@ -30,16 +31,29 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
 export default function TextPost() {
   const { post, canEdit } = useLoaderData<typeof loader>();
+  const [copied, setCopied] = React.useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
 
   return (
     <div className="tool-page">
       <div className="post-view-header">
         <div className="post-meta">{formatDate(post.updated_at)}</div>
-        {canEdit && (
-          <Link to={`/text/${post.id}/edit`} className="btn btn-ghost btn-sm">
-            Edit
-          </Link>
-        )}
+        <div style={{ display: "flex", gap: "8px" }}>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={handleCopy}>
+            {copied ? "Copied!" : "Copy link"}
+          </button>
+          {canEdit && (
+            <Link to={`/text/${post.id}/edit`} className="btn btn-ghost btn-sm">
+              Edit
+            </Link>
+          )}
+        </div>
       </div>
       <article className="markdown" dangerouslySetInnerHTML={{ __html: post.content_html }} />
     </div>
