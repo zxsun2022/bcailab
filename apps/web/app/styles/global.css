@@ -243,6 +243,21 @@ main.container {
   font-size: 0.95rem;
 }
 
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.footer-link {
+  color: var(--muted);
+  transition: color var(--transition-fast);
+}
+
+.footer-link:hover {
+  color: var(--text);
+}
+
 /* ==========================================================================
    5. COMPONENTS
    ========================================================================== */
@@ -775,49 +790,6 @@ main.container {
   transform: translateX(0);
 }
 
-/* Features Section */
-.features-section {
-  padding: var(--space-16) 0 var(--space-10);
-  border-top: 1px solid var(--border);
-  margin-top: var(--space-10);
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-10);
-  text-align: center;
-}
-
-.feature {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.feature-icon {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-  background: rgba(37, 99, 235, 0.08);
-  color: var(--accent-alt);
-}
-
-.feature-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.feature-desc {
-  font-size: 0.9rem;
-  color: var(--muted);
-  margin: 0;
-}
 
 /* Tool Pages */
 .tool-page {

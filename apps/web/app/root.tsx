@@ -40,8 +40,9 @@ export default function App() {
           <Outlet />
         </main>
         <footer className="footer">
-          <div className="container">
-            <span>© {new Date().getFullYear()} bcailab</span>
+          <div className="container footer-inner">
+            <span>© {new Date().getFullYear()} bcailab · Burnaby, British Columbia, Canada</span>
+            <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
           </div>
         </footer>
         <ScrollRestoration />
