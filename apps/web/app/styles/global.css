@@ -170,6 +170,12 @@ main.container {
   display: block;
 }
 
+.logo-text {
+  font-weight: 500;
+  color: var(--text);
+  margin-left: var(--space-2);
+}
+
 
 /* Header Navigation */
 .header-nav {

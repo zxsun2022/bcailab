@@ -64,6 +64,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
               height={32}
               alt="bcailab"
             />
+            <span className="logo-text">bcailab</span>
           </Link>
           {breadcrumbs.length > 0 && (
             <nav className="breadcrumb">
