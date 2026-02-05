@@ -354,11 +354,6 @@ main.container {
   font-weight: 500;
 }
 
-.badge-accent {
-  background: rgba(201, 48, 44, 0.08);
-  color: var(--accent);
-}
-
 /* Avatar */
 .avatar-button {
   border: none;
@@ -425,38 +420,11 @@ main.container {
   flex-wrap: wrap;
 }
 
-.banner-accent {
-  background: rgba(201, 48, 44, 0.08);
-  color: var(--accent);
-}
-
 /* ==========================================================================
    6. PATTERNS - 可复用的页面模式
    ========================================================================== */
 
-/* Page Header - 页面标题区域 */
-.page-header {
-  padding: var(--space-12) 0 var(--space-8);
-}
-
-.page-title {
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
-  font-weight: 600;
-  margin: 0 0 var(--space-2);
-  letter-spacing: -0.02em;
-}
-
-.page-subtitle {
-  font-size: 1.1rem;
-  color: var(--muted);
-  margin: 0;
-}
-
 /* Section - 区块 */
-.section {
-  padding: var(--space-10) 0;
-}
-
 .section-header {
   display: flex;
   align-items: center;
@@ -484,74 +452,6 @@ main.container {
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--muted);
-}
-
-/* List - 列表 */
-.list {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.list-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-/* Grid - 网格 */
-.grid {
-  display: grid;
-  gap: var(--space-5);
-}
-
-.grid-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-.grid-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-
-.grid-auto {
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-}
-
-/* Icon Box - 图标容器 */
-.icon-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-md);
-}
-
-.icon-box-sm {
-  width: 36px;
-  height: 36px;
-}
-
-.icon-box-md {
-  width: 44px;
-  height: 44px;
-}
-
-.icon-box-lg {
-  width: 52px;
-  height: 52px;
-}
-
-.icon-box-accent {
-  background: var(--accent);
-  color: #fff;
-}
-
-.icon-box-accent-light {
-  background: rgba(201, 48, 44, 0.08);
-  color: var(--accent);
-}
-
-.icon-box-alt {
-  background: rgba(37, 99, 235, 0.08);
-  color: var(--accent-alt);
 }
 
 /* Post Meta - 文章元信息 */
@@ -602,11 +502,6 @@ main.container {
   text-align: center;
   padding: var(--space-16) var(--space-6);
   color: var(--muted);
-}
-
-.empty-state-icon {
-  margin-bottom: var(--space-4);
-  opacity: 0.5;
 }
 
 .empty-state-title {
@@ -937,10 +832,6 @@ main.container {
   .tools-section {
     padding: var(--space-8) 0;
   }
-
-  .grid-3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
 
 @media (max-width: 720px) {
@@ -990,11 +881,6 @@ main.container {
   .tool-card {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .grid-2,
-  .grid-3 {
-    grid-template-columns: 1fr;
   }
 
   .footer-inner {

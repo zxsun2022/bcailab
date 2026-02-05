@@ -20,7 +20,9 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 
 ## Routing
 - `/` landing page
+- `/about` about page
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
-- `/text` tool
+- `/text` text tool (compose)
+- `/text/posts` user's posts list
 - `/text/:id` public text view
-- `/text/:id/edit` edit UI
+- `/text/:id/edit` edit UI (route file uses `_` to escape nesting: `text.$id_.edit.tsx`)
