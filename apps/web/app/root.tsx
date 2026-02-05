@@ -40,7 +40,9 @@ export default function App() {
           <Outlet />
         </main>
         <footer className="footer">
-          <div className="container">bcailab · built on Cloudflare</div>
+          <div className="container">
+            <span>© {new Date().getFullYear()} bcailab</span>
+          </div>
         </footer>
         <ScrollRestoration />
         <Scripts />
