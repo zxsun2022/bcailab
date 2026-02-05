@@ -14,25 +14,17 @@ bcailab 的视觉风格追求**经典与克制**：
 
 ### Logo 结构
 
-```
-bc · ai · lab
-```
+项目使用图像化 logo，资源位于 `apps/web/public/brand/logo.png`，并派生多个尺寸用于不同场景：
 
-Logo 由三部分组成，通过颜色和字重区分层次：
-
-| 部分 | 含义 | 颜色 | 字重 |
-|------|------|------|------|
-| **bc** | British Columbia | `--text` (#1a1a1a) | 600 |
-| **ai** | Artificial Intelligence | `--accent` (#c9302c) | 600 |
-| **lab** | Laboratory | `--muted` (#6b7280) | 400 |
-
-分隔符使用小圆点（4px），颜色为 `--border`。
+- Header/UI：`/brand/logo-64.png`（配合 `2x` 使用 `/brand/logo-128.png`）
+- Favicon：`/favicon-16x16.png`、`/favicon-32x32.png`、`/favicon.ico`
+- PWA/系统图标：`/android-chrome-192x192.png`、`/android-chrome-512x512.png`
 
 ### Logo 使用规范
 
-- 始终保持三部分的颜色和字重区分
-- 不要将 logo 全部设为同一颜色
-- 最小尺寸：字号不小于 1rem
+- 使用透明背景 PNG
+- UI 中保持清晰的留白，不与文字抢主视觉
+- 在小尺寸下优先使用 64/128 版本，避免缩放原图
 
 ## 色彩系统
 

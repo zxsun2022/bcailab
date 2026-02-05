@@ -13,7 +13,14 @@ import globalStyles from "~/styles/global.css?url";
 import { Header } from "~/components/Header";
 import { getOptionalUser } from "~/utils/auth.server";
 
-export const links: LinksFunction = () => [{ rel: "stylesheet", href: globalStyles }];
+export const links: LinksFunction = () => [
+  { rel: "stylesheet", href: globalStyles },
+  { rel: "icon", href: "/favicon.ico" },
+  { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
+  { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
+  { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
+  { rel: "manifest", href: "/site.webmanifest" }
+];
 
 export const meta: MetaFunction = () => [
   { title: "bcailab" },
@@ -31,6 +38,7 @@ export default function App() {
     <html lang="en">
       <head>
         <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>

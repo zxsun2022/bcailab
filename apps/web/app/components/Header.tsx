@@ -56,11 +56,14 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
       <div className="container header-inner">
         <div className="header-nav">
           <Link to="/" className="logo">
-            <span className="logo-bc">bc</span>
-            <span className="logo-dot" />
-            <span className="logo-ai">ai</span>
-            <span className="logo-dot" />
-            <span className="logo-lab">lab</span>
+            <img
+              className="logo-image"
+              src="/brand/logo-64.png"
+              srcSet="/brand/logo-64.png 1x, /brand/logo-128.png 2x"
+              width={32}
+              height={32}
+              alt="bcailab"
+            />
           </Link>
           {breadcrumbs.length > 0 && (
             <nav className="breadcrumb">
