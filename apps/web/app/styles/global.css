@@ -171,6 +171,9 @@ main.container {
 .logo-ai {
   font-weight: 600;
   color: var(--accent);
+  background: rgba(201, 48, 44, 0.08);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
 }
 
 .logo-lab {
@@ -184,8 +187,12 @@ main.container {
   height: 4px;
   background: var(--border);
   border-radius: var(--radius-full);
-  margin: 0 2px;
+  margin: 0 3px;
   vertical-align: middle;
+}
+
+.logo-bc + .logo-dot {
+  background: var(--accent);
 }
 
 /* Header Navigation */
