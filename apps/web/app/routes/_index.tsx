@@ -1,5 +1,6 @@
-import { Link, useSearchParams } from "@remix-run/react";
-import { Card, Button } from "@bcailab/ui";
+import { Link, useOutletContext, useSearchParams } from "@remix-run/react";
+import { Card } from "@bcailab/ui";
+import type { User } from "@bcailab/db";
 
 const tools = [
   {
@@ -19,8 +20,21 @@ const tools = [
 ];
 
 export default function Index() {
+  const { user } = useOutletContext<{ user: User | null }>();
   const [params] = useSearchParams();
   const loginHint = params.get("login");
+
+  const handleLogin = () => {
+    const width = 520;
+    const height = 640;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+    window.open(
+      "/auth/google",
+      "bcailab-auth",
+      `width=${width},height=${height},left=${left},top=${top}`
+    );
+  };
 
   return (
     <div className="home">
@@ -51,7 +65,7 @@ export default function Index() {
         </div>
         <div className="tool-grid">
           {tools.map((tool) => (
-            <Link key={tool.slug} to={`/${tool.slug}`} className="tool-card-link">
+            <Link key={tool.slug} to={`/${tool.slug}`} className="tool-card-link" onClick={(e) => { if (!user) { e.preventDefault(); handleLogin(); } }}>
               <Card className="tool-card">
                 <div className="tool-card-icon">{tool.icon}</div>
                 <div className="tool-card-content">

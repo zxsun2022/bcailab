@@ -37,7 +37,7 @@ export default function App() {
       <body>
         <Header user={user} />
         <main className="container">
-          <Outlet />
+          <Outlet context={{ user }} />
         </main>
         <footer className="footer">
           <div className="container footer-inner">
