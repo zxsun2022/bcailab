@@ -318,13 +318,14 @@ main.container {
 }
 
 .textarea {
-  min-height: 220px;
+  min-height: 120px;
   resize: vertical;
 }
 
 .textarea-autosize {
   resize: none;
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: 60vh;
 }
 
 /* Card */
