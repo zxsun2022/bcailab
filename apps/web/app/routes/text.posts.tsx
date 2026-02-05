@@ -75,7 +75,7 @@ export default function PostsPage() {
                 <Link to={`/text/${post.id}/edit`} className="btn btn-ghost btn-sm">
                   Edit
                 </Link>
-                <form method="post" style={{ display: "inline" }}>
+                <form method="post" style={{ display: "inline" }} onSubmit={(e) => { if (!confirm("Delete this post? This cannot be undone.")) e.preventDefault(); }}>
                   <input type="hidden" name="_intent" value="delete" />
                   <input type="hidden" name="id" value={post.id} />
                   <Button type="submit" variant="danger" size="sm">

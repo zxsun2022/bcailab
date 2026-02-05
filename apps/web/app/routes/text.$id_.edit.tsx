@@ -1,8 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { useActionData, useLoaderData } from "@remix-run/react";
+import { useActionData, useLoaderData, Link } from "@remix-run/react";
 import { Button, Card } from "@bcailab/ui";
-import { getPostById, softDeletePost, updatePost } from "@bcailab/db";
+import { getPostById, updatePost } from "@bcailab/db";
 import { AutosizeTextarea } from "~/components/AutosizeTextarea";
 import { renderMarkdown } from "~/utils/markdown.server";
 import { requireUser } from "~/utils/auth.server";
@@ -30,15 +30,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   }
 
   const formData = await request.formData();
-  const intent = String(formData.get("_intent") ?? "update");
   const existing = await getPostById(context.env.DB, id, { includeDeleted: true });
   if (!existing || existing.user_id !== user.id || existing.deleted_at) {
     throw new Response("Not found", { status: 404 });
-  }
-
-  if (intent === "delete") {
-    await softDeletePost(context.env.DB, { id, userId: user.id });
-    return redirect("/text");
   }
 
   const content = String(formData.get("content") ?? "").trim();
@@ -88,9 +82,7 @@ export default function EditPost() {
           {actionData?.error && <div className="form-error">{actionData.error}</div>}
           <div className="form-actions form-actions-inline">
             <Button type="submit">Save changes</Button>
-            <Button type="submit" name="_intent" value="delete" variant="danger">
-              Delete
-            </Button>
+            <Link to={`/text/${post.id}`} className="btn btn-ghost">Cancel</Link>
           </div>
         </form>
       </Card>
