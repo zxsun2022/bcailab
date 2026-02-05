@@ -176,6 +176,13 @@ main.container {
   margin-left: var(--space-2);
 }
 
+.logo-ai {
+  background: linear-gradient(to right, #c9302c, #e8594e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
 
 /* Header Navigation */
 .header-nav {
