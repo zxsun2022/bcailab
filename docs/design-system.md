@@ -20,6 +20,44 @@ bcailab 的视觉风格追求**经典与克制**：
 - Favicon：`/favicon-16x16.png`、`/favicon-32x32.png`、`/favicon.ico`
 - PWA/系统图标：`/android-chrome-192x192.png`、`/android-chrome-512x512.png`
 
+### Header 中的 Logo 组成
+
+Header 的 logo 由**图片 + 文字**两部分组成：
+
+```
+[图片 36×36px]  bcailab
+                ^^-- "ai" 红色渐变
+```
+
+- 图片尺寸：36×36px（CSS），使用 srcSet 配置 2x 清晰度
+- 文字字号：1.5rem，font-weight 500
+- 图片和文字之间间距：8px（`--space-2`）
+
+### 品牌名含义与 "ai" 高亮规则
+
+品牌名 `bcailab` 的结构是 **bc · ai · lab**：
+
+| 部分 | 含义 |
+|------|------|
+| bc | British Columbia |
+| ai | Artificial Intelligence |
+| lab | Laboratory |
+
+纯深色文字容易被读成 "b-cai-lab"（将 cai 当作一个音节）。为此，文字中的 `ai` 使用红色微渐变高亮，引导眼睛自然识别分组：
+
+```css
+.logo-ai {
+  background: linear-gradient(to right, #c9302c, #e8594e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+```
+
+- 渐变色值：`#c9302c`（站点主红）→ `#e8594e`（偏暖浅红），水平左到右
+- 不加背景 pill、不加动态效果。站点风格安静极简，持续动画会成为噪音
+- 渐变量很小（两个字母），不会和插画风格的图标抢戏
+
 ### Logo 使用规范
 
 - 使用透明背景 PNG
@@ -209,7 +247,11 @@ font-family: "Crimson Pro", "Noto Serif SC", serif;
 
 | 断点 | 说明 |
 |------|------|
-| 720px | 移动端适配 |
+| 1024px | 平板过渡：缩小 hero padding，工具区间距 |
+| 720px | 移动端主断点：header 堆叠、列表单列、表单竖排、footer 竖排 |
+| 480px | 小屏修剪：进一步缩减 padding，按钮全宽 |
+
+新增页面时，三个断点都需要检查。特别注意 720px 断点下列表页和文章页的行为。
 
 ## 动效规范
 

@@ -2,6 +2,25 @@
 
 This project uses Cloudflare Pages + D1 + (future) R2.
 
+## Pages Deployment Configuration
+
+Pages **root directory** is set to `apps/web`. This is intentional:
+the Remix `functions/` directory lives at `apps/web/functions/`, and Pages
+only picks up a `functions/` dir relative to the configured root.
+
+| Setting | Value |
+|---------|-------|
+| Root directory | `apps/web` |
+| Build command | `cd ../.. && pnpm install --frozen-lockfile && pnpm --filter web build` |
+| Build output directory | `build/client` |
+
+The `cd ../..` is required because `pnpm install` must run from the monorepo
+root to resolve workspace dependencies (`@bcailab/*`).
+
+A `wrangler.toml` exists at **both** the repo root (used by local `wrangler` commands)
+and `apps/web/` (picked up by Pages at deploy time). The D1/R2 bindings are
+identical in both; keep them in sync manually when changing.
+
 ## Setup
 1. Create D1 database:
    - `wrangler d1 create bcailab-db`
@@ -16,10 +35,15 @@ Set the following for the Pages project:
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
 
+Recommended additional settings:
+- `PNPM_VERSION` = `9.12.0`
+- `NODE_VERSION` = `20`
+
 ## Local Development
 - `pnpm install`
 - `pnpm dev` (uses `remix vite:dev` with a Cloudflare dev proxy)
 - Use `remix vite:build` + `wrangler pages dev` for a closer Pages runtime.
 
 ## D1 & R2 Bindings
-Bindings are defined in the root `wrangler.toml`.
+Bindings are defined in `wrangler.toml`. See the "Pages Deployment" section
+above for which copy is used where.
