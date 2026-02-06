@@ -23,6 +23,13 @@ This repository is intentionally structured for multi-agent collaboration across
 - Avoid large sweeping refactors unless requested.
 - Keep API responses backward compatible.
 - Add tests when behavior changes meaningfully.
+- **Never expand task scope on your own.** A bug fix is a bug fix; a feature request is that feature. Do not "clean up" surrounding code or add unrelated improvements unless explicitly asked.
+- **Assume first, ask only when critical.** If enough information exists to make a reasonable choice, proceed. Only pause to ask when missing information would materially change the approach.
+
+## Task Complexity Handling
+- **Trivial** (typo, single-line fix, obvious rename): execute immediately, no confirmation needed.
+- **Moderate** (new feature within an existing pattern, small refactor): proceed directly if the user's intent is clear — keywords like "实现", "执行", "加上", "改成" are sufficient signal.
+- **Complex** (architectural change, multi-file refactor, new tool): outline the approach briefly before writing code.
 
 ## Routing Conventions (Remix flat-file)
 - Layout routes use the dot-segment pattern: `text.tsx` wraps `text._index.tsx`, `text.$id.tsx`, etc.
