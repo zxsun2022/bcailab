@@ -828,31 +828,11 @@ main.container {
   gap: var(--space-4);
 }
 
-.tts-mode-group {
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
-}
-
 .tts-label {
   display: inline-block;
   margin-bottom: var(--space-2);
   color: var(--muted);
   font-size: 0.85rem;
-}
-
-.tts-mode-options {
-  display: flex;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
-.tts-mode-option {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-size: 0.95rem;
 }
 
 .tts-select-grid {
@@ -1065,11 +1045,6 @@ main.container {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
-  }
-
-  .tts-mode-options {
-    flex-direction: column;
-    gap: var(--space-2);
   }
 
   .tts-select-grid {

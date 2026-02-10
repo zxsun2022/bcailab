@@ -36,10 +36,13 @@ type GoogleSynthesizeResponse = {
   };
 };
 
-export type Neural2VoiceOption = {
+export type VoiceFamily = "chirp3" | "neural2";
+
+export type SpeechVoiceOption = {
   languageCode: string;
   name: string;
   label: string;
+  family: VoiceFamily;
 };
 
 export type SynthesizeResult = {
@@ -67,7 +70,7 @@ let tokenCache:
   | null = null;
 let voicesCache:
   | {
-      voices: Neural2VoiceOption[];
+      voices: SpeechVoiceOption[];
       expiresAt: number;
       clientEmail: string;
     }
@@ -223,10 +226,19 @@ const getAccessToken = async (env: Env): Promise<{ token: string; clientEmail: s
   return { token: json.access_token, clientEmail: serviceAccount.client_email };
 };
 
-const loadNeural2Voices = async (
+const detectVoiceFamily = (name: string): VoiceFamily | null => {
+  if (name.includes("Chirp3")) return "chirp3";
+  if (name.includes("Neural2")) return "neural2";
+  return null;
+};
+
+const voiceFamilyPriority = (family: VoiceFamily): number =>
+  family === "chirp3" ? 0 : 1;
+
+const loadSupportedVoices = async (
   env: Env,
   languages: SpeechLanguage[]
-): Promise<Neural2VoiceOption[]> => {
+): Promise<SpeechVoiceOption[]> => {
   const { token, clientEmail } = await getAccessToken(env);
   const now = Date.now();
   if (
@@ -246,11 +258,12 @@ const loadNeural2Voices = async (
 
   const json = (await response.json()) as GoogleVoicesResponse;
   const supportedCodes = new Set(languages.map((lang) => lang.code));
-  const collected = new Map<string, Neural2VoiceOption>();
+  const collected = new Map<string, SpeechVoiceOption>();
 
   for (const voice of json.voices ?? []) {
     if (!voice.name || !voice.languageCodes?.length) continue;
-    if (!voice.name.includes("Neural2")) continue;
+    const family = detectVoiceFamily(voice.name);
+    if (!family) continue;
     for (const code of voice.languageCodes) {
       if (!supportedCodes.has(code)) continue;
       const key = `${code}|${voice.name}`;
@@ -258,7 +271,8 @@ const loadNeural2Voices = async (
       collected.set(key, {
         languageCode: code,
         name: voice.name,
-        label: voice.ssmlGender ? `${voice.name} (${voice.ssmlGender})` : voice.name
+        label: voice.ssmlGender ? `${voice.name} (${voice.ssmlGender})` : voice.name,
+        family
       });
     }
   }
@@ -266,6 +280,10 @@ const loadNeural2Voices = async (
   const voices = Array.from(collected.values()).sort((a, b) => {
     if (a.languageCode !== b.languageCode) {
       return a.languageCode.localeCompare(b.languageCode);
+    }
+    const familyOrder = voiceFamilyPriority(a.family) - voiceFamilyPriority(b.family);
+    if (familyOrder !== 0) {
+      return familyOrder;
     }
     return a.name.localeCompare(b.name);
   });
@@ -278,37 +296,46 @@ const loadNeural2Voices = async (
   return voices;
 };
 
-export const getNeural2VoicesByLanguage = async (
+export const getVoicesByLanguage = async (
   env: Env,
   languages: SpeechLanguage[]
-): Promise<Record<string, Neural2VoiceOption[]>> => {
-  const voices = await loadNeural2Voices(env, languages);
-  const grouped: Record<string, Neural2VoiceOption[]> = {};
+): Promise<Record<string, SpeechVoiceOption[]>> => {
+  const voices = await loadSupportedVoices(env, languages);
+  const grouped: Record<string, SpeechVoiceOption[]> = {};
   for (const language of languages) {
     grouped[language.code] = voices.filter((voice) => voice.languageCode === language.code);
   }
   return grouped;
 };
 
-export const synthesizeNeural2Speech = async (input: {
+export const synthesizeSpeech = async (input: {
   env: Env;
-  ssml: string;
+  input: { type: "ssml" | "text"; value: string };
   languageCode: string;
   voiceName: string;
+  enableTimePointing: boolean;
 }): Promise<SynthesizeResult> => {
   const { token } = await getAccessToken(input.env);
+  const body: {
+    input: { ssml?: string; text?: string };
+    voice: { languageCode: string; name: string };
+    audioConfig: { audioEncoding: "MP3" };
+    enableTimePointing?: string[];
+  } = {
+    input: input.input.type === "ssml" ? { ssml: input.input.value } : { text: input.input.value },
+    voice: { languageCode: input.languageCode, name: input.voiceName },
+    audioConfig: { audioEncoding: "MP3" }
+  };
+  if (input.enableTimePointing) {
+    body.enableTimePointing = ["SSML_MARK"];
+  }
   const response = await fetch(SYNTHESIZE_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      input: { ssml: input.ssml },
-      voice: { languageCode: input.languageCode, name: input.voiceName },
-      audioConfig: { audioEncoding: "MP3" },
-      enableTimePointing: ["SSML_MARK"]
-    })
+    body: JSON.stringify(body)
   });
   if (!response.ok) {
     throw new Error(await readGoogleError(response));

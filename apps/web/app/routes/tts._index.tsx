@@ -6,15 +6,14 @@ import { createTtsGeneration, listTtsGenerationsByUser } from "@bcailab/db";
 import { AutosizeTextarea } from "~/components/AutosizeTextarea";
 import { requireUser } from "~/utils/auth.server";
 import {
-  getNeural2VoicesByLanguage,
-  synthesizeNeural2Speech
+  getVoicesByLanguage,
+  synthesizeSpeech,
+  type SpeechVoiceOption
 } from "~/utils/google-tts.server";
 import {
   AUDIO_FORMAT,
-  MAX_TTS_SSML_BYTES,
   SUPPORTED_SPEECH_LANGUAGES,
-  type SpeechAlignment,
-  type SpeechInputMode
+  type SpeechAlignment
 } from "~/utils/tts";
 import {
   TtsValidationError,
@@ -26,10 +25,7 @@ import * as React from "react";
 type LoaderLanguage = {
   code: string;
   label: string;
-  voices: Array<{
-    name: string;
-    label: string;
-  }>;
+  voices: SpeechVoiceOption[];
 };
 
 type ActionError = { error: string };
@@ -42,11 +38,6 @@ type ActionSuccess = {
   alignment: SpeechAlignment;
   warning?: string;
 };
-
-const INPUT_MODES: Array<{ value: SpeechInputMode; label: string }> = [
-  { value: "markdown", label: "Markdown cleanup" },
-  { value: "plain", label: "Plain text" }
-];
 
 const formatError = (error: unknown): string => {
   if (error instanceof TtsValidationError) return error.message;
@@ -64,7 +55,6 @@ const buildR2Key = (userId: string, generationId: string): string => {
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 type PlaybackState = {
-  progressPercent: number;
   currentChar: number;
   currentTokenIndex: number;
 };
@@ -216,7 +206,6 @@ const computePlaybackState = (input: {
   const textLength = input.alignment.displayText.length;
   if (textLength <= 0 || input.alignment.marks.length === 0) {
     return {
-      progressPercent: 0,
       currentChar: 0,
       currentTokenIndex: -1
     };
@@ -225,7 +214,6 @@ const computePlaybackState = (input: {
   const marks = input.alignment.marks;
   if (input.currentTime <= marks[0].startSec) {
     return {
-      progressPercent: clamp((marks[0].startChar / textLength) * 100, 0, 100),
       currentChar: clamp(marks[0].startChar, 0, textLength),
       currentTokenIndex: markNameToTokenIndex(marks[0].name) ?? 0
     };
@@ -239,7 +227,6 @@ const computePlaybackState = (input: {
       const ratio = clamp((input.currentTime - current.startSec) / segmentDuration, 0, 1);
       const charPos = current.startChar + (next.startChar - current.startChar) * ratio;
       return {
-        progressPercent: clamp((charPos / textLength) * 100, 0, 100),
         currentChar: clamp(charPos, 0, textLength),
         currentTokenIndex: markNameToTokenIndex(current.name) ?? i
       };
@@ -255,14 +242,12 @@ const computePlaybackState = (input: {
     );
     const charPos = last.startChar + (textLength - last.startChar) * ratio;
     return {
-      progressPercent: clamp((charPos / textLength) * 100, 0, 100),
       currentChar: clamp(charPos, 0, textLength),
       currentTokenIndex: markNameToTokenIndex(last.name) ?? marks.length - 1
     };
   }
 
   return {
-    progressPercent: clamp((last.endChar / textLength) * 100, 0, 100),
     currentChar: clamp(last.endChar, 0, textLength),
     currentTokenIndex: markNameToTokenIndex(last.name) ?? marks.length - 1
   };
@@ -273,9 +258,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const historyCount = (await listTtsGenerationsByUser(context.env.DB, user.id)).length;
 
   let voiceError: string | null = null;
-  let voicesByLanguage: Record<string, Array<{ name: string; label: string }>> = {};
+  let voicesByLanguage: Record<string, SpeechVoiceOption[]> = {};
   try {
-    voicesByLanguage = await getNeural2VoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
+    voicesByLanguage = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
   } catch (error) {
     voiceError = formatError(error);
   }
@@ -298,20 +283,15 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const formData = await request.formData();
 
   const content = String(formData.get("content") ?? "");
-  const inputMode = String(formData.get("inputMode") ?? "markdown");
   const languageCode = String(formData.get("languageCode") ?? "");
   const voiceName = String(formData.get("voiceName") ?? "");
-
-  if (inputMode !== "markdown" && inputMode !== "plain") {
-    return json<ActionError>({ error: "Invalid input mode." }, { status: 400 });
-  }
 
   if (!SUPPORTED_SPEECH_LANGUAGES.some((language) => language.code === languageCode)) {
     return json<ActionError>({ error: "Unsupported language." }, { status: 400 });
   }
 
   try {
-    const voiceMap = await getNeural2VoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
+    const voiceMap = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
     const languageVoices = voiceMap[languageCode] ?? [];
     const selectedVoice = languageVoices.find((voice) => voice.name === voiceName);
 
@@ -324,22 +304,19 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
     const plan = buildSpeechPlan({
       content,
-      mode: inputMode,
-      languageCode
+      languageCode,
+      withTiming: selectedVoice.family !== "chirp3"
     });
 
-    if (new TextEncoder().encode(plan.ssml).length > MAX_TTS_SSML_BYTES) {
-      return json<ActionError>(
-        { error: "Input exceeds the single-request synthesis limit." },
-        { status: 400 }
-      );
-    }
-
-    const synthesized = await synthesizeNeural2Speech({
+    const synthesized = await synthesizeSpeech({
       env: context.env,
-      ssml: plan.ssml,
+      input:
+        selectedVoice.family === "chirp3"
+          ? { type: "text", value: plan.processedText }
+          : { type: "ssml", value: plan.ssml },
       languageCode,
-      voiceName: selectedVoice.name
+      voiceName: selectedVoice.name,
+      enableTimePointing: selectedVoice.family !== "chirp3"
     });
 
     const generationId = crypto.randomUUID();
@@ -351,18 +328,21 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       }
     });
 
-    const alignment = buildSpeechAlignment({
-      displayText: plan.displayText,
-      tokens: plan.tokens,
-      timepoints: synthesized.timepoints
-    });
+    const alignment =
+      selectedVoice.family === "chirp3"
+        ? { displayText: plan.displayText, marks: [] }
+        : buildSpeechAlignment({
+            displayText: plan.displayText,
+            tokens: plan.tokens,
+            timepoints: synthesized.timepoints
+          });
 
     await createTtsGeneration(context.env.DB, {
       id: generationId,
       userId: user.id,
       inputText: content,
       processedText: plan.processedText,
-      inputMode,
+      inputMode: "rendered",
       languageCode,
       voiceName: selectedVoice.name,
       audioFormat: AUDIO_FORMAT,
@@ -371,7 +351,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     });
 
     const warning =
-      alignment.marks.length < 2
+      selectedVoice.family !== "chirp3" && alignment.marks.length < 2
         ? "Current response did not include enough timing points for word-level highlighting."
         : undefined;
 
@@ -397,7 +377,6 @@ export default function TtsIndexPage() {
   const currentWordRef = React.useRef<HTMLSpanElement | null>(null);
 
   const [content, setContent] = React.useState("");
-  const [inputMode, setInputMode] = React.useState<SpeechInputMode>("markdown");
   const [languageCode, setLanguageCode] = React.useState(() => {
     const withVoices = languages.find((language) => language.voices.length > 0);
     return withVoices?.code ?? languages[0]?.code ?? "";
@@ -524,10 +503,6 @@ export default function TtsIndexPage() {
 
   return (
     <div className="tool-page">
-      <p className="tool-desc">
-        Generate Neural2 speech with a synchronized playback transcript.
-      </p>
-
       {voiceError ? (
         <div className="banner tts-warning">
           Voice list could not be loaded: {voiceError}
@@ -545,29 +520,11 @@ export default function TtsIndexPage() {
             }
           />
           <div className="textarea-meta">
-            <span>SSML limit: {MAX_TTS_SSML_BYTES.toLocaleString()} UTF-8 bytes</span>
+            <span>Markdown syntax is cleaned automatically before synthesis.</span>
             <span className="textarea-count">{content.length.toLocaleString()} chars</span>
           </div>
 
           <div className="tts-controls">
-            <fieldset className="tts-mode-group">
-              <legend className="tts-label">Text mode</legend>
-              <div className="tts-mode-options">
-                {INPUT_MODES.map((mode) => (
-                  <label key={mode.value} className="tts-mode-option">
-                    <input
-                      type="radio"
-                      name="inputMode"
-                      value={mode.value}
-                      checked={inputMode === mode.value}
-                      onChange={() => setInputMode(mode.value)}
-                    />
-                    <span>{mode.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
             <div className="tts-select-grid">
               <div>
                 <label className="tts-label" htmlFor="languageCode">
@@ -583,7 +540,7 @@ export default function TtsIndexPage() {
                   {languages.map((language) => (
                     <option key={language.code} value={language.code} disabled={language.voices.length === 0}>
                       {language.label}
-                      {language.voices.length === 0 ? " (no Neural2 voice available)" : ""}
+                      {language.voices.length === 0 ? " (no supported voice available)" : ""}
                     </option>
                   ))}
                 </select>
@@ -602,10 +559,11 @@ export default function TtsIndexPage() {
                   disabled={voiceOptions.length === 0}
                 >
                   {voiceOptions.length === 0 ? (
-                    <option value="">No Neural2 voice available</option>
+                    <option value="">No supported voice available</option>
                   ) : null}
                   {voiceOptions.map((voice) => (
                     <option key={voice.name} value={voice.name}>
+                      {voice.family === "chirp3" ? "Chirp3 · " : "Neural2 · "}
                       {voice.label}
                     </option>
                   ))}

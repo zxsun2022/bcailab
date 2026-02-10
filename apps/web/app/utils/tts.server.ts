@@ -1,7 +1,7 @@
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
-import type { SpeechAlignment, SpeechInputMode, SpeechTimepoint } from "~/utils/tts";
+import type { SpeechAlignment, SpeechTimepoint } from "~/utils/tts";
 import { MAX_TTS_SSML_BYTES } from "~/utils/tts";
 
 type MdNode = {
@@ -178,12 +178,11 @@ const buildSsml = (displayText: string, tokens: SpeechToken[]): string => {
 
 export const buildSpeechPlan = (input: {
   content: string;
-  mode: SpeechInputMode;
   languageCode: string;
+  withTiming: boolean;
 }): SpeechPlan => {
   const normalized = normalizeLineEndings(input.content);
-  const candidateText =
-    input.mode === "markdown" ? markdownToSpeechText(normalized) : normalized.trim();
+  const candidateText = markdownToSpeechText(normalized);
   const processedText = candidateText
     .replace(/\u00a0/g, " ")
     .replace(/[ \t]+\n/g, "\n")
@@ -200,10 +199,12 @@ export const buildSpeechPlan = (input: {
   }
 
   const ssml = buildSsml(processedText, tokens);
-  const ssmlBytes = utf8ByteLength(ssml);
-  if (ssmlBytes > MAX_TTS_SSML_BYTES) {
+  const payloadBytes = input.withTiming
+    ? utf8ByteLength(ssml)
+    : utf8ByteLength(processedText);
+  if (payloadBytes > MAX_TTS_SSML_BYTES) {
     throw new TtsValidationError(
-      `Input is too long. Google TTS allows at most ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes per request (${ssmlBytes.toLocaleString()} bytes provided after preprocessing).`
+      `Input is too long. Google TTS allows at most ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes per request (${payloadBytes.toLocaleString()} bytes provided after preprocessing).`
     );
   }
 

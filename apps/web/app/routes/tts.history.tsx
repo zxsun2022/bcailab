@@ -85,7 +85,7 @@ export default function TtsHistoryPage() {
         <div className="empty-state">
           <div className="empty-state-title">No speech generated yet</div>
           <p className="empty-state-desc">
-            Generate your first Neural2 audio and it will appear here.
+            Generate your first speech audio and it will appear here.
           </p>
         </div>
       ) : (
@@ -96,7 +96,6 @@ export default function TtsHistoryPage() {
                 <span>{formatDate(generation.created_at)}</span>
                 <span>{generation.language_code}</span>
                 <span>{generation.voice_name}</span>
-                <span>{generation.input_mode}</span>
               </div>
               <div className="tts-history-text">{generation.input_text}</div>
               <div className="tts-history-actions">

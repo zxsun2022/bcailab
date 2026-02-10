@@ -1,5 +1,3 @@
-export type SpeechInputMode = "markdown" | "plain";
-
 export type SpeechLanguage = {
   code: string;
   label: string;
