@@ -612,6 +612,13 @@ main.container {
   line-height: 1.6;
 }
 
+.hero-links {
+  margin-top: var(--space-6);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
 .hero-login-hint {
   margin-top: var(--space-6);
   padding: 12px 18px;
@@ -1098,6 +1105,11 @@ main.container {
 
   .hero-subtitle {
     font-size: 1.1rem;
+  }
+
+  .hero-links {
+    width: 100%;
+    justify-content: center;
   }
 
   .tool-grid {
