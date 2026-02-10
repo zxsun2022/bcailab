@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Link, useFetcher, useLoaderData } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
 import { Button, Card } from "@bcailab/ui";
 import { createTtsGeneration, listTtsGenerationsByUser } from "@bcailab/db";
 import { AutosizeTextarea } from "~/components/AutosizeTextarea";
@@ -28,6 +28,25 @@ type LoaderLanguage = {
   voices: SpeechVoiceOption[];
 };
 
+type HistoryItem = {
+  id: string;
+  inputText: string;
+  languageCode: string;
+  voiceName: string;
+  createdAt: string;
+};
+
+type SelectedRecord = {
+  id: string;
+  inputText: string;
+  processedText: string;
+  languageCode: string;
+  voiceName: string;
+  createdAt: string;
+  audioUrl: string;
+  downloadUrl: string;
+};
+
 type ActionError = { error: string };
 type ActionSuccess = {
   generation: {
@@ -53,6 +72,12 @@ const buildR2Key = (userId: string, generationId: string): string => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const formatDate = (value: string) =>
+  new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric"
+  });
 
 type PlaybackState = {
   currentChar: number;
@@ -255,7 +280,31 @@ const computePlaybackState = (input: {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
-  const historyCount = (await listTtsGenerationsByUser(context.env.DB, user.id)).length;
+  const generations = await listTtsGenerationsByUser(context.env.DB, user.id);
+  const historyCount = generations.length;
+  const url = new URL(request.url);
+  const selectedId = url.searchParams.get("record");
+  const selectedRow =
+    selectedId ? generations.find((generation) => generation.id === selectedId) : null;
+  const selected: SelectedRecord | null = selectedRow
+    ? {
+        id: selectedRow.id,
+        inputText: selectedRow.input_text,
+        processedText: selectedRow.processed_text,
+        languageCode: selectedRow.language_code,
+        voiceName: selectedRow.voice_name,
+        createdAt: selectedRow.created_at,
+        audioUrl: `/tts/audio/${selectedRow.id}`,
+        downloadUrl: `/tts/audio/${selectedRow.id}?download=1`
+      }
+    : null;
+  const history: HistoryItem[] = generations.slice(0, 40).map((generation) => ({
+    id: generation.id,
+    inputText: generation.input_text,
+    languageCode: generation.language_code,
+    voiceName: generation.voice_name,
+    createdAt: generation.created_at
+  }));
 
   let voiceError: string | null = null;
   let voicesByLanguage: Record<string, SpeechVoiceOption[]> = {};
@@ -274,7 +323,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return json({
     languages,
     historyCount,
-    voiceError
+    voiceError,
+    history,
+    selected
   });
 };
 
@@ -370,8 +421,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function TtsIndexPage() {
-  const { languages, historyCount, voiceError } = useLoaderData<typeof loader>();
+  const { languages, historyCount, voiceError, history, selected } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const revalidator = useRevalidator();
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const transcriptBodyRef = React.useRef<HTMLDivElement | null>(null);
   const currentWordRef = React.useRef<HTMLSpanElement | null>(null);
@@ -429,6 +481,11 @@ export default function TtsIndexPage() {
   );
   const currentLineIndex =
     transcriptModel?.tokenToLine.get(currentTokenIndex) ?? -1;
+
+  React.useEffect(() => {
+    if (!generation) return;
+    revalidator.revalidate();
+  }, [generation, revalidator]);
 
   React.useEffect(() => {
     setCurrentChar(0);
@@ -501,15 +558,51 @@ export default function TtsIndexPage() {
     });
   }, [currentTokenIndex, canHighlight, prefersReducedMotion]);
 
-  return (
-    <div className="tool-page">
-      {voiceError ? (
-        <div className="banner tts-warning">
-          Voice list could not be loaded: {voiceError}
-        </div>
-      ) : null}
+  const selectedId = selected?.id ?? null;
 
-      <Card className="tool-card-stack">
+  return (
+    <div className="tool-page tts-shell">
+      <aside className="tts-sidebar">
+        <div className="tts-sidebar-header">
+          <Link to="/tts" className="btn btn-primary">
+            New task
+          </Link>
+          <Link to="/tts/history" className="btn btn-ghost btn-sm">
+            Full history
+          </Link>
+        </div>
+        <div className="tts-sidebar-list">
+          {history.length === 0 ? (
+            <div className="tts-sidebar-empty">No tasks yet.</div>
+          ) : (
+            history.map((item) => (
+              <Link
+                key={item.id}
+                to={`/tts?record=${item.id}`}
+                className={`tts-sidebar-item ${selectedId === item.id ? "is-active" : ""}`}
+              >
+                <div className="tts-sidebar-item-title">
+                  {item.inputText.slice(0, 80)}
+                  {item.inputText.length > 80 ? "..." : ""}
+                </div>
+                <div className="tts-sidebar-item-meta">
+                  <span>{item.languageCode}</span>
+                  <span>{formatDate(item.createdAt)}</span>
+                </div>
+              </Link>
+            ))
+          )}
+        </div>
+      </aside>
+
+      <div className="tts-main">
+        {voiceError ? (
+          <div className="banner tts-warning">
+            Voice list could not be loaded: {voiceError}
+          </div>
+        ) : null}
+
+        <Card className="tool-card-stack">
         <fetcher.Form method="post">
           <AutosizeTextarea
             name="content"
@@ -578,16 +671,16 @@ export default function TtsIndexPage() {
             <Button type="submit" disabled={!canGenerate}>
               {isSubmitting ? "Generating..." : "Generate"}
             </Button>
-            <Link to="/tts/history" className="posts-link">
+            <Link to="/tts/history" className="posts-link tts-mobile-history-link">
               History
               <span className="posts-count">{historyCount}</span>
             </Link>
           </div>
         </fetcher.Form>
-      </Card>
+        </Card>
 
-      {generation && alignment ? (
-        <Card className="tool-card-stack">
+        {generation && alignment ? (
+          <Card className="tool-card-stack">
           <div className="tts-result-header">
             <strong>Generated audio</strong>
             <a className="btn btn-ghost btn-sm" href={generation.downloadUrl}>
@@ -641,8 +734,27 @@ export default function TtsIndexPage() {
             <div className="tts-transcript-fallback">{alignment.displayText}</div>
           )}
           {warning ? <div className="banner tts-warning">{warning}</div> : null}
-        </Card>
-      ) : null}
+          </Card>
+        ) : null}
+
+        {!generation && selected ? (
+          <Card className="tool-card-stack">
+            <div className="tts-result-header">
+              <strong>History item</strong>
+              <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
+                Download MP3
+              </a>
+            </div>
+            <audio className="tts-audio" controls preload="metadata" src={selected.audioUrl} />
+            <div className="tts-history-meta" style={{ marginTop: "12px" }}>
+              <span>{selected.languageCode}</span>
+              <span>{selected.voiceName}</span>
+              <span>{formatDate(selected.createdAt)}</span>
+            </div>
+            <div className="tts-transcript-fallback">{selected.processedText}</div>
+          </Card>
+        ) : null}
+      </div>
     </div>
   );
 }

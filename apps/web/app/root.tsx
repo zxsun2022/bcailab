@@ -50,7 +50,10 @@ export default function App() {
         <footer className="footer">
           <div className="container footer-inner">
             <span>© {new Date().getFullYear()} bcailab · Burnaby, British Columbia, Canada</span>
-            <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
+            <div className="footer-links">
+              <a href="/about" className="footer-link">About</a>
+              <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
+            </div>
           </div>
         </footer>
         <ScrollRestoration />

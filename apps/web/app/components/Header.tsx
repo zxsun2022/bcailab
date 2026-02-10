@@ -66,6 +66,11 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
             />
             <span className="logo-text">bc<span className="logo-ai">ai</span>lab</span>
           </Link>
+          <nav className="public-nav" aria-label="Primary">
+            <Link to="/about" className="public-nav-link">
+              About
+            </Link>
+          </nav>
           {breadcrumbs.length > 0 && (
             <nav className="breadcrumb">
               {breadcrumbs.map((crumb, i) => (
