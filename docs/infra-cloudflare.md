@@ -1,6 +1,6 @@
 # Cloudflare Infra
 
-This project uses Cloudflare Pages + D1 + (future) R2.
+This project uses Cloudflare Pages + D1 + R2.
 
 ## Pages Deployment Configuration
 
@@ -35,6 +35,7 @@ identical in both; keep them in sync manually when changing.
 Set the following for the Pages project:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
+- `GOOGLE_TTS_SERVICE_ACCOUNT_JSON`
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
 

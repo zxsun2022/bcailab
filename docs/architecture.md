@@ -6,7 +6,7 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 - **Remix app** (`apps/web`): Landing page, auth flows, tool UIs.
 - **Shared packages** (`packages/*`): UI primitives, auth helpers, D1 access helpers.
 - **D1**: Primary relational store for users, sessions, and tool data.
-- **R2**: Reserved for future asset storage.
+- **R2**: Private binary storage for generated tool assets (currently Speech MP3 files).
 
 ## Design System
 See [design-system.md](./design-system.md) for visual design guidelines including:
@@ -26,4 +26,7 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - `/posts/list` user's posts list
 - `/posts/:id` public post view
 - `/posts/:id/edit` edit UI (route file uses `_` to escape nesting: `posts.$id_.edit.tsx`)
+- `/tts` speech tool (generate)
+- `/tts/history` user's speech generation history
+- `/tts/audio/:id` authenticated audio stream/download endpoint
 - Legacy compatibility: `/text/*` redirects to the corresponding `/posts/*` route

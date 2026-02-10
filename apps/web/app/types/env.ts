@@ -5,6 +5,7 @@ export type Env = {
   R2: R2Bucket;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
+  GOOGLE_TTS_SERVICE_ACCOUNT_JSON: string;
   OAUTH_REDIRECT_URL: string;
   SESSION_SECRET: string;
 };

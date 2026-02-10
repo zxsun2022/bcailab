@@ -820,6 +820,162 @@ main.container {
   border-bottom: 1px solid var(--border);
 }
 
+/* Speech / TTS */
+.tts-controls {
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tts-mode-group {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+}
+
+.tts-label {
+  display: inline-block;
+  margin-bottom: var(--space-2);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tts-mode-options {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.tts-mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.95rem;
+}
+
+.tts-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.tts-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.tts-audio {
+  width: 100%;
+}
+
+.tts-transcript {
+  margin-top: var(--space-4);
+}
+
+.tts-transcript-title {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+
+.tts-transcript-viewport {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fcfcfc;
+  padding: var(--space-3);
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tts-transcript-line {
+  position: relative;
+  display: inline-block;
+  min-width: 100%;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  line-height: 1.7;
+  --speech-progress: 0%;
+}
+
+.tts-transcript-base {
+  color: var(--muted);
+}
+
+.tts-transcript-overlay {
+  position: absolute;
+  inset: 0;
+  color: var(--accent-alt);
+  pointer-events: none;
+  clip-path: inset(0 calc(100% - var(--speech-progress)) 0 0);
+}
+
+.tts-transcript-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--speech-progress);
+  width: 2px;
+  border-radius: var(--radius-sm);
+  background: rgba(37, 99, 235, 0.4);
+  pointer-events: none;
+}
+
+.tts-transcript-fallback {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: #fcfcfc;
+  white-space: pre-wrap;
+}
+
+.tts-warning {
+  margin-top: var(--space-4);
+  background: rgba(201, 48, 44, 0.12);
+  color: #7a1f1d;
+}
+
+.tts-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tts-history-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.tts-history-meta {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.tts-history-text {
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: #fcfcfc;
+}
+
+.tts-history-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 /* ==========================================================================
    8. RESPONSIVE
    ========================================================================== */
@@ -920,6 +1076,29 @@ main.container {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
+  }
+
+  .tts-mode-options {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .tts-select-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tts-result-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .tts-history-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .tts-history-actions audio {
+    width: 100%;
   }
 }
 
