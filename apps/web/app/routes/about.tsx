@@ -23,13 +23,6 @@ export default function About() {
           switch between tools without logging in again.
         </p>
       </section>
-      <section>
-        <h2>Data and storage</h2>
-        <p>
-          Structured data is stored in Cloudflare D1. Generated binary assets such as Speech audio files
-          are stored in Cloudflare R2.
-        </p>
-      </section>
     </div>
   );
 }

@@ -63,11 +63,6 @@ export default function Index() {
           A small lab for personal tools. Everything shares the same login,
           so you can move from one tool to the next without friction.
         </p>
-        <div className="hero-links">
-          <Link to="/about" className="btn btn-ghost">
-            About bcailab
-          </Link>
-        </div>
         {loginHint && (
           <div className="hero-login-hint">
             Please sign in to access the tools.

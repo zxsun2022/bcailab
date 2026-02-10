@@ -793,9 +793,6 @@ export default function TtsIndexPage() {
             <div className="tts-result-header">
               <strong>Task details</strong>
               <div className="tts-history-actions">
-                <Link to="/tts" className="btn btn-ghost btn-sm">
-                  New task
-                </Link>
                 <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
                   Download MP3
                 </a>
