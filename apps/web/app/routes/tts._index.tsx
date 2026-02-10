@@ -63,17 +63,172 @@ const buildR2Key = (userId: string, generationId: string): string => {
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-const computeProgressPercent = (input: {
+type PlaybackState = {
+  progressPercent: number;
+  currentChar: number;
+  currentTokenIndex: number;
+};
+
+type TranscriptSegment = {
+  kind: "token" | "gap";
+  text: string;
+  start: number;
+  end: number;
+  tokenIndex: number | null;
+  lineIndex: number;
+  isLineBreak: boolean;
+};
+
+type TranscriptModel = {
+  segments: TranscriptSegment[];
+  tokenToLine: Map<number, number>;
+};
+
+const markNameToTokenIndex = (name: string): number | null => {
+  const match = /^m_(\d+)$/.exec(name);
+  if (!match) return null;
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : null;
+};
+
+const splitGapWithLineBreaks = (input: {
+  text: string;
+  start: number;
+  end: number;
+}): Array<Omit<TranscriptSegment, "lineIndex">> => {
+  if (!input.text) return [];
+
+  const parts: Array<Omit<TranscriptSegment, "lineIndex">> = [];
+  let cursor = 0;
+
+  while (cursor < input.text.length) {
+    const breakIndex = input.text.indexOf("\n", cursor);
+    if (breakIndex === -1) {
+      const text = input.text.slice(cursor);
+      if (text) {
+        parts.push({
+          kind: "gap",
+          text,
+          start: input.start + cursor,
+          end: input.end,
+          tokenIndex: null,
+          isLineBreak: false
+        });
+      }
+      break;
+    }
+
+    if (breakIndex > cursor) {
+      const text = input.text.slice(cursor, breakIndex);
+      parts.push({
+        kind: "gap",
+        text,
+        start: input.start + cursor,
+        end: input.start + breakIndex,
+        tokenIndex: null,
+        isLineBreak: false
+      });
+    }
+
+    parts.push({
+      kind: "gap",
+      text: "\n",
+      start: input.start + breakIndex,
+      end: input.start + breakIndex + 1,
+      tokenIndex: null,
+      isLineBreak: true
+    });
+
+    cursor = breakIndex + 1;
+  }
+
+  return parts;
+};
+
+const buildTranscriptModel = (alignment: SpeechAlignment): TranscriptModel => {
+  const marks = [...alignment.marks].sort((a, b) => a.startChar - b.startChar);
+  const rawSegments: Array<Omit<TranscriptSegment, "lineIndex">> = [];
+  let cursor = 0;
+
+  for (let i = 0; i < marks.length; i += 1) {
+    const mark = marks[i];
+    if (mark.startChar > cursor) {
+      rawSegments.push(
+        ...splitGapWithLineBreaks({
+          text: alignment.displayText.slice(cursor, mark.startChar),
+          start: cursor,
+          end: mark.startChar
+        })
+      );
+    }
+
+    const tokenText = alignment.displayText.slice(mark.startChar, mark.endChar);
+    if (tokenText) {
+      rawSegments.push({
+        kind: "token",
+        text: tokenText,
+        start: mark.startChar,
+        end: mark.endChar,
+        tokenIndex: markNameToTokenIndex(mark.name) ?? i,
+        isLineBreak: false
+      });
+    }
+    cursor = mark.endChar;
+  }
+
+  if (cursor < alignment.displayText.length) {
+    rawSegments.push(
+      ...splitGapWithLineBreaks({
+        text: alignment.displayText.slice(cursor),
+        start: cursor,
+        end: alignment.displayText.length
+      })
+    );
+  }
+
+  const tokenToLine = new Map<number, number>();
+  const segments: TranscriptSegment[] = [];
+  let lineIndex = 0;
+  for (const segment of rawSegments) {
+    segments.push({
+      ...segment,
+      lineIndex
+    });
+    if (segment.kind === "token" && segment.tokenIndex !== null && !tokenToLine.has(segment.tokenIndex)) {
+      tokenToLine.set(segment.tokenIndex, lineIndex);
+    }
+    if (segment.isLineBreak) {
+      lineIndex += 1;
+    }
+  }
+
+  return {
+    segments,
+    tokenToLine
+  };
+};
+
+const computePlaybackState = (input: {
   alignment: SpeechAlignment;
   currentTime: number;
   duration: number;
-}): number => {
+}): PlaybackState => {
   const textLength = input.alignment.displayText.length;
-  if (textLength <= 0 || input.alignment.marks.length === 0) return 0;
+  if (textLength <= 0 || input.alignment.marks.length === 0) {
+    return {
+      progressPercent: 0,
+      currentChar: 0,
+      currentTokenIndex: -1
+    };
+  }
 
   const marks = input.alignment.marks;
   if (input.currentTime <= marks[0].startSec) {
-    return clamp((marks[0].startChar / textLength) * 100, 0, 100);
+    return {
+      progressPercent: clamp((marks[0].startChar / textLength) * 100, 0, 100),
+      currentChar: clamp(marks[0].startChar, 0, textLength),
+      currentTokenIndex: markNameToTokenIndex(marks[0].name) ?? 0
+    };
   }
 
   for (let i = 0; i < marks.length - 1; i += 1) {
@@ -83,7 +238,11 @@ const computeProgressPercent = (input: {
       const segmentDuration = Math.max(next.startSec - current.startSec, 0.001);
       const ratio = clamp((input.currentTime - current.startSec) / segmentDuration, 0, 1);
       const charPos = current.startChar + (next.startChar - current.startChar) * ratio;
-      return clamp((charPos / textLength) * 100, 0, 100);
+      return {
+        progressPercent: clamp((charPos / textLength) * 100, 0, 100),
+        currentChar: clamp(charPos, 0, textLength),
+        currentTokenIndex: markNameToTokenIndex(current.name) ?? i
+      };
     }
   }
 
@@ -95,10 +254,18 @@ const computeProgressPercent = (input: {
       1
     );
     const charPos = last.startChar + (textLength - last.startChar) * ratio;
-    return clamp((charPos / textLength) * 100, 0, 100);
+    return {
+      progressPercent: clamp((charPos / textLength) * 100, 0, 100),
+      currentChar: clamp(charPos, 0, textLength),
+      currentTokenIndex: markNameToTokenIndex(last.name) ?? marks.length - 1
+    };
   }
 
-  return clamp((last.endChar / textLength) * 100, 0, 100);
+  return {
+    progressPercent: clamp((last.endChar / textLength) * 100, 0, 100),
+    currentChar: clamp(last.endChar, 0, textLength),
+    currentTokenIndex: markNameToTokenIndex(last.name) ?? marks.length - 1
+  };
 };
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -226,8 +393,8 @@ export default function TtsIndexPage() {
   const { languages, historyCount, voiceError } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
-  const transcriptViewportRef = React.useRef<HTMLDivElement | null>(null);
-  const transcriptLineRef = React.useRef<HTMLDivElement | null>(null);
+  const transcriptBodyRef = React.useRef<HTMLDivElement | null>(null);
+  const currentWordRef = React.useRef<HTMLSpanElement | null>(null);
 
   const [content, setContent] = React.useState("");
   const [inputMode, setInputMode] = React.useState<SpeechInputMode>("markdown");
@@ -236,7 +403,8 @@ export default function TtsIndexPage() {
     return withVoices?.code ?? languages[0]?.code ?? "";
   });
   const [voiceName, setVoiceName] = React.useState("");
-  const [progressPercent, setProgressPercent] = React.useState(0);
+  const [currentChar, setCurrentChar] = React.useState(0);
+  const [currentTokenIndex, setCurrentTokenIndex] = React.useState<number>(-1);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
 
   const selectedLanguage =
@@ -276,9 +444,16 @@ export default function TtsIndexPage() {
   const canHighlight = alignment ? alignment.marks.length >= 2 : false;
   const isSubmitting = fetcher.state !== "idle";
   const canGenerate = !!voiceName && !isSubmitting;
+  const transcriptModel = React.useMemo(
+    () => (alignment ? buildTranscriptModel(alignment) : null),
+    [alignment]
+  );
+  const currentLineIndex =
+    transcriptModel?.tokenToLine.get(currentTokenIndex) ?? -1;
 
   React.useEffect(() => {
-    setProgressPercent(0);
+    setCurrentChar(0);
+    setCurrentTokenIndex(-1);
   }, [generation?.id]);
 
   React.useEffect(() => {
@@ -289,27 +464,13 @@ export default function TtsIndexPage() {
 
     let frameId = 0;
     const tick = () => {
-      const next = computeProgressPercent({
+      const state = computePlaybackState({
         alignment,
         currentTime: audio.currentTime ?? 0,
         duration: Number.isFinite(audio.duration) ? audio.duration : 0
       });
-      setProgressPercent(next);
-
-      const viewport = transcriptViewportRef.current;
-      const line = transcriptLineRef.current;
-      if (viewport && line) {
-        const maxScroll = Math.max(line.scrollWidth - viewport.clientWidth, 0);
-        if (maxScroll > 0) {
-          const playheadX = (next / 100) * line.scrollWidth;
-          const target = clamp(playheadX - viewport.clientWidth * 0.4, 0, maxScroll);
-          if (prefersReducedMotion) {
-            viewport.scrollLeft = target;
-          } else {
-            viewport.scrollLeft += (target - viewport.scrollLeft) * 0.24;
-          }
-        }
-      }
+      setCurrentChar(state.currentChar);
+      setCurrentTokenIndex(state.currentTokenIndex);
 
       if (!audio.paused && !audio.ended) {
         frameId = requestAnimationFrame(tick);
@@ -347,11 +508,19 @@ export default function TtsIndexPage() {
       audio.removeEventListener("seeked", stop);
       audio.removeEventListener("timeupdate", stop);
     };
-  }, [alignment, prefersReducedMotion]);
+  }, [alignment]);
 
-  const transcriptStyle = {
-    ["--speech-progress" as string]: `${progressPercent.toFixed(2)}%`
-  } as React.CSSProperties;
+  React.useEffect(() => {
+    if (!canHighlight) return;
+    const element = currentWordRef.current;
+    const container = transcriptBodyRef.current;
+    if (!element || !container) return;
+    element.scrollIntoView({
+      block: "nearest",
+      inline: "nearest",
+      behavior: prefersReducedMotion ? "auto" : "smooth"
+    });
+  }, [currentTokenIndex, canHighlight, prefersReducedMotion]);
 
   return (
     <div className="tool-page">
@@ -471,14 +640,43 @@ export default function TtsIndexPage() {
           {canHighlight ? (
             <div className="tts-transcript">
               <div className="tts-transcript-title">Synced transcript</div>
-              <div className="tts-transcript-viewport" ref={transcriptViewportRef}>
-                <div className="tts-transcript-line" ref={transcriptLineRef} style={transcriptStyle}>
-                  <span className="tts-transcript-base">{alignment.displayText}</span>
-                  <span className="tts-transcript-overlay" aria-hidden>
-                    {alignment.displayText}
-                  </span>
-                  <span className="tts-transcript-playhead" aria-hidden />
-                </div>
+              <div className="tts-transcript-body" ref={transcriptBodyRef}>
+                {transcriptModel?.segments.map((segment, index) => {
+                  const isRead = segment.end <= currentChar;
+                  const isCurrentLine =
+                    currentLineIndex >= 0 &&
+                    segment.lineIndex === currentLineIndex &&
+                    !segment.isLineBreak;
+                  const isCurrentWord =
+                    segment.kind === "token" &&
+                    segment.tokenIndex !== null &&
+                    segment.tokenIndex === currentTokenIndex;
+
+                  const className = [
+                    "tts-segment",
+                    isRead ? "is-read" : "",
+                    isCurrentLine ? "is-current-line" : "",
+                    isCurrentWord ? "is-current-word" : ""
+                  ]
+                    .filter(Boolean)
+                    .join(" ");
+
+                  return (
+                    <span
+                      key={`${segment.start}-${segment.end}-${index}`}
+                      className={className}
+                      ref={
+                        isCurrentWord
+                          ? (node) => {
+                              currentWordRef.current = node;
+                            }
+                          : undefined
+                      }
+                    >
+                      {segment.text}
+                    </span>
+                  );
+                })}
               </div>
             </div>
           ) : (

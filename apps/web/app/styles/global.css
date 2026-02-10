@@ -883,47 +883,36 @@ main.container {
   margin-bottom: var(--space-2);
 }
 
-.tts-transcript-viewport {
+.tts-transcript-body {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: #fcfcfc;
   padding: var(--space-3);
-  white-space: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-.tts-transcript-line {
-  position: relative;
-  display: inline-block;
-  min-width: 100%;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-word;
   font-family: var(--font-sans);
-  line-height: 1.7;
-  --speech-progress: 0%;
+  line-height: 1.75;
+  max-height: 280px;
+  overflow: auto;
 }
 
-.tts-transcript-base {
+.tts-segment {
   color: var(--muted);
+  border-radius: 3px;
+  transition: color var(--transition-fast), background-color var(--transition-fast);
 }
 
-.tts-transcript-overlay {
-  position: absolute;
-  inset: 0;
-  color: var(--accent-alt);
-  pointer-events: none;
-  clip-path: inset(0 calc(100% - var(--speech-progress)) 0 0);
+.tts-segment.is-read {
+  color: var(--text);
 }
 
-.tts-transcript-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: var(--speech-progress);
-  width: 2px;
-  border-radius: var(--radius-sm);
-  background: rgba(37, 99, 235, 0.4);
-  pointer-events: none;
+.tts-segment.is-current-line {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+.tts-segment.is-current-word {
+  color: #fff;
+  background: var(--accent-alt);
 }
 
 .tts-transcript-fallback {
