@@ -203,7 +203,7 @@ export const buildSpeechPlan = (input: {
   const ssmlBytes = utf8ByteLength(ssml);
   if (ssmlBytes > MAX_TTS_SSML_BYTES) {
     throw new TtsValidationError(
-      `Input is too long for a single synthesis request (${ssmlBytes.toLocaleString()} bytes > ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes).`
+      `Input is too long. Google TTS allows at most ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes per request (${ssmlBytes.toLocaleString()} bytes provided after preprocessing).`
     );
   }
 

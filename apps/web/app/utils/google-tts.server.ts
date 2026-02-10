@@ -52,7 +52,8 @@ export type SynthesizeResult = {
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const VOICES_URL = "https://texttospeech.googleapis.com/v1/voices";
-const SYNTHESIZE_URL = "https://texttospeech.googleapis.com/v1/text:synthesize";
+// `enableTimePointing` for SSML marks is available on v1beta1 `text:synthesize`.
+const SYNTHESIZE_URL = "https://texttospeech.googleapis.com/v1beta1/text:synthesize";
 const TTS_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const ACCESS_TOKEN_SKEW_MS = 60_000;
 const VOICE_CACHE_MS = 5 * 60_000;

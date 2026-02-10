@@ -37,4 +37,4 @@ Speech is an authenticated text-to-speech utility built on Google Cloud TTS Neur
 
 ## Constraints
 - Neural2 voices only (no automatic fallback to other voice families)
-- Single-request SSML payload limit is enforced in app-side validation
+- Google TTS input limit is **5,000 bytes per request** (text/SSML); app-side validation enforces this on the final SSML payload.
