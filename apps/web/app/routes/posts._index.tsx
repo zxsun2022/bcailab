@@ -6,7 +6,7 @@ import { createPost, getPostById, listPostsByUser, softDeletePost } from "@bcail
 import { AutosizeTextarea } from "~/components/AutosizeTextarea";
 import { renderMarkdown } from "~/utils/markdown.server";
 import { requireUser } from "~/utils/auth.server";
-import { MAX_POST_LENGTH } from "~/utils/posts";
+import { MAX_POST_LENGTH, normalizePostContent } from "~/utils/posts";
 import * as React from "react";
 
 type PublishedInfo = {
@@ -52,7 +52,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return redirect("/posts");
   }
 
-  const content = String(formData.get("content") ?? "").trim();
+  const content = normalizePostContent(String(formData.get("content") ?? "")).trim();
   if (!content) {
     return json({ error: "Content cannot be empty." }, { status: 400 });
   }

@@ -4,9 +4,10 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeSanitize from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
+import { normalizePostContent } from "./posts";
 
 export const renderMarkdown = async (content: string): Promise<string> => {
-  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const normalized = normalizePostContent(content);
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
