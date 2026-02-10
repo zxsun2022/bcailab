@@ -11,6 +11,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   return redirect(`/posts/list${url.search}`, { status: 307 });
 };
 
-export default function LegacyTextPosts() {
+export default function LegacyPostsPosts() {
   return null;
 }

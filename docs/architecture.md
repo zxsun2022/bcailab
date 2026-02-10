@@ -16,13 +16,14 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 
 ## Key Flows
 - Google OAuth handled in the Remix app; sessions are stored in D1 and referenced by a secure cookie.
-- Tools are protected behind login; public pages are selectively accessible (e.g. published text pages).
+- Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
 
 ## Routing
 - `/` landing page
 - `/about` about page
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
-- `/text` text tool (compose)
-- `/text/posts` user's posts list
-- `/text/:id` public text view
-- `/text/:id/edit` edit UI (route file uses `_` to escape nesting: `text.$id_.edit.tsx`)
+- `/posts` posts tool (compose)
+- `/posts/list` user's posts list
+- `/posts/:id` public post view
+- `/posts/:id/edit` edit UI (route file uses `_` to escape nesting: `posts.$id_.edit.tsx`)
+- Legacy compatibility: `/text/*` redirects to the corresponding `/posts/*` route

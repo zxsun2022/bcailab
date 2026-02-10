@@ -4,9 +4,9 @@ import type { User } from "@bcailab/db";
 
 const tools = [
   {
-    slug: "text",
-    title: "Text Publisher",
-    description: "Publish lightweight notes with Markdown. Share a clean public URL.",
+    slug: "posts",
+    title: "Posts",
+    description: "Publish Markdown posts and share a clean public URL.",
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />

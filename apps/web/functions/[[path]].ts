@@ -6,6 +6,6 @@ export const onRequest = createPagesFunctionHandler({
   build,
   getLoadContext: (context) => ({
     env: context.env,
-    cf: context.cf
+    cf: context.request.cf as IncomingRequestCfProperties | undefined
   })
 });

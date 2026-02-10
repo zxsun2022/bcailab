@@ -28,12 +28,12 @@ export const AutosizeTextarea = React.forwardRef<HTMLTextAreaElement, TextareaPr
       <Textarea
         {...props}
         value={value}
-        ref={(node) => {
+        ref={(node: HTMLTextAreaElement | null) => {
           innerRef.current = node;
           setRef(ref, node);
         }}
         className={`textarea-autosize ${className ?? ""}`.trim()}
-        onInput={(event) => {
+        onInput={(event: React.FormEvent<HTMLTextAreaElement>) => {
           resize();
           onInput?.(event);
         }}

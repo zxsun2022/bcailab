@@ -48,7 +48,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   const html = result.ok
     ? renderHtml("Welcome back to bcailab.", origin, true)
-    : renderHtml(result.error, origin, false);
+    : renderHtml(result.error ?? "Authentication failed.", origin, false);
 
   const headers = new Headers({
     "Content-Type": "text/html; charset=utf-8"
