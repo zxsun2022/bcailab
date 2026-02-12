@@ -1,9 +1,10 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { useLoaderData, Link } from "@remix-run/react";
+import { useLoaderData, Link, useNavigate } from "@remix-run/react";
 import { Button, Card } from "@bcailab/ui";
 import { getPostById, listPostsByUser, softDeletePost } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
+import { extractTitle, stripMarkdown } from "~/utils/posts";
 
 const formatDate = (value: string) =>
   new Date(value).toLocaleDateString(undefined, {
@@ -11,6 +12,11 @@ const formatDate = (value: string) =>
     month: "short",
     day: "numeric"
   });
+
+const previewText = (md: string, maxLen = 120): string => {
+  const plain = stripMarkdown(md);
+  return plain.length > maxLen ? `${plain.slice(0, maxLen)}...` : plain;
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -38,6 +44,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
 export default function PostsListPage() {
   const { posts } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
 
   return (
     <div className="tool-page">
@@ -59,32 +66,48 @@ export default function PostsListPage() {
         </div>
       ) : (
         <div className="posts-list">
-          {posts.map((post) => (
-            <Card key={post.id} className="post-row">
-              <div className="post-row-content">
-                <div className="post-row-preview">
-                  {post.content_md.slice(0, 100)}
-                  {post.content_md.length > 100 ? "..." : ""}
+          {posts.map((post) => {
+            const title = extractTitle(post.content_md);
+            return (
+              <Card
+                key={post.id}
+                className="post-row post-row-clickable"
+                onClick={() => navigate(`/posts/${post.id}`)}
+                role="link"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/posts/${post.id}`);
+                  }
+                }}
+              >
+                <div className="post-row-content">
+                  {title ? (
+                    <>
+                      <div className="post-row-title">{title}</div>
+                      <div className="post-row-excerpt">{previewText(post.content_md)}</div>
+                    </>
+                  ) : (
+                    <div className="post-row-preview">{previewText(post.content_md)}</div>
+                  )}
+                  <div className="post-meta">{formatDate(post.updated_at)}</div>
                 </div>
-                <div className="post-meta">{formatDate(post.updated_at)}</div>
-              </div>
-              <div className="post-row-actions">
-                <Link to={`/posts/${post.id}`} className="btn btn-ghost btn-sm">
-                  View
-                </Link>
-                <Link to={`/posts/${post.id}/edit`} className="btn btn-ghost btn-sm">
-                  Edit
-                </Link>
-                <form method="post" style={{ display: "inline" }} onSubmit={(e) => { if (!confirm("Delete this post? This cannot be undone.")) e.preventDefault(); }}>
-                  <input type="hidden" name="_intent" value="delete" />
-                  <input type="hidden" name="id" value={post.id} />
-                  <Button type="submit" variant="danger" size="sm">
-                    Delete
-                  </Button>
-                </form>
-              </div>
-            </Card>
-          ))}
+                <div className="post-row-actions" onClick={(e) => e.stopPropagation()}>
+                  <Link to={`/posts/${post.id}/edit`} className="btn btn-ghost btn-sm">
+                    Edit
+                  </Link>
+                  <form method="post" style={{ display: "inline" }} onSubmit={(e) => { if (!confirm("Delete this post? This cannot be undone.")) e.preventDefault(); }}>
+                    <input type="hidden" name="_intent" value="delete" />
+                    <input type="hidden" name="id" value={post.id} />
+                    <Button type="submit" variant="danger" size="sm">
+                      Delete
+                    </Button>
+                  </form>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

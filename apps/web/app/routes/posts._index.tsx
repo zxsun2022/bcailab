@@ -136,7 +136,7 @@ export default function PostsTool() {
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Publishing..." : "Publish"}
             </Button>
-            <Link to="/posts/list" className="posts-link">
+            <Link to="/posts/list" className="btn btn-ghost btn-sm posts-list-link">
               Your posts
               <span className="posts-count">{posts.length}</span>
             </Link>
