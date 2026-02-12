@@ -1152,6 +1152,10 @@ select.input:focus {
   gap: var(--space-sm);
 }
 
+.tts-primary-content {
+  display: block;
+}
+
 .tts-sidebar-header {
   display: flex;
   flex-direction: column;
@@ -1212,10 +1216,10 @@ select.input:focus {
 }
 
 .tts-controls {
-  margin-top: var(--space-md);
+  margin-top: 10px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
+  gap: 10px;
 }
 
 .tts-label {
@@ -1461,6 +1465,10 @@ select.input:focus {
     overflow: auto;
   }
 
+  .tts-main.is-history-open .tts-primary-content {
+    display: none;
+  }
+
   .tts-result-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1483,6 +1491,31 @@ select.input:focus {
 }
 
 @media (min-width: 1024px) {
+  .tool-page.posts-compose-page {
+    min-height: calc(100dvh - 196px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .posts-compose-card {
+    flex: 1;
+    margin-top: 20px;
+  }
+
+  .posts-compose-form {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .posts-compose-form .posts-compose-textarea {
+    min-height: clamp(260px, 42vh, 560px);
+  }
+
+  .posts-compose-form .form-actions {
+    margin-top: 12px;
+  }
+
   .tool-page.tts-shell {
     min-height: calc(100dvh - 196px);
   }
@@ -1523,12 +1556,12 @@ select.input:focus {
   }
 
   .tts-form .textarea-autosize {
-    min-height: clamp(220px, 32vh, 380px);
+    min-height: clamp(260px, 40vh, 520px);
   }
 
   .tts-form .form-actions {
-    margin-top: auto;
-    padding-top: 14px;
+    margin-top: 12px;
+    padding-top: 0;
   }
 }
 

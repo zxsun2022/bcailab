@@ -108,15 +108,16 @@ export default function PostsTool() {
   const characterCount = content.length;
 
   return (
-    <div className="tool-page">
+    <div className="tool-page posts-compose-page">
       <p className="tool-desc">
         Write a post in Markdown and publish it instantly.
       </p>
 
-      <Card className="tool-card-stack">
-        <fetcher.Form method="post">
+      <Card className="tool-card-stack posts-compose-card">
+        <fetcher.Form method="post" className="posts-compose-form">
           <AutosizeTextarea
             name="content"
+            className="posts-compose-textarea"
             placeholder="Write your post in Markdown..."
             value={content}
             onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
