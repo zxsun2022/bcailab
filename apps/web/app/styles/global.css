@@ -658,11 +658,36 @@ select.input:focus {
 
 .published-banner {
   margin-top: var(--space-lg);
+  border: 1px solid rgba(196, 149, 106, 0.3);
+  border-left: 3px solid var(--accent);
+  background: rgba(196, 149, 106, 0.06);
+  padding: 16px 18px;
 }
 
-.published-url {
+.published-banner-header {
+  margin-bottom: 8px;
+}
+
+.published-banner-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.published-banner-url {
+  font-size: 14px;
+  color: var(--text-muted);
   overflow-wrap: anywhere;
   word-break: break-word;
+  margin-bottom: 12px;
+}
+
+.published-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .posts-link {

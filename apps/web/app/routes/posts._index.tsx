@@ -145,17 +145,29 @@ export default function PostsTool() {
       </Card>
 
       {published ? (
-        <div className="banner published-banner">
-          <div>
-            Published! URL: <strong className="published-url">{published.url}</strong>
+        <div className="published-banner">
+          <div className="published-banner-header">
+            <span className="published-banner-label">Published</span>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => navigator.clipboard.writeText(published.url)}
-          >
-            Copy URL
-          </Button>
+          <div className="published-banner-url">{published.url}</div>
+          <div className="published-banner-actions">
+            <a
+              href={published.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-primary btn-sm"
+            >
+              Open
+            </a>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => navigator.clipboard.writeText(published.url)}
+            >
+              Copy URL
+            </Button>
+          </div>
         </div>
       ) : null}
     </div>
