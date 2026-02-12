@@ -1597,13 +1597,15 @@ select.input:focus {
   }
 
   .tts-controls {
-    margin-top: auto;
-    padding-top: 18px;
-    gap: 12px;
+    margin-top: 18px;
+    padding-top: 8px;
+    gap: 10px;
   }
 
   .tts-form .textarea-autosize {
-    min-height: clamp(260px, 38vh, 480px);
+    flex: 1 1 auto;
+    min-height: clamp(340px, 54vh, 640px);
+    max-height: none;
   }
 
   .tts-form .form-actions {
