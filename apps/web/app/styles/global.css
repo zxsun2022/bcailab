@@ -1289,11 +1289,11 @@ select.input:focus {
 
 .post-view-body {
   display: block;
-  overflow-x: hidden;
 }
 
 .post-view-body .markdown {
   margin: 0 auto;
+  overflow-x: hidden;
 }
 
 .post-toc {
@@ -1808,6 +1808,7 @@ select.input:focus {
     top: 24px;
     max-height: calc(100dvh - 80px);
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .tool-page.posts-compose-page {
