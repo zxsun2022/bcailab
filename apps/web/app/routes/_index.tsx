@@ -35,7 +35,7 @@ export default function Index() {
   };
 
   return (
-    <div className="home">
+    <div className="home home-fullscreen">
       <section className="home-hero">
         <div className="home-hero-left">
           <div className="home-eyebrow">

@@ -234,6 +234,8 @@ p {
 
 main.container {
   flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .site-header {
@@ -247,7 +249,7 @@ main.container {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  min-height: 74px;
+  min-height: 72px;
 }
 
 .header-nav {
@@ -592,7 +594,7 @@ select.input:focus {
 }
 
 .tool-page {
-  padding-top: var(--space-2xl);
+  padding-top: var(--space-xl);
 }
 
 .tool-desc,
@@ -608,7 +610,7 @@ select.input:focus {
 }
 
 .tool-card-stack {
-  margin-top: var(--space-lg);
+  margin-top: 20px;
 }
 
 .textarea-meta {
@@ -776,15 +778,27 @@ select.input:focus {
    ========================================================================== */
 
 .home {
-  padding-top: var(--space-xl);
-  padding-bottom: var(--space-xl);
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-lg);
+}
+
+.home.home-fullscreen {
+  flex: 1;
+  display: flex;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .home-hero {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 170px);
+  min-height: 100%;
+  width: 100%;
   border-bottom: 1px solid var(--border);
+}
+
+.home.home-fullscreen .home-hero {
+  flex: 1;
 }
 
 .home-hero-left,
@@ -792,7 +806,7 @@ select.input:focus {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: var(--space-4xl) 0;
+  padding: var(--space-3xl) 0;
 }
 
 .home-hero-left {
@@ -804,8 +818,8 @@ select.input:focus {
   content: "";
   position: absolute;
   right: 0;
-  top: var(--space-4xl);
-  bottom: var(--space-4xl);
+  top: var(--space-3xl);
+  bottom: var(--space-3xl);
   width: 1px;
   background: var(--divider-gradient);
 }
@@ -1283,42 +1297,48 @@ select.input:focus {
    ========================================================================== */
 
 @media (max-width: 1024px) {
-  .home-hero {
-    min-height: auto;
-  }
-
   .home-hero-left,
   .home-hero-right {
-    padding-top: var(--space-3xl);
-    padding-bottom: var(--space-3xl);
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-2xl);
   }
 }
 
 @media (max-width: 768px) {
   .site-header .header-inner {
     min-height: auto;
-    padding: 12px 0;
-    flex-direction: column;
+    padding: 10px 0;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: flex-start;
   }
 
   .header-nav {
-    width: 100%;
-    flex-wrap: wrap;
-    gap: var(--space-sm);
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
   .breadcrumb {
-    width: 100%;
+    width: auto;
     flex-wrap: wrap;
+    font-size: 11px;
+    letter-spacing: 0.7px;
   }
 
   .nav-actions {
-    width: 100%;
+    width: auto;
+    margin-left: var(--space-sm);
+    align-self: flex-start;
   }
 
   .nav-actions .btn {
-    width: 100%;
+    width: auto;
+    white-space: nowrap;
+    padding: 9px 12px;
+    font-size: 11px;
   }
 
   .home {
@@ -1331,7 +1351,7 @@ select.input:focus {
 
   .home-hero-left,
   .home-hero-right {
-    padding: var(--space-2xl) 0;
+    padding: 36px 0;
   }
 
   .home-hero-left {
@@ -1348,7 +1368,7 @@ select.input:focus {
   }
 
   .home-title {
-    font-size: 36px;
+    font-size: 34px;
   }
 
   .form-actions {
@@ -1382,6 +1402,10 @@ select.input:focus {
 
   .tts-select-grid {
     grid-template-columns: 1fr;
+  }
+
+  .tool-page.tts-shell {
+    padding-top: 20px;
   }
 
   .tts-result-header {
@@ -1431,8 +1455,17 @@ select.input:focus {
   .home,
   .tool-page,
   .page {
-    padding-top: var(--space-xl);
+    padding-top: 22px;
     padding-bottom: var(--space-2xl);
+  }
+
+  .logo-image {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo-text {
+    font-size: 17px;
   }
 
   .home-tool-card,
