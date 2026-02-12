@@ -1,302 +1,138 @@
-# bcailab Design System
+# bcailab Design System (Editorial Craft)
 
-本文档定义了 bcailab 的视觉设计系统，确保所有页面和工具保持一致的审美风格。
+This document defines the current visual system for bcailab.
 
-## 设计理念
+## Design Direction
 
-bcailab 的视觉风格追求**经典与克制**：
+Style: Editorial Craft (journal + workshop)
 
-- **经典**：使用衬线字体，呼应传统印刷美学
-- **克制**：小圆角、有限的色彩、简洁的装饰
-- **功能优先**：视觉服务于内容，不喧宾夺主
+- Serif-first typography and restrained color usage
+- Square edges and low-noise interaction feedback
+- Deep red and copper as accents
+- Shared visual language across home and all tool pages
 
-## 品牌标识
+## Theme Policy
 
-### Logo 结构
+Theme mode is `auto` only.
 
-项目使用图像化 logo，资源位于 `apps/web/public/brand/logo.png`，并派生多个尺寸用于不同场景：
+- Light/dark follows the user OS/browser environment via `prefers-color-scheme`
+- No manual theme switch and no persisted theme preference
 
-- Header/UI：`/brand/logo-64.png`（配合 `2x` 使用 `/brand/logo-128.png`）
-- Favicon：`/favicon-16x16.png`、`/favicon-32x32.png`、`/favicon.ico`
-- PWA/系统图标：`/android-chrome-192x192.png`、`/android-chrome-512x512.png`
+## Typography
 
-### Header 中的 Logo 组成
+Fonts are self-hosted in `apps/web/public/fonts`.
 
-Header 的 logo 由**图片 + 文字**两部分组成：
+- Display: `Playfair Display`
+- Body: `Source Serif 4`
+- Mono/meta: `DM Mono`
 
-```
-[图片 36×36px]  bcailab
-                ^^-- "ai" 红色渐变
-```
+Fallbacks:
 
-- 图片尺寸：36×36px（CSS），使用 srcSet 配置 2x 清晰度
-- 文字字号：1.5rem，font-weight 500
-- 图片和文字之间间距：8px（`--space-2`）
+- serif: Georgia, Noto Serif SC, Songti SC, serif
+- mono: Menlo, Consolas, monospace
 
-### 品牌名含义与 "ai" 高亮规则
+## Color Tokens
 
-品牌名 `bcailab` 的结构是 **bc · ai · lab**：
+Shared accents:
 
-| 部分 | 含义 |
-|------|------|
-| bc | British Columbia |
-| ai | Artificial Intelligence |
-| lab | Laboratory |
+- `--red: #b52a1c`
+- `--copper: #c4956a`
+- `--copper-dim: rgba(196,149,106,0.15)`
 
-纯深色文字容易被读成 "b-cai-lab"（将 cai 当作一个音节）。为此，文字中的 `ai` 使用红色微渐变高亮，引导眼睛自然识别分组：
+Light mode:
 
-```css
-.logo-ai {
-  background: linear-gradient(to right, #c9302c, #e8594e);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-```
+- `--bg: #f6f2eb`
+- `--bg-alt: #eee8dd`
+- `--bg-card: #f6f2eb`
+- `--bg-card-hover: rgba(181,42,28,0.03)`
+- `--text: #2a2420`
+- `--text-muted: #8a8078`
+- `--text-faint: #b0a89e`
+- `--accent: #b52a1c`
+- `--border: #d8d0c4`
 
-- 渐变色值：`#c9302c`（站点主红）→ `#e8594e`（偏暖浅红），水平左到右
-- 不加背景 pill、不加动态效果。站点风格安静极简，持续动画会成为噪音
-- 渐变量很小（两个字母），不会和插画风格的图标抢戏
+Dark mode:
 
-### Logo 使用规范
+- `--bg: #0f0e0c`
+- `--bg-alt: #1a1917`
+- `--bg-card: #1a1917`
+- `--bg-card-hover: #201f1c`
+- `--text: #e8e2d8`
+- `--text-muted: #8a8478`
+- `--text-faint: #5a5650`
+- `--accent: #c23a22`
+- `--border: rgba(232,226,216,0.08)`
 
-- 使用透明背景 PNG
-- UI 中保持清晰的留白，不与文字抢主视觉
-- 在小尺寸下优先使用 64/128 版本，避免缩放原图
+Dark extras:
 
-## 色彩系统
+- low-opacity grain overlay
+- copper gradient center divider for home hero
 
-### 主色调
+## Spacing
 
-| 变量 | 色值 | 用途 |
-|------|------|------|
-| `--accent` | #c9302c | 主色，强调、CTA 按钮、重点文字 |
-| `--accent-alt` | #2563eb | 辅助色，链接悬停、信息提示、次要强调 |
+Core spacing tokens:
 
-### 中性色
+- `--space-xs: 4px`
+- `--space-sm: 8px`
+- `--space-md: 16px`
+- `--space-lg: 24px`
+- `--space-xl: 32px`
+- `--space-2xl: 48px`
+- `--space-3xl: 64px`
+- `--space-4xl: 80px`
 
-| 变量 | 色值 | 用途 |
-|------|------|------|
-| `--bg` | #fafafa | 页面背景 |
-| `--text` | #1a1a1a | 主要文字 |
-| `--muted` | #6b7280 | 次要文字、说明文字 |
-| `--border` | #e5e7eb | 边框、分隔线 |
-| `--card` | #ffffff | 卡片背景 |
+## Layout Rules
 
-### 色彩使用原则
+- Main container: centered, responsive fixed-max width
+- Home: two-column hero on desktop, single-column <= 768px
+- Tool pages: same typography and card/field primitives
+- TTS: desktop sidebar layout at >= 1024px
 
-1. **主色用于强调**：按钮、重要链接、关键信息
-2. **辅助色用于交互**：链接悬停、信息性内容
-3. **保持克制**：大面积使用中性色，彩色点缀
+## Header and Auth Constraints
 
-### 透明色
+Header stays behavior-compatible with current product logic:
 
-用于背景色块，保持轻盈感：
+- Left: logo + breadcrumb
+- Right: Google login button (signed out) OR avatar dropdown (signed in)
+- No `about/x/tools` nav links in header
 
-```css
-rgba(201, 48, 44, 0.08)  /* 主色背景 */
-rgba(37, 99, 235, 0.08)  /* 辅助色背景 */
-rgba(15, 23, 42, 0.04)   /* 悬停背景 */
-```
+## Component Rules
 
-## 字体系统
+### Buttons
 
-### 字体家族
+- Mono uppercase labels
+- Square corners
+- Primary/ghost/danger variants with subtle lift on hover
 
-```css
-font-family: "Crimson Pro", "Noto Serif SC", serif;
-```
+### Inputs/Textareas
 
-- **Crimson Pro**：英文衬线字体，优雅经典
-- **Noto Serif SC**：中文衬线字体，与英文风格协调
+- Square edges
+- Neutral border, accent border on focus
+- Body font for content
 
-### 字重使用
+### Cards
 
-| 字重 | 用途 |
-|------|------|
-| 400 | 正文、次要文字 |
-| 500 | 强调正文 |
-| 600 | 标题、按钮、重点 |
+- 1px border, no rounded corners
+- Light hover background shift
 
-### 字号规范
+### Tags and Meta
 
-| 元素 | 字号 | 说明 |
-|------|------|------|
-| 大标题 | clamp(2.8rem, 5vw, 4.5rem) | 响应式，Hero 区域 |
-| 页面标题 | 1.8-2rem | 工具页面主标题 |
-| 区块标题 | 1.1-1.2rem | 卡片标题、列表标题 |
-| 正文 | 1rem | 主要内容 |
-| 小字 | 0.85-0.9rem | 辅助信息、徽章、元数据 |
+- DM Mono, uppercase, compact tracking
+- Copper-tinted tag borders
 
-## 圆角系统
+### Tool/Post Cards
 
-**设计原则**：衬线字体具有锐利的笔画结构，搭配小而克制的圆角（4-8px）能保持经典感，避免大圆角带来的"科技感"冲突。
+- Left 3px accent bar appears on hover (`scaleY` reveal)
+- Arrow shifts right slightly on hover
 
-| 变量 | 值 | 用途 |
-|------|-----|------|
-| `--radius-sm` | 4px | 按钮、输入框、徽章、小元素 |
-| `--radius-md` | 6px | 卡片、菜单、中等容器 |
-| `--radius-lg` | 8px | 模态框、大卡片（保留，较少使用） |
-| `--radius-full` | 50% | 头像、圆形元素 |
+## Responsive Breakpoints
 
-### 使用指南
+- `<= 1024px`: reduced hero spacing
+- `<= 768px`: stacked header, one-column home hero, stacked form/list actions
+- `<= 480px`: tighter section/card paddings
 
-- **不要使用大圆角**（如 16px、24px、999px）
-- **不要使用药丸形**（border-radius: 999px）用于按钮
-- 圆形元素（头像）使用 `--radius-full`
+## Implementation Files
 
-## 阴影系统
-
-```css
---shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.2);
-```
-
-### 阴影使用
-
-- 卡片、按钮使用默认阴影
-- 悬停时可加深阴影：`0 24px 48px -16px rgba(15, 23, 42, 0.18)`
-- 避免多层阴影叠加
-
-## 间距系统
-
-基于 4px 网格：
-
-| 值 | 用途 |
-|-----|------|
-| 4px | 最小间距，图标与文字 |
-| 8px | 紧凑间距，相关元素之间 |
-| 12px | 常规间距，列表项 |
-| 16px | 中等间距，段落之间 |
-| 20px | 较大间距，区块内 |
-| 24px | 区块间距，卡片内边距 |
-| 40px | 大区块间距 |
-| 60-80px | 页面级区块间距 |
-
-## 组件规范
-
-### 按钮
-
-```html
-<button class="btn btn-primary">主要按钮</button>
-<button class="btn btn-ghost">次要按钮</button>
-<button class="btn btn-danger">危险按钮</button>
-```
-
-- 圆角：`--radius-sm` (4px)
-- 内边距：10px 18px（默认），6px 12px（小号）
-- 悬停效果：轻微上移（translateY -1px）
-
-### 卡片
-
-```html
-<div class="card">内容</div>
-```
-
-- 圆角：`--radius-md` (6px)
-- 内边距：24px
-- 边框：1px solid var(--border)
-- 阴影：var(--shadow)
-
-### 输入框
-
-```html
-<input class="input" />
-<textarea class="textarea"></textarea>
-```
-
-- 圆角：`--radius-sm` (4px)
-- 内边距：12px 14px
-- 边框：1px solid var(--border)
-
-### 徽章
-
-```html
-<span class="badge">标签</span>
-```
-
-- 圆角：`--radius-sm` (4px)
-- 内边距：5px 10px
-- 背景：透明色
-
-## 布局规范
-
-### 容器
-
-```css
-.container {
-  width: min(1120px, 92vw);
-  margin: 0 auto;
-}
-```
-
-### 页面结构
-
-```
-┌─────────────────────────────────────┐
-│ Header (sticky, 毛玻璃背景)          │
-├─────────────────────────────────────┤
-│                                     │
-│ Main Content (.container)           │
-│                                     │
-├─────────────────────────────────────┤
-│ Footer                              │
-└─────────────────────────────────────┘
-```
-
-### 响应式断点
-
-| 断点 | 说明 |
-|------|------|
-| 1024px | 平板过渡：缩小 hero padding，工具区间距 |
-| 720px | 移动端主断点：header 堆叠、列表单列、表单竖排、footer 竖排 |
-| 480px | 小屏修剪：进一步缩减 padding，按钮全宽 |
-
-新增页面时，三个断点都需要检查。特别注意 720px 断点下列表页和文章页的行为。
-
-## 动效规范
-
-### 过渡时长
-
-| 时长 | 用途 |
-|------|------|
-| 120ms | 快速反馈，按钮悬停 |
-| 200ms | 常规过渡，卡片悬停 |
-| 2s | 循环动画，脉冲效果 |
-
-### 缓动函数
-
-- 默认使用 `ease`
-- 弹性效果可用 `ease-out`
-
-### 常用动效
-
-```css
-/* 按钮悬停 */
-transform: translateY(-1px);
-
-/* 卡片悬停 */
-transform: translateY(-4px);
-box-shadow: 0 24px 48px -16px rgba(15, 23, 42, 0.18);
-
-/* 元素滑入 */
-opacity: 0 → 1;
-transform: translateX(-8px) → translateX(0);
-```
-
-## 图标规范
-
-- 使用 SVG 图标
-- 线条粗细：1.5px（装饰性）或 2px（功能性）
-- 尺寸：20-28px（常规），44-52px（特色图标块）
-- 颜色继承：`stroke="currentColor"`
-
-## 新页面检查清单
-
-创建新页面时，确保：
-
-- [ ] 使用 CSS 变量而非硬编码颜色
-- [ ] 圆角使用 `--radius-*` 变量
-- [ ] 按钮、卡片、输入框使用现有 class
-- [ ] 间距遵循 4px 网格
-- [ ] 移动端适配（720px 断点）
-- [ ] 字重仅使用 400/500/600
+- Global styles: `apps/web/app/styles/global.css`
+- Header behavior/UI: `apps/web/app/components/Header.tsx`
+- Home page structure: `apps/web/app/routes/_index.tsx`

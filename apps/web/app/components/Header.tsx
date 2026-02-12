@@ -89,7 +89,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
               Continue with Google
             </Button>
           ) : (
-            <div style={{ position: "relative" }}>
+            <div className="menu-shell">
               <button
                 type="button"
                 className="avatar-button"
@@ -104,8 +104,8 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
               </button>
               {menuOpen ? (
                 <div className="menu">
-                  <div style={{ padding: "8px 12px" }}>
-                    <div style={{ fontWeight: 600 }}>{user.name ?? "Signed in"}</div>
+                  <div className="menu-profile">
+                    <div className="menu-name">{user.name ?? "Signed in"}</div>
                     <div className="menu-muted">{user.email}</div>
                   </div>
                   <form method="post" action="/logout">
