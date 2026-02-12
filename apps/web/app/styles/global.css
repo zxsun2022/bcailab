@@ -1147,6 +1147,8 @@ select.input:focus {
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
   max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .posts-list {
@@ -1154,6 +1156,8 @@ select.input:focus {
   flex-direction: column;
   gap: 14px;
   max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .post-row {
@@ -1245,10 +1249,12 @@ select.input:focus {
   margin-bottom: var(--space-lg);
   border-bottom: 1px solid var(--border);
   max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .post-view-page.has-toc .post-view-header {
-  max-width: none;
+  max-width: 960px;
 }
 
 .post-view-body {
@@ -1737,13 +1743,15 @@ select.input:focus {
 @media (min-width: 1024px) {
   .post-view-page.has-toc .post-view-body {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 200px;
+    grid-template-columns: minmax(0, 720px) 200px;
     gap: var(--space-xl);
     align-items: start;
+    max-width: 960px;
+    margin: 0 auto;
   }
 
   .post-view-page.has-toc .post-view-body .markdown {
-    margin: 0;
+    max-width: none;
   }
 
   .post-view-page.has-toc .post-toc {

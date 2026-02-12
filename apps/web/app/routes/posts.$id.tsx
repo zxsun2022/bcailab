@@ -18,14 +18,6 @@ const formatDate = (value: string) =>
     day: "numeric"
   });
 
-const slugify = (text: string): string =>
-  text
-    .toLowerCase()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
-
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const id = params.id;
   if (!id) {
@@ -57,25 +49,19 @@ export default function PostPage() {
     });
   };
 
+  // Extract headings and assign stable index-based IDs (works for any language)
   React.useEffect(() => {
     const article = articleRef.current;
     if (!article) return;
 
     const headings = article.querySelectorAll("h1, h2, h3");
     const items: TocItem[] = [];
-    const usedIds = new Set<string>();
 
-    headings.forEach((heading) => {
+    headings.forEach((heading, index) => {
       const text = heading.textContent?.trim() ?? "";
       if (!text) return;
-      let id = heading.id || slugify(text);
-      while (usedIds.has(id)) {
-        id = `${id}-1`;
-      }
-      usedIds.add(id);
-      if (!heading.id) {
-        heading.id = id;
-      }
+      const id = `heading-${index}`;
+      heading.id = id;
       items.push({
         id,
         text,
@@ -86,9 +72,9 @@ export default function PostPage() {
     setToc(items);
   }, [post.content_html]);
 
+  // Scroll tracking: IntersectionObserver + bottom-of-page detection
   React.useEffect(() => {
-    const article = articleRef.current;
-    if (!article || toc.length === 0) return;
+    if (toc.length === 0) return;
 
     const headingElements = toc
       .map((item) => document.getElementById(item.id))
@@ -96,23 +82,73 @@ export default function PostPage() {
 
     if (headingElements.length === 0) return;
 
+    // Track which headings have been scrolled past
+    const visibleSet = new Set<string>();
+    let lastEnteredId: string | null = null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-            break;
+            visibleSet.add(entry.target.id);
+            lastEnteredId = entry.target.id;
+          } else {
+            visibleSet.delete(entry.target.id);
           }
         }
+
+        // If any heading is in the observation zone, use the last one that entered
+        if (lastEnteredId && visibleSet.has(lastEnteredId)) {
+          setActiveId(lastEnteredId);
+          return;
+        }
+
+        // Fallback: find the last heading that's above the viewport center
+        const viewportMiddle = window.innerHeight * 0.3;
+        let bestId: string | null = null;
+        for (const el of headingElements) {
+          const rect = el.getBoundingClientRect();
+          if (rect.top <= viewportMiddle) {
+            bestId = el.id;
+          }
+        }
+        if (bestId) {
+          setActiveId(bestId);
+        }
       },
-      { rootMargin: "-10% 0px -75% 0px", threshold: 0 }
+      { rootMargin: "0px 0px -65% 0px", threshold: 0 }
     );
 
     headingElements.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
+
+    // Bottom-of-page detection: highlight last heading when scrolled near bottom
+    const handleScroll = () => {
+      const nearBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 60;
+      if (nearBottom && toc.length > 0) {
+        setActiveId(toc[toc.length - 1].id);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, [toc]);
 
   const hasToc = toc.length > 1;
+
+  const handleTocClick = (event: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    event.preventDefault();
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Update URL hash without triggering a jump
+    window.history.replaceState(null, "", `#${id}`);
+    setActiveId(id);
+  };
 
   return (
     <div className={`tool-page post-view-page ${hasToc ? "has-toc" : ""}`}>
@@ -144,7 +180,11 @@ export default function PostPage() {
                   key={item.id}
                   className={`post-toc-item post-toc-h${item.level} ${activeId === item.id ? "is-active" : ""}`}
                 >
-                  <a href={`#${item.id}`} className="post-toc-link">
+                  <a
+                    href={`#${item.id}`}
+                    className="post-toc-link"
+                    onClick={(e) => handleTocClick(e, item.id)}
+                  >
                     {item.text}
                   </a>
                 </li>
