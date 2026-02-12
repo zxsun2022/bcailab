@@ -10,7 +10,7 @@ const tools = [
     tags: ["Markdown", "Publish"]
   },
   {
-    slug: "tts",
+    slug: "speech",
     title: "Speech",
     description: "Generate Chirp3/Neural2 speech audio with optional synced text.",
     tags: ["TTS", "Chirp3"]
