@@ -474,6 +474,7 @@ export default function TtsIndexPage() {
   const [currentChar, setCurrentChar] = React.useState(0);
   const [currentTokenIndex, setCurrentTokenIndex] = React.useState<number>(-1);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = React.useState(false);
 
   const selectedLanguage =
     languages.find((language) => language.code === languageCode) ??
@@ -701,6 +702,47 @@ export default function TtsIndexPage() {
       </aside>
 
       <div className="tts-main">
+        <div className="tts-mobile-actions">
+          <Link to="/tts" className="btn btn-ghost btn-sm tts-mobile-action">
+            New task
+          </Link>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm tts-mobile-action"
+            onClick={() => setMobileHistoryOpen((prev) => !prev)}
+            aria-expanded={mobileHistoryOpen}
+            aria-controls="tts-mobile-history"
+          >
+            {mobileHistoryOpen ? "Hide history" : "History"}
+            <span className="tts-mobile-count">{history.length}</span>
+          </button>
+        </div>
+        {mobileHistoryOpen ? (
+          <div id="tts-mobile-history" className="tts-mobile-history-panel">
+            {history.length === 0 ? (
+              <div className="tts-sidebar-empty">No tasks yet.</div>
+            ) : (
+              <div className="tts-mobile-history-list">
+                {history.map((item) => (
+                  <Link
+                    key={item.id}
+                    to={`/tts?record=${item.id}`}
+                    className={`tts-sidebar-item ${selectedId === item.id ? "is-active" : ""}`}
+                  >
+                    <div className="tts-sidebar-item-title">
+                      {item.inputText.slice(0, 80)}
+                      {item.inputText.length > 80 ? "..." : ""}
+                    </div>
+                    <div className="tts-sidebar-item-meta">
+                      <span>{item.languageCode}</span>
+                      <span>{formatDate(item.createdAt)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : null}
         {voiceError ? (
           <div className="banner tts-warning">
             Voice list could not be loaded: {voiceError}
@@ -709,8 +751,8 @@ export default function TtsIndexPage() {
         {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
 
         {!selected ? (
-          <Card className="tool-card-stack">
-            <fetcher.Form method="post">
+          <Card className="tool-card-stack tts-primary-card">
+            <fetcher.Form method="post" className="tts-form">
               <input type="hidden" name="_intent" value="generate" />
               <AutosizeTextarea
                 name="content"
@@ -789,7 +831,7 @@ export default function TtsIndexPage() {
         ) : null}
 
         {selected ? (
-          <Card className="tool-card-stack">
+          <Card className="tool-card-stack tts-primary-card">
             <div className="tts-result-header">
               <strong>Task details</strong>
               <div className="tts-history-actions">

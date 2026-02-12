@@ -1113,10 +1113,43 @@ select.input:focus {
 
 .tts-main {
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .tts-mobile-history-link {
   display: inline-flex;
+}
+
+.tts-mobile-actions {
+  display: none;
+}
+
+.tts-mobile-action {
+  flex: 1;
+}
+
+.tts-mobile-count {
+  margin-left: 8px;
+  border: 1px solid var(--copper-dim);
+  color: var(--copper);
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.tts-mobile-history-panel {
+  display: none;
+}
+
+.tts-mobile-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
 }
 
 .tts-sidebar-header {
@@ -1292,6 +1325,10 @@ select.input:focus {
   flex-wrap: wrap;
 }
 
+.tts-primary-card {
+  margin-top: 0;
+}
+
 /* ==========================================================================
    10. RESPONSIVE
    ========================================================================== */
@@ -1408,6 +1445,22 @@ select.input:focus {
     padding-top: 20px;
   }
 
+  .tts-mobile-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .tts-mobile-history-panel {
+    display: block;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    padding: 10px;
+    margin-bottom: 10px;
+    max-height: 42vh;
+    overflow: auto;
+  }
+
   .tts-result-header {
     flex-direction: column;
     align-items: flex-start;
@@ -1430,11 +1483,15 @@ select.input:focus {
 }
 
 @media (min-width: 1024px) {
+  .tool-page.tts-shell {
+    min-height: calc(100dvh - 196px);
+  }
+
   .tts-shell {
     display: grid;
     grid-template-columns: 300px minmax(0, 1fr);
     gap: var(--space-lg);
-    align-items: start;
+    align-items: stretch;
   }
 
   .tts-sidebar {
@@ -1444,10 +1501,34 @@ select.input:focus {
     border: 1px solid var(--border);
     background: var(--bg-card);
     padding: var(--space-md);
+    height: fit-content;
   }
 
   .tts-mobile-history-link {
     display: none;
+  }
+
+  .tts-main {
+    min-height: 100%;
+  }
+
+  .tts-main > .tts-primary-card {
+    flex: 1;
+  }
+
+  .tts-form {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tts-form .textarea-autosize {
+    min-height: clamp(220px, 32vh, 380px);
+  }
+
+  .tts-form .form-actions {
+    margin-top: auto;
+    padding-top: 14px;
   }
 }
 
