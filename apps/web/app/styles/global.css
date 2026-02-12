@@ -751,6 +751,8 @@ select.input:focus {
   line-height: 1.8;
   color: var(--text);
   max-width: 720px;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .markdown > :first-child {
@@ -857,8 +859,9 @@ select.input:focus {
   border: 1px solid var(--border);
   background: var(--bg-alt);
   padding: 14px;
-  overflow: auto;
+  overflow-x: auto;
   margin: 1.2rem 0;
+  max-width: 100%;
 }
 
 .markdown code {
@@ -882,6 +885,8 @@ select.input:focus {
   border-collapse: collapse;
   margin: 1.2rem 0;
   font-size: 15px;
+  display: block;
+  overflow-x: auto;
 }
 
 .markdown th,
@@ -1284,6 +1289,7 @@ select.input:focus {
 
 .post-view-body {
   display: block;
+  overflow-x: hidden;
 }
 
 .post-view-body .markdown {
