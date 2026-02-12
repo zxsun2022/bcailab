@@ -16,6 +16,7 @@ import {
 } from "~/utils/google-tts.server";
 import {
   AUDIO_FORMAT,
+  MAX_TTS_SSML_BYTES,
   SUPPORTED_SPEECH_LANGUAGES,
   type SpeechAlignment
 } from "~/utils/tts";
@@ -527,7 +528,12 @@ export default function TtsIndexPage() {
       : warning;
   const canHighlight = activeAlignment ? activeAlignment.marks.length >= 2 : false;
   const isSubmitting = fetcher.state !== "idle";
-  const canGenerate = !!voiceName && !isSubmitting;
+  const contentByteLength = React.useMemo(
+    () => new TextEncoder().encode(content).length,
+    [content]
+  );
+  const isOverLimit = contentByteLength > MAX_TTS_SSML_BYTES;
+  const canGenerate = !!voiceName && !isSubmitting && !isOverLimit;
   const transcriptModel = React.useMemo(
     () => (activeAlignment ? buildTranscriptModel(activeAlignment) : null),
     [activeAlignment]
@@ -769,7 +775,12 @@ export default function TtsIndexPage() {
                 />
                 <div className="textarea-meta">
                   <span>Markdown syntax is cleaned automatically before synthesis.</span>
-                  <span className="textarea-count">{content.length.toLocaleString()} chars</span>
+                  <span className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}>
+                    {content.length.toLocaleString()} chars
+                    {isOverLimit
+                      ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
+                      : null}
+                  </span>
                 </div>
 
                 <div className="tts-controls">

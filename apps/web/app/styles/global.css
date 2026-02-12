@@ -633,6 +633,10 @@ select.input:focus {
   font-variant-numeric: tabular-nums;
 }
 
+.textarea-count.is-over-limit {
+  color: var(--accent);
+}
+
 .form-actions {
   margin-top: 16px;
   display: flex;
@@ -1142,12 +1146,14 @@ select.input:focus {
   justify-content: space-between;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+  max-width: 760px;
 }
 
 .posts-list {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  max-width: 760px;
 }
 
 .post-row {
@@ -1238,6 +1244,77 @@ select.input:focus {
   padding-bottom: var(--space-md);
   margin-bottom: var(--space-lg);
   border-bottom: 1px solid var(--border);
+  max-width: 720px;
+}
+
+.post-view-page.has-toc .post-view-header {
+  max-width: none;
+}
+
+.post-view-body {
+  display: block;
+}
+
+.post-view-body .markdown {
+  margin: 0 auto;
+}
+
+.post-toc {
+  display: none;
+}
+
+.post-toc-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: var(--space-sm);
+  padding-left: 12px;
+}
+
+.post-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border-left: 1px solid var(--border);
+}
+
+.post-toc-item {
+  line-height: 1.4;
+}
+
+.post-toc-h1 {
+  padding-left: 12px;
+}
+
+.post-toc-h2 {
+  padding-left: 12px;
+}
+
+.post-toc-h3 {
+  padding-left: 24px;
+}
+
+.post-toc-link {
+  display: block;
+  padding: 4px 0;
+  color: var(--text-faint);
+  font-size: 13px;
+  transition: color var(--transition-fast);
+}
+
+.post-toc-link:hover {
+  color: var(--text);
+}
+
+.post-toc-item.is-active > .post-toc-link {
+  color: var(--accent);
+}
+
+.post-toc-item.is-active {
+  border-left: 2px solid var(--accent);
+  margin-left: -1px;
 }
 
 /* ==========================================================================
@@ -1658,6 +1735,25 @@ select.input:focus {
 }
 
 @media (min-width: 1024px) {
+  .post-view-page.has-toc .post-view-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .post-view-page.has-toc .post-view-body .markdown {
+    margin: 0;
+  }
+
+  .post-view-page.has-toc .post-toc {
+    display: block;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+  }
+
   .tool-page.posts-compose-page {
     min-height: calc(100dvh - 196px);
     display: flex;
