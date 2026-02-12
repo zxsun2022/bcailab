@@ -1673,6 +1673,23 @@ select.input:focus {
     align-items: flex-start;
   }
 
+  .post-row-title,
+  .post-row-preview {
+    font-size: 16px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .post-row-excerpt {
+    font-size: 13px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
   .post-row-actions {
     flex-wrap: wrap;
   }
