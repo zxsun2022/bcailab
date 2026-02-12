@@ -239,6 +239,8 @@ main.container {
 }
 
 .site-header {
+  position: relative;
+  z-index: 40;
   border-bottom: 1px solid var(--border);
   background: var(--bg);
   transition: border-color var(--transition-base), background var(--transition-base);
@@ -1234,7 +1236,7 @@ select.input:focus {
 
 .tts-select-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(170px, 0.72fr) minmax(320px, 1.28fr) auto;
   gap: 12px;
   align-items: end;
 }
@@ -1592,6 +1594,12 @@ select.input:focus {
     min-height: 100%;
     display: flex;
     flex-direction: column;
+  }
+
+  .tts-controls {
+    margin-top: auto;
+    padding-top: 18px;
+    gap: 12px;
   }
 
   .tts-form .textarea-autosize {
