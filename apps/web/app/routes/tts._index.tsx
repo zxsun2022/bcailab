@@ -774,8 +774,8 @@ export default function TtsIndexPage() {
                 </div>
 
                 <div className="tts-controls">
-                  <div className="tts-select-grid">
-                    <div>
+                <div className="tts-select-grid">
+                    <div className="tts-select-field">
                       <label className="tts-label" htmlFor="languageCode">
                         Language
                       </label>
@@ -799,7 +799,7 @@ export default function TtsIndexPage() {
                       </select>
                     </div>
 
-                    <div>
+                    <div className="tts-select-field">
                       <label className="tts-label" htmlFor="voiceName">
                         Voice
                       </label>
@@ -822,16 +822,16 @@ export default function TtsIndexPage() {
                         ))}
                       </select>
                     </div>
+
+                    <div className="tts-generate-wrap">
+                      <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
+                        {isSubmitting ? "Generating..." : "Generate"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
                 {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
-
-                <div className="form-actions">
-                  <Button type="submit" disabled={!canGenerate}>
-                    {isSubmitting ? "Generating..." : "Generate"}
-                  </Button>
-                </div>
               </fetcher.Form>
             </Card>
           ) : null}

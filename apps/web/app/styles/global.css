@@ -1234,8 +1234,24 @@ select.input:focus {
 
 .tts-select-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 12px;
+  align-items: end;
+}
+
+.tts-select-field {
+  min-width: 0;
+}
+
+.tts-generate-wrap {
+  display: flex;
+  align-items: end;
+}
+
+.tts-generate-btn {
+  min-width: 150px;
+  height: 44px;
+  white-space: nowrap;
 }
 
 .tts-result-header {
@@ -1445,6 +1461,15 @@ select.input:focus {
     grid-template-columns: 1fr;
   }
 
+  .tts-generate-wrap {
+    width: 100%;
+  }
+
+  .tts-generate-btn {
+    width: 100%;
+    height: auto;
+  }
+
   .tool-page.tts-shell {
     padding-top: 20px;
   }
@@ -1534,7 +1559,15 @@ select.input:focus {
     border: 1px solid var(--border);
     background: var(--bg-card);
     padding: var(--space-md);
-    height: fit-content;
+    height: calc(100dvh - 220px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tts-sidebar-list {
+    max-height: none;
+    flex: 1;
+    min-height: 0;
   }
 
   .tts-mobile-history-link {
@@ -1542,10 +1575,16 @@ select.input:focus {
   }
 
   .tts-main {
-    min-height: 100%;
+    min-height: calc(100dvh - 220px);
   }
 
-  .tts-main > .tts-primary-card {
+  .tts-main > .tts-primary-content {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .tts-main > .tts-primary-content > .tts-primary-card {
     flex: 1;
   }
 
@@ -1556,7 +1595,7 @@ select.input:focus {
   }
 
   .tts-form .textarea-autosize {
-    min-height: clamp(260px, 40vh, 520px);
+    min-height: clamp(260px, 38vh, 480px);
   }
 
   .tts-form .form-actions {
