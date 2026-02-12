@@ -1544,7 +1544,8 @@ select.input:focus {
   }
 
   .tool-page.tts-shell {
-    height: calc(100dvh - 196px);
+    height: calc(100dvh - 148px);
+    padding-bottom: var(--space-md);
     overflow: hidden;
   }
 
