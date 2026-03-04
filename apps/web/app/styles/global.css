@@ -1355,7 +1355,264 @@ select.input:focus {
 }
 
 /* ==========================================================================
-   9. TTS
+   9. ESL
+   ========================================================================== */
+
+.esl-module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.esl-module-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 170px;
+}
+
+.esl-module-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.esl-module-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.esl-module-desc {
+  color: var(--text-muted);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.esl-module-status {
+  align-self: flex-start;
+}
+
+.esl-module-status.is-live {
+  border-color: rgba(196, 149, 106, 0.45);
+  color: var(--accent);
+}
+
+.btn.is-disabled {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.esl-passage-form,
+.esl-attempt-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.esl-recorder-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.esl-recorder-status {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.esl-passage-list,
+.esl-attempt-section {
+  margin-top: 20px;
+}
+
+.esl-passage-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: 12px;
+}
+
+.esl-passage-list-head h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+}
+
+.esl-passage-list-head span {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.esl-passage-grid,
+.esl-attempt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.esl-passage-card,
+.esl-attempt-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.esl-passage-card {
+  align-items: flex-start;
+  flex-direction: column;
+}
+
+.esl-passage-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.esl-passage-card-head h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.25;
+}
+
+.esl-passage-preview {
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.esl-reading-header {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.esl-reading-header h1 {
+  font-family: var(--font-display);
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.2;
+}
+
+.esl-passage-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.esl-passage-hidden {
+  border: 1px dashed var(--border);
+  padding: 14px;
+  color: var(--text-muted);
+}
+
+.esl-passage-body {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.esl-attempt-row {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.esl-attempt-row.is-active {
+  border-color: rgba(196, 149, 106, 0.55);
+  background: rgba(196, 149, 106, 0.08);
+}
+
+.esl-attempt-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.esl-attempt-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.esl-attempt-row-score {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.esl-selected-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.esl-selected-head h3 {
+  font-family: var(--font-display);
+  font-size: 26px;
+}
+
+.esl-audio-player {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.esl-eval-panel {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.esl-eval-score {
+  font-size: 16px;
+  color: var(--text);
+}
+
+.esl-eval-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px 12px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.esl-eval-subtitle {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.esl-eval-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text-muted);
+  line-height: 1.65;
+}
+
+@media (max-width: 760px) {
+  .esl-passage-card-head,
+  .esl-passage-panel-head,
+  .esl-selected-head,
+  .esl-attempt-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ==========================================================================
+   10. TTS
    ========================================================================== */
 
 .tts-shell {

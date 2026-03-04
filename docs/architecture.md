@@ -29,4 +29,8 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - `/tts` speech tool (generate)
 - `/tts/history` user's speech generation history
 - `/tts/audio/:id` authenticated audio stream/download endpoint
+- `/esl` ESL tool home
+- `/esl/reading` ESL reading/recitation passage list + creation
+- `/esl/reading/:id` ESL reading/recitation practice page
+- `/esl/audio/:id` authenticated ESL attempt audio stream/download endpoint
 - Legacy compatibility: `/text/*` redirects to the corresponding `/posts/*` route

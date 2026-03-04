@@ -8,6 +8,7 @@ pages_build_output_dir = "build/client"
 binding = "DB"
 database_name = "bcailab-db"
 database_id = "7048b3f2-affb-492a-a9a4-18ab5cd2fc4e"
+preview_database_id = "8707dea1-f2f7-4a3c-99ee-2245cb63e22c"
 
 [[r2_buckets]]
 binding = "R2"

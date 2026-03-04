@@ -36,6 +36,8 @@ Set the following for the Pages project:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_TTS_SERVICE_ACCOUNT_JSON`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL` (recommended: `gemini-flash-latest`)
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
 
@@ -51,3 +53,20 @@ Recommended additional settings:
 ## D1 & R2 Bindings
 Bindings are defined in `wrangler.toml`. See the "Pages Deployment" section
 above for which copy is used where.
+
+## Preview / Staging Environment
+Pushing code is not enough for integration testing. You also need preview data resources.
+
+Recommended setup:
+- Use Cloudflare Pages **Preview** as the test runtime (no separate Workers service needed for this app).
+- Create separate staging resources:
+  - D1: `wrangler d1 create bcailab-db-staging`
+  - R2: `wrangler r2 bucket create bcailab-assets-staging`
+- Apply schema to staging D1:
+  - `wrangler d1 migrations apply bcailab-db-staging`
+- In Pages project settings, configure **Preview** bindings/env vars:
+  - `DB` -> staging D1
+  - `R2` -> staging R2 bucket
+  - `GEMINI_API_KEY`, `GEMINI_MODEL`, and all auth/session env vars
+
+With this setup, branch push -> Preview deploy -> isolated test database/bucket.

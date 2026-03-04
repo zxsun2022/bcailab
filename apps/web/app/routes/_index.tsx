@@ -14,6 +14,12 @@ const tools = [
     title: "Speech",
     description: "Generate Chirp3/Neural2 speech audio with optional synced text.",
     tags: ["TTS", "Chirp3"]
+  },
+  {
+    slug: "esl",
+    title: "ESL",
+    description: "Practice reading and recitation with versioned attempt tracking.",
+    tags: ["English", "Learning"]
   }
 ];
 

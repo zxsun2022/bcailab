@@ -37,6 +37,39 @@ export type TtsGeneration = {
   deleted_at: string | null;
 };
 
+export type EslPassage = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  content_text: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type EslReadingAttempt = {
+  id: string;
+  passage_id: string;
+  user_id: string;
+  mode: string;
+  audio_format: string;
+  audio_mime_type: string;
+  r2_key: string;
+  audio_bytes: number;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+export type EslReadingEvaluation = {
+  id: string;
+  attempt_id: string;
+  user_id: string;
+  model_name: string;
+  rubric_version: string;
+  output_json: string;
+  created_at: string;
+};
+
 export type GoogleProfile = {
   sub: string;
   email?: string;
@@ -77,6 +110,39 @@ const mapTtsGeneration = (row: Record<string, unknown>): TtsGeneration => ({
   audio_bytes: Number(row.audio_bytes),
   created_at: String(row.created_at),
   deleted_at: row.deleted_at ? String(row.deleted_at) : null
+});
+
+const mapEslPassage = (row: Record<string, unknown>): EslPassage => ({
+  id: String(row.id),
+  user_id: String(row.user_id),
+  title: row.title ? String(row.title) : null,
+  content_text: String(row.content_text),
+  created_at: String(row.created_at),
+  updated_at: String(row.updated_at),
+  deleted_at: row.deleted_at ? String(row.deleted_at) : null
+});
+
+const mapEslReadingAttempt = (row: Record<string, unknown>): EslReadingAttempt => ({
+  id: String(row.id),
+  passage_id: String(row.passage_id),
+  user_id: String(row.user_id),
+  mode: String(row.mode),
+  audio_format: String(row.audio_format),
+  audio_mime_type: String(row.audio_mime_type),
+  r2_key: String(row.r2_key),
+  audio_bytes: Number(row.audio_bytes),
+  created_at: String(row.created_at),
+  deleted_at: row.deleted_at ? String(row.deleted_at) : null
+});
+
+const mapEslReadingEvaluation = (row: Record<string, unknown>): EslReadingEvaluation => ({
+  id: String(row.id),
+  attempt_id: String(row.attempt_id),
+  user_id: String(row.user_id),
+  model_name: String(row.model_name),
+  rubric_version: String(row.rubric_version),
+  output_json: String(row.output_json),
+  created_at: String(row.created_at)
 });
 
 export async function getUserById(db: Db, id: string): Promise<User | null> {
@@ -256,4 +322,196 @@ export async function softDeleteTtsGeneration(
     .prepare("UPDATE tts_generations SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?")
     .bind(input.id, input.userId)
     .run();
+}
+
+export async function createEslPassage(
+  db: Db,
+  input: { id?: string; userId: string; title?: string | null; contentText: string }
+): Promise<EslPassage> {
+  const id = input.id ?? crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO esl_passages (id, user_id, title, content_text) VALUES (?, ?, ?, ?)"
+    )
+    .bind(id, input.userId, input.title ?? null, input.contentText)
+    .run();
+
+  const created = await getEslPassageById(db, id, { includeDeleted: true });
+  if (!created) {
+    throw new Error("Failed to create esl passage.");
+  }
+  return created;
+}
+
+export async function getEslPassageById(
+  db: Db,
+  id: string,
+  options: { includeDeleted?: boolean } = {}
+): Promise<EslPassage | null> {
+  const { includeDeleted = false } = options;
+  const query = includeDeleted
+    ? "SELECT * FROM esl_passages WHERE id = ? LIMIT 1"
+    : "SELECT * FROM esl_passages WHERE id = ? AND deleted_at IS NULL LIMIT 1";
+  const result = await db.prepare(query).bind(id).first();
+  return result ? mapEslPassage(result) : null;
+}
+
+export async function listEslPassagesByUser(db: Db, userId: string): Promise<EslPassage[]> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM esl_passages WHERE user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC, created_at DESC"
+    )
+    .bind(userId)
+    .all();
+  if (!result.results) return [];
+  return result.results.map(mapEslPassage);
+}
+
+export async function updateEslPassage(
+  db: Db,
+  input: { id: string; userId: string; title?: string | null; contentText: string }
+): Promise<EslPassage | null> {
+  await db
+    .prepare(
+      "UPDATE esl_passages SET title = ?, content_text = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?"
+    )
+    .bind(input.title ?? null, input.contentText, input.id, input.userId)
+    .run();
+  return getEslPassageById(db, input.id, { includeDeleted: true });
+}
+
+export async function softDeleteEslPassage(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare("UPDATE esl_passages SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?")
+    .bind(input.id, input.userId)
+    .run();
+}
+
+export async function createEslReadingAttempt(
+  db: Db,
+  input: {
+    id?: string;
+    passageId: string;
+    userId: string;
+    mode: string;
+    audioFormat: string;
+    audioMimeType: string;
+    r2Key: string;
+    audioBytes: number;
+  }
+): Promise<EslReadingAttempt> {
+  const id = input.id ?? crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+    )
+    .bind(
+      id,
+      input.passageId,
+      input.userId,
+      input.mode,
+      input.audioFormat,
+      input.audioMimeType,
+      input.r2Key,
+      input.audioBytes
+    )
+    .run();
+
+  const created = await getEslReadingAttemptById(db, id, { includeDeleted: true });
+  if (!created) {
+    throw new Error("Failed to create esl reading attempt.");
+  }
+  return created;
+}
+
+export async function getEslReadingAttemptById(
+  db: Db,
+  id: string,
+  options: { includeDeleted?: boolean } = {}
+): Promise<EslReadingAttempt | null> {
+  const { includeDeleted = false } = options;
+  const query = includeDeleted
+    ? "SELECT * FROM esl_reading_attempts WHERE id = ? LIMIT 1"
+    : "SELECT * FROM esl_reading_attempts WHERE id = ? AND deleted_at IS NULL LIMIT 1";
+  const result = await db.prepare(query).bind(id).first();
+  return result ? mapEslReadingAttempt(result) : null;
+}
+
+export async function listEslReadingAttemptsByPassage(
+  db: Db,
+  input: { userId: string; passageId: string }
+): Promise<EslReadingAttempt[]> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM esl_reading_attempts WHERE user_id = ? AND passage_id = ? AND deleted_at IS NULL ORDER BY created_at DESC"
+    )
+    .bind(input.userId, input.passageId)
+    .all();
+  if (!result.results) return [];
+  return result.results.map(mapEslReadingAttempt);
+}
+
+export async function softDeleteEslReadingAttempt(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE esl_reading_attempts SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?"
+    )
+    .bind(input.id, input.userId)
+    .run();
+}
+
+export async function createEslReadingEvaluation(
+  db: Db,
+  input: {
+    id?: string;
+    attemptId: string;
+    userId: string;
+    modelName: string;
+    rubricVersion: string;
+    outputJson: string;
+  }
+): Promise<EslReadingEvaluation> {
+  const id = input.id ?? crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO esl_reading_evaluations (id, attempt_id, user_id, model_name, rubric_version, output_json) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .bind(id, input.attemptId, input.userId, input.modelName, input.rubricVersion, input.outputJson)
+    .run();
+
+  const created = await getEslReadingEvaluationById(db, id);
+  if (!created) {
+    throw new Error("Failed to create esl reading evaluation.");
+  }
+  return created;
+}
+
+export async function getEslReadingEvaluationById(
+  db: Db,
+  id: string
+): Promise<EslReadingEvaluation | null> {
+  const result = await db
+    .prepare("SELECT * FROM esl_reading_evaluations WHERE id = ? LIMIT 1")
+    .bind(id)
+    .first();
+  return result ? mapEslReadingEvaluation(result) : null;
+}
+
+export async function getLatestEslReadingEvaluationByAttemptId(
+  db: Db,
+  attemptId: string
+): Promise<EslReadingEvaluation | null> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM esl_reading_evaluations WHERE attempt_id = ? ORDER BY created_at DESC LIMIT 1"
+    )
+    .bind(attemptId)
+    .first();
+  return result ? mapEslReadingEvaluation(result) : null;
 }
