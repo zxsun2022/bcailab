@@ -65,7 +65,7 @@ export default function EslReadingIndexPage() {
       </p>
 
       <Card className="tool-card-stack">
-        <form method="post" className="esl-passage-form">
+        <form method="post" action="?index" className="esl-passage-form">
           <Input
             name="title"
             placeholder="Passage title (optional)"
