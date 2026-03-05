@@ -83,7 +83,6 @@ const formatDate = (value: string) =>
     month: "short",
     day: "numeric"
   });
-const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
 
 const copyTextToClipboard = async (value: string): Promise<void> => {
   if (navigator.clipboard?.writeText) {
@@ -505,7 +504,6 @@ export default function TtsIndexPage() {
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
   const [mobileHistoryOpen, setMobileHistoryOpen] = React.useState(false);
   const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
-  const [playbackRate, setPlaybackRate] = React.useState<number>(1);
 
   const selectedLanguage =
     languages.find((language) => language.code === languageCode) ??
@@ -600,13 +598,6 @@ export default function TtsIndexPage() {
     }
     setCopyState("idle");
   }, [selectedId]);
-
-  React.useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.defaultPlaybackRate = playbackRate;
-    audio.playbackRate = playbackRate;
-  }, [playbackRate, selectedId]);
 
   React.useEffect(() => {
     const audio = audioRef.current;
@@ -951,23 +942,6 @@ export default function TtsIndexPage() {
                     </Button>
                   </form>
                 </div>
-              </div>
-              <div className="tts-audio-toolbar">
-                <label className="tts-playback-speed" htmlFor="tts-playback-rate">
-                  <span>Speed</span>
-                  <select
-                    id="tts-playback-rate"
-                    className="input tts-playback-select"
-                    value={String(playbackRate)}
-                    onChange={(event) => setPlaybackRate(Number(event.currentTarget.value))}
-                  >
-                    {PLAYBACK_RATES.map((rate) => (
-                      <option key={rate} value={rate}>
-                        {rate % 1 === 0 ? rate.toFixed(0) : rate}x
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
               <audio
                 ref={audioRef}
