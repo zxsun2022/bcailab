@@ -236,6 +236,7 @@ export const createAndScheduleEslReadingAttempt = async (
 ): Promise<{ attemptId: string }> => {
   const attemptId = crypto.randomUUID();
   const r2Key = buildAttemptR2Key(input.userId, attemptId, input.submission.audioFormat);
+  let supportsAsyncEvaluationStatus = true;
 
   try {
     await context.env.R2.put(r2Key, input.submission.audioBuffer, {
@@ -245,7 +246,7 @@ export const createAndScheduleEslReadingAttempt = async (
       }
     });
 
-    await createEslReadingAttempt(context.env.DB, {
+    ({ supportsAsyncEvaluationStatus } = await createEslReadingAttempt(context.env.DB, {
       id: attemptId,
       passageId: input.passage.id,
       userId: input.userId,
@@ -256,7 +257,7 @@ export const createAndScheduleEslReadingAttempt = async (
       audioBytes: input.submission.audioBuffer.byteLength,
       durationMs: input.submission.durationMs,
       evaluationStatus: "pending"
-    });
+    }));
   } catch {
     await context.env.R2.delete(r2Key).catch(() => undefined);
     throw new EslAttemptSubmissionError("Failed to submit. Please retry.", 500);
@@ -272,9 +273,14 @@ export const createAndScheduleEslReadingAttempt = async (
     audioMimeType: input.submission.audioMimeType
   });
 
-  if (context.ctx?.waitUntil) {
+  if (supportsAsyncEvaluationStatus && context.ctx?.waitUntil) {
     context.ctx.waitUntil(evaluationTask);
   } else {
+    if (!supportsAsyncEvaluationStatus) {
+      console.warn(
+        "esl_reading_attempts is missing evaluation_status or duration_ms; running evaluation inline. Apply newer D1 migrations."
+      );
+    }
     await evaluationTask;
   }
 

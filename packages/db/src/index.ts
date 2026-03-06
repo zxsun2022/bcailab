@@ -178,6 +178,23 @@ const mapEslReadingEvaluation = (row: Record<string, unknown>): EslReadingEvalua
   created_at: String(row.created_at)
 });
 
+const getDbErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error ?? "");
+
+const isMissingColumnError = (error: unknown, column: string): boolean => {
+  const message = getDbErrorMessage(error);
+  return (
+    message.includes(`no such column: ${column}`) ||
+    message.includes(`has no column named ${column}`) ||
+    message.includes(`no column named ${column}`)
+  );
+};
+
+const isMissingTableError = (error: unknown, table: string): boolean => {
+  const message = getDbErrorMessage(error);
+  return message.includes(`no such table: ${table}`);
+};
+
 export async function getUserById(db: Db, id: string): Promise<User | null> {
   const result = await db.prepare("SELECT * FROM users WHERE id = ? LIMIT 1").bind(id).first();
   return result ? mapUser(result) : null;
@@ -437,31 +454,108 @@ export async function createEslReadingAttempt(
     durationMs?: number | null;
     evaluationStatus?: "pending" | "completed" | "failed";
   }
-): Promise<EslReadingAttempt> {
+): Promise<{ attempt: EslReadingAttempt; supportsAsyncEvaluationStatus: boolean }> {
   const id = input.id ?? crypto.randomUUID();
-  await db
-    .prepare(
-      "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms, evaluation_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    )
-    .bind(
-      id,
-      input.passageId,
-      input.userId,
-      input.mode,
-      input.audioFormat,
-      input.audioMimeType,
-      input.r2Key,
-      input.audioBytes,
-      input.durationMs ?? null,
-      input.evaluationStatus ?? "pending"
-    )
-    .run();
 
-  const created = await getEslReadingAttemptById(db, id, { includeDeleted: true });
-  if (!created) {
-    throw new Error("Failed to create esl reading attempt.");
+  const loadCreatedAttempt = async () => {
+    const created = await getEslReadingAttemptById(db, id, { includeDeleted: true });
+    if (!created) {
+      throw new Error("Failed to create esl reading attempt.");
+    }
+    return created;
+  };
+
+  try {
+    await db
+      .prepare(
+        "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms, evaluation_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+      .bind(
+        id,
+        input.passageId,
+        input.userId,
+        input.mode,
+        input.audioFormat,
+        input.audioMimeType,
+        input.r2Key,
+        input.audioBytes,
+        input.durationMs ?? null,
+        input.evaluationStatus ?? "pending"
+      )
+      .run();
+    return {
+      attempt: await loadCreatedAttempt(),
+      supportsAsyncEvaluationStatus: true
+    };
+  } catch (error) {
+    if (!isMissingColumnError(error, "evaluation_status")) {
+      if (!isMissingColumnError(error, "duration_ms")) {
+        throw error;
+      }
+      await db
+        .prepare(
+          "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(
+          id,
+          input.passageId,
+          input.userId,
+          input.mode,
+          input.audioFormat,
+          input.audioMimeType,
+          input.r2Key,
+          input.audioBytes
+        )
+        .run();
+      return {
+        attempt: await loadCreatedAttempt(),
+        supportsAsyncEvaluationStatus: false
+      };
+    }
+
+    try {
+      await db
+        .prepare(
+          "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(
+          id,
+          input.passageId,
+          input.userId,
+          input.mode,
+          input.audioFormat,
+          input.audioMimeType,
+          input.r2Key,
+          input.audioBytes,
+          input.durationMs ?? null
+        )
+        .run();
+    } catch (legacyError) {
+      if (!isMissingColumnError(legacyError, "duration_ms")) {
+        throw legacyError;
+      }
+      await db
+        .prepare(
+          "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        )
+        .bind(
+          id,
+          input.passageId,
+          input.userId,
+          input.mode,
+          input.audioFormat,
+          input.audioMimeType,
+          input.r2Key,
+          input.audioBytes
+        )
+        .run();
+    }
   }
-  return created;
+
+  return {
+    attempt: await loadCreatedAttempt(),
+    supportsAsyncEvaluationStatus: false
+  };
 }
 
 export async function getEslReadingAttemptById(
@@ -514,10 +608,15 @@ export async function updateEslReadingAttemptEvaluationStatus(
     status: "pending" | "completed" | "failed";
   }
 ): Promise<void> {
-  await db
-    .prepare("UPDATE esl_reading_attempts SET evaluation_status = ? WHERE id = ? AND user_id = ?")
-    .bind(input.status, input.id, input.userId)
-    .run();
+  try {
+    await db
+      .prepare("UPDATE esl_reading_attempts SET evaluation_status = ? WHERE id = ? AND user_id = ?")
+      .bind(input.status, input.id, input.userId)
+      .run();
+  } catch (error) {
+    if (isMissingColumnError(error, "evaluation_status")) return;
+    throw error;
+  }
 }
 
 export async function softDeleteEslReadingAttemptsByPassage(
@@ -606,10 +705,16 @@ export async function getEslLearnerProfile(
   db: Db,
   userId: string
 ): Promise<EslLearnerProfile | null> {
-  const result = await db
-    .prepare("SELECT * FROM esl_learner_profiles WHERE user_id = ? LIMIT 1")
-    .bind(userId)
-    .first();
+  let result;
+  try {
+    result = await db
+      .prepare("SELECT * FROM esl_learner_profiles WHERE user_id = ? LIMIT 1")
+      .bind(userId)
+      .first();
+  } catch (error) {
+    if (isMissingTableError(error, "esl_learner_profiles")) return null;
+    throw error;
+  }
   return result ? mapEslLearnerProfile(result) : null;
 }
 
@@ -668,21 +773,26 @@ export async function incrementEslLearnerProfileCounters(
   db: Db,
   input: { userId: string; practiceSeconds: number }
 ): Promise<void> {
-  const existing = await getEslLearnerProfile(db, input.userId);
-  if (existing) {
-    await db
-      .prepare(
-        "UPDATE esl_learner_profiles SET total_practice_seconds = total_practice_seconds + ?, total_attempts = total_attempts + 1, eval_count_since_update = eval_count_since_update + 1, updated_at = datetime('now') WHERE user_id = ?"
-      )
-      .bind(input.practiceSeconds, input.userId)
-      .run();
-  } else {
-    const id = crypto.randomUUID();
-    await db
-      .prepare(
-        "INSERT INTO esl_learner_profiles (id, user_id, total_practice_seconds, total_attempts, eval_count_since_update) VALUES (?, ?, ?, 1, 1)"
-      )
-      .bind(id, input.userId, input.practiceSeconds)
-      .run();
+  try {
+    const existing = await getEslLearnerProfile(db, input.userId);
+    if (existing) {
+      await db
+        .prepare(
+          "UPDATE esl_learner_profiles SET total_practice_seconds = total_practice_seconds + ?, total_attempts = total_attempts + 1, eval_count_since_update = eval_count_since_update + 1, updated_at = datetime('now') WHERE user_id = ?"
+        )
+        .bind(input.practiceSeconds, input.userId)
+        .run();
+    } else {
+      const id = crypto.randomUUID();
+      await db
+        .prepare(
+          "INSERT INTO esl_learner_profiles (id, user_id, total_practice_seconds, total_attempts, eval_count_since_update) VALUES (?, ?, ?, 1, 1)"
+        )
+        .bind(id, input.userId, input.practiceSeconds)
+        .run();
+    }
+  } catch (error) {
+    if (isMissingTableError(error, "esl_learner_profiles")) return;
+    throw error;
   }
 }
