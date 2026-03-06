@@ -124,8 +124,8 @@
   --noise-opacity: 0;
   --divider-gradient: linear-gradient(to bottom, var(--border), var(--border));
 
-  --container-width: 1220px;
-  --container-padding: clamp(18px, 4vw, 48px);
+  --container-width: 1400px;
+  --container-padding: clamp(16px, 2vw, 28px);
 }
 
 @media (prefers-color-scheme: dark) {
