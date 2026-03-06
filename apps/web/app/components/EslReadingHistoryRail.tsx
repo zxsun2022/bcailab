@@ -79,7 +79,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
               key={attempt.id}
               className={`esl-history-item-shell ${
                 !isComposeView && selectedAttemptId === attempt.id ? "is-active" : ""
-              }`}
+              } ${openMenuId === attempt.id ? "is-menu-open" : ""}`}
             >
               <Link
                 to={`/esl/reading/${passageId}?attempt=${attempt.id}`}

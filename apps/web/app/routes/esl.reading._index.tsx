@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { Card, Textarea } from "@bcailab/ui";
+import { Textarea } from "@bcailab/ui";
 import { createEslPassage, softDeleteEslPassage } from "@bcailab/db";
 import { EslAttemptComposer } from "~/components/EslAttemptComposer";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
@@ -92,7 +92,7 @@ export default function EslReadingIndexPage() {
           canSubmit={Boolean(content.trim())}
         >
           {() => (
-            <Card className="tool-card-stack esl-compose-card">
+            <div className="esl-compose-editor">
               <Textarea
                 name="content"
                 rows={18}
@@ -103,13 +103,16 @@ export default function EslReadingIndexPage() {
                   setContent(event.currentTarget.value)
                 }
               />
-              <div className="textarea-meta">
-                <span>Title will be auto-generated</span>
+              <div
+                className={`esl-compose-count ${
+                  content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""
+                }`}
+              >
                 <span className="textarea-count">
                   {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}
                 </span>
               </div>
-            </Card>
+            </div>
           )}
         </EslAttemptComposer>
       </div>

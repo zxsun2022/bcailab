@@ -54,6 +54,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);
+  const [pendingRedirect, setPendingRedirect] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -92,10 +93,18 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
 
   React.useEffect(() => {
     if (!fetcher.data?.redirectTo) return;
-    React.startTransition(() => {
-      navigate(fetcher.data!.redirectTo!);
-    });
-  }, [fetcher.data, navigate]);
+    setPendingRedirect(fetcher.data.redirectTo);
+  }, [fetcher.data]);
+
+  React.useEffect(() => {
+    if (!pendingRedirect) return;
+    const timeoutId = window.setTimeout(() => {
+      React.startTransition(() => {
+        navigate(pendingRedirect);
+      });
+    }, 320);
+    return () => window.clearTimeout(timeoutId);
+  }, [navigate, pendingRedirect]);
 
   const startRecording = React.useCallback(async () => {
     if (recordingState !== "idle") return;
@@ -179,8 +188,13 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   }, [cleanupAudio]);
 
   const isUploading = fetcher.state === "submitting";
-  const isOpeningAttempt = fetcher.state === "loading" && Boolean(fetcher.data?.redirectTo);
+  const isEvaluating = Boolean(pendingRedirect) && fetcher.state === "idle";
   const submitError = fetcher.data?.error;
+  const submitButtonLabel = isUploading
+    ? "Submitting..."
+    : isEvaluating
+      ? "Evaluating..."
+      : submitLabel;
 
   return (
     <fetcher.Form
@@ -226,8 +240,8 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
                 <button type="button" className="btn btn-ghost btn-sm" onClick={discardRecording}>
                   Re-record
                 </button>
-                <Button type="submit" disabled={isUploading || isOpeningAttempt || !canSubmit}>
-                  {isUploading || isOpeningAttempt ? "Submitting..." : submitLabel}
+                <Button type="submit" disabled={isUploading || isEvaluating || !canSubmit}>
+                  {submitButtonLabel}
                 </Button>
               </div>
             </div>

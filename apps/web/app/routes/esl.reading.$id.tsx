@@ -2,6 +2,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudfla
 import { json, redirect } from "@remix-run/cloudflare";
 import {
   Link,
+  useFetcher,
   useActionData,
   useLoaderData,
   useRevalidator
@@ -34,7 +35,7 @@ import {
 } from "~/utils/esl-reading";
 import * as React from "react";
 
-type ActionData = { error?: string; redirectTo?: string };
+type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
 const STALE_PENDING_MS = 45 * 1000;
 
 const formatDateTime = (value: string) =>
@@ -85,8 +86,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       createdAt: attempt.created_at,
       durationMs: attempt.duration_ms,
       evaluationStatus: attempt.evaluation_status,
-      score: parsed?.scores.overall ?? null,
-      modelName: evaluation?.model_name ?? null
+      score: parsed?.scores.overall ?? null
     };
   });
 
@@ -190,6 +190,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
   if (intent === "retryEvaluation") {
     const attemptId = String(formData.get("attemptId") ?? "");
+    const retryTransport = String(formData.get("_transport") ?? "document");
     if (!attemptId) return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
 
     try {
@@ -198,7 +199,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         passage,
         attemptId
       });
-      return redirect(`/esl/reading/${passage.id}?attempt=${attemptId}`);
+      return retryTransport === "fetcher"
+        ? json<ActionData>({ ok: true })
+        : redirect(`/esl/reading/${passage.id}?attempt=${attemptId}`);
     } catch (error) {
       if (error instanceof EslAttemptSubmissionError) {
         return json<ActionData>({ error: error.message }, { status: error.status });
@@ -328,6 +331,18 @@ function AttemptDetail(props: {
   canRetryEvaluation: boolean;
   evaluation: EslReadingEvaluationOutput | null;
 }) {
+  const retryFetcher = useFetcher<ActionData>();
+  const revalidator = useRevalidator();
+  const isRetrySubmitting = retryFetcher.state === "submitting";
+  const isRetryEvaluating =
+    Boolean(retryFetcher.data?.ok) && !props.evaluation && props.evaluationStatus !== "completed";
+  const retryError = retryFetcher.data?.error;
+
+  React.useEffect(() => {
+    if (!retryFetcher.data?.ok) return;
+    revalidator.revalidate();
+  }, [retryFetcher.data, revalidator]);
+
   return (
     <div className="esl-detail-stack">
       <Card className="tool-card-stack esl-detail-passage-card">
@@ -347,7 +362,16 @@ function AttemptDetail(props: {
           <audio controls src={props.audioUrl} className="esl-audio-player" />
         </div>
 
-        {props.evaluationStatus === "pending" && !props.isStalePending ? (
+        {isRetrySubmitting || isRetryEvaluating ? (
+          <div className="esl-attempt-state">
+            <div className="esl-attempt-state-title">Evaluating</div>
+            <p className="esl-attempt-state-desc">
+              {isRetrySubmitting
+                ? "The feedback request is being sent now."
+                : "Feedback request sent. AI evaluation is running again for this attempt."}
+            </p>
+          </div>
+        ) : props.evaluationStatus === "pending" && !props.isStalePending ? (
           <div className="esl-attempt-state">
             <div className="esl-attempt-state-title">Evaluating</div>
             <p className="esl-attempt-state-desc">
@@ -381,14 +405,17 @@ function AttemptDetail(props: {
           </div>
         )}
 
+        {retryError ? <div className="form-error">{retryError}</div> : null}
+
         {props.canRetryEvaluation ? (
-          <form method="post" className="esl-eval-retry">
+          <retryFetcher.Form method="post" className="esl-eval-retry">
             <input type="hidden" name="_intent" value="retryEvaluation" />
             <input type="hidden" name="attemptId" value={props.attemptId} />
-            <button type="submit" className="btn btn-ghost btn-sm">
-              Retry feedback
+            <input type="hidden" name="_transport" value="fetcher" />
+            <button type="submit" className="btn btn-ghost btn-sm" disabled={isRetrySubmitting}>
+              {isRetrySubmitting ? "Requesting..." : isRetryEvaluating ? "Evaluating..." : "Retry feedback"}
             </button>
-          </form>
+          </retryFetcher.Form>
         ) : null}
 
         <div className="esl-eval-meta esl-eval-meta-bottom">

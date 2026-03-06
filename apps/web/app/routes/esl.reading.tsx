@@ -47,7 +47,9 @@ export default function EslReadingLayout() {
             passages.map((passage) => (
               <div
                 key={passage.id}
-                className={`esl-sidebar-item-shell ${activeId === passage.id ? "is-active" : ""}`}
+                className={`esl-sidebar-item-shell ${activeId === passage.id ? "is-active" : ""} ${
+                  openMenuId === passage.id ? "is-menu-open" : ""
+                }`}
               >
                 <Link
                   to={`/esl/reading/${passage.id}`}

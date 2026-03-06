@@ -1515,6 +1515,11 @@ select.input:focus {
 
 .esl-sidebar-item-shell {
   position: relative;
+  z-index: 0;
+}
+
+.esl-sidebar-item-shell.is-menu-open {
+  z-index: 20;
 }
 
 .esl-sidebar-item {
@@ -1597,7 +1602,7 @@ select.input:focus {
   border: 1px solid var(--border);
   background: var(--bg-card);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  z-index: 5;
+  z-index: 40;
 }
 
 .esl-sidebar-item-menu-option {
@@ -1664,12 +1669,12 @@ select.input:focus {
 /* --- Welcome / Index --- */
 
 .esl-welcome {
-  margin-bottom: 2px;
+  margin-bottom: 0;
 }
 
 .esl-welcome h2 {
   font-family: var(--font-display);
-  font-size: 28px;
+  font-size: clamp(22px, 2.2vw, 28px);
   margin-bottom: 0;
 }
 
@@ -1691,7 +1696,7 @@ select.input:focus {
 .esl-passage-header {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .esl-passage-heading-row {
@@ -1705,7 +1710,7 @@ select.input:focus {
 .esl-passage-heading-copy {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .esl-passage-heading-subtitle {
@@ -1720,7 +1725,7 @@ select.input:focus {
 
 .esl-passage-header h1 {
   font-family: var(--font-display);
-  font-size: clamp(24px, 3.5vw, 36px);
+  font-size: clamp(22px, 3vw, 30px);
   line-height: 1.2;
   flex: 1;
   min-width: min(320px, 100%);
@@ -1755,7 +1760,7 @@ select.input:focus {
 .esl-compose-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .esl-compose-main {
@@ -1775,10 +1780,33 @@ select.input:focus {
   min-height: clamp(360px, 52vh, 640px);
 }
 
+.esl-compose-editor {
+  position: relative;
+  min-height: clamp(360px, 52vh, 640px);
+}
+
 .esl-compose-textarea {
-  flex: 1;
-  min-height: clamp(280px, 44vh, 560px);
-  resize: vertical;
+  min-height: clamp(360px, 52vh, 640px);
+  height: 100%;
+  resize: none;
+  overflow-y: auto;
+  padding-bottom: 42px;
+}
+
+.esl-compose-count {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+
+.esl-compose-count.is-over-limit {
+  color: var(--accent);
 }
 
 .esl-compose-footer {
@@ -1989,7 +2017,13 @@ select.input:focus {
 .esl-detail-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+}
+
+.esl-center-panel > .tool-card-stack,
+.esl-compose-main > .tool-card-stack,
+.esl-detail-stack > .tool-card-stack {
+  margin-top: 0;
 }
 
 .esl-detail-passage-card {
@@ -2278,11 +2312,12 @@ select.input:focus {
 .esl-history-rail {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 0;
 }
 
 .esl-history-rail-header {
   display: flex;
+  margin-bottom: 12px;
 }
 
 .esl-history-new {
@@ -2307,6 +2342,11 @@ select.input:focus {
 
 .esl-history-item-shell {
   position: relative;
+  z-index: 0;
+}
+
+.esl-history-item-shell.is-menu-open {
+  z-index: 20;
 }
 
 .esl-history-item {
@@ -2410,7 +2450,7 @@ select.input:focus {
   border: 1px solid var(--border);
   background: var(--bg-card);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  z-index: 5;
+  z-index: 40;
 }
 
 .esl-history-item-menu-option {
@@ -2467,7 +2507,7 @@ select.input:focus {
   .esl-practice-layout {
     flex-direction: row;
     gap: 28px;
-    padding-top: 8px;
+    padding-top: 16px;
     height: 100%;
     min-height: 0;
   }
@@ -2514,10 +2554,11 @@ select.input:focus {
     min-height: 0;
   }
 
-  .esl-compose-card {
+  .esl-compose-card,
+  .esl-compose-editor {
     flex: 1;
     min-height: 0;
-    overflow: auto;
+    overflow: hidden;
   }
 
   .esl-compose-textarea {

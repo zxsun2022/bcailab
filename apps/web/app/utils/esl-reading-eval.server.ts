@@ -400,8 +400,19 @@ export const generatePassageTitle = async (env: Env, contentText: string): Promi
   const apiKey = env.GEMINI_API_KEY?.trim();
   if (!apiKey) return buildFallbackEslPassageTitle(contentText);
 
-  const model = "gemini-2.0-flash-lite";
-  const prompt = `给这段英文文本生成一个简短的标题（10个英文单词以内）。只返回标题文字，不要引号或其他格式。\n\n${contentText.slice(0, 1000)}`;
+  const model = "gemini-2.5-flash-lite";
+  const prompt = [
+    "Generate one short English title for the passage below.",
+    "Rules:",
+    "- 2 to 6 words",
+    "- at most 42 characters",
+    "- plain text only",
+    "- no quotes",
+    "- no markdown",
+    "- no trailing punctuation",
+    "",
+    contentText.slice(0, 1200)
+  ].join("\n");
 
   try {
     const response = await fetch(
@@ -411,7 +422,11 @@ export const generatePassageTitle = async (env: Env, contentText: string): Promi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3, maxOutputTokens: 60 }
+          generationConfig: {
+            temperature: 0.2,
+            maxOutputTokens: 24,
+            thinkingConfig: { thinkingBudget: 0 }
+          }
         })
       }
     );
@@ -419,7 +434,8 @@ export const generatePassageTitle = async (env: Env, contentText: string): Promi
     const json = (await response.json()) as GeminiResponse;
     const text = json.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === "string")?.text;
     const normalized = text ? normalizeEslPassageTitle(text) : "";
-    return normalized && normalized.length < 120
+    const wordCount = normalized ? normalized.split(/\s+/).filter(Boolean).length : 0;
+    return normalized && normalized.length <= 42 && wordCount >= 2 && wordCount <= 6
       ? normalized
       : buildFallbackEslPassageTitle(contentText);
   } catch {

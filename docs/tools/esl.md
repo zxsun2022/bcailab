@@ -17,12 +17,12 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 
 ### Layout
 - **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
-- **Index center column**: New passage composer with editable text area and sticky recording controls at the bottom.
+- **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
 - **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
 - **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
 
 ### Passage Management
-- Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.0-flash-lite`.
+- Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.
 - Passage content is normalized to LF line endings before storage.
 - Max passage length: `8,000` characters (`MAX_ESL_PASSAGE_CHARS`).
 - Passage deletion is available from the passage list item menu and removes the passage plus all stored attempts for that passage.
@@ -33,14 +33,14 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Mode toggle: Reading / Recitation. In recitation mode, existing-passage composers hide the passage text.
 - Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
 - Timer tracks elapsed time during recording.
-- Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates into the saved attempt page.
+- Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then briefly `Evaluating...`, then the app navigates into the saved attempt page.
 - Duration tracked client-side (`durationMs`) and stored in database.
 - Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
 
 ### Evaluation Pipeline
 - Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
-- If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording.
+- If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
 - Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
