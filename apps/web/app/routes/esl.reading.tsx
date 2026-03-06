@@ -23,7 +23,11 @@ export default function EslReadingLayout() {
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const closeMenu = () => setOpenMenuId(null);
+    const closeMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".esl-sidebar-item-actions")) return;
+      setOpenMenuId(null);
+    };
     document.addEventListener("click", closeMenu);
     return () => document.removeEventListener("click", closeMenu);
   }, []);

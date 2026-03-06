@@ -19,7 +19,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
 - **Index center column**: New passage composer with editable text area and sticky recording controls at the bottom.
 - **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
-- **Right column**: History rail only, with a persistent `New Attempt` button at the top.
+- **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
 
 ### Passage Management
 - Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.0-flash-lite`.
@@ -33,13 +33,14 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Mode toggle: Reading / Recitation. In recitation mode, existing-passage composers hide the passage text.
 - Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
 - Timer tracks elapsed time during recording.
-- After submit, the page first shows an upload/saving status, then navigates into the saved attempt page where AI pending/completed state is shown.
+- Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates into the saved attempt page.
 - Duration tracked client-side (`durationMs`) and stored in database.
 - Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
 
 ### Evaluation Pipeline
 - Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
+- If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording.
 - Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:

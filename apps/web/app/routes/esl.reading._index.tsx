@@ -88,7 +88,7 @@ export default function EslReadingIndexPage() {
 
         <EslAttemptComposer
           action="?index"
-          submitLabel="Create Passage"
+          submitLabel="Submit"
           canSubmit={Boolean(content.trim())}
         >
           {() => (

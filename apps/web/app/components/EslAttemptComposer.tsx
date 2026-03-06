@@ -181,11 +181,6 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const isUploading = fetcher.state === "submitting";
   const isOpeningAttempt = fetcher.state === "loading" && Boolean(fetcher.data?.redirectTo);
   const submitError = fetcher.data?.error;
-  const submitStatus = isUploading
-    ? "Uploading audio to the server..."
-    : isOpeningAttempt
-      ? "Upload complete. Opening the saved attempt..."
-      : null;
 
   return (
     <fetcher.Form
@@ -239,6 +234,15 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
           </div>
         ) : (
           <div className={`esl-record-panel ${recordingState === "recording" ? "is-recording" : ""}`}>
+            <div className="esl-record-copy">
+              <div className="esl-record-label">
+                {recordingState === "recording" ? "Recording" : "Ready to record"}
+              </div>
+              <div className="esl-record-hint">
+                {recordingState === "recording" ? "Tap again to stop" : "Tap to start recording"}
+              </div>
+            </div>
+
             {recordingState === "idle" ? (
               <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
                 <span className="esl-record-btn-inner" />
@@ -248,15 +252,6 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
                 <span className="esl-record-btn-stop" />
               </button>
             )}
-
-            <div className="esl-record-copy">
-              <div className="esl-record-label">
-                {recordingState === "recording" ? "Recording" : "Ready to record"}
-              </div>
-              <div className="esl-record-hint">
-                {recordingState === "recording" ? "Tap again to stop" : "Tap to start recording"}
-              </div>
-            </div>
           </div>
         )}
 
@@ -272,12 +267,6 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
           className="esl-hidden-input"
         />
       </div>
-
-      {submitStatus ? (
-        <div className="esl-submit-status" aria-live="polite">
-          {submitStatus}
-        </div>
-      ) : null}
 
       {submitError ? <div className="form-error">{submitError}</div> : null}
     </fetcher.Form>

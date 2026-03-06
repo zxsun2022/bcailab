@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Link } from "@remix-run/react";
 import { formatDuration } from "~/utils/esl-reading";
 
@@ -34,6 +35,17 @@ const getHistoryScoreLabel = (attempt: HistoryAttempt) => {
 
 export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
   const { passageId, attempts, selectedAttemptId, isComposeView = false, disableNewAttempt = false } = props;
+  const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const closeMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".esl-history-item-actions")) return;
+      setOpenMenuId(null);
+    };
+    document.addEventListener("click", closeMenu);
+    return () => document.removeEventListener("click", closeMenu);
+  }, []);
 
   return (
     <aside className="esl-history-rail">
@@ -63,28 +75,75 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
       ) : (
         <div className="esl-history-list">
           {attempts.map((attempt) => (
-            <Link
+            <div
               key={attempt.id}
-              to={`/esl/reading/${passageId}?attempt=${attempt.id}`}
-              className={`esl-history-item ${
+              className={`esl-history-item-shell ${
                 !isComposeView && selectedAttemptId === attempt.id ? "is-active" : ""
               }`}
             >
-              <span className="esl-history-score">{getHistoryScoreLabel(attempt)}</span>
-              <span className="esl-history-mode">
-                {attempt.evaluationStatus === "pending"
-                  ? "Pending"
-                  : attempt.evaluationStatus === "failed"
-                    ? "Failed"
-                    : attempt.mode === "recitation"
-                      ? "Rec"
-                      : "Read"}
-              </span>
-              <span className="esl-history-date">{formatDateTime(attempt.createdAt)}</span>
-              {attempt.durationMs ? (
-                <span className="esl-history-dur">{formatDuration(attempt.durationMs)}</span>
-              ) : null}
-            </Link>
+              <Link
+                to={`/esl/reading/${passageId}?attempt=${attempt.id}`}
+                className={`esl-history-item ${
+                  !isComposeView && selectedAttemptId === attempt.id ? "is-active" : ""
+                }`}
+                onClick={() => setOpenMenuId(null)}
+              >
+                <span className="esl-history-score">{getHistoryScoreLabel(attempt)}</span>
+                <span className="esl-history-mode">
+                  {attempt.evaluationStatus === "pending"
+                    ? "Pending"
+                    : attempt.evaluationStatus === "failed"
+                      ? "Failed"
+                      : attempt.mode === "recitation"
+                        ? "Rec"
+                        : "Read"}
+                </span>
+                <span className="esl-history-date">{formatDateTime(attempt.createdAt)}</span>
+                {attempt.durationMs ? (
+                  <span className="esl-history-dur">{formatDuration(attempt.durationMs)}</span>
+                ) : null}
+              </Link>
+
+              <div
+                className={`esl-history-item-actions ${openMenuId === attempt.id ? "is-open" : ""}`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="esl-history-item-menu-btn"
+                  aria-label="Open attempt menu"
+                  aria-expanded={openMenuId === attempt.id}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setOpenMenuId((current) => (current === attempt.id ? null : attempt.id));
+                  }}
+                >
+                  <span />
+                  <span />
+                  <span />
+                </button>
+
+                {openMenuId === attempt.id && passageId ? (
+                  <div className="esl-history-item-menu">
+                    <form
+                      method="post"
+                      action={`/esl/reading/${passageId}`}
+                      onSubmit={(event) => {
+                        if (!confirm("Delete this attempt and its AI feedback?")) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <input type="hidden" name="_intent" value="deleteAttempt" />
+                      <input type="hidden" name="attemptId" value={attempt.id} />
+                      <button type="submit" className="esl-history-item-menu-option is-danger">
+                        Delete attempt
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           ))}
         </div>
       )}

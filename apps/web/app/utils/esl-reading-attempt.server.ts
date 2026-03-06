@@ -226,6 +226,27 @@ const runReadingAttemptEvaluation = async (
   }
 };
 
+const scheduleReadingAttemptEvaluation = async (
+  context: AppLoadContext,
+  input: {
+    userId: string;
+    attemptId: string;
+    passage: EslPassage;
+    mode: EslReadingMode;
+    durationMs: number | null;
+    audioBytes: Uint8Array;
+    audioMimeType: string;
+  },
+  options: { preferBackground?: boolean } = {}
+) => {
+  const evaluationTask = runReadingAttemptEvaluation(context, input);
+  if (options.preferBackground !== false && context.ctx?.waitUntil) {
+    context.ctx.waitUntil(evaluationTask);
+  } else {
+    await evaluationTask;
+  }
+};
+
 export const createAndScheduleEslReadingAttempt = async (
   context: AppLoadContext,
   input: {
@@ -263,26 +284,71 @@ export const createAndScheduleEslReadingAttempt = async (
     throw new EslAttemptSubmissionError("Failed to submit. Please retry.", 500);
   }
 
-  const evaluationTask = runReadingAttemptEvaluation(context, {
-    userId: input.userId,
-    attemptId,
-    passage: input.passage,
-    mode: input.submission.mode,
-    durationMs: input.submission.durationMs,
-    audioBytes: new Uint8Array(input.submission.audioBuffer),
-    audioMimeType: input.submission.audioMimeType
-  });
-
-  if (supportsAsyncEvaluationStatus && context.ctx?.waitUntil) {
-    context.ctx.waitUntil(evaluationTask);
-  } else {
-    if (!supportsAsyncEvaluationStatus) {
-      console.warn(
-        "esl_reading_attempts is missing evaluation_status or duration_ms; running evaluation inline. Apply newer D1 migrations."
-      );
-    }
-    await evaluationTask;
+  if (!supportsAsyncEvaluationStatus) {
+    console.warn(
+      "esl_reading_attempts is missing evaluation_status or duration_ms; running evaluation inline. Apply newer D1 migrations."
+    );
   }
 
+  await scheduleReadingAttemptEvaluation(
+    context,
+    {
+      userId: input.userId,
+      attemptId,
+      passage: input.passage,
+      mode: input.submission.mode,
+      durationMs: input.submission.durationMs,
+      audioBytes: new Uint8Array(input.submission.audioBuffer),
+      audioMimeType: input.submission.audioMimeType
+    },
+    { preferBackground: supportsAsyncEvaluationStatus }
+  );
+
   return { attemptId };
+};
+
+export const retryEslReadingAttemptEvaluation = async (
+  context: AppLoadContext,
+  input: {
+    userId: string;
+    attemptId: string;
+    passage: EslPassage;
+  }
+) => {
+  const attempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
+    includeDeleted: true
+  });
+  if (!attempt || attempt.user_id !== input.userId || attempt.passage_id !== input.passage.id || attempt.deleted_at) {
+    throw new EslAttemptSubmissionError("Attempt not found.", 404);
+  }
+  if (!isSupportedReadingMode(attempt.mode)) {
+    throw new EslAttemptSubmissionError("Invalid attempt mode.", 400);
+  }
+
+  const audioObject = await context.env.R2.get(attempt.r2_key);
+  if (!audioObject) {
+    await updateEslReadingAttemptEvaluationStatus(context.env.DB, {
+      id: attempt.id,
+      userId: input.userId,
+      status: "failed"
+    });
+    throw new EslAttemptSubmissionError("Recording file is unavailable.", 500);
+  }
+
+  await updateEslReadingAttemptEvaluationStatus(context.env.DB, {
+    id: attempt.id,
+    userId: input.userId,
+    status: "pending"
+  });
+
+  const audioBuffer = await audioObject.arrayBuffer();
+  await scheduleReadingAttemptEvaluation(context, {
+    userId: input.userId,
+    attemptId: attempt.id,
+    passage: input.passage,
+    mode: attempt.mode,
+    durationMs: attempt.duration_ms,
+    audioBytes: new Uint8Array(audioBuffer),
+    audioMimeType: attempt.audio_mime_type
+  });
 };

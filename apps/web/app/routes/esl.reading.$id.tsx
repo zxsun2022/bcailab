@@ -4,7 +4,6 @@ import {
   Link,
   useActionData,
   useLoaderData,
-  useNavigation,
   useRevalidator
 } from "@remix-run/react";
 import { Badge, Card } from "@bcailab/ui";
@@ -24,7 +23,8 @@ import { requireUser } from "~/utils/auth.server";
 import {
   createAndScheduleEslReadingAttempt,
   EslAttemptSubmissionError,
-  parseEslAttemptSubmission
+  parseEslAttemptSubmission,
+  retryEslReadingAttemptEvaluation
 } from "~/utils/esl-reading-attempt.server";
 import {
   formatDuration,
@@ -35,6 +35,7 @@ import {
 import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string };
+const STALE_PENDING_MS = 45 * 1000;
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString(undefined, {
@@ -103,6 +104,11 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   const selectedOutput = selectedEvaluation
     ? parseEslReadingEvaluationOutput(selectedEvaluation.output_json)
     : null;
+  const selectedIsStalePending = selectedAttempt
+    ? selectedAttempt.evaluation_status === "pending" &&
+      !selectedOutput &&
+      Date.now() - new Date(selectedAttempt.created_at).getTime() > STALE_PENDING_MS
+    : false;
 
   return json({
     passage,
@@ -115,9 +121,13 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
           createdAt: selectedAttempt.created_at,
           durationMs: selectedAttempt.duration_ms,
           evaluationStatus: selectedAttempt.evaluation_status,
+          isStalePending: selectedIsStalePending,
+          canRetryEvaluation:
+            selectedIsStalePending ||
+            selectedAttempt.evaluation_status === "failed" ||
+            (!selectedOutput && selectedAttempt.evaluation_status === "completed"),
           audioUrl: `/esl/audio/${selectedAttempt.id}`,
-          evaluation: selectedOutput,
-          modelName: selectedEvaluation?.model_name ?? null
+          evaluation: selectedOutput
         }
       : null
   });
@@ -178,6 +188,25 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     }
   }
 
+  if (intent === "retryEvaluation") {
+    const attemptId = String(formData.get("attemptId") ?? "");
+    if (!attemptId) return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
+
+    try {
+      await retryEslReadingAttemptEvaluation(context, {
+        userId: user.id,
+        passage,
+        attemptId
+      });
+      return redirect(`/esl/reading/${passage.id}?attempt=${attemptId}`);
+    } catch (error) {
+      if (error instanceof EslAttemptSubmissionError) {
+        return json<ActionData>({ error: error.message }, { status: error.status });
+      }
+      return json<ActionData>({ error: "Failed to request feedback. Please retry." }, { status: 500 });
+    }
+  }
+
   if (intent !== "submitAttempt") {
     return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
   }
@@ -204,19 +233,17 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 export default function EslReadingPracticePage() {
   const { passage, composeView, attempts, selected } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
   const revalidator = useRevalidator();
   const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
   const actionError = actionData && "error" in actionData ? actionData.error : undefined;
-  const pendingIntent = navigation.formData?.get("_intent");
   const headingSubtitle = composeView
     ? attempts.length === 0
       ? "Record the first attempt for this passage."
-      : "Record a new attempt. The passage text stays locked."
+      : null
     : null;
 
   React.useEffect(() => {
-    if (selected?.evaluationStatus !== "pending") return;
+    if (selected?.evaluationStatus !== "pending" || selected.isStalePending) return;
     const timeoutId = window.setTimeout(() => {
       revalidator.revalidate();
     }, 2000);
@@ -244,7 +271,7 @@ export default function EslReadingPracticePage() {
 
         {composeView ? (
           <EslAttemptComposer
-            submitLabel={attempts.length === 0 ? "Submit First Attempt" : "Submit Attempt"}
+            submitLabel="Submit"
           >
             {({ hideText }) => (
               <Card className="tool-card-stack esl-compose-card esl-compose-card-readonly">
@@ -267,8 +294,9 @@ export default function EslReadingPracticePage() {
             durationMs={selected.durationMs}
             mode={selected.mode}
             evaluationStatus={selected.evaluationStatus}
+            isStalePending={selected.isStalePending}
+            canRetryEvaluation={selected.canRetryEvaluation}
             evaluation={selected.evaluation}
-            modelName={selected.modelName}
           />
         ) : (
           <Card className="tool-card-stack">
@@ -296,8 +324,9 @@ function AttemptDetail(props: {
   durationMs: number | null;
   mode: string;
   evaluationStatus: "pending" | "completed" | "failed";
+  isStalePending: boolean;
+  canRetryEvaluation: boolean;
   evaluation: EslReadingEvaluationOutput | null;
-  modelName: string | null;
 }) {
   return (
     <div className="esl-detail-stack">
@@ -309,28 +338,29 @@ function AttemptDetail(props: {
       <Card className="tool-card-stack esl-detail-card">
         <div className="esl-detail-head">
           <div className="esl-detail-head-main">
-            <Badge className={`esl-status-badge is-${props.evaluationStatus}`}>
-              {props.evaluationStatus === "pending"
-                ? "AI Pending"
-                : props.evaluationStatus === "failed"
-                  ? "AI Failed"
-                  : "AI Ready"}
-            </Badge>
-            <div className="esl-eval-meta">
-              <span>{props.mode === "recitation" ? "Recitation" : "Reading"}</span>
-              <span>{formatDateTime(props.createdAt)}</span>
-              {props.durationMs ? <span>{formatDuration(props.durationMs)}</span> : null}
-            </div>
+            {props.evaluationStatus !== "completed" ? (
+              <Badge className={`esl-status-badge is-${props.evaluationStatus}`}>
+                {props.isStalePending ? "Needs Retry" : props.evaluationStatus === "pending" ? "Evaluating" : "AI Failed"}
+              </Badge>
+            ) : null}
           </div>
           <audio controls src={props.audioUrl} className="esl-audio-player" />
         </div>
 
-        {props.evaluationStatus === "pending" ? (
+        {props.evaluationStatus === "pending" && !props.isStalePending ? (
           <div className="esl-attempt-state">
-            <div className="esl-attempt-state-title">AI evaluation in progress</div>
+            <div className="esl-attempt-state-title">Evaluating</div>
             <p className="esl-attempt-state-desc">
               Your recording is saved. AI feedback is still running, so you can wait here while it
               appears automatically.
+            </p>
+          </div>
+        ) : props.isStalePending ? (
+          <div className="esl-attempt-state">
+            <div className="esl-attempt-state-title">Evaluation interrupted</div>
+            <p className="esl-attempt-state-desc">
+              The recording appears to be saved, but the feedback job did not finish. You can retry
+              the AI evaluation without re-recording.
             </p>
           </div>
         ) : props.evaluationStatus === "failed" ? (
@@ -351,21 +381,21 @@ function AttemptDetail(props: {
           </div>
         )}
 
-        {props.modelName ? <div className="esl-model-note">Model: {props.modelName}</div> : null}
+        {props.canRetryEvaluation ? (
+          <form method="post" className="esl-eval-retry">
+            <input type="hidden" name="_intent" value="retryEvaluation" />
+            <input type="hidden" name="attemptId" value={props.attemptId} />
+            <button type="submit" className="btn btn-ghost btn-sm">
+              Retry feedback
+            </button>
+          </form>
+        ) : null}
 
-        <form
-          method="post"
-          className="esl-eval-delete"
-          onSubmit={(event) => {
-            if (!confirm("Delete this attempt and its AI feedback?")) event.preventDefault();
-          }}
-        >
-          <input type="hidden" name="_intent" value="deleteAttempt" />
-          <input type="hidden" name="attemptId" value={props.attemptId} />
-          <button type="submit" className="btn btn-ghost btn-sm esl-delete-btn">
-            Delete attempt
-          </button>
-        </form>
+        <div className="esl-eval-meta esl-eval-meta-bottom">
+          <span>{props.mode === "recitation" ? "Recitation" : "Reading"}</span>
+          <span>{formatDateTime(props.createdAt)}</span>
+          {props.durationMs ? <span>{formatDuration(props.durationMs)}</span> : null}
+        </div>
       </Card>
     </div>
   );
