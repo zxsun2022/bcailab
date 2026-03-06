@@ -1,24 +1,28 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { Link, useActionData, useLoaderData } from "@remix-run/react";
+import { Link, useActionData, useLoaderData, useNavigation } from "@remix-run/react";
 import { Button, Card } from "@bcailab/ui";
 import {
   createEslReadingAttempt,
   createEslReadingEvaluation,
+  getEslLearnerProfile,
   getEslPassageById,
   getEslReadingAttemptById,
   getLatestEslReadingEvaluationByAttemptId,
+  incrementEslLearnerProfileCounters,
   listEslReadingAttemptsByPassage,
   softDeleteEslReadingAttempt
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
 import {
-  clipText,
+  formatDuration,
   isSupportedEslAudioMime,
   isSupportedReadingMode,
   MAX_ESL_READING_AUDIO_BYTES,
   parseEslReadingEvaluationOutput,
+  type EslLearnerProfileData,
+  type EslReadingEvaluationOutput,
   type EslReadingMode
 } from "~/utils/esl-reading";
 import * as React from "react";
@@ -27,7 +31,6 @@ type ActionData = { error?: string };
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString(undefined, {
-    year: "numeric",
     month: "short",
     day: "numeric",
     hour: "2-digit",
@@ -42,102 +45,83 @@ const buildAttemptR2Key = (userId: string, attemptId: string, extension: string)
 };
 
 const audioFormatByMime: Record<string, string> = {
-  "audio/webm": "webm",
-  "audio/mp4": "mp4",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/x-wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/flac": "flac"
+  "audio/webm": "webm", "audio/mp4": "mp4", "audio/mpeg": "mp3", "audio/mp3": "mp3",
+  "audio/wav": "wav", "audio/x-wav": "wav", "audio/ogg": "ogg", "audio/aac": "aac", "audio/flac": "flac"
 };
 
 const audioMimeByFormat: Record<string, string> = {
-  webm: "audio/webm",
-  mp4: "audio/mp4",
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  ogg: "audio/ogg",
-  aac: "audio/aac",
-  flac: "audio/flac"
+  webm: "audio/webm", mp4: "audio/mp4", mp3: "audio/mpeg", wav: "audio/wav",
+  ogg: "audio/ogg", aac: "audio/aac", flac: "audio/flac"
 };
 
 const inferAudioFormat = (mimeType: string, fileName: string): string | null => {
-  const normalizedMimeType = mimeType.split(";")[0].trim().toLowerCase();
-  if (audioFormatByMime[normalizedMimeType]) return audioFormatByMime[normalizedMimeType];
+  const normalized = mimeType.split(";")[0].trim().toLowerCase();
+  if (audioFormatByMime[normalized]) return audioFormatByMime[normalized];
   const ext = fileName.trim().toLowerCase().split(".").pop();
   if (!ext) return null;
-  if (["webm", "mp4", "mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext)) {
-    return ext === "m4a" ? "mp4" : ext;
-  }
+  if (["webm", "mp4", "mp3", "wav", "ogg", "aac", "flac", "m4a"].includes(ext)) return ext === "m4a" ? "mp4" : ext;
   return null;
 };
 
 const recorderMimeCandidates = [
-  "audio/webm;codecs=opus",
-  "audio/mp4",
-  "audio/webm",
-  "audio/ogg;codecs=opus",
-  "audio/ogg"
+  "audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg;codecs=opus", "audio/ogg"
 ];
 
 const pickRecorderMimeType = (): string | null => {
   if (typeof MediaRecorder === "undefined") return null;
-  for (const candidate of recorderMimeCandidates) {
-    if (MediaRecorder.isTypeSupported(candidate)) return candidate;
+  for (const c of recorderMimeCandidates) {
+    if (MediaRecorder.isTypeSupported(c)) return c;
   }
   return null;
 };
 
 const extensionFromMimeType = (mimeType: string): string => {
-  const normalized = mimeType.toLowerCase();
-  if (normalized.includes("webm")) return "webm";
-  if (normalized.includes("mp4")) return "mp4";
-  if (normalized.includes("mpeg") || normalized.includes("mp3")) return "mp3";
-  if (normalized.includes("wav")) return "wav";
-  if (normalized.includes("ogg")) return "ogg";
-  if (normalized.includes("aac")) return "aac";
-  if (normalized.includes("flac")) return "flac";
+  const n = mimeType.toLowerCase();
+  if (n.includes("webm")) return "webm";
+  if (n.includes("mp4")) return "mp4";
+  if (n.includes("mpeg") || n.includes("mp3")) return "mp3";
+  if (n.includes("wav")) return "wav";
+  if (n.includes("ogg")) return "ogg";
+  if (n.includes("aac")) return "aac";
+  if (n.includes("flac")) return "flac";
   return "webm";
 };
+
+// ---------- Loader ----------
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   const passageId = params.id;
-  if (!passageId) {
-    throw new Response("Not found", { status: 404 });
-  }
+  if (!passageId) throw new Response("Not found", { status: 404 });
 
   const passage = await getEslPassageById(context.env.DB, passageId, { includeDeleted: true });
   if (!passage || passage.user_id !== user.id || passage.deleted_at) {
     throw new Response("Not found", { status: 404 });
   }
 
-  const attempts = await listEslReadingAttemptsByPassage(context.env.DB, {
-    userId: user.id,
-    passageId
-  });
+  const attempts = await listEslReadingAttemptsByPassage(context.env.DB, { userId: user.id, passageId });
   const evaluations = await Promise.all(
-    attempts.map((attempt) => getLatestEslReadingEvaluationByAttemptId(context.env.DB, attempt.id))
+    attempts.map((a) => getLatestEslReadingEvaluationByAttemptId(context.env.DB, a.id))
   );
 
-  const attemptsWithEval = attempts.map((attempt, index) => {
-    const evaluation = evaluations[index];
+  const attemptsWithEval = attempts.map((attempt, i) => {
+    const evaluation = evaluations[i];
     const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
     return {
       id: attempt.id,
       mode: attempt.mode,
       createdAt: attempt.created_at,
+      durationMs: attempt.duration_ms,
       score: parsed?.scores.overall ?? null,
       modelName: evaluation?.model_name ?? null
     };
   });
 
+  // Selected attempt (default: latest)
   const url = new URL(request.url);
   const selectedAttemptId = url.searchParams.get("attempt") || attemptsWithEval[0]?.id || null;
   const selectedAttempt = selectedAttemptId
-    ? attempts.find((attempt) => attempt.id === selectedAttemptId) ?? null
+    ? attempts.find((a) => a.id === selectedAttemptId) ?? null
     : null;
   const selectedEvaluation = selectedAttempt
     ? await getLatestEslReadingEvaluationByAttemptId(context.env.DB, selectedAttempt.id)
@@ -146,14 +130,21 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     ? parseEslReadingEvaluationOutput(selectedEvaluation.output_json)
     : null;
 
+  // Score trend for sparkline
+  const scoreTrend = [...attemptsWithEval]
+    .reverse()
+    .map((a) => ({ score: a.score, mode: a.mode }));
+
   return json({
     passage,
     attempts: attemptsWithEval,
+    scoreTrend,
     selected: selectedAttempt
       ? {
           id: selectedAttempt.id,
           mode: selectedAttempt.mode,
           createdAt: selectedAttempt.created_at,
+          durationMs: selectedAttempt.duration_ms,
           audioUrl: `/esl/audio/${selectedAttempt.id}`,
           evaluation: selectedOutput,
           modelName: selectedEvaluation?.model_name ?? null
@@ -162,12 +153,12 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   });
 };
 
+// ---------- Action ----------
+
 export const action = async ({ request, context, params }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
   const passageId = params.id;
-  if (!passageId) {
-    throw new Response("Not found", { status: 404 });
-  }
+  if (!passageId) throw new Response("Not found", { status: 404 });
 
   const passage = await getEslPassageById(context.env.DB, passageId, { includeDeleted: true });
   if (!passage || passage.user_id !== user.id || passage.deleted_at) {
@@ -179,9 +170,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
   if (intent === "deleteAttempt") {
     const attemptId = String(formData.get("attemptId") ?? "");
-    if (!attemptId) {
-      return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
-    }
+    if (!attemptId) return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
     const attempt = await getEslReadingAttemptById(context.env.DB, attemptId, { includeDeleted: true });
     if (!attempt || attempt.user_id !== user.id || attempt.passage_id !== passage.id || attempt.deleted_at) {
       return json<ActionData>({ error: "Attempt not found." }, { status: 404 });
@@ -191,10 +180,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       await softDeleteEslReadingAttempt(context.env.DB, { id: attempt.id, userId: user.id });
       return redirect(`/esl/reading/${passage.id}`);
     } catch {
-      return json<ActionData>(
-        { error: "Failed to delete this attempt. Please try again." },
-        { status: 500 }
-      );
+      return json<ActionData>({ error: "Failed to delete. Please try again." }, { status: 500 });
     }
   }
 
@@ -208,9 +194,12 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   }
   const mode: EslReadingMode = modeRaw;
 
+  const durationMsRaw = formData.get("durationMs");
+  const durationMs = durationMsRaw ? Number(durationMsRaw) : null;
+
   const file = formData.get("audioFile");
   if (!(file instanceof File) || file.size <= 0) {
-    return json<ActionData>({ error: "Please upload an audio file first." }, { status: 400 });
+    return json<ActionData>({ error: "Please record audio first." }, { status: 400 });
   }
   if (file.size > MAX_ESL_READING_AUDIO_BYTES) {
     return json<ActionData>(
@@ -221,16 +210,14 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
   const providedMimeType = file.type || "application/octet-stream";
   if (file.type && !isSupportedEslAudioMime(file.type)) {
-    return json<ActionData>(
-      { error: "Unsupported audio format. Use webm/mp4/mp3/wav/ogg/aac/flac." },
-      { status: 400 }
-    );
+    return json<ActionData>({ error: "Unsupported audio format." }, { status: 400 });
   }
 
   const audioFormat = inferAudioFormat(providedMimeType, file.name);
   if (!audioFormat) {
     return json<ActionData>({ error: "Could not determine audio format." }, { status: 400 });
   }
+
   const mimeType = providedMimeType === "application/octet-stream"
     ? audioMimeByFormat[audioFormat] ?? "application/octet-stream"
     : providedMimeType;
@@ -247,7 +234,6 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         contentDisposition: `inline; filename="reading-${attemptId}.${audioFormat}"`
       }
     });
-
     await createEslReadingAttempt(context.env.DB, {
       id: attemptId,
       passageId: passage.id,
@@ -256,13 +242,40 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       audioFormat,
       audioMimeType: canonicalMimeType,
       r2Key,
-      audioBytes: audioBuffer.byteLength
+      audioBytes: audioBuffer.byteLength,
+      durationMs: durationMs && Number.isFinite(durationMs) && durationMs > 0 ? Math.round(durationMs) : null
     });
   } catch {
-    return json<ActionData>(
-      { error: "Failed to submit this attempt. Please retry." },
-      { status: 500 }
-    );
+    return json<ActionData>({ error: "Failed to submit. Please retry." }, { status: 500 });
+  }
+
+  // Build history context for evaluation
+  const allAttempts = await listEslReadingAttemptsByPassage(context.env.DB, { userId: user.id, passageId });
+  const pastAttempts = allAttempts.filter((a) => a.id !== attemptId);
+  const historyEntries = await Promise.all(
+    pastAttempts.map(async (a) => {
+      const ev = await getLatestEslReadingEvaluationByAttemptId(context.env.DB, a.id);
+      const parsed = ev ? parseEslReadingEvaluationOutput(ev.output_json) : null;
+      return {
+        date: a.created_at,
+        mode: a.mode,
+        overallScore: parsed?.scores.overall ?? 0,
+        durationSeconds: a.duration_ms != null ? a.duration_ms / 1000 : null,
+        fullEvaluation: parsed ?? undefined
+      };
+    })
+  );
+
+  // Learner profile
+  const profile = await getEslLearnerProfile(context.env.DB, user.id);
+  let learnerProfile: EslLearnerProfileData | null = null;
+  if (profile) {
+    try {
+      learnerProfile = {
+        persistent_issues: JSON.parse(profile.persistent_issues_json),
+        strengths: JSON.parse(profile.strengths_json)
+      };
+    } catch { /* ignore */ }
   }
 
   try {
@@ -271,7 +284,10 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       passageText: passage.content_text,
       mode,
       audioBytes: new Uint8Array(audioBuffer),
-      audioMimeType: canonicalMimeType
+      audioMimeType: canonicalMimeType,
+      durationMs: durationMs && Number.isFinite(durationMs) ? Math.round(durationMs) : null,
+      history: historyEntries,
+      learnerProfile
     });
     await createEslReadingEvaluation(context.env.DB, {
       attemptId,
@@ -280,62 +296,76 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       rubricVersion: evaluation.output.rubric_version,
       outputJson: JSON.stringify(evaluation.output)
     });
+
+    // Increment learner profile counters
+    const practiceSeconds = durationMs ? Math.round(durationMs / 1000) : 0;
+    await incrementEslLearnerProfileCounters(context.env.DB, { userId: user.id, practiceSeconds });
   } catch {
-    // Keep the attempt even if evaluation fails; user can still review and replay the upload.
+    // Keep the attempt even if evaluation fails
   }
 
   return redirect(`/esl/reading/${passage.id}?attempt=${attemptId}`);
 };
 
-export default function EslReadingPassagePage() {
-  const { passage, attempts, selected } = useLoaderData<typeof loader>();
+// ---------- Component ----------
+
+type RecordingState = "idle" | "recording" | "preview" | "submitting";
+
+export default function EslReadingPracticePage() {
+  const { passage, attempts, scoreTrend, selected } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const [hidePassage, setHidePassage] = React.useState(false);
-  const [recordingState, setRecordingState] = React.useState<"idle" | "recording" | "stopping">(
-    "idle"
-  );
-  const [recorderStatus, setRecorderStatus] = React.useState(
-    "You can upload an existing audio file or record in browser."
-  );
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+
+  const [mode, setMode] = React.useState<EslReadingMode>("reading");
+  const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
+  const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);
+
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const mediaStreamRef = React.useRef<MediaStream | null>(null);
   const recordedChunksRef = React.useRef<BlobPart[]>([]);
+  const timerRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = React.useRef<number>(0);
+  const durationMsRef = React.useRef<number>(0);
 
-  const clearAudioPreview = React.useCallback(() => {
-    setRecordedAudioUrl((current) => {
-      if (current) {
-        URL.revokeObjectURL(current);
-      }
-      return null;
-    });
-  }, []);
+  const hideText = mode === "recitation";
+
+  const cleanupAudio = React.useCallback(() => {
+    if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
+    setRecordedAudioUrl(null);
+  }, [recordedAudioUrl]);
 
   const stopMediaStream = React.useCallback(() => {
     const stream = mediaStreamRef.current;
     if (!stream) return;
-    for (const track of stream.getTracks()) {
-      track.stop();
-    }
+    for (const track of stream.getTracks()) track.stop();
     mediaStreamRef.current = null;
+  }, []);
+
+  const stopTimer = React.useCallback(() => {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
   }, []);
 
   React.useEffect(() => {
     return () => {
-      clearAudioPreview();
+      if (recordedAudioUrl) URL.revokeObjectURL(recordedAudioUrl);
       stopMediaStream();
+      stopTimer();
     };
-  }, [clearAudioPreview, stopMediaStream]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const startRecording = React.useCallback(async () => {
     if (recordingState !== "idle") return;
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setRecorderStatus("This browser does not support microphone recording.");
-      return;
-    }
+    if (!navigator.mediaDevices?.getUserMedia) return;
 
     try {
+      cleanupAudio();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
       recordedChunksRef.current = [];
@@ -344,22 +374,21 @@ export default function EslReadingPassagePage() {
       const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
 
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
-        }
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) recordedChunksRef.current.push(e.data);
       };
 
       recorder.onstop = () => {
+        durationMsRef.current = Date.now() - startTimeRef.current;
+        stopTimer();
+
         const blobType =
           recordedChunksRef.current[0] instanceof Blob && recordedChunksRef.current[0].type
             ? recordedChunksRef.current[0].type
             : recorder.mimeType || mimeType || "audio/webm";
-        const extension = extensionFromMimeType(blobType);
+        const ext = extensionFromMimeType(blobType);
         const blob = new Blob(recordedChunksRef.current, { type: blobType });
-        const file = new File([blob], `reading-attempt-${Date.now()}.${extension}`, {
-          type: blobType
-        });
+        const file = new File([blob], `reading-${Date.now()}.${ext}`, { type: blobType });
 
         if (fileInputRef.current) {
           const transfer = new DataTransfer();
@@ -367,30 +396,32 @@ export default function EslReadingPassagePage() {
           fileInputRef.current.files = transfer.files;
         }
 
-        clearAudioPreview();
         setRecordedAudioUrl(URL.createObjectURL(file));
-        setRecorderStatus(`Recorded ${Math.max(1, Math.round(file.size / 1024))} KB and attached.`);
-        setRecordingState("idle");
+        setRecordingState("preview");
         mediaRecorderRef.current = null;
         stopMediaStream();
       };
 
       recorder.onerror = () => {
-        setRecorderStatus("Recording failed. Please retry or upload an audio file.");
+        stopTimer();
         setRecordingState("idle");
         mediaRecorderRef.current = null;
         stopMediaStream();
       };
 
+      startTimeRef.current = Date.now();
+      setElapsedMs(0);
+      timerRef.current = setInterval(() => {
+        setElapsedMs(Date.now() - startTimeRef.current);
+      }, 200);
+
       recorder.start(200);
       setRecordingState("recording");
-      setRecorderStatus("Recording... click Stop when finished.");
     } catch {
-      setRecorderStatus("Microphone permission denied or unavailable.");
       setRecordingState("idle");
       stopMediaStream();
     }
-  }, [clearAudioPreview, recordingState, stopMediaStream]);
+  }, [cleanupAudio, recordingState, stopMediaStream, stopTimer]);
 
   const stopRecording = React.useCallback(() => {
     if (recordingState !== "recording") return;
@@ -399,203 +430,288 @@ export default function EslReadingPassagePage() {
       setRecordingState("idle");
       return;
     }
-    setRecordingState("stopping");
-    setRecorderStatus("Processing recording...");
     recorder.stop();
   }, [recordingState]);
 
-  const clearAttachedAudio = React.useCallback(() => {
-    if (recordingState === "recording") return;
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-    clearAudioPreview();
-    setRecorderStatus("Audio selection cleared.");
-  }, [clearAudioPreview, recordingState]);
+  const discardRecording = React.useCallback(() => {
+    cleanupAudio();
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    durationMsRef.current = 0;
+    setElapsedMs(0);
+    setRecordingState("idle");
+  }, [cleanupAudio]);
 
-  const handleFileChange = React.useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.currentTarget.files?.[0];
-      clearAudioPreview();
-      if (!file) {
-        setRecorderStatus("No audio file selected.");
-        return;
-      }
-      setRecordedAudioUrl(URL.createObjectURL(file));
-      setRecorderStatus(`Selected: ${file.name}`);
-    },
-    [clearAudioPreview]
-  );
+  const scoreBarWidth = (score: number) => `${Math.max(4, score)}%`;
 
   return (
-    <div className="tool-page">
-      <div className="esl-reading-header">
-        <Link to="/esl/reading" className="posts-link">← Back to passages</Link>
-        <h1>{passage.title || "Untitled passage"}</h1>
-      </div>
-
-      <Card className="tool-card-stack">
-        <div className="esl-passage-panel-head">
-          <span className="post-meta">Passage</span>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => setHidePassage((value) => !value)}
-          >
-            {hidePassage ? "Show text" : "Hide text (recitation)"}
-          </button>
+    <div className="esl-practice-layout">
+      {/* ===== CENTER: Passage + Recording ===== */}
+      <div className="esl-center-panel">
+        <div className="esl-passage-header">
+          <Link to="/esl/reading" className="posts-link esl-mobile-back">
+            &larr; Passages
+          </Link>
+          <h1>{passage.title || "Untitled passage"}</h1>
         </div>
-        {hidePassage ? (
-          <div className="esl-passage-hidden">Text hidden. Try reciting from memory.</div>
-        ) : (
-          <div className="esl-passage-body">{passage.content_text}</div>
-        )}
-      </Card>
 
-      <Card className="tool-card-stack">
-        <form method="post" encType="multipart/form-data" className="esl-attempt-form">
-          <input type="hidden" name="_intent" value="submitAttempt" />
-          <label className="post-meta" htmlFor="mode-select">
-            Submission mode
-          </label>
-          <select id="mode-select" name="mode" className="input">
-            <option value="reading">Reading (text visible)</option>
-            <option value="recitation">Recitation (memorization)</option>
-          </select>
-          <label className="post-meta" htmlFor="audio-file">
-            Audio file
-          </label>
-          <input
-            ref={fileInputRef}
-            id="audio-file"
-            name="audioFile"
-            type="file"
-            accept="audio/*"
-            className="input"
-            onChange={handleFileChange}
-          />
-          <div className="esl-recorder-controls">
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void startRecording()}
-              disabled={recordingState !== "idle"}
-            >
-              {recordingState === "recording" ? "Recording..." : "Start recording"}
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={stopRecording}
-              disabled={recordingState !== "recording"}
-            >
-              Stop
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              onClick={clearAttachedAudio}
-              disabled={recordingState !== "idle"}
-            >
-              Clear
-            </Button>
-          </div>
-          <p className="esl-recorder-status">{recorderStatus}</p>
-          {recordedAudioUrl ? <audio controls src={recordedAudioUrl} className="esl-audio-player" /> : null}
-          <div className="textarea-meta">
-            <span>Upload recording and submit</span>
-            <span>{(MAX_ESL_READING_AUDIO_BYTES / (1024 * 1024)).toFixed(0)}MB max</span>
-          </div>
-          {actionData?.error ? <div className="form-error">{actionData.error}</div> : null}
-          <div className="form-actions form-actions-inline">
-            <Button type="submit">Submit attempt</Button>
-          </div>
-        </form>
-      </Card>
-
-      <div className="esl-attempt-section">
-        <div className="esl-passage-list-head">
-          <h2>Attempts</h2>
-          <span>{attempts.length}</span>
-        </div>
-        {attempts.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-title">No attempts yet</div>
-            <p className="empty-state-desc">Upload your first recording to start tracking progress.</p>
-          </div>
-        ) : (
-          <div className="esl-attempt-list">
-            {attempts.map((attempt) => (
-              <Card
-                key={attempt.id}
-                className={`esl-attempt-row ${selected?.id === attempt.id ? "is-active" : ""}`}
-              >
-                <div className="esl-attempt-row-main">
-                  <div className="esl-attempt-row-head">
-                    <span className="post-meta">{formatDateTime(attempt.createdAt)}</span>
-                    <span className="badge">{attempt.mode === "recitation" ? "Recitation" : "Reading"}</span>
-                  </div>
-                  <div className="esl-attempt-row-score">
-                    {attempt.score !== null ? `Overall ${attempt.score}` : "No score"}
-                    {attempt.modelName ? ` · ${clipText(attempt.modelName, 24)}` : ""}
-                  </div>
-                </div>
-                <Link to={`/esl/reading/${passage.id}?attempt=${attempt.id}`} className="btn btn-ghost btn-sm">
-                  View
-                </Link>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {selected ? (
-        <Card className="tool-card-stack">
-          <div className="esl-selected-head">
-            <h3>Selected attempt</h3>
-            <form
-              method="post"
-              onSubmit={(event) => {
-                if (!confirm("Delete this attempt? This cannot be undone.")) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <input type="hidden" name="_intent" value="deleteAttempt" />
-              <input type="hidden" name="attemptId" value={selected.id} />
-              <Button type="submit" variant="danger" size="sm">
-                Delete
-              </Button>
-            </form>
-          </div>
-          <audio controls src={selected.audioUrl} className="esl-audio-player" />
-          <p className="post-meta">Submitted {formatDateTime(selected.createdAt)}</p>
-          {selected.evaluation ? (
-            <div className="esl-eval-panel">
-              <div className="esl-eval-score">
-                Overall score: <strong>{selected.evaluation.scores.overall}</strong>
-                {selected.modelName ? ` (${selected.modelName})` : ""}
-              </div>
-              <div className="esl-eval-grid">
-                <span>Pronunciation: {selected.evaluation.scores.pronunciation}</span>
-                <span>Stress/Rhythm: {selected.evaluation.scores.stress_rhythm}</span>
-                <span>Fluency: {selected.evaluation.scores.fluency}</span>
-                <span>Clarity: {selected.evaluation.scores.clarity}</span>
-              </div>
-              <div className="esl-eval-subtitle">Top actions (ZH)</div>
-              <ul className="esl-eval-list">
-                {selected.evaluation.top_actions_zh.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
+        {/* Passage text */}
+        <Card className="tool-card-stack esl-passage-card-main">
+          {hideText ? (
+            <div className="esl-passage-hidden">
+              Text hidden for recitation mode. Try reciting from memory.
             </div>
           ) : (
-            <div className="form-error">Evaluation not available for this attempt.</div>
+            <div className="esl-passage-body">{passage.content_text}</div>
           )}
         </Card>
+
+        {/* Mode toggle */}
+        <div className="esl-mode-toggle">
+          <button
+            type="button"
+            className={`esl-mode-btn ${mode === "reading" ? "is-active" : ""}`}
+            onClick={() => setMode("reading")}
+          >
+            Reading
+          </button>
+          <button
+            type="button"
+            className={`esl-mode-btn ${mode === "recitation" ? "is-active" : ""}`}
+            onClick={() => setMode("recitation")}
+          >
+            Recitation
+          </button>
+        </div>
+
+        {/* Recording area */}
+        <div className="esl-record-area">
+          {recordingState === "idle" && (
+            <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
+              <span className="esl-record-btn-inner" />
+            </button>
+          )}
+
+          {recordingState === "recording" && (
+            <>
+              <button type="button" className="esl-record-btn is-recording" onClick={stopRecording}>
+                <span className="esl-record-btn-stop" />
+              </button>
+              <div className="esl-record-timer">{formatDuration(elapsedMs)}</div>
+            </>
+          )}
+
+          {recordingState === "preview" && recordedAudioUrl && (
+            <div className="esl-preview-area">
+              <audio controls src={recordedAudioUrl} className="esl-audio-player" />
+              <div className="esl-preview-meta">
+                {formatDuration(durationMsRef.current)}
+              </div>
+              <div className="esl-preview-actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={discardRecording}>
+                  Re-record
+                </button>
+                <form method="post" encType="multipart/form-data">
+                  <input type="hidden" name="_intent" value="submitAttempt" />
+                  <input type="hidden" name="mode" value={mode} />
+                  <input type="hidden" name="durationMs" value={String(durationMsRef.current)} />
+                  <input
+                    ref={fileInputRef}
+                    name="audioFile"
+                    type="file"
+                    accept="audio/*"
+                    className="esl-hidden-input"
+                  />
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? "Submitting..." : "Submit"}
+                  </Button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {recordingState === "idle" && !recordedAudioUrl && (
+            <div className="esl-record-hint">Tap to start recording</div>
+          )}
+        </div>
+
+        {actionData?.error ? <div className="form-error">{actionData.error}</div> : null}
+      </div>
+
+      {/* ===== RIGHT: Evaluation Panel ===== */}
+      <aside className="esl-eval-panel">
+        {selected?.evaluation ? (
+          <EvalPanel
+            evaluation={selected.evaluation}
+            attemptId={selected.id}
+            mode={selected.mode}
+            createdAt={selected.createdAt}
+            durationMs={selected.durationMs}
+            audioUrl={selected.audioUrl}
+            modelName={selected.modelName}
+            passageId={passage.id}
+            scoreBarWidth={scoreBarWidth}
+          />
+        ) : selected ? (
+          <div className="esl-eval-empty">
+            <audio controls src={selected.audioUrl} className="esl-audio-player" />
+            <p className="post-meta">Evaluation not available for this attempt.</p>
+          </div>
+        ) : attempts.length === 0 ? (
+          <div className="esl-eval-empty">
+            <div className="esl-eval-empty-title">No attempts yet</div>
+            <p className="esl-eval-empty-desc">Record your first reading to see AI feedback here.</p>
+          </div>
+        ) : null}
+
+        {/* Score trend */}
+        {scoreTrend.length > 1 && (
+          <div className="esl-trend">
+            <div className="esl-eval-subtitle">Progress</div>
+            <div className="esl-trend-row">
+              {scoreTrend.map((point, i) => (
+                <div key={i} className="esl-trend-point">
+                  <div
+                    className="esl-trend-bar"
+                    style={{ height: `${Math.max(4, (point.score ?? 0) * 0.6)}px` }}
+                  />
+                  <span className="esl-trend-score">{point.score ?? "–"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Attempt history */}
+        {attempts.length > 0 && (
+          <div className="esl-history">
+            <div className="esl-eval-subtitle">History ({attempts.length})</div>
+            <div className="esl-history-list">
+              {attempts.map((a) => (
+                <Link
+                  key={a.id}
+                  to={`/esl/reading/${passage.id}?attempt=${a.id}`}
+                  className={`esl-history-item ${selected?.id === a.id ? "is-active" : ""}`}
+                >
+                  <span className="esl-history-score">{a.score ?? "–"}</span>
+                  <span className="esl-history-mode">{a.mode === "recitation" ? "Rec" : "Read"}</span>
+                  <span className="esl-history-date">{formatDateTime(a.createdAt)}</span>
+                  {a.durationMs ? (
+                    <span className="esl-history-dur">{formatDuration(a.durationMs)}</span>
+                  ) : null}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+function EvalPanel(props: {
+  evaluation: EslReadingEvaluationOutput;
+  attemptId: string;
+  mode: string;
+  createdAt: string;
+  durationMs: number | null;
+  audioUrl: string;
+  modelName: string | null;
+  passageId: string;
+  scoreBarWidth: (score: number) => string;
+}) {
+  const { evaluation: ev, scoreBarWidth } = props;
+
+  const dimensions = [
+    { label: "Pronunciation", score: ev.scores.pronunciation },
+    { label: "Fluency", score: ev.scores.fluency },
+    { label: "Stress / Rhythm", score: ev.scores.stress_rhythm },
+    { label: "Clarity", score: ev.scores.clarity }
+  ];
+
+  return (
+    <div className="esl-eval-content">
+      <div className="esl-eval-head">
+        <div className="esl-eval-overall">{ev.scores.overall}</div>
+        <div className="esl-eval-overall-label">
+          Overall
+          {ev.cefr_guess ? ` · ${ev.cefr_guess}` : ""}
+        </div>
+      </div>
+
+      <audio controls src={props.audioUrl} className="esl-audio-player" />
+
+      <div className="esl-eval-meta">
+        <span>{props.mode === "recitation" ? "Recitation" : "Reading"}</span>
+        <span>{formatDateTime(props.createdAt)}</span>
+        {props.durationMs ? <span>{formatDuration(props.durationMs)}</span> : null}
+      </div>
+
+      {/* Score bars */}
+      <div className="esl-score-bars">
+        {dimensions.map((d) => (
+          <div key={d.label} className="esl-score-bar-row">
+            <span className="esl-score-bar-label">{d.label}</span>
+            <div className="esl-score-bar-track">
+              <div className="esl-score-bar-fill" style={{ width: scoreBarWidth(d.score) }} />
+            </div>
+            <span className="esl-score-bar-value">{d.score}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Commentary */}
+      {ev.commentary_zh ? (
+        <div className="esl-eval-commentary">{ev.commentary_zh}</div>
       ) : null}
+
+      {/* Progress vs last */}
+      {ev.progress_vs_last.length > 0 && (
+        <div className="esl-eval-progress">
+          {ev.progress_vs_last.map((item, i) => (
+            <div key={i} className="esl-eval-progress-item">{item}</div>
+          ))}
+        </div>
+      )}
+
+      {/* Top actions */}
+      {ev.top_actions_zh.length > 0 && (
+        <>
+          <div className="esl-eval-subtitle">Actions</div>
+          <ul className="esl-eval-list">
+            {ev.top_actions_zh.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {/* Highlights */}
+      {ev.highlights.length > 0 && (
+        <>
+          <div className="esl-eval-subtitle">Highlights</div>
+          <div className="esl-highlights">
+            {ev.highlights.map((h, i) => (
+              <div key={i} className={`esl-highlight sev-${h.severity}`}>
+                <span className="esl-highlight-kind">{h.kind}</span>
+                <span className="esl-highlight-note">{h.note_zh}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Delete */}
+      <form
+        method="post"
+        className="esl-eval-delete"
+        onSubmit={(e) => {
+          if (!confirm("Delete this attempt?")) e.preventDefault();
+        }}
+      >
+        <input type="hidden" name="_intent" value="deleteAttempt" />
+        <input type="hidden" name="attemptId" value={props.attemptId} />
+        <button type="submit" className="btn btn-ghost btn-sm esl-delete-btn">Delete attempt</button>
+      </form>
     </div>
   );
 }

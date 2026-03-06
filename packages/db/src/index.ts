@@ -56,8 +56,22 @@ export type EslReadingAttempt = {
   audio_mime_type: string;
   r2_key: string;
   audio_bytes: number;
+  duration_ms: number | null;
   created_at: string;
   deleted_at: string | null;
+};
+
+export type EslLearnerProfile = {
+  id: string;
+  user_id: string;
+  persistent_issues_json: string;
+  strengths_json: string;
+  cefr_estimate: string | null;
+  total_practice_seconds: number;
+  total_attempts: number;
+  eval_count_since_update: number;
+  created_at: string;
+  updated_at: string;
 };
 
 export type EslReadingEvaluation = {
@@ -131,8 +145,22 @@ const mapEslReadingAttempt = (row: Record<string, unknown>): EslReadingAttempt =
   audio_mime_type: String(row.audio_mime_type),
   r2_key: String(row.r2_key),
   audio_bytes: Number(row.audio_bytes),
+  duration_ms: row.duration_ms != null ? Number(row.duration_ms) : null,
   created_at: String(row.created_at),
   deleted_at: row.deleted_at ? String(row.deleted_at) : null
+});
+
+const mapEslLearnerProfile = (row: Record<string, unknown>): EslLearnerProfile => ({
+  id: String(row.id),
+  user_id: String(row.user_id),
+  persistent_issues_json: String(row.persistent_issues_json),
+  strengths_json: String(row.strengths_json),
+  cefr_estimate: row.cefr_estimate ? String(row.cefr_estimate) : null,
+  total_practice_seconds: Number(row.total_practice_seconds),
+  total_attempts: Number(row.total_attempts),
+  eval_count_since_update: Number(row.eval_count_since_update),
+  created_at: String(row.created_at),
+  updated_at: String(row.updated_at)
 });
 
 const mapEslReadingEvaluation = (row: Record<string, unknown>): EslReadingEvaluation => ({
@@ -401,12 +429,13 @@ export async function createEslReadingAttempt(
     audioMimeType: string;
     r2Key: string;
     audioBytes: number;
+    durationMs?: number | null;
   }
 ): Promise<EslReadingAttempt> {
   const id = input.id ?? crypto.randomUUID();
   await db
     .prepare(
-      "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(
       id,
@@ -416,7 +445,8 @@ export async function createEslReadingAttempt(
       input.audioFormat,
       input.audioMimeType,
       input.r2Key,
-      input.audioBytes
+      input.audioBytes,
+      input.durationMs ?? null
     )
     .run();
 
@@ -514,4 +544,89 @@ export async function getLatestEslReadingEvaluationByAttemptId(
     .bind(attemptId)
     .first();
   return result ? mapEslReadingEvaluation(result) : null;
+}
+
+export async function getEslLearnerProfile(
+  db: Db,
+  userId: string
+): Promise<EslLearnerProfile | null> {
+  const result = await db
+    .prepare("SELECT * FROM esl_learner_profiles WHERE user_id = ? LIMIT 1")
+    .bind(userId)
+    .first();
+  return result ? mapEslLearnerProfile(result) : null;
+}
+
+export async function upsertEslLearnerProfile(
+  db: Db,
+  input: {
+    userId: string;
+    persistentIssuesJson: string;
+    strengthsJson: string;
+    cefrEstimate: string | null;
+    totalPracticeSeconds: number;
+    totalAttempts: number;
+    evalCountSinceUpdate: number;
+  }
+): Promise<EslLearnerProfile> {
+  const existing = await getEslLearnerProfile(db, input.userId);
+  if (existing) {
+    await db
+      .prepare(
+        "UPDATE esl_learner_profiles SET persistent_issues_json = ?, strengths_json = ?, cefr_estimate = ?, total_practice_seconds = ?, total_attempts = ?, eval_count_since_update = ?, updated_at = datetime('now') WHERE user_id = ?"
+      )
+      .bind(
+        input.persistentIssuesJson,
+        input.strengthsJson,
+        input.cefrEstimate,
+        input.totalPracticeSeconds,
+        input.totalAttempts,
+        input.evalCountSinceUpdate,
+        input.userId
+      )
+      .run();
+  } else {
+    const id = crypto.randomUUID();
+    await db
+      .prepare(
+        "INSERT INTO esl_learner_profiles (id, user_id, persistent_issues_json, strengths_json, cefr_estimate, total_practice_seconds, total_attempts, eval_count_since_update) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+      )
+      .bind(
+        id,
+        input.userId,
+        input.persistentIssuesJson,
+        input.strengthsJson,
+        input.cefrEstimate,
+        input.totalPracticeSeconds,
+        input.totalAttempts,
+        input.evalCountSinceUpdate
+      )
+      .run();
+  }
+  const profile = await getEslLearnerProfile(db, input.userId);
+  if (!profile) throw new Error("Failed to upsert esl learner profile.");
+  return profile;
+}
+
+export async function incrementEslLearnerProfileCounters(
+  db: Db,
+  input: { userId: string; practiceSeconds: number }
+): Promise<void> {
+  const existing = await getEslLearnerProfile(db, input.userId);
+  if (existing) {
+    await db
+      .prepare(
+        "UPDATE esl_learner_profiles SET total_practice_seconds = total_practice_seconds + ?, total_attempts = total_attempts + 1, eval_count_since_update = eval_count_since_update + 1, updated_at = datetime('now') WHERE user_id = ?"
+      )
+      .bind(input.practiceSeconds, input.userId)
+      .run();
+  } else {
+    const id = crypto.randomUUID();
+    await db
+      .prepare(
+        "INSERT INTO esl_learner_profiles (id, user_id, total_practice_seconds, total_attempts, eval_count_since_update) VALUES (?, ?, ?, 1, 1)"
+      )
+      .bind(id, input.userId, input.practiceSeconds)
+      .run();
+  }
 }

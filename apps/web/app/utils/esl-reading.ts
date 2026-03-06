@@ -41,6 +41,13 @@ export type EslReadingEvaluationOutput = {
     repeat: number;
     prompt_zh: string;
   }>;
+  commentary_zh: string;
+  progress_vs_last: string[];
+};
+
+export type EslLearnerProfileData = {
+  persistent_issues: string[];
+  strengths: string[];
 };
 
 export const normalizeEslPassageText = (input: string): string =>
@@ -53,7 +60,14 @@ export const parseEslReadingEvaluationOutput = (
   input: string
 ): EslReadingEvaluationOutput | null => {
   try {
-    return JSON.parse(input) as EslReadingEvaluationOutput;
+    const raw = JSON.parse(input) as Record<string, unknown>;
+    return {
+      ...(raw as unknown as EslReadingEvaluationOutput),
+      commentary_zh: typeof raw.commentary_zh === "string" ? raw.commentary_zh : "",
+      progress_vs_last: Array.isArray(raw.progress_vs_last)
+        ? (raw.progress_vs_last as unknown[]).filter((x): x is string => typeof x === "string")
+        : []
+    };
   } catch {
     return null;
   }
@@ -66,3 +80,10 @@ export const isSupportedEslAudioMime = (value: string): boolean =>
   SUPPORTED_ESL_AUDIO_MIME_TYPES.includes(
     value.split(";")[0].trim().toLowerCase() as (typeof SUPPORTED_ESL_AUDIO_MIME_TYPES)[number]
   );
+
+export const formatDuration = (ms: number): string => {
+  const totalSec = Math.round(ms / 1000);
+  const min = Math.floor(totalSec / 60);
+  const sec = totalSec % 60;
+  return `${min}:${String(sec).padStart(2, "0")}`;
+};

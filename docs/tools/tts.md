@@ -3,19 +3,21 @@
 Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chirp3 and Neural2 voices.
 
 ## Features
-- Input text and generate MP3 audio (`/tts`)
+- Input text and generate MP3 audio (`/speech`)
 - Input text is automatically rendered to clean plain text before synthesis
 - Language + voice selection (Chirp3 preferred, Neural2 fallback)
 - Generated audio is immediately playable and downloadable
-- Generation history page (`/tts/history`) with play/download/delete actions
+- History is integrated on the same `/speech` page (sidebar + mobile panel)
+- Selected record is controlled by query param: `?record=<generationId>`
+- “Copy text” action in the selected record toolbar with transient success/failure feedback
 - Generated MP3 files are stored privately in Cloudflare R2
 
 ## Routes
 | Page | Route | Key behaviour |
 |------|-------|---------------|
-| Generate | `/tts` | Auth required. Generate MP3 and show synced transcript when supported. |
-| History | `/tts/history` | Auth required. Lists only current user's generations. |
-| Audio stream/download | `/tts/audio/:id` | Auth required. Owner-only playback/download endpoint. |
+| Speech workspace | `/speech` | Auth required. Generate, browse history, select record, play/download/delete. |
+| Audio stream/download | `/speech/audio/:id` | Auth required. Owner-only playback/download endpoint. |
+| Legacy compatibility | `/tts`, `/tts/history`, `/tts/*` | 301 redirect to `/speech*`. |
 
 ## Text Preprocessing
 - User input is parsed as Markdown and converted to plain readable text before synthesis.
@@ -38,6 +40,7 @@ Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chir
 - Delete action performs:
   1. Delete R2 object
   2. Soft-delete D1 row (`deleted_at`)
+  3. Reload selected history state from the remaining records
 
 ## Constraints
 - Voice list is limited to Chirp3 and Neural2 families.
