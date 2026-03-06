@@ -287,7 +287,6 @@ export default function EslReadingPracticePage() {
   const { passage, composeView, attempts, referenceAudio, selected } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
-  const revalidator = useRevalidator();
   const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
   const actionError = actionData && "error" in actionData ? actionData.error : undefined;
   const headingSubtitle = composeView
@@ -295,23 +294,6 @@ export default function EslReadingPracticePage() {
       ? "Record the first attempt for this passage."
       : null
     : null;
-
-  React.useEffect(() => {
-    const shouldPollEvaluation =
-      selected?.evaluationStatus === "pending" && !selected.isStalePending;
-    const shouldPollReference = referenceAudio.status === "pending";
-    if (!shouldPollEvaluation && !shouldPollReference) return;
-    const timeoutId = window.setTimeout(() => {
-      revalidator.revalidate();
-    }, 2000);
-    return () => window.clearTimeout(timeoutId);
-  }, [
-    referenceAudio.status,
-    revalidator,
-    selected?.evaluationStatus,
-    selected?.id,
-    selected?.isStalePending
-  ]);
 
   return (
     <div className="esl-practice-layout">
@@ -428,6 +410,72 @@ function AttemptDetail(props: {
     if (!referenceFetcher.data?.ok) return;
     revalidator.revalidate();
   }, [referenceFetcher.data, revalidator]);
+
+  React.useEffect(() => {
+    const shouldPollEvaluation =
+      props.evaluationStatus === "pending" && !props.isStalePending;
+    const shouldPollReference = isReferencePreparing;
+    if (!shouldPollEvaluation && !shouldPollReference) return;
+
+    let cancelled = false;
+    let inFlight = false;
+
+    const intervalId = window.setInterval(() => {
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      const statusUrl = new URL(
+        `/esl/reading/${props.passageId}/status`,
+        window.location.origin
+      );
+      statusUrl.searchParams.set("attempt", props.attemptId);
+
+      void fetch(statusUrl.toString(), {
+        headers: { Accept: "application/json" }
+      })
+        .then(async (response) => {
+          if (!response.ok) return null;
+          return (await response.json()) as {
+            referenceStatus: "pending" | "completed" | "failed" | null;
+            hasReferenceAudio: boolean;
+            evaluationStatus: "pending" | "completed" | "failed" | null;
+            hasEvaluation: boolean;
+            isStalePending: boolean;
+          };
+        })
+        .then((statusPayload) => {
+          if (cancelled || !statusPayload) return;
+          const referenceChanged =
+            statusPayload.referenceStatus !== props.referenceAudio.status ||
+            (statusPayload.hasReferenceAudio && !props.referenceAudio.audioUrl);
+          const evaluationChanged =
+            statusPayload.evaluationStatus !== props.evaluationStatus ||
+            statusPayload.hasEvaluation !== Boolean(props.evaluation) ||
+            statusPayload.isStalePending !== props.isStalePending;
+          if (referenceChanged || evaluationChanged) {
+            revalidator.revalidate();
+          }
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          inFlight = false;
+        });
+    }, 2000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [
+    isReferencePreparing,
+    props.attemptId,
+    props.evaluation,
+    props.evaluationStatus,
+    props.isStalePending,
+    props.passageId,
+    props.referenceAudio.audioUrl,
+    props.referenceAudio.status,
+    revalidator
+  ]);
 
   React.useEffect(() => {
     if (

@@ -32,6 +32,7 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - `/esl` ESL tool home
 - `/esl/reading` ESL reading/recitation passage list + creation
 - `/esl/reading/:id` ESL reading/recitation practice page
+- `/esl/reading/:id/status` authenticated ESL reading status polling endpoint
 - `/esl/audio/:id` authenticated ESL attempt audio stream/download endpoint
 - `/esl/passage-audio/:id` authenticated ESL passage reference audio playback endpoint
 - Legacy compatibility: `/tts`, `/tts/history`, `/tts/*` redirect to `/speech*`

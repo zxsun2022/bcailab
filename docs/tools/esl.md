@@ -11,6 +11,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Reading layout | `/esl/reading` | Layout route with left sidebar (passage list). |
 | Reading index | `/esl/reading` (index) | Create a new passage and submit the first attempt in one page. |
 | Reading practice | `/esl/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
+| Reading status resource | `/esl/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
 | Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
 
