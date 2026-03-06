@@ -91,18 +91,28 @@ export default function EslReadingIndexPage() {
           submitLabel="Submit"
           canSubmit={Boolean(content.trim())}
         >
-          {() => (
+          {({ hideText }) => (
             <div className="esl-compose-editor">
-              <Textarea
-                name="content"
-                rows={18}
-                className="esl-compose-textarea"
-                placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
-                value={content}
-                onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  setContent(event.currentTarget.value)
-                }
-              />
+              {hideText ? (
+                <>
+                  <input type="hidden" name="content" value={content} />
+                  <div className="textarea esl-compose-textarea esl-compose-hidden-text">
+                    Text hidden for recitation mode. Switch back to Read if you want to review or
+                    edit the passage.
+                  </div>
+                </>
+              ) : (
+                <Textarea
+                  name="content"
+                  rows={18}
+                  className="esl-compose-textarea"
+                  placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
+                  value={content}
+                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setContent(event.currentTarget.value)
+                  }
+                />
+              )}
               <div
                 className={`esl-compose-count ${
                   content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""

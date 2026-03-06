@@ -19,6 +19,7 @@ import {
   softDeleteEslReadingAttemptsByPassage
 } from "@bcailab/db";
 import { EslAttemptComposer } from "~/components/EslAttemptComposer";
+import { LocalDateTime } from "~/components/LocalDateTime";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
 import { requireUser } from "~/utils/auth.server";
 import {
@@ -37,14 +38,6 @@ import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
 const STALE_PENDING_MS = 45 * 1000;
-
-const formatDateTime = (value: string) =>
-  new Date(value).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
 
 const deleteAttemptArtifacts = async (
   context: ActionFunctionArgs["context"],
@@ -420,7 +413,7 @@ function AttemptDetail(props: {
 
         <div className="esl-eval-meta esl-eval-meta-bottom">
           <span>{props.mode === "recitation" ? "Recitation" : "Reading"}</span>
-          <span>{formatDateTime(props.createdAt)}</span>
+          <LocalDateTime value={props.createdAt} />
           {props.durationMs ? <span>{formatDuration(props.durationMs)}</span> : null}
         </div>
       </Card>
@@ -439,27 +432,31 @@ function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput }) {
 
   return (
     <div className="esl-eval-content">
-      <div className="esl-eval-head">
-        <div className="esl-eval-overall">{evaluation.scores.overall}</div>
-        <div className="esl-eval-overall-label">
-          Overall
-          {evaluation.cefr_guess ? ` · ${evaluation.cefr_guess}` : ""}
-        </div>
-      </div>
-
-      <div className="esl-score-bars">
-        {dimensions.map((dimension) => (
-          <div key={dimension.label} className="esl-score-bar-row">
-            <span className="esl-score-bar-label">{dimension.label}</span>
-            <div className="esl-score-bar-track">
-              <div
-                className="esl-score-bar-fill"
-                style={{ width: `${Math.max(4, dimension.score)}%` }}
-              />
-            </div>
-            <span className="esl-score-bar-value">{dimension.score}</span>
+      <div className="esl-score-summary">
+        <div className="esl-score-overview">
+          <div className="esl-score-overview-label">Overall</div>
+          <div className="esl-score-overview-value">{evaluation.scores.overall}</div>
+          <div className="esl-score-overview-meta">
+            {evaluation.cefr_guess ? `CEFR ${evaluation.cefr_guess}` : "Speaking score"}
           </div>
-        ))}
+        </div>
+
+        <div className="esl-score-grid">
+          {dimensions.map((dimension) => (
+            <div key={dimension.label} className="esl-score-card">
+              <div className="esl-score-card-top">
+                <span className="esl-score-card-label">{dimension.label}</span>
+                <span className="esl-score-card-value">{dimension.score}</span>
+              </div>
+              <div className="esl-score-card-track">
+                <div
+                  className="esl-score-card-fill"
+                  style={{ width: `${Math.max(4, dimension.score)}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {evaluation.commentary_zh ? (

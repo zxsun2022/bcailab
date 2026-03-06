@@ -1809,6 +1809,14 @@ select.input:focus {
   color: var(--accent);
 }
 
+.esl-compose-hidden-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .esl-compose-footer {
   position: sticky;
   bottom: 0;
@@ -2089,22 +2097,89 @@ select.input:focus {
   line-height: 1.6;
 }
 
-.esl-eval-head {
-  text-align: center;
-  padding: 12px 0;
+.esl-score-summary {
+  display: grid;
+  gap: 12px;
 }
 
-.esl-eval-overall {
+.esl-score-overview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+
+.esl-score-overview-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.esl-score-overview-value {
   font-family: var(--font-display);
-  font-size: 48px;
-  line-height: 1;
+  font-size: clamp(42px, 8vw, 54px);
+  line-height: 0.95;
   color: var(--accent);
 }
 
-.esl-eval-overall-label {
+.esl-score-overview-meta {
   font-size: 13px;
   color: var(--text-muted);
-  margin-top: 4px;
+}
+
+.esl-score-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.esl-score-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.esl-score-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.esl-score-card-label {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.esl-score-card-value {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.esl-score-card-track {
+  height: 6px;
+  background: var(--bg-alt);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.esl-score-card-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s ease;
 }
 
 .esl-eval-meta {
@@ -2122,50 +2197,6 @@ select.input:focus {
   margin-top: auto;
   padding-top: 8px;
   border-top: 1px solid var(--border);
-}
-
-/* --- Score Bars --- */
-
-.esl-score-bars {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.esl-score-bar-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.esl-score-bar-label {
-  width: 110px;
-  font-size: 13px;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.esl-score-bar-track {
-  flex: 1;
-  height: 6px;
-  background: var(--bg-alt);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.esl-score-bar-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 3px;
-  transition: width 0.4s ease;
-}
-
-.esl-score-bar-value {
-  width: 28px;
-  text-align: right;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--text);
 }
 
 /* --- Commentary --- */
@@ -2479,6 +2510,17 @@ select.input:focus {
   margin-top: 4px;
 }
 
+@media (min-width: 900px) {
+  .esl-score-summary {
+    grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .esl-score-overview {
+    padding: 18px 20px;
+  }
+}
+
 /* --- ESL Desktop: sidebar + 2-col practice --- */
 
 @media (min-width: 1024px) {
@@ -2518,9 +2560,9 @@ select.input:focus {
   }
 
   .esl-history-rail {
-    flex: 0.7;
-    max-width: 340px;
-    min-width: 260px;
+    flex: 0 0 clamp(220px, 20vw, 280px);
+    max-width: 280px;
+    min-width: 220px;
     position: sticky;
     top: 0;
     max-height: calc(100dvh - 180px);

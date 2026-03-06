@@ -237,7 +237,12 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
             <div className="esl-preview-side">
               <div className="esl-preview-meta">{formatDuration(durationMsRef.current)}</div>
               <div className="esl-preview-actions">
-                <button type="button" className="btn btn-ghost btn-sm" onClick={discardRecording}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={discardRecording}
+                  disabled={isUploading || isEvaluating}
+                >
                   Re-record
                 </button>
                 <Button type="submit" disabled={isUploading || isEvaluating || !canSubmit}>

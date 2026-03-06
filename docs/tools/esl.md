@@ -30,10 +30,12 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 ### Practice Workflow
 - New passage flow: paste passage text, record once, submit, then redirect into that first history entry.
 - Existing passage flow: click `New Attempt` in the history rail to open the read-only recording composer for that passage.
-- Mode toggle: Reading / Recitation. In recitation mode, existing-passage composers hide the passage text.
+- Mode toggle: Reading / Recitation. In recitation mode, both new-passage and existing-passage composers hide the passage text.
 - Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then briefly `Evaluating...`, then the app navigates into the saved attempt page.
+- While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
+- Reading timestamps render in the browser's local timezone instead of the server timezone. There is no separate ESL timezone setting.
 - Duration tracked client-side (`durationMs`) and stored in database.
 - Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
 
@@ -41,6 +43,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
 - If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
+- Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
 - Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
