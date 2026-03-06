@@ -24,8 +24,29 @@ const DEFAULT_TITLE_OPTIONS: Intl.DateTimeFormatOptions = {
   timeZoneName: "short"
 };
 
+const SQLITE_UTC_PATTERN =
+  /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/;
+
+const parseDateValue = (value: string): Date => {
+  const sqliteMatch = value.match(SQLITE_UTC_PATTERN);
+  if (sqliteMatch) {
+    const [, year, month, day, hour, minute, second = "0"] = sqliteMatch;
+    return new Date(
+      Date.UTC(
+        Number(year),
+        Number(month) - 1,
+        Number(day),
+        Number(hour),
+        Number(minute),
+        Number(second)
+      )
+    );
+  }
+  return new Date(value);
+};
+
 const formatLocalDateTime = (value: string, options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat(undefined, options).format(new Date(value));
+  new Intl.DateTimeFormat(undefined, options).format(parseDateValue(value));
 
 export function LocalDateTime(props: LocalDateTimeProps) {
   const {
