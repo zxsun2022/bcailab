@@ -10,6 +10,7 @@ import {
   EslAttemptSubmissionError,
   parseEslAttemptSubmission
 } from "~/utils/esl-reading-attempt.server";
+import { schedulePassageReferenceSynthesis } from "~/utils/esl-passage-reference.server";
 import { generatePassageTitle } from "~/utils/esl-reading-eval.server";
 import { MAX_ESL_PASSAGE_CHARS, normalizeEslPassageText } from "~/utils/esl-reading";
 import * as React from "react";
@@ -59,6 +60,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       userId: user.id,
       passage: created,
       submission
+    });
+    await schedulePassageReferenceSynthesis(context, {
+      userId: user.id,
+      passage: created
     });
     const redirectTo = `/esl/reading/${created.id}?attempt=${attemptId}`;
     return transport === "fetcher"

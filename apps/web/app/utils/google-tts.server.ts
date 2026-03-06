@@ -43,6 +43,7 @@ export type SpeechVoiceOption = {
   name: string;
   label: string;
   family: VoiceFamily;
+  ssmlGender: string | null;
 };
 
 export type SynthesizeResult = {
@@ -272,7 +273,8 @@ const loadSupportedVoices = async (
         languageCode: code,
         name: voice.name,
         label: voice.ssmlGender ? `${voice.name} (${voice.ssmlGender})` : voice.name,
-        family
+        family,
+        ssmlGender: voice.ssmlGender ?? null
       });
     }
   }

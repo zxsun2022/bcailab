@@ -90,7 +90,7 @@ export default function EslReadingLayout() {
                         onSubmit={(event) => {
                           if (
                             !confirm(
-                              "Delete this passage and all of its recordings and AI feedback?"
+                              "Delete this passage, its reference audio, all recordings, and all AI feedback?"
                             )
                           ) {
                             event.preventDefault();

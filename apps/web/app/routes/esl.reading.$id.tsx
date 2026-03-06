@@ -18,6 +18,7 @@ import {
   softDeleteEslReadingAttempt,
   softDeleteEslReadingAttemptsByPassage
 } from "@bcailab/db";
+import { CompactAudioPlayer } from "~/components/CompactAudioPlayer";
 import { EslAttemptComposer } from "~/components/EslAttemptComposer";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
@@ -107,6 +108,13 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     passage,
     composeView,
     attempts: attemptsWithEval,
+    referenceAudio: {
+      status: passage.reference_tts_status,
+      audioUrl:
+        passage.reference_tts_status === "completed" && passage.reference_tts_r2_key
+          ? `/esl/passage-audio/${passage.id}`
+          : null
+    },
     selected: selectedAttempt
       ? {
           id: selectedAttempt.id,
@@ -167,6 +175,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     try {
       await deleteAttemptArtifacts(context, { userId: user.id, attempts });
+      if (passage.reference_tts_r2_key) {
+        await context.env.R2.delete(passage.reference_tts_r2_key).catch(() => undefined);
+      }
       await softDeleteEslReadingAttemptsByPassage(context.env.DB, {
         passageId: passage.id,
         userId: user.id
@@ -227,7 +238,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 };
 
 export default function EslReadingPracticePage() {
-  const { passage, composeView, attempts, selected } = useLoaderData<typeof loader>();
+  const { passage, composeView, attempts, referenceAudio, selected } =
+    useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const revalidator = useRevalidator();
   const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
@@ -239,12 +251,21 @@ export default function EslReadingPracticePage() {
     : null;
 
   React.useEffect(() => {
-    if (selected?.evaluationStatus !== "pending" || selected.isStalePending) return;
+    const shouldPollEvaluation =
+      selected?.evaluationStatus === "pending" && !selected.isStalePending;
+    const shouldPollReference = referenceAudio.status === "pending";
+    if (!shouldPollEvaluation && !shouldPollReference) return;
     const timeoutId = window.setTimeout(() => {
       revalidator.revalidate();
     }, 2000);
     return () => window.clearTimeout(timeoutId);
-  }, [revalidator, selected?.evaluationStatus, selected?.id]);
+  }, [
+    referenceAudio.status,
+    revalidator,
+    selected?.evaluationStatus,
+    selected?.id,
+    selected?.isStalePending
+  ]);
 
   return (
     <div className="esl-practice-layout">
@@ -285,6 +306,7 @@ export default function EslReadingPracticePage() {
           <AttemptDetail
             attemptId={selected.id}
             passageText={passage.content_text}
+            referenceAudio={referenceAudio}
             audioUrl={selected.audioUrl}
             createdAt={selected.createdAt}
             durationMs={selected.durationMs}
@@ -315,6 +337,10 @@ export default function EslReadingPracticePage() {
 function AttemptDetail(props: {
   attemptId: string;
   passageText: string;
+  referenceAudio: {
+    status: "pending" | "completed" | "failed" | null;
+    audioUrl: string | null;
+  };
   audioUrl: string;
   createdAt: string;
   durationMs: number | null;
@@ -352,7 +378,36 @@ function AttemptDetail(props: {
               </Badge>
             ) : null}
           </div>
-          <audio controls src={props.audioUrl} className="esl-audio-player" />
+          <div className="esl-audio-pair">
+            <CompactAudioPlayer
+              label="Reference"
+              src={props.referenceAudio.audioUrl}
+              status={
+                props.referenceAudio.status === "completed"
+                  ? "ready"
+                  : props.referenceAudio.status === "pending"
+                    ? "pending"
+                    : props.referenceAudio.status === "failed"
+                      ? "failed"
+                      : "missing"
+              }
+              description={
+                props.referenceAudio.status === "pending"
+                  ? "Preparing US reference"
+                  : props.referenceAudio.status === "failed"
+                    ? "Reference unavailable"
+                    : props.referenceAudio.status === "completed"
+                      ? "American reference"
+                      : "No reference yet"
+              }
+            />
+            <CompactAudioPlayer
+              label="Your attempt"
+              src={props.audioUrl}
+              status="ready"
+              description={props.mode === "recitation" ? "Recorded in recite mode" : "Recorded in read mode"}
+            />
+          </div>
         </div>
 
         {isRetrySubmitting || isRetryEvaluating ? (

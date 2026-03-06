@@ -42,6 +42,11 @@ export type EslPassage = {
   user_id: string;
   title: string | null;
   content_text: string;
+  reference_tts_status: "pending" | "completed" | "failed" | null;
+  reference_tts_voice_name: string | null;
+  reference_tts_r2_key: string | null;
+  reference_tts_audio_bytes: number | null;
+  reference_tts_created_at: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -132,6 +137,21 @@ const mapEslPassage = (row: Record<string, unknown>): EslPassage => ({
   user_id: String(row.user_id),
   title: row.title ? String(row.title) : null,
   content_text: String(row.content_text),
+  reference_tts_status:
+    row.reference_tts_status === "pending" ||
+    row.reference_tts_status === "completed" ||
+    row.reference_tts_status === "failed"
+      ? row.reference_tts_status
+      : null,
+  reference_tts_voice_name: row.reference_tts_voice_name
+    ? String(row.reference_tts_voice_name)
+    : null,
+  reference_tts_r2_key: row.reference_tts_r2_key ? String(row.reference_tts_r2_key) : null,
+  reference_tts_audio_bytes:
+    row.reference_tts_audio_bytes != null ? Number(row.reference_tts_audio_bytes) : null,
+  reference_tts_created_at: row.reference_tts_created_at
+    ? String(row.reference_tts_created_at)
+    : null,
   created_at: String(row.created_at),
   updated_at: String(row.updated_at),
   deleted_at: row.deleted_at ? String(row.deleted_at) : null
@@ -428,6 +448,66 @@ export async function updateEslPassage(
     .bind(input.title ?? null, input.contentText, input.id, input.userId)
     .run();
   return getEslPassageById(db, input.id, { includeDeleted: true });
+}
+
+export async function markEslPassageReferenceTtsPending(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<boolean> {
+  try {
+    await db
+      .prepare(
+        "UPDATE esl_passages SET reference_tts_status = 'pending', reference_tts_voice_name = NULL, reference_tts_r2_key = NULL, reference_tts_audio_bytes = NULL, reference_tts_created_at = NULL WHERE id = ? AND user_id = ?"
+      )
+      .bind(input.id, input.userId)
+      .run();
+    return true;
+  } catch (error) {
+    if (isMissingColumnError(error, "reference_tts_status")) return false;
+    throw error;
+  }
+}
+
+export async function markEslPassageReferenceTtsCompleted(
+  db: Db,
+  input: {
+    id: string;
+    userId: string;
+    voiceName: string;
+    r2Key: string;
+    audioBytes: number;
+  }
+): Promise<boolean> {
+  try {
+    await db
+      .prepare(
+        "UPDATE esl_passages SET reference_tts_status = 'completed', reference_tts_voice_name = ?, reference_tts_r2_key = ?, reference_tts_audio_bytes = ?, reference_tts_created_at = datetime('now') WHERE id = ? AND user_id = ?"
+      )
+      .bind(input.voiceName, input.r2Key, input.audioBytes, input.id, input.userId)
+      .run();
+    return true;
+  } catch (error) {
+    if (isMissingColumnError(error, "reference_tts_status")) return false;
+    throw error;
+  }
+}
+
+export async function markEslPassageReferenceTtsFailed(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<boolean> {
+  try {
+    await db
+      .prepare(
+        "UPDATE esl_passages SET reference_tts_status = 'failed', reference_tts_voice_name = NULL, reference_tts_r2_key = NULL, reference_tts_audio_bytes = NULL WHERE id = ? AND user_id = ?"
+      )
+      .bind(input.id, input.userId)
+      .run();
+    return true;
+  } catch (error) {
+    if (isMissingColumnError(error, "reference_tts_status")) return false;
+    throw error;
+  }
 }
 
 export async function softDeleteEslPassage(

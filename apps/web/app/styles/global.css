@@ -2008,6 +2008,80 @@ select.input:focus {
   width: 100%;
 }
 
+.compact-audio-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+
+.compact-audio-player audio {
+  display: none;
+}
+
+.compact-audio-player.is-pending,
+.compact-audio-player.is-failed,
+.compact-audio-player.is-missing {
+  background: var(--bg-alt);
+}
+
+.compact-audio-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.compact-audio-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.compact-audio-status {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.compact-audio-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.compact-audio-btn {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.compact-audio-btn:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+}
+
+.compact-audio-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.compact-audio-btn-secondary {
+  color: var(--text-faint);
+}
+
 /* --- Eval Panel (right column) --- */
 
 .esl-eval-panel {
@@ -2062,6 +2136,11 @@ select.input:focus {
 .esl-detail-head-main {
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.esl-audio-pair {
+  display: grid;
   gap: 10px;
 }
 
@@ -2518,6 +2597,10 @@ select.input:focus {
 
   .esl-score-overview {
     padding: 18px 20px;
+  }
+
+  .esl-audio-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

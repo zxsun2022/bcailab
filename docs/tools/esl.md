@@ -12,6 +12,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Reading index | `/esl/reading` (index) | Create a new passage and submit the first attempt in one page. |
 | Reading practice | `/esl/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
+| Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
 
 ## Reading / Recitation (v2)
 
@@ -35,12 +36,15 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then briefly `Evaluating...`, then the app navigates into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
+- After the first successful submit for a passage, the app also synthesizes one background reference TTS in American English and attaches it to the passage.
+- Attempt detail exposes two compact players together: `Reference` (passage TTS) and `Your attempt` (uploaded recording).
 - Reading timestamps render in the browser's local timezone instead of the server timezone. There is no separate ESL timezone setting.
 - Duration tracked client-side (`durationMs`) and stored in database.
 - Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
 
 ### Evaluation Pipeline
 - Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
+- Passage reference TTS is also generated asynchronously in the background after the first submit.
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
 - If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
 - Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
@@ -76,7 +80,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Attempt deletion uses native `confirm()`.
 - Attempt deletion removes the R2 object, hard-deletes that attempt's AI evaluations, then soft-deletes the attempt row (`deleted_at`).
 - Passage deletion uses native `confirm()`.
-- Server deletes every attempt audio object in R2 for that passage, hard-deletes all linked AI evaluations, soft-deletes all attempt rows, then soft-deletes the passage row.
+- Server deletes the passage reference audio object in R2 (if present), every attempt audio object in R2 for that passage, hard-deletes all linked AI evaluations, soft-deletes all attempt rows, then soft-deletes the passage row.
 
 ## Data Model & Storage
 
@@ -88,6 +92,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
   - `esl_learner_profiles`
 - R2 key pattern:
   - `esl/reading/{userId}/{yyyy}/{mm}/{attemptId}.{ext}`
+  - `esl/reference/{userId}/{yyyy}/{mm}/{passageId}.mp3`
 
 ### Provisioned for Future ESL Modules
 - `esl_learning_items`
