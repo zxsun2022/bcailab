@@ -55,6 +55,9 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);
   const [pendingRedirect, setPendingRedirect] = React.useState<string | null>(null);
+  const [submitPhase, setSubmitPhase] = React.useState<"idle" | "submitting" | "evaluating">(
+    "idle"
+  );
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -94,7 +97,24 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   React.useEffect(() => {
     if (!fetcher.data?.redirectTo) return;
     setPendingRedirect(fetcher.data.redirectTo);
+    setSubmitPhase("evaluating");
   }, [fetcher.data]);
+
+  React.useEffect(() => {
+    if (fetcher.state === "submitting") {
+      setSubmitPhase("submitting");
+      return;
+    }
+    if (fetcher.state !== "idle") return;
+    if (fetcher.data?.error) {
+      setPendingRedirect(null);
+      setSubmitPhase("idle");
+      return;
+    }
+    if (!fetcher.data?.redirectTo && !pendingRedirect) {
+      setSubmitPhase("idle");
+    }
+  }, [fetcher.data, fetcher.state, pendingRedirect]);
 
   React.useEffect(() => {
     if (!pendingRedirect) return;
@@ -102,7 +122,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
       React.startTransition(() => {
         navigate(pendingRedirect);
       });
-    }, 320);
+    }, 900);
     return () => window.clearTimeout(timeoutId);
   }, [navigate, pendingRedirect]);
 
@@ -187,8 +207,8 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
     setRecordingState("idle");
   }, [cleanupAudio]);
 
-  const isUploading = fetcher.state === "submitting";
-  const isEvaluating = Boolean(pendingRedirect) && fetcher.state === "idle";
+  const isUploading = submitPhase === "submitting";
+  const isEvaluating = submitPhase === "evaluating";
   const submitError = fetcher.data?.error;
   const submitButtonLabel = isUploading
     ? "Submitting..."

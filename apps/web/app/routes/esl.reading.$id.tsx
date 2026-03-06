@@ -29,6 +29,7 @@ import {
   parseEslAttemptSubmission,
   retryEslReadingAttemptEvaluation
 } from "~/utils/esl-reading-attempt.server";
+import { schedulePassageReferenceSynthesis } from "~/utils/esl-passage-reference.server";
 import {
   formatDuration,
   getDisplayEslPassageTitle,
@@ -214,6 +215,31 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     }
   }
 
+  if (intent === "requestReferenceAudio") {
+    const requestTransport = String(formData.get("_transport") ?? "document");
+
+    try {
+      const scheduled = await schedulePassageReferenceSynthesis(context, {
+        userId: user.id,
+        passage
+      });
+      if (!scheduled) {
+        return json<ActionData>(
+          { error: "Reference audio generation is unavailable right now." },
+          { status: 503 }
+        );
+      }
+      return requestTransport === "fetcher"
+        ? json<ActionData>({ ok: true })
+        : redirect(`/esl/reading/${passage.id}`);
+    } catch {
+      return json<ActionData>(
+        { error: "Failed to start reference audio. Please retry." },
+        { status: 500 }
+      );
+    }
+  }
+
   if (intent !== "submitAttempt") {
     return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
   }
@@ -304,6 +330,7 @@ export default function EslReadingPracticePage() {
           </EslAttemptComposer>
         ) : selected ? (
           <AttemptDetail
+            passageId={passage.id}
             attemptId={selected.id}
             passageText={passage.content_text}
             referenceAudio={referenceAudio}
@@ -335,6 +362,7 @@ export default function EslReadingPracticePage() {
 }
 
 function AttemptDetail(props: {
+  passageId: string;
   attemptId: string;
   passageText: string;
   referenceAudio: {
@@ -351,16 +379,100 @@ function AttemptDetail(props: {
   evaluation: EslReadingEvaluationOutput | null;
 }) {
   const retryFetcher = useFetcher<ActionData>();
+  const referenceFetcher = useFetcher<ActionData>();
   const revalidator = useRevalidator();
+  const autoRequestedReferenceRef = React.useRef(false);
   const isRetrySubmitting = retryFetcher.state === "submitting";
   const isRetryEvaluating =
     Boolean(retryFetcher.data?.ok) && !props.evaluation && props.evaluationStatus !== "completed";
   const retryError = retryFetcher.data?.error;
+  const [referenceAutoPlayToken, setReferenceAutoPlayToken] = React.useState(0);
+  const [optimisticReferencePending, setOptimisticReferencePending] = React.useState(false);
+  const isReferenceRequesting = referenceFetcher.state !== "idle";
+  const isReferencePreparing =
+    isReferenceRequesting ||
+    props.referenceAudio.status === "pending" ||
+    optimisticReferencePending;
+  const referenceError = referenceFetcher.data?.error;
 
   React.useEffect(() => {
     if (!retryFetcher.data?.ok) return;
     revalidator.revalidate();
   }, [retryFetcher.data, revalidator]);
+
+  React.useEffect(() => {
+    autoRequestedReferenceRef.current = false;
+  }, [props.passageId]);
+
+  React.useEffect(() => {
+    if (!referenceFetcher.data?.ok) return;
+    revalidator.revalidate();
+  }, [referenceFetcher.data, revalidator]);
+
+  React.useEffect(() => {
+    if (
+      autoRequestedReferenceRef.current ||
+      props.referenceAudio.status !== null ||
+      props.referenceAudio.audioUrl ||
+      referenceFetcher.state !== "idle"
+    ) {
+      return;
+    }
+    autoRequestedReferenceRef.current = true;
+    setOptimisticReferencePending(true);
+    referenceFetcher.submit(
+      {
+        _intent: "requestReferenceAudio",
+        _transport: "fetcher"
+      },
+      { method: "post" }
+    );
+  }, [
+    props.referenceAudio.audioUrl,
+    props.referenceAudio.status,
+    referenceFetcher
+  ]);
+
+  React.useEffect(() => {
+    if (referenceError) {
+      setOptimisticReferencePending(false);
+    }
+  }, [referenceError]);
+
+  React.useEffect(() => {
+    if (!optimisticReferencePending) return;
+    if (props.referenceAudio.status === "pending" || props.referenceAudio.status === "completed") {
+      setOptimisticReferencePending(false);
+    }
+  }, [optimisticReferencePending, props.referenceAudio.status]);
+
+  React.useEffect(() => {
+    if (!optimisticReferencePending) return;
+    const timeoutId = window.setTimeout(() => {
+      setOptimisticReferencePending(false);
+    }, 8000);
+    return () => window.clearTimeout(timeoutId);
+  }, [optimisticReferencePending]);
+
+  const requestReferenceAudio = React.useCallback(() => {
+    setReferenceAutoPlayToken((current) => current + 1);
+    setOptimisticReferencePending(true);
+    referenceFetcher.submit(
+      {
+        _intent: "requestReferenceAudio",
+        _transport: "fetcher"
+      },
+      { method: "post" }
+    );
+  }, [referenceFetcher]);
+
+  const referenceStatus = isReferencePreparing
+    ? "pending"
+    : props.referenceAudio.status === "completed"
+      ? "ready"
+      : props.referenceAudio.status === "failed"
+        ? "failed"
+        : "missing";
 
   return (
     <div className="esl-detail-stack">
@@ -382,33 +494,19 @@ function AttemptDetail(props: {
             <CompactAudioPlayer
               label="Reference"
               src={props.referenceAudio.audioUrl}
-              status={
-                props.referenceAudio.status === "completed"
-                  ? "ready"
-                  : props.referenceAudio.status === "pending"
-                    ? "pending"
-                    : props.referenceAudio.status === "failed"
-                      ? "failed"
-                      : "missing"
-              }
-              description={
-                props.referenceAudio.status === "pending"
-                  ? "Preparing US reference"
-                  : props.referenceAudio.status === "failed"
-                    ? "Reference unavailable"
-                    : props.referenceAudio.status === "completed"
-                      ? "American reference"
-                      : "No reference yet"
-              }
+              status={referenceStatus}
+              onRequestSource={requestReferenceAudio}
+              autoPlayToken={referenceAutoPlayToken}
             />
             <CompactAudioPlayer
               label="Your attempt"
               src={props.audioUrl}
               status="ready"
-              description={props.mode === "recitation" ? "Recorded in recite mode" : "Recorded in read mode"}
             />
           </div>
         </div>
+
+        {referenceError ? <div className="form-error">{referenceError}</div> : null}
 
         {isRetrySubmitting || isRetryEvaluating ? (
           <div className="esl-attempt-state">

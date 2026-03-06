@@ -11,7 +11,7 @@ import {
   synthesizeSpeech,
   type SpeechVoiceOption
 } from "~/utils/google-tts.server";
-import { AUDIO_FORMAT, SUPPORTED_SPEECH_LANGUAGES } from "~/utils/tts";
+import { SUPPORTED_SPEECH_LANGUAGES } from "~/utils/tts";
 import { buildSpeechPlan } from "~/utils/tts.server";
 
 const ESL_REFERENCE_LANGUAGE = SUPPORTED_SPEECH_LANGUAGES.filter(
@@ -119,16 +119,16 @@ const runPassageReferenceSynthesis = async (
 export const schedulePassageReferenceSynthesis = async (
   context: AppLoadContext,
   input: { userId: string; passage: EslPassage }
-) => {
+): Promise<boolean> => {
   if (input.passage.reference_tts_status === "completed" && input.passage.reference_tts_r2_key) {
-    return;
+    return true;
   }
 
   const supported = await markEslPassageReferenceTtsPending(context.env.DB, {
     id: input.passage.id,
     userId: input.userId
   });
-  if (!supported) return;
+  if (!supported) return false;
 
   const task = runPassageReferenceSynthesis(context, {
     passageId: input.passage.id,
@@ -145,4 +145,6 @@ export const schedulePassageReferenceSynthesis = async (
   } else {
     await task;
   }
+
+  return true;
 };

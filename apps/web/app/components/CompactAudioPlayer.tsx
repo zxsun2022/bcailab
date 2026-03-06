@@ -4,7 +4,8 @@ type CompactAudioPlayerProps = {
   label: string;
   src?: string | null;
   status?: "ready" | "pending" | "failed" | "missing";
-  description?: string;
+  onRequestSource?: (() => void) | null;
+  autoPlayToken?: number | null;
 };
 
 const AUDIO_PLAY_EVENT = "bcailab-compact-audio-play";
@@ -14,12 +15,14 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
     label,
     src = null,
     status = "ready",
-    description
+    onRequestSource = null,
+    autoPlayToken = null
   } = props;
   const playerId = React.useId();
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [playState, setPlayState] = React.useState<"idle" | "playing" | "paused">("idle");
   const [playError, setPlayError] = React.useState<string | null>(null);
+  const handledAutoPlayTokenRef = React.useRef<number | null>(null);
 
   const stopPlayback = React.useCallback(() => {
     const audio = audioRef.current;
@@ -28,6 +31,23 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
     audio.currentTime = 0;
     setPlayState("idle");
   }, []);
+
+  const playAudio = React.useCallback(async () => {
+    const audio = audioRef.current;
+    if (!audio || !src || status !== "ready") return;
+
+    window.dispatchEvent(
+      new CustomEvent(AUDIO_PLAY_EVENT, { detail: { playerId } })
+    );
+
+    try {
+      await audio.play();
+      setPlayError(null);
+    } catch {
+      setPlayError("Unavailable");
+      setPlayState("idle");
+    }
+  }, [playerId, src, status]);
 
   React.useEffect(() => {
     return () => {
@@ -38,6 +58,7 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
   React.useEffect(() => {
     setPlayError(null);
     setPlayState("idle");
+    handledAutoPlayTokenRef.current = null;
     const audio = audioRef.current;
     if (!audio) return;
     audio.pause();
@@ -88,8 +109,26 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
     return () => window.removeEventListener(AUDIO_PLAY_EVENT, handleOtherPlayer);
   }, [playerId, stopPlayback]);
 
-  const handleTogglePlayback = async () => {
-    if (!src || status !== "ready") return;
+  React.useEffect(() => {
+    if (
+      autoPlayToken == null ||
+      handledAutoPlayTokenRef.current === autoPlayToken ||
+      !src ||
+      status !== "ready"
+    ) {
+      return;
+    }
+    handledAutoPlayTokenRef.current = autoPlayToken;
+    void playAudio();
+  }, [autoPlayToken, playAudio, src, status]);
+
+  const handlePrimaryAction = async () => {
+    if (status !== "ready") {
+      if ((status === "missing" || status === "failed") && onRequestSource) {
+        onRequestSource();
+      }
+      return;
+    }
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -97,51 +136,50 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
       audio.pause();
       return;
     }
-
-    window.dispatchEvent(
-      new CustomEvent(AUDIO_PLAY_EVENT, { detail: { playerId } })
-    );
-
-    try {
-      await audio.play();
-      setPlayError(null);
-    } catch {
-      setPlayError("Unavailable");
-      setPlayState("idle");
-    }
+    await playAudio();
   };
 
-  const statusText =
+  const indicatorState =
     status === "pending"
-      ? "Preparing"
-      : status === "failed"
-        ? "Unavailable"
-        : status === "missing"
-          ? "Not ready"
-        : playError
-          ? playError
-          : playState === "playing"
-            ? "Playing"
+      ? "pending"
+      : playState === "playing"
+        ? "playing"
+        : status === "failed" || Boolean(playError)
+          ? "failed"
+          : status === "missing"
+            ? "missing"
             : playState === "paused"
-              ? "Paused"
-              : "Ready";
-  const displayText = description ? `${statusText} · ${description}` : statusText;
+              ? "paused"
+              : "idle";
+  const primaryLabel =
+    status === "ready"
+      ? playState === "playing"
+        ? "Pause"
+        : "Play"
+      : status === "pending"
+        ? "Preparing..."
+        : "Play";
+  const canRequestSource = Boolean(onRequestSource) && (status === "missing" || status === "failed");
+  const primaryDisabled =
+    status === "pending" || (status !== "ready" && !canRequestSource);
 
   return (
-    <div className={`compact-audio-player is-${status}`}>
+    <div className={`compact-audio-player is-${status} is-${indicatorState}`}>
       <audio ref={audioRef} src={src ?? undefined} preload="none" />
       <div className="compact-audio-copy">
-        <div className="compact-audio-label">{label}</div>
-        <div className="compact-audio-status">{displayText}</div>
+        <div className="compact-audio-label-row">
+          <span className={`compact-audio-indicator is-${indicatorState}`} />
+          <div className="compact-audio-label">{label}</div>
+        </div>
       </div>
       <div className="compact-audio-actions">
         <button
           type="button"
           className="compact-audio-btn"
-          onClick={() => void handleTogglePlayback()}
-          disabled={!src || status !== "ready"}
+          onClick={() => void handlePrimaryAction()}
+          disabled={primaryDisabled}
         >
-          {playState === "playing" ? "Pause" : "Play"}
+          {primaryLabel}
         </button>
         <button
           type="button"

@@ -2012,7 +2012,8 @@ select.input:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
+  min-height: 64px;
   padding: 12px 14px;
   border: 1px solid var(--border);
   background: var(--bg-card);
@@ -2020,6 +2021,10 @@ select.input:focus {
 
 .compact-audio-player audio {
   display: none;
+}
+
+.compact-audio-player.is-playing {
+  border-color: rgba(69, 111, 78, 0.35);
 }
 
 .compact-audio-player.is-pending,
@@ -2031,22 +2036,53 @@ select.input:focus {
 .compact-audio-copy {
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+}
+
+.compact-audio-label-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.compact-audio-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  background: var(--text-faint);
+}
+
+.compact-audio-indicator.is-idle,
+.compact-audio-indicator.is-missing {
+  background: var(--text-faint);
+}
+
+.compact-audio-indicator.is-paused {
+  background: #8e7b64;
+}
+
+.compact-audio-indicator.is-failed {
+  background: #b52a1c;
+}
+
+.compact-audio-indicator.is-pending {
+  background: #c4956a;
+  animation: compact-audio-pulse-warm 1.3s ease-out infinite;
+}
+
+.compact-audio-indicator.is-playing {
+  background: #456f4e;
+  animation: compact-audio-pulse-green 1.2s ease-out infinite;
 }
 
 .compact-audio-label {
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.7px;
+  font-size: 12px;
+  letter-spacing: 0.75px;
   text-transform: uppercase;
   color: var(--text);
-}
-
-.compact-audio-status {
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
 }
 
 .compact-audio-actions {
@@ -2064,7 +2100,7 @@ select.input:focus {
   font-size: 11px;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  padding: 8px 10px;
+  padding: 8px 12px;
   cursor: pointer;
 }
 
@@ -2080,6 +2116,30 @@ select.input:focus {
 
 .compact-audio-btn-secondary {
   color: var(--text-faint);
+}
+
+@keyframes compact-audio-pulse-green {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(69, 111, 78, 0.32);
+  }
+  70% {
+    opacity: 0.6;
+    box-shadow: 0 0 0 7px rgba(69, 111, 78, 0);
+  }
+}
+
+@keyframes compact-audio-pulse-warm {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(196, 149, 106, 0.28);
+  }
+  70% {
+    opacity: 0.65;
+    box-shadow: 0 0 0 7px rgba(196, 149, 106, 0);
+  }
 }
 
 /* --- Eval Panel (right column) --- */
