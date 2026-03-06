@@ -1,19 +1,14 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Link, Outlet, useLoaderData, useParams } from "@remix-run/react";
+import * as React from "react";
 import { listEslPassagesByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
-import { clipText } from "~/utils/esl-reading";
+import { getDisplayEslPassageTitle } from "~/utils/esl-reading";
 
 export const handle = {
   breadcrumb: { label: "reading", href: "/esl/reading" }
 };
-
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric"
-  });
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -25,6 +20,13 @@ export default function EslReadingLayout() {
   const { passages } = useLoaderData<typeof loader>();
   const params = useParams();
   const activeId = params.id ?? null;
+  const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    const closeMenu = () => setOpenMenuId(null);
+    document.addEventListener("click", closeMenu);
+    return () => document.removeEventListener("click", closeMenu);
+  }, []);
 
   return (
     <div className="esl-reading-shell">
@@ -39,19 +41,65 @@ export default function EslReadingLayout() {
             <div className="esl-sidebar-empty">No passages yet</div>
           ) : (
             passages.map((passage) => (
-              <Link
+              <div
                 key={passage.id}
-                to={`/esl/reading/${passage.id}`}
-                className={`esl-sidebar-item ${activeId === passage.id ? "is-active" : ""}`}
+                className={`esl-sidebar-item-shell ${activeId === passage.id ? "is-active" : ""}`}
               >
-                <div className="esl-sidebar-item-title">
-                  {passage.title || "Untitled passage"}
+                <Link
+                  to={`/esl/reading/${passage.id}`}
+                  className={`esl-sidebar-item ${activeId === passage.id ? "is-active" : ""}`}
+                  onClick={() => setOpenMenuId(null)}
+                >
+                  <div className="esl-sidebar-item-title">
+                    {getDisplayEslPassageTitle(passage.title, passage.content_text)}
+                  </div>
+                </Link>
+
+                <div
+                  className={`esl-sidebar-item-actions ${
+                    openMenuId === passage.id ? "is-open" : ""
+                  }`}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    className="esl-sidebar-item-menu-btn"
+                    aria-label="Open passage menu"
+                    aria-expanded={openMenuId === passage.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setOpenMenuId((current) => (current === passage.id ? null : passage.id));
+                    }}
+                  >
+                    <span />
+                    <span />
+                    <span />
+                  </button>
+
+                  {openMenuId === passage.id ? (
+                    <div className="esl-sidebar-item-menu">
+                      <form
+                        method="post"
+                        action={`/esl/reading/${passage.id}`}
+                        onSubmit={(event) => {
+                          if (
+                            !confirm(
+                              "Delete this passage and all of its recordings and AI feedback?"
+                            )
+                          ) {
+                            event.preventDefault();
+                          }
+                        }}
+                      >
+                        <input type="hidden" name="_intent" value="deletePassage" />
+                        <button type="submit" className="esl-sidebar-item-menu-option is-danger">
+                          Delete passage
+                        </button>
+                      </form>
+                    </div>
+                  ) : null}
                 </div>
-                <div className="esl-sidebar-item-meta">
-                  <span>{clipText(passage.content_text, 50)}</span>
-                  <span>{formatDate(passage.updated_at)}</span>
-                </div>
-              </Link>
+              </div>
             ))
           )}
         </nav>

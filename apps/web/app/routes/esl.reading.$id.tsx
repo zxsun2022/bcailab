@@ -28,12 +28,13 @@ import {
 } from "~/utils/esl-reading-attempt.server";
 import {
   formatDuration,
+  getDisplayEslPassageTitle,
   parseEslReadingEvaluationOutput,
   type EslReadingEvaluationOutput
 } from "~/utils/esl-reading";
 import * as React from "react";
 
-type ActionData = { error?: string };
+type ActionData = { error?: string; redirectTo?: string };
 
 const formatDateTime = (value: string) =>
   new Date(value).toLocaleString(undefined, {
@@ -134,6 +135,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "submitAttempt");
+  const transport = String(formData.get("_transport") ?? "document");
 
   if (intent === "deleteAttempt") {
     const attemptId = String(formData.get("attemptId") ?? "");
@@ -187,7 +189,10 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       passage,
       submission
     });
-    return redirect(`/esl/reading/${passage.id}?attempt=${attemptId}`);
+    const redirectTo = `/esl/reading/${passage.id}?attempt=${attemptId}`;
+    return transport === "fetcher"
+      ? json({ redirectTo })
+      : redirect(redirectTo);
   } catch (error) {
     if (error instanceof EslAttemptSubmissionError) {
       return json<ActionData>({ error: error.message }, { status: error.status });
@@ -201,9 +206,14 @@ export default function EslReadingPracticePage() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
+  const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
+  const actionError = actionData && "error" in actionData ? actionData.error : undefined;
   const pendingIntent = navigation.formData?.get("_intent");
-  const isSubmitting = navigation.state === "submitting" && pendingIntent === "submitAttempt";
-  const isDeletingPassage = navigation.state === "submitting" && pendingIntent === "deletePassage";
+  const headingSubtitle = composeView
+    ? attempts.length === 0
+      ? "Record the first attempt for this passage."
+      : "Record a new attempt. The passage text stays locked."
+    : null;
 
   React.useEffect(() => {
     if (selected?.evaluationStatus !== "pending") return;
@@ -222,42 +232,19 @@ export default function EslReadingPracticePage() {
           </Link>
           <div className="esl-passage-heading-row">
             <div className="esl-passage-heading-copy">
-              <h1>{passage.title || "Untitled passage"}</h1>
-              <p className="esl-passage-heading-subtitle">
-                {composeView
-                  ? attempts.length === 0
-                    ? "Record the first attempt for this passage."
-                    : "Record a new attempt. The passage text stays locked."
-                  : "Open any history entry from the right rail to review it here."}
-              </p>
+              <h1>{displayTitle}</h1>
+              {headingSubtitle ? (
+                <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
+              ) : null}
             </div>
-            <form
-              method="post"
-              className="esl-passage-delete"
-              onSubmit={(event) => {
-                if (!confirm("Delete this passage and all of its recordings and AI feedback?")) {
-                  event.preventDefault();
-                }
-              }}
-            >
-              <input type="hidden" name="_intent" value="deletePassage" />
-              <button
-                type="submit"
-                className="btn btn-ghost btn-sm esl-delete-btn"
-                disabled={isDeletingPassage}
-              >
-                {isDeletingPassage ? "Deleting..." : "Delete passage"}
-              </button>
-            </form>
           </div>
         </div>
 
-        {actionData?.error ? <div className="form-error">{actionData.error}</div> : null}
+        {actionError ? <div className="form-error">{actionError}</div> : null}
 
         {composeView ? (
           <EslAttemptComposer
             submitLabel={attempts.length === 0 ? "Submit First Attempt" : "Submit Attempt"}
-            isSubmitting={isSubmitting}
           >
             {({ hideText }) => (
               <Card className="tool-card-stack esl-compose-card esl-compose-card-readonly">
@@ -342,7 +329,8 @@ function AttemptDetail(props: {
           <div className="esl-attempt-state">
             <div className="esl-attempt-state-title">AI evaluation in progress</div>
             <p className="esl-attempt-state-desc">
-              This attempt is saved. Keep this page open and the feedback will appear automatically.
+              Your recording is saved. AI feedback is still running, so you can wait here while it
+              appears automatically.
             </p>
           </div>
         ) : props.evaluationStatus === "failed" ? (

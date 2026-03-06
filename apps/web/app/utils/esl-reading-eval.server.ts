@@ -1,5 +1,11 @@
 import type { Env } from "~/types/env";
-import type { EslReadingEvaluationOutput, EslReadingMode, EslLearnerProfileData } from "~/utils/esl-reading";
+import {
+  buildFallbackEslPassageTitle,
+  normalizeEslPassageTitle,
+  type EslReadingEvaluationOutput,
+  type EslReadingMode,
+  type EslLearnerProfileData
+} from "~/utils/esl-reading";
 
 const RUBRIC_VERSION = "2026-03-05";
 const FALLBACK_MODEL_NAME = "local-heuristic-fallback";
@@ -392,7 +398,7 @@ export const evaluateEslReadingAttempt = async (input: {
 
 export const generatePassageTitle = async (env: Env, contentText: string): Promise<string> => {
   const apiKey = env.GEMINI_API_KEY?.trim();
-  if (!apiKey) return contentText.slice(0, 60).trim();
+  if (!apiKey) return buildFallbackEslPassageTitle(contentText);
 
   const model = "gemini-2.0-flash-lite";
   const prompt = `给这段英文文本生成一个简短的标题（10个英文单词以内）。只返回标题文字，不要引号或其他格式。\n\n${contentText.slice(0, 1000)}`;
@@ -409,11 +415,14 @@ export const generatePassageTitle = async (env: Env, contentText: string): Promi
         })
       }
     );
-    if (!response.ok) return contentText.slice(0, 60).trim();
+    if (!response.ok) return buildFallbackEslPassageTitle(contentText);
     const json = (await response.json()) as GeminiResponse;
-    const text = json.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === "string")?.text?.trim();
-    return text && text.length > 0 && text.length < 120 ? text : contentText.slice(0, 60).trim();
+    const text = json.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === "string")?.text;
+    const normalized = text ? normalizeEslPassageTitle(text) : "";
+    return normalized && normalized.length < 120
+      ? normalized
+      : buildFallbackEslPassageTitle(contentText);
   } catch {
-    return contentText.slice(0, 60).trim();
+    return buildFallbackEslPassageTitle(contentText);
   }
 };

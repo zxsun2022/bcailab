@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Button } from "@bcailab/ui";
+import { useFetcher, useNavigate } from "@remix-run/react";
 import { formatDuration, type EslReadingMode } from "~/utils/esl-reading";
 
 type RecordingState = "idle" | "recording" | "preview";
@@ -7,10 +8,13 @@ type RecordingState = "idle" | "recording" | "preview";
 type EslAttemptComposerProps = {
   action?: string;
   submitLabel: string;
-  isSubmitting: boolean;
-  error?: string;
   canSubmit?: boolean;
   children: (args: { mode: EslReadingMode; hideText: boolean }) => React.ReactNode;
+};
+
+type SubmitResult = {
+  error?: string;
+  redirectTo?: string;
 };
 
 const recorderMimeCandidates = [
@@ -42,7 +46,9 @@ const extensionFromMimeType = (mimeType: string): string => {
 };
 
 export function EslAttemptComposer(props: EslAttemptComposerProps) {
-  const { action, submitLabel, isSubmitting, error, canSubmit = true, children } = props;
+  const { action, submitLabel, canSubmit = true, children } = props;
+  const fetcher = useFetcher<SubmitResult>();
+  const navigate = useNavigate();
 
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
@@ -83,6 +89,13 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
       stopTimer();
     };
   }, [recordedAudioUrl, stopMediaStream, stopTimer]);
+
+  React.useEffect(() => {
+    if (!fetcher.data?.redirectTo) return;
+    React.startTransition(() => {
+      navigate(fetcher.data!.redirectTo!);
+    });
+  }, [fetcher.data, navigate]);
 
   const startRecording = React.useCallback(async () => {
     if (recordingState !== "idle") return;
@@ -165,67 +178,90 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
     setRecordingState("idle");
   }, [cleanupAudio]);
 
+  const isUploading = fetcher.state === "submitting";
+  const isOpeningAttempt = fetcher.state === "loading" && Boolean(fetcher.data?.redirectTo);
+  const submitError = fetcher.data?.error;
+  const submitStatus = isUploading
+    ? "Uploading audio to the server..."
+    : isOpeningAttempt
+      ? "Upload complete. Opening the saved attempt..."
+      : null;
+
   return (
-    <form method="post" encType="multipart/form-data" action={action} className="esl-compose-form">
+    <fetcher.Form
+      method="post"
+      encType="multipart/form-data"
+      action={action}
+      className="esl-compose-form"
+    >
       <div className="esl-compose-main">
         {children({ mode, hideText: mode === "recitation" })}
       </div>
 
       <div className="esl-compose-footer">
-        <div className="esl-mode-toggle">
-          <button
-            type="button"
-            className={`esl-mode-btn ${mode === "reading" ? "is-active" : ""}`}
-            onClick={() => setMode("reading")}
-          >
-            Reading
-          </button>
-          <button
-            type="button"
-            className={`esl-mode-btn ${mode === "recitation" ? "is-active" : ""}`}
-            onClick={() => setMode("recitation")}
-          >
-            Recitation
-          </button>
+        <div className="esl-compose-footer-top">
+          <div className="esl-mode-toggle">
+            <button
+              type="button"
+              className={`esl-mode-btn ${mode === "reading" ? "is-active" : ""}`}
+              onClick={() => setMode("reading")}
+            >
+              Read
+            </button>
+            <button
+              type="button"
+              className={`esl-mode-btn ${mode === "recitation" ? "is-active" : ""}`}
+              onClick={() => setMode("recitation")}
+            >
+              Recite
+            </button>
+          </div>
+
+          {recordingState === "recording" ? (
+            <div className="esl-record-timer">{formatDuration(elapsedMs)}</div>
+          ) : null}
         </div>
 
-        <div className="esl-record-area">
-          {recordingState === "idle" && (
-            <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
-              <span className="esl-record-btn-inner" />
-            </button>
-          )}
-
-          {recordingState === "recording" && (
-            <>
-              <button type="button" className="esl-record-btn is-recording" onClick={stopRecording}>
-                <span className="esl-record-btn-stop" />
-              </button>
-              <div className="esl-record-timer">{formatDuration(elapsedMs)}</div>
-            </>
-          )}
-
-          {recordingState === "preview" && recordedAudioUrl && (
-            <div className="esl-preview-area">
-              <audio controls src={recordedAudioUrl} className="esl-audio-player" />
+        {recordingState === "preview" && recordedAudioUrl ? (
+          <div className="esl-preview-area">
+            <audio controls src={recordedAudioUrl} className="esl-audio-player" />
+            <div className="esl-preview-side">
               <div className="esl-preview-meta">{formatDuration(durationMsRef.current)}</div>
               <div className="esl-preview-actions">
                 <button type="button" className="btn btn-ghost btn-sm" onClick={discardRecording}>
                   Re-record
                 </button>
-                <Button type="submit" disabled={isSubmitting || !canSubmit}>
-                  {isSubmitting ? "Submitting..." : submitLabel}
+                <Button type="submit" disabled={isUploading || isOpeningAttempt || !canSubmit}>
+                  {isUploading || isOpeningAttempt ? "Submitting..." : submitLabel}
                 </Button>
               </div>
             </div>
-          )}
+          </div>
+        ) : (
+          <div className={`esl-record-panel ${recordingState === "recording" ? "is-recording" : ""}`}>
+            {recordingState === "idle" ? (
+              <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
+                <span className="esl-record-btn-inner" />
+              </button>
+            ) : (
+              <button type="button" className="esl-record-btn is-recording" onClick={stopRecording}>
+                <span className="esl-record-btn-stop" />
+              </button>
+            )}
 
-          {recordingState === "idle" && !recordedAudioUrl && (
-            <div className="esl-record-hint">Tap to start recording</div>
-          )}
-        </div>
+            <div className="esl-record-copy">
+              <div className="esl-record-label">
+                {recordingState === "recording" ? "Recording" : "Ready to record"}
+              </div>
+              <div className="esl-record-hint">
+                {recordingState === "recording" ? "Tap again to stop" : "Tap to start recording"}
+              </div>
+            </div>
+          </div>
+        )}
 
         <input type="hidden" name="_intent" value="submitAttempt" />
+        <input type="hidden" name="_transport" value="fetcher" />
         <input type="hidden" name="mode" value={mode} />
         <input type="hidden" name="durationMs" value={String(durationMsRef.current)} />
         <input
@@ -237,7 +273,13 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
         />
       </div>
 
-      {error ? <div className="form-error">{error}</div> : null}
-    </form>
+      {submitStatus ? (
+        <div className="esl-submit-status" aria-live="polite">
+          {submitStatus}
+        </div>
+      ) : null}
+
+      {submitError ? <div className="form-error">{submitError}</div> : null}
+    </fetcher.Form>
   );
 }

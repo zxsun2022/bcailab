@@ -53,6 +53,45 @@ export type EslLearnerProfileData = {
 export const normalizeEslPassageText = (input: string): string =>
   input.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 
+export const normalizeEslPassageTitle = (input: string): string =>
+  input
+    .replace(/^["'`]+|["'`]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export const buildFallbackEslPassageTitle = (contentText: string): string => {
+  const cleaned = contentText
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[*_`>#~]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const source = cleaned || contentText.trim();
+  if (!source) return "Untitled passage";
+
+  const sentence = source.split(/[.!?]/).find((part) => part.trim().length > 0)?.trim() ?? source;
+  if (sentence.length <= 48) return sentence;
+  const clipped = sentence.slice(0, 48).trim();
+  const lastSpace = clipped.lastIndexOf(" ");
+  return (lastSpace > 16 ? clipped.slice(0, lastSpace) : clipped).trim();
+};
+
+export const getDisplayEslPassageTitle = (
+  title: string | null | undefined,
+  contentText: string
+): string => {
+  const rawTitle = title ?? "";
+  const normalizedTitle = normalizeEslPassageTitle(rawTitle);
+  const looksLikeFallbackExcerpt =
+    normalizedTitle.length === 0 ||
+    normalizedTitle.length > 80 ||
+    /[*_`#[\]~]/.test(rawTitle);
+
+  return looksLikeFallbackExcerpt
+    ? buildFallbackEslPassageTitle(contentText)
+    : normalizedTitle;
+};
+
 export const clipText = (input: string, maxLen: number): string =>
   input.length > maxLen ? `${input.slice(0, maxLen)}...` : input;
 

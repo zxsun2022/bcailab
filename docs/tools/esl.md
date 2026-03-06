@@ -16,7 +16,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 ## Reading / Recitation (v2)
 
 ### Layout
-- **Left sidebar** (desktop 1024px+): Passage list with titles, content preview, dates. "New passage" button.
+- **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
 - **Index center column**: New passage composer with editable text area and sticky recording controls at the bottom.
 - **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
 - **Right column**: History rail only, with a persistent `New Attempt` button at the top.
@@ -25,15 +25,15 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.0-flash-lite`.
 - Passage content is normalized to LF line endings before storage.
 - Max passage length: `8,000` characters (`MAX_ESL_PASSAGE_CHARS`).
-- Passage deletion is available from `/esl/reading/:id` and removes the passage plus all stored attempts for that passage.
+- Passage deletion is available from the passage list item menu and removes the passage plus all stored attempts for that passage.
 
 ### Practice Workflow
 - New passage flow: paste passage text, record once, submit, then redirect into that first history entry.
 - Existing passage flow: click `New Attempt` in the history rail to open the read-only recording composer for that passage.
 - Mode toggle: Reading / Recitation. In recitation mode, existing-passage composers hide the passage text.
-- Recording only (no file upload): large circular record button with pulsing animation.
+- Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
 - Timer tracks elapsed time during recording.
-- After recording: preview playback, re-record, or submit.
+- After submit, the page first shows an upload/saving status, then navigates into the saved attempt page where AI pending/completed state is shown.
 - Duration tracked client-side (`durationMs`) and stored in database.
 - Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
 

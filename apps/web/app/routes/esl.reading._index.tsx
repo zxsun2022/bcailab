@@ -1,6 +1,5 @@
 import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { useActionData, useNavigation } from "@remix-run/react";
 import { Card, Textarea } from "@bcailab/ui";
 import { createEslPassage, softDeleteEslPassage } from "@bcailab/db";
 import { EslAttemptComposer } from "~/components/EslAttemptComposer";
@@ -15,12 +14,13 @@ import { generatePassageTitle } from "~/utils/esl-reading-eval.server";
 import { MAX_ESL_PASSAGE_CHARS, normalizeEslPassageText } from "~/utils/esl-reading";
 import * as React from "react";
 
-type ActionData = { error?: string };
+type ActionData = { error?: string; redirectTo?: string };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "submitAttempt");
+  const transport = String(formData.get("_transport") ?? "document");
   if (intent !== "submitAttempt") {
     return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
   }
@@ -60,7 +60,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       passage: created,
       submission
     });
-    return redirect(`/esl/reading/${created.id}?attempt=${attemptId}`);
+    const redirectTo = `/esl/reading/${created.id}?attempt=${attemptId}`;
+    return transport === "fetcher"
+      ? json({ redirectTo })
+      : redirect(redirectTo);
   } catch (error) {
     if (created) {
       await softDeleteEslPassage(context.env.DB, { id: created.id, userId: user.id });
@@ -74,10 +77,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function EslReadingIndexPage() {
-  const actionData = useActionData<typeof action>();
-  const navigation = useNavigation();
-  const isSubmitting =
-    navigation.state === "submitting" && navigation.formData?.get("_intent") === "submitAttempt";
   const [content, setContent] = React.useState("");
 
   return (
@@ -85,18 +84,12 @@ export default function EslReadingIndexPage() {
       <div className="esl-center-panel">
         <div className="esl-welcome">
           <h2>New Passage</h2>
-          <p className="esl-welcome-desc">
-            Paste an English passage, record your first attempt, and we will create the first
-            history entry from that submission.
-          </p>
         </div>
 
         <EslAttemptComposer
           action="?index"
           submitLabel="Create Passage"
-          isSubmitting={isSubmitting}
           canSubmit={Boolean(content.trim())}
-          error={actionData?.error}
         >
           {() => (
             <Card className="tool-card-stack esl-compose-card">
@@ -104,7 +97,7 @@ export default function EslReadingIndexPage() {
                 name="content"
                 rows={18}
                 className="esl-compose-textarea"
-                placeholder="Paste the English passage here..."
+                placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
                 value={content}
                 onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
                   setContent(event.currentTarget.value)
