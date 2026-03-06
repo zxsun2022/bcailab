@@ -18,7 +18,8 @@ export default defineConfig({
       getLoadContext({ context }) {
         return {
           env: context.cloudflare?.env,
-          cf: context.cloudflare?.cf
+          cf: context.cloudflare?.cf,
+          ctx: context.cloudflare?.ctx
         };
       }
     }),

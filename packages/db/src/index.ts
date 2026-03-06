@@ -57,6 +57,7 @@ export type EslReadingAttempt = {
   r2_key: string;
   audio_bytes: number;
   duration_ms: number | null;
+  evaluation_status: "pending" | "completed" | "failed";
   created_at: string;
   deleted_at: string | null;
 };
@@ -146,6 +147,10 @@ const mapEslReadingAttempt = (row: Record<string, unknown>): EslReadingAttempt =
   r2_key: String(row.r2_key),
   audio_bytes: Number(row.audio_bytes),
   duration_ms: row.duration_ms != null ? Number(row.duration_ms) : null,
+  evaluation_status:
+    row.evaluation_status === "pending" || row.evaluation_status === "failed"
+      ? row.evaluation_status
+      : "completed",
   created_at: String(row.created_at),
   deleted_at: row.deleted_at ? String(row.deleted_at) : null
 });
@@ -430,12 +435,13 @@ export async function createEslReadingAttempt(
     r2Key: string;
     audioBytes: number;
     durationMs?: number | null;
+    evaluationStatus?: "pending" | "completed" | "failed";
   }
 ): Promise<EslReadingAttempt> {
   const id = input.id ?? crypto.randomUUID();
   await db
     .prepare(
-      "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms, evaluation_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(
       id,
@@ -446,7 +452,8 @@ export async function createEslReadingAttempt(
       input.audioMimeType,
       input.r2Key,
       input.audioBytes,
-      input.durationMs ?? null
+      input.durationMs ?? null,
+      input.evaluationStatus ?? "pending"
     )
     .run();
 
@@ -472,12 +479,15 @@ export async function getEslReadingAttemptById(
 
 export async function listEslReadingAttemptsByPassage(
   db: Db,
-  input: { userId: string; passageId: string }
+  input: { userId: string; passageId: string },
+  options: { includeDeleted?: boolean } = {}
 ): Promise<EslReadingAttempt[]> {
+  const { includeDeleted = false } = options;
+  const query = includeDeleted
+    ? "SELECT * FROM esl_reading_attempts WHERE user_id = ? AND passage_id = ? ORDER BY created_at DESC"
+    : "SELECT * FROM esl_reading_attempts WHERE user_id = ? AND passage_id = ? AND deleted_at IS NULL ORDER BY created_at DESC";
   const result = await db
-    .prepare(
-      "SELECT * FROM esl_reading_attempts WHERE user_id = ? AND passage_id = ? AND deleted_at IS NULL ORDER BY created_at DESC"
-    )
+    .prepare(query)
     .bind(input.userId, input.passageId)
     .all();
   if (!result.results) return [];
@@ -494,6 +504,52 @@ export async function softDeleteEslReadingAttempt(
     )
     .bind(input.id, input.userId)
     .run();
+}
+
+export async function updateEslReadingAttemptEvaluationStatus(
+  db: Db,
+  input: {
+    id: string;
+    userId: string;
+    status: "pending" | "completed" | "failed";
+  }
+): Promise<void> {
+  await db
+    .prepare("UPDATE esl_reading_attempts SET evaluation_status = ? WHERE id = ? AND user_id = ?")
+    .bind(input.status, input.id, input.userId)
+    .run();
+}
+
+export async function softDeleteEslReadingAttemptsByPassage(
+  db: Db,
+  input: { passageId: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE esl_reading_attempts SET deleted_at = datetime('now') WHERE passage_id = ? AND user_id = ? AND deleted_at IS NULL"
+    )
+    .bind(input.passageId, input.userId)
+    .run();
+}
+
+export async function deleteEslReadingEvaluationsByAttemptIds(
+  db: Db,
+  input: { attemptIds: string[]; userId: string }
+): Promise<void> {
+  const attemptIds = [...new Set(input.attemptIds.filter(Boolean))];
+  if (attemptIds.length === 0) return;
+
+  const chunkSize = 50;
+  for (let i = 0; i < attemptIds.length; i += chunkSize) {
+    const chunk = attemptIds.slice(i, i + chunkSize);
+    const placeholders = chunk.map(() => "?").join(", ");
+    await db
+      .prepare(
+        `DELETE FROM esl_reading_evaluations WHERE user_id = ? AND attempt_id IN (${placeholders})`
+      )
+      .bind(input.userId, ...chunk)
+      .run();
+  }
 }
 
 export async function createEslReadingEvaluation(

@@ -11,3 +11,8 @@ export type Env = {
   OAUTH_REDIRECT_URL: string;
   SESSION_SECRET: string;
 };
+
+export type AppExecutionContext = {
+  waitUntil(promise: Promise<unknown>): void;
+  passThroughOnException?(): void;
+};

@@ -6,6 +6,10 @@ export const onRequest = createPagesFunctionHandler({
   build,
   getLoadContext: (context) => ({
     env: context.env,
-    cf: context.request.cf as IncomingRequestCfProperties | undefined
+    cf: context.request.cf as IncomingRequestCfProperties | undefined,
+    ctx: {
+      waitUntil: context.waitUntil,
+      passThroughOnException: context.passThroughOnException
+    }
   })
 });

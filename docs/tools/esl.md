@@ -9,24 +9,28 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 |------|-------|---------------|
 | ESL home | `/esl` | Auth required. Shows sub-tool cards and current availability. |
 | Reading layout | `/esl/reading` | Layout route with left sidebar (passage list). |
-| Reading index | `/esl/reading` (index) | Create passage form (auto-generated title via Gemini Flash Lite). |
-| Reading practice | `/esl/reading/:id` | Two-column: center (passage text + recording) and right (evaluation panel). |
+| Reading index | `/esl/reading` (index) | Create a new passage and submit the first attempt in one page. |
+| Reading practice | `/esl/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
 
 ## Reading / Recitation (v2)
 
 ### Layout
 - **Left sidebar** (desktop 1024px+): Passage list with titles, content preview, dates. "New passage" button.
-- **Center column**: Passage text (auto-hidden in recitation mode), mode toggle (Reading/Recitation), recording controls with large circular record button, timer, preview/submit flow.
-- **Right column**: Evaluation panel with overall score, score bars, commentary, progress trend, highlights, history list.
+- **Index center column**: New passage composer with editable text area and sticky recording controls at the bottom.
+- **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
+- **Right column**: History rail only, with a persistent `New Attempt` button at the top.
 
 ### Passage Management
-- Create passage with only content text; title auto-generated via `gemini-2.0-flash-lite`.
+- Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.0-flash-lite`.
 - Passage content is normalized to LF line endings before storage.
 - Max passage length: `8,000` characters (`MAX_ESL_PASSAGE_CHARS`).
+- Passage deletion is available from `/esl/reading/:id` and removes the passage plus all stored attempts for that passage.
 
 ### Practice Workflow
-- Mode toggle: Reading (text visible) / Recitation (text auto-hidden).
+- New passage flow: paste passage text, record once, submit, then redirect into that first history entry.
+- Existing passage flow: click `New Attempt` in the history rail to open the read-only recording composer for that passage.
+- Mode toggle: Reading / Recitation. In recitation mode, existing-passage composers hide the passage text.
 - Recording only (no file upload): large circular record button with pulsing animation.
 - Timer tracks elapsed time during recording.
 - After recording: preview playback, re-record, or submit.
@@ -34,7 +38,8 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
 
 ### Evaluation Pipeline
-- Attempt is stored first (R2 + D1), then evaluated synchronously in the action.
+- Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
+- New attempts redirect immediately to their detail page with a pending state while evaluation is running.
 - Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
@@ -59,21 +64,22 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Profile data included in evaluation prompt for cross-passage continuity
 
 ### Right Panel Behaviour
-- Default: shows latest attempt's evaluation
-- History list: click to switch evaluation display to any past attempt
-- Score trend: mini bar chart showing overall scores across all attempts
-- Audio playback: each attempt's audio plays within the right panel
+- History rail always shows `New Attempt` at the top.
+- History list: click any entry to switch the center column to that attempt's detail view.
+- Pending and failed attempts stay in the rail with status labels until opened.
 
 ### Delete Behaviour
 - Attempt deletion uses native `confirm()`.
-- Server deletes R2 object first, then soft-deletes attempt row (`deleted_at`).
+- Attempt deletion removes the R2 object, hard-deletes that attempt's AI evaluations, then soft-deletes the attempt row (`deleted_at`).
+- Passage deletion uses native `confirm()`.
+- Server deletes every attempt audio object in R2 for that passage, hard-deletes all linked AI evaluations, soft-deletes all attempt rows, then soft-deletes the passage row.
 
 ## Data Model & Storage
 
 ### Actively Used in Reading
 - D1:
   - `esl_passages`
-  - `esl_reading_attempts` (includes `duration_ms`)
+  - `esl_reading_attempts` (includes `duration_ms`, `evaluation_status`)
   - `esl_reading_evaluations`
   - `esl_learner_profiles`
 - R2 key pattern:
@@ -93,5 +99,5 @@ These are created in migration `0003_esl.sql` but not yet surfaced in current Re
 - Dictionary (`/esl/dictionary`)
 - Writing coach (`/esl/writing`, `/esl/writing/:id`)
 - Attempt-to-attempt delta comparison UI
-- Passage edit/delete UX
+- Passage edit UX
 - Learner profile update via Gemini (every N evaluations)
