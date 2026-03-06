@@ -29,7 +29,10 @@ import {
   parseEslAttemptSubmission,
   retryEslReadingAttemptEvaluation
 } from "~/utils/esl-reading-attempt.server";
-import { schedulePassageReferenceSynthesis } from "~/utils/esl-passage-reference.server";
+import {
+  buildReferenceFallbackR2Key,
+  schedulePassageReferenceSynthesis
+} from "~/utils/esl-passage-reference.server";
 import {
   formatDuration,
   getDisplayEslPassageTitle,
@@ -105,14 +108,28 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       Date.now() - new Date(selectedAttempt.created_at).getTime() > STALE_PENDING_MS
     : false;
 
+  const fallbackReferenceKey = buildReferenceFallbackR2Key(user.id, passage.id);
+  const hasFallbackReference =
+    passage.reference_tts_status !== "completed" || !passage.reference_tts_r2_key
+      ? Boolean(await context.env.R2.head(fallbackReferenceKey).catch(() => null))
+      : false;
+
   return json({
     passage,
     composeView,
     attempts: attemptsWithEval,
     referenceAudio: {
-      status: passage.reference_tts_status,
+      status:
+        passage.reference_tts_status === "completed" ||
+        passage.reference_tts_status === "pending" ||
+        passage.reference_tts_status === "failed"
+          ? passage.reference_tts_status
+          : hasFallbackReference
+            ? "completed"
+            : null,
       audioUrl:
-        passage.reference_tts_status === "completed" && passage.reference_tts_r2_key
+        (passage.reference_tts_status === "completed" && passage.reference_tts_r2_key) ||
+        hasFallbackReference
           ? `/esl/passage-audio/${passage.id}`
           : null
     },
@@ -179,6 +196,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       if (passage.reference_tts_r2_key) {
         await context.env.R2.delete(passage.reference_tts_r2_key).catch(() => undefined);
       }
+      await context.env.R2
+        .delete(buildReferenceFallbackR2Key(user.id, passage.id))
+        .catch(() => undefined);
       await softDeleteEslReadingAttemptsByPassage(context.env.DB, {
         passageId: passage.id,
         userId: user.id

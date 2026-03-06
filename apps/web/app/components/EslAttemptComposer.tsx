@@ -54,10 +54,6 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);
-  const [pendingRedirect, setPendingRedirect] = React.useState<string | null>(null);
-  const [submitPhase, setSubmitPhase] = React.useState<"idle" | "submitting" | "evaluating">(
-    "idle"
-  );
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -95,36 +91,15 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   }, [recordedAudioUrl, stopMediaStream, stopTimer]);
 
   React.useEffect(() => {
-    if (!fetcher.data?.redirectTo) return;
-    setPendingRedirect(fetcher.data.redirectTo);
-    setSubmitPhase("evaluating");
-  }, [fetcher.data]);
-
-  React.useEffect(() => {
-    if (fetcher.state === "submitting") {
-      setSubmitPhase("submitting");
-      return;
-    }
-    if (fetcher.state !== "idle") return;
-    if (fetcher.data?.error) {
-      setPendingRedirect(null);
-      setSubmitPhase("idle");
-      return;
-    }
-    if (!fetcher.data?.redirectTo && !pendingRedirect) {
-      setSubmitPhase("idle");
-    }
-  }, [fetcher.data, fetcher.state, pendingRedirect]);
-
-  React.useEffect(() => {
-    if (!pendingRedirect) return;
+    const redirectTo = fetcher.data?.redirectTo;
+    if (!redirectTo) return;
     const timeoutId = window.setTimeout(() => {
       React.startTransition(() => {
-        navigate(pendingRedirect);
+        navigate(redirectTo);
       });
-    }, 900);
+    }, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [navigate, pendingRedirect]);
+  }, [fetcher.data, navigate]);
 
   const startRecording = React.useCallback(async () => {
     if (recordingState !== "idle") return;
@@ -207,14 +182,9 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
     setRecordingState("idle");
   }, [cleanupAudio]);
 
-  const isUploading = submitPhase === "submitting";
-  const isEvaluating = submitPhase === "evaluating";
+  const isUploading = fetcher.state === "submitting";
   const submitError = fetcher.data?.error;
-  const submitButtonLabel = isUploading
-    ? "Submitting..."
-    : isEvaluating
-      ? "Evaluating..."
-      : submitLabel;
+  const submitButtonLabel = isUploading ? "Submitting..." : submitLabel;
 
   return (
     <fetcher.Form
@@ -261,11 +231,11 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
                   type="button"
                   className="btn btn-ghost btn-sm"
                   onClick={discardRecording}
-                  disabled={isUploading || isEvaluating}
+                  disabled={isUploading}
                 >
                   Re-record
                 </button>
-                <Button type="submit" disabled={isUploading || isEvaluating || !canSubmit}>
+                <Button type="submit" disabled={isUploading || !canSubmit}>
                   {submitButtonLabel}
                 </Button>
               </div>

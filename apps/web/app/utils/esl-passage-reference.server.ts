@@ -18,12 +18,8 @@ const ESL_REFERENCE_LANGUAGE = SUPPORTED_SPEECH_LANGUAGES.filter(
   (language) => language.code === "en-US"
 );
 
-const buildReferenceR2Key = (userId: string, passageId: string): string => {
-  const now = new Date();
-  const year = String(now.getUTCFullYear());
-  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
-  return `esl/reference/${userId}/${year}/${month}/${passageId}.mp3`;
-};
+export const buildReferenceFallbackR2Key = (userId: string, passageId: string): string =>
+  `esl/reference/${userId}/${passageId}.mp3`;
 
 const loadActivePassage = async (
   context: AppLoadContext,
@@ -63,11 +59,17 @@ const pickReferenceVoice = async (context: AppLoadContext): Promise<SpeechVoiceO
 
 const runPassageReferenceSynthesis = async (
   context: AppLoadContext,
-  input: { passageId: string; userId: string }
+  input: { passageId: string; userId: string; persistStatus: boolean }
 ) => {
   let passage = await loadActivePassage(context, input);
   if (!passage) return;
   if (passage.reference_tts_status === "completed" && passage.reference_tts_r2_key) return;
+
+  const r2Key = input.persistStatus && passage.reference_tts_r2_key
+    ? passage.reference_tts_r2_key
+    : buildReferenceFallbackR2Key(input.userId, input.passageId);
+  const existing = await context.env.R2.head(r2Key).catch(() => null);
+  if (existing) return;
 
   const voice = await pickReferenceVoice(context);
   if (!voice) {
@@ -90,7 +92,6 @@ const runPassageReferenceSynthesis = async (
   passage = await loadActivePassage(context, input);
   if (!passage) return;
 
-  const r2Key = buildReferenceR2Key(input.userId, input.passageId);
   await context.env.R2.put(r2Key, synthesized.audioBytes, {
     httpMetadata: {
       contentType: "audio/mpeg",
@@ -111,7 +112,7 @@ const runPassageReferenceSynthesis = async (
     r2Key,
     audioBytes: synthesized.audioBytes.byteLength
   });
-  if (!saved) {
+  if (input.persistStatus && !saved) {
     await context.env.R2.delete(r2Key).catch(() => undefined);
   }
 };
@@ -128,16 +129,18 @@ export const schedulePassageReferenceSynthesis = async (
     id: input.passage.id,
     userId: input.userId
   });
-  if (!supported) return false;
 
   const task = runPassageReferenceSynthesis(context, {
     passageId: input.passage.id,
-    userId: input.userId
+    userId: input.userId,
+    persistStatus: supported
   }).catch(async () => {
-    await markEslPassageReferenceTtsFailed(context.env.DB, {
-      id: input.passage.id,
-      userId: input.userId
-    }).catch(() => undefined);
+    if (supported) {
+      await markEslPassageReferenceTtsFailed(context.env.DB, {
+        id: input.passage.id,
+        userId: input.userId
+      }).catch(() => undefined);
+    }
   });
 
   if (context.ctx?.waitUntil) {

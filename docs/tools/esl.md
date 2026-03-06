@@ -34,9 +34,10 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Mode toggle: Reading / Recitation. In recitation mode, both new-passage and existing-passage composers hide the passage text.
 - Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
 - Timer tracks elapsed time during recording.
-- Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then visibly `Evaluating...`, then the app navigates into the saved attempt page.
+- Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
 - After the first successful submit for a passage, the app also synthesizes one background reference TTS in American English and attaches it to the passage.
+- Reference synthesis can still complete on environments where passage-level TTS metadata columns are not yet available; the audio is stored under a deterministic R2 key and resolved directly from storage.
 - Attempt detail exposes two compact players together: `Reference` (passage TTS) and `Your attempt` (uploaded recording).
 - If a passage does not currently have a stored reference audio file, the first attempt detail load auto-queues a new background synthesis attempt. Clicking `Play` on `Reference` also queues/retries generation and shows an in-place preparing state until the file is ready.
 - The compact players intentionally omit waveform/progress UI and explanatory subtext; state is communicated through the button label plus a small indicator dot (green pulse while playing, warm pulse while preparing).
@@ -94,7 +95,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
   - `esl_learner_profiles`
 - R2 key pattern:
   - `esl/reading/{userId}/{yyyy}/{mm}/{attemptId}.{ext}`
-  - `esl/reference/{userId}/{yyyy}/{mm}/{passageId}.mp3`
+  - `esl/reference/{userId}/{passageId}.mp3`
 
 ### Provisioned for Future ESL Modules
 - `esl_learning_items`

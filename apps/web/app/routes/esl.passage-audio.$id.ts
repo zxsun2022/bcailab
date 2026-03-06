@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { getEslPassageById } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
+import { buildReferenceFallbackR2Key } from "~/utils/esl-passage-reference.server";
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -10,16 +11,15 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   }
 
   const passage = await getEslPassageById(context.env.DB, id);
-  if (
-    !passage ||
-    passage.user_id !== user.id ||
-    passage.reference_tts_status !== "completed" ||
-    !passage.reference_tts_r2_key
-  ) {
+  if (!passage || passage.user_id !== user.id) {
     throw new Response("Not found", { status: 404 });
   }
 
-  const object = await context.env.R2.get(passage.reference_tts_r2_key);
+  const r2Key =
+    passage.reference_tts_status === "completed" && passage.reference_tts_r2_key
+      ? passage.reference_tts_r2_key
+      : buildReferenceFallbackR2Key(user.id, passage.id);
+  const object = await context.env.R2.get(r2Key);
   if (!object) {
     throw new Response("Not found", { status: 404 });
   }
