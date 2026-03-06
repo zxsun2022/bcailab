@@ -4,9 +4,17 @@ import type { User } from "@bcailab/db";
 import { Link, useMatches } from "@remix-run/react";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
+const THEME_STORAGE_KEY = "bcailab-theme-preference";
+
+type ThemePreference = "system" | "light" | "dark";
 
 type BreadcrumbHandle = {
   breadcrumb?: { label: string; href?: string };
+};
+
+const getStoredThemePreference = (): ThemePreference => {
+  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
 };
 
 export const Header: React.FC<{ user: User | null }> = ({ user }) => {
@@ -15,7 +23,18 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
     .filter((match) => (match.handle as BreadcrumbHandle)?.breadcrumb)
     .map((match) => (match.handle as BreadcrumbHandle).breadcrumb!);
   const [menuOpen, setMenuOpen] = React.useState(false);
+  const [themePreference, setThemePreference] = React.useState<ThemePreference>("system");
   const menuRef = React.useRef<HTMLDivElement | null>(null);
+
+  const applyThemePreference = React.useCallback((preference: ThemePreference) => {
+    const resolved =
+      preference === "system"
+        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : preference;
+    const root = document.documentElement;
+    root.dataset.themePreference = preference;
+    root.dataset.resolvedTheme = resolved;
+  }, []);
 
   React.useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -39,6 +58,23 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const preference = getStoredThemePreference();
+    setThemePreference(preference);
+    applyThemePreference(preference);
+
+    const handleSystemThemeChange = () => {
+      const currentPreference = getStoredThemePreference();
+      if (currentPreference === "system") {
+        applyThemePreference("system");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, [applyThemePreference]);
+
   const handleLogin = () => {
     const width = 520;
     const height = 640;
@@ -49,6 +85,12 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
       "bcailab-auth",
       `width=${width},height=${height},left=${left},top=${top}`
     );
+  };
+
+  const handleThemeChange = (preference: ThemePreference) => {
+    window.localStorage.setItem(THEME_STORAGE_KEY, preference);
+    setThemePreference(preference);
+    applyThemePreference(preference);
   };
 
   return (
@@ -107,6 +149,28 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   <div className="menu-profile">
                     <div className="menu-name">{user.name ?? "Signed in"}</div>
                     <div className="menu-muted">{user.email}</div>
+                  </div>
+                  <div className="menu-section">
+                    <div className="menu-label">Theme</div>
+                    <div className="menu-theme-options">
+                      {([
+                        { value: "system", label: "Auto" },
+                        { value: "light", label: "Light" },
+                        { value: "dark", label: "Dark" }
+                      ] as const).map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`menu-theme-option ${
+                            themePreference === option.value ? "is-active" : ""
+                          }`}
+                          aria-pressed={themePreference === option.value}
+                          onClick={() => handleThemeChange(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <form method="post" action="/logout">
                     <button type="submit" className="menu-item">

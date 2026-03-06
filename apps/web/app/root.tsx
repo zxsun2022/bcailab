@@ -13,6 +13,24 @@ import globalStyles from "~/styles/global.css?url";
 import { Header } from "~/components/Header";
 import { getOptionalUser } from "~/utils/auth.server";
 
+const themeInitScript = `
+(() => {
+  try {
+    const storageKey = "bcailab-theme-preference";
+    const stored = localStorage.getItem(storageKey);
+    const preference =
+      stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    const resolved =
+      preference === "system"
+        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+        : preference;
+    const root = document.documentElement;
+    root.dataset.themePreference = preference;
+    root.dataset.resolvedTheme = resolved;
+  } catch {}
+})();
+`;
+
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: globalStyles },
   { rel: "icon", href: "/favicon.ico" },
@@ -39,6 +57,7 @@ export default function App() {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <Meta />
         <Links />
       </head>

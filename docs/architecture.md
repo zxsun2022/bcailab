@@ -17,6 +17,7 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 ## Key Flows
 - Google OAuth handled in the Remix app; sessions are stored in D1 and referenced by a secure cookie.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
+- Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu; the preference is stored locally in the browser.
 
 ## Routing
 - `/` landing page

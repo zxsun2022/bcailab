@@ -87,7 +87,7 @@
    ========================================================================== */
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --font-display: "Playfair Display", Georgia, "Noto Serif SC", "Songti SC", serif;
   --font-body: "Source Serif 4", Georgia, "Noto Serif SC", "Songti SC", serif;
@@ -129,7 +129,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-resolved-theme]) {
     --bg: #0f0e0c;
     --bg-alt: #1a1917;
     --bg-card: #1a1917;
@@ -151,6 +151,30 @@
       transparent
     );
   }
+}
+
+:root[data-resolved-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0f0e0c;
+  --bg-alt: #1a1917;
+  --bg-card: #1a1917;
+  --bg-card-hover: #201f1c;
+  --text: #e8e2d8;
+  --text-muted: #8a8478;
+  --text-faint: #5a5650;
+  --accent: #c23a22;
+  --accent-hover: #d94a32;
+  --border: rgba(232, 226, 216, 0.08);
+  --border-hover: rgba(232, 226, 216, 0.15);
+  --noise-opacity: 0.03;
+  --divider-gradient: linear-gradient(
+    to bottom,
+    transparent,
+    var(--copper-dim),
+    rgba(200, 149, 106, 0.3),
+    var(--copper-dim),
+    transparent
+  );
 }
 
 /* ==========================================================================
@@ -535,6 +559,51 @@ select.input:focus {
 .menu-profile {
   padding: 10px 12px;
   border-bottom: 1px solid var(--border);
+}
+
+.menu-section {
+  padding: 10px 12px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.menu-label {
+  margin-bottom: 8px;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.menu-theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.menu-theme-option {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  padding: 8px 6px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.menu-theme-option:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+.menu-theme-option.is-active {
+  border-color: rgba(196, 149, 106, 0.45);
+  background: rgba(196, 149, 106, 0.08);
+  color: var(--accent);
 }
 
 .menu-name {
@@ -1641,9 +1710,9 @@ select.input:focus {
   gap: 14px;
   padding: 16px;
   border: 1px solid var(--border);
-  background:
-    linear-gradient(180deg, rgba(250, 247, 242, 0.94), rgba(250, 247, 242, 0.99));
+  background: var(--bg-card);
   backdrop-filter: blur(10px);
+  box-shadow: 0 -10px 24px rgba(0, 0, 0, 0.08);
 }
 
 /* --- Mode Toggle --- */
@@ -1788,6 +1857,10 @@ select.input:focus {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.esl-detail-passage-card {
+  overflow: auto;
 }
 
 .esl-detail-section-label {
@@ -2184,7 +2257,9 @@ select.input:focus {
   }
 
   .esl-main {
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     padding: 0 24px;
   }
 
@@ -2192,10 +2267,13 @@ select.input:focus {
     flex-direction: row;
     gap: 28px;
     padding-top: 8px;
+    height: 100%;
+    min-height: 0;
   }
 
   .esl-center-panel {
     flex: 1.3;
+    min-height: 0;
   }
 
   .esl-history-rail {
@@ -2205,8 +2283,9 @@ select.input:focus {
     position: sticky;
     top: 0;
     max-height: calc(100dvh - 180px);
-    overflow-y: auto;
+    overflow: hidden;
     padding-right: 4px;
+    min-height: 0;
   }
 
   .esl-mobile-back {
@@ -2215,6 +2294,56 @@ select.input:focus {
 
   .esl-passage-card-main {
     max-height: 32vh;
+  }
+
+  .esl-center-panel > .esl-compose-form,
+  .esl-center-panel > .esl-detail-stack,
+  .esl-center-panel > .tool-card-stack {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .esl-compose-form,
+  .esl-detail-stack {
+    overflow: hidden;
+  }
+
+  .esl-compose-main {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .esl-compose-card {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .esl-compose-textarea {
+    min-height: 100%;
+    height: 100%;
+  }
+
+  .esl-compose-footer {
+    position: static;
+    flex-shrink: 0;
+  }
+
+  .esl-history-list {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+  }
+
+  .esl-detail-passage-card {
+    flex: 0 0 auto;
+    max-height: 34%;
+  }
+
+  .esl-detail-card {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
   }
 }
 
