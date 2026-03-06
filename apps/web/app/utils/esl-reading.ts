@@ -1,5 +1,6 @@
 export const MAX_ESL_PASSAGE_CHARS = 8000;
 export const MAX_ESL_READING_AUDIO_BYTES = 20 * 1024 * 1024;
+export const ESL_PENDING_EVAL_STALE_MS = 45 * 1000;
 
 export const ESL_READING_MODES = ["reading", "recitation"] as const;
 export type EslReadingMode = (typeof ESL_READING_MODES)[number];
@@ -125,4 +126,32 @@ export const formatDuration = (ms: number): string => {
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
   return `${min}:${String(sec).padStart(2, "0")}`;
+};
+
+export const deriveEslAttemptEvaluationState = (input: {
+  storedStatus: "pending" | "completed" | "failed";
+  hasEvaluation: boolean;
+  createdAt: string;
+  now?: number;
+}): {
+  status: "pending" | "completed" | "failed";
+  isStalePending: boolean;
+} => {
+  if (input.hasEvaluation) {
+    return { status: "completed", isStalePending: false };
+  }
+
+  const ageMs = (input.now ?? Date.now()) - new Date(input.createdAt).getTime();
+  const isStalePending = ageMs > ESL_PENDING_EVAL_STALE_MS;
+
+  if (input.storedStatus === "pending") {
+    return { status: "pending", isStalePending };
+  }
+  if (input.storedStatus === "failed") {
+    return { status: "failed", isStalePending: false };
+  }
+
+  return isStalePending
+    ? { status: "failed", isStalePending: false }
+    : { status: "pending", isStalePending: false };
 };

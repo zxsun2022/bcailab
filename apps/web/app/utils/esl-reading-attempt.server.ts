@@ -258,6 +258,7 @@ export const createAndScheduleEslReadingAttempt = async (
   const attemptId = crypto.randomUUID();
   const r2Key = buildAttemptR2Key(input.userId, attemptId, input.submission.audioFormat);
   let supportsAsyncEvaluationStatus = true;
+  const canRunInBackground = Boolean(context.ctx?.waitUntil);
 
   try {
     await context.env.R2.put(r2Key, input.submission.audioBuffer, {
@@ -286,7 +287,9 @@ export const createAndScheduleEslReadingAttempt = async (
 
   if (!supportsAsyncEvaluationStatus) {
     console.warn(
-      "esl_reading_attempts is missing evaluation_status or duration_ms; running evaluation inline. Apply newer D1 migrations."
+      canRunInBackground
+        ? "esl_reading_attempts is missing evaluation_status or duration_ms; running evaluation in background without persisted pending status. Apply newer D1 migrations."
+        : "esl_reading_attempts is missing evaluation_status or duration_ms; running evaluation inline. Apply newer D1 migrations."
     );
   }
 
@@ -301,7 +304,7 @@ export const createAndScheduleEslReadingAttempt = async (
       audioBytes: new Uint8Array(input.submission.audioBuffer),
       audioMimeType: input.submission.audioMimeType
     },
-    { preferBackground: supportsAsyncEvaluationStatus }
+    { preferBackground: canRunInBackground }
   );
 
   return { attemptId };

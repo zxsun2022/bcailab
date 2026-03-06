@@ -6,10 +6,11 @@ import {
   getLatestEslReadingEvaluationByAttemptId
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
-import { parseEslReadingEvaluationOutput } from "~/utils/esl-reading";
+import {
+  deriveEslAttemptEvaluationState,
+  parseEslReadingEvaluationOutput
+} from "~/utils/esl-reading";
 import { buildReferenceFallbackR2Key } from "~/utils/esl-passage-reference.server";
-
-const STALE_PENDING_MS = 45 * 1000;
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -44,11 +45,13 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     ? await getLatestEslReadingEvaluationByAttemptId(context.env.DB, attempt.id)
     : null;
   const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
-  const isStalePending =
-    ownsAttempt &&
-    attempt.evaluation_status === "pending" &&
-    !parsed &&
-    Date.now() - new Date(attempt.created_at).getTime() > STALE_PENDING_MS;
+  const effective = ownsAttempt
+    ? deriveEslAttemptEvaluationState({
+        storedStatus: attempt.evaluation_status,
+        hasEvaluation: Boolean(parsed),
+        createdAt: attempt.created_at
+      })
+    : null;
 
   return json({
     referenceStatus:
@@ -62,8 +65,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     hasReferenceAudio:
       (passage.reference_tts_status === "completed" && Boolean(passage.reference_tts_r2_key)) ||
       hasFallbackReference,
-    evaluationStatus: ownsAttempt ? attempt.evaluation_status : null,
+    evaluationStatus: effective?.status ?? null,
     hasEvaluation: Boolean(parsed),
-    isStalePending: Boolean(isStalePending)
+    isStalePending: Boolean(effective?.isStalePending)
   });
 };

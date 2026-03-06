@@ -48,6 +48,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 
 ### Evaluation Pipeline
 - Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
+- If an older environment is missing `evaluation_status`, the app still prefers background evaluation when `waitUntil` is available; pending state is inferred from the absence of feedback on a fresh attempt.
 - Passage reference TTS is also generated asynchronously in the background after the first submit.
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
 - If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.

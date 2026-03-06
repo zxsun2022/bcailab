@@ -34,6 +34,7 @@ import {
   schedulePassageReferenceSynthesis
 } from "~/utils/esl-passage-reference.server";
 import {
+  deriveEslAttemptEvaluationState,
   formatDuration,
   getDisplayEslPassageTitle,
   parseEslReadingEvaluationOutput,
@@ -42,7 +43,6 @@ import {
 import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
-const STALE_PENDING_MS = 45 * 1000;
 
 const deleteAttemptArtifacts = async (
   context: ActionFunctionArgs["context"],
@@ -78,12 +78,17 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   const attemptsWithEval = attempts.map((attempt, index) => {
     const evaluation = evaluations[index];
     const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
+    const effective = deriveEslAttemptEvaluationState({
+      storedStatus: attempt.evaluation_status,
+      hasEvaluation: Boolean(parsed),
+      createdAt: attempt.created_at
+    });
     return {
       id: attempt.id,
       mode: attempt.mode,
       createdAt: attempt.created_at,
       durationMs: attempt.duration_ms,
-      evaluationStatus: attempt.evaluation_status,
+      evaluationStatus: effective.status,
       score: parsed?.scores.overall ?? null
     };
   });
@@ -102,11 +107,13 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   const selectedOutput = selectedEvaluation
     ? parseEslReadingEvaluationOutput(selectedEvaluation.output_json)
     : null;
-  const selectedIsStalePending = selectedAttempt
-    ? selectedAttempt.evaluation_status === "pending" &&
-      !selectedOutput &&
-      Date.now() - new Date(selectedAttempt.created_at).getTime() > STALE_PENDING_MS
-    : false;
+  const selectedEffective = selectedAttempt
+    ? deriveEslAttemptEvaluationState({
+        storedStatus: selectedAttempt.evaluation_status,
+        hasEvaluation: Boolean(selectedOutput),
+        createdAt: selectedAttempt.created_at
+      })
+    : null;
 
   const fallbackReferenceKey = buildReferenceFallbackR2Key(user.id, passage.id);
   const hasFallbackReference =
@@ -139,12 +146,11 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
           mode: selectedAttempt.mode,
           createdAt: selectedAttempt.created_at,
           durationMs: selectedAttempt.duration_ms,
-          evaluationStatus: selectedAttempt.evaluation_status,
-          isStalePending: selectedIsStalePending,
+          evaluationStatus: selectedEffective?.status ?? "completed",
+          isStalePending: selectedEffective?.isStalePending ?? false,
           canRetryEvaluation:
-            selectedIsStalePending ||
-            selectedAttempt.evaluation_status === "failed" ||
-            (!selectedOutput && selectedAttempt.evaluation_status === "completed"),
+            Boolean(selectedEffective?.isStalePending) ||
+            selectedEffective?.status === "failed",
           audioUrl: `/esl/audio/${selectedAttempt.id}`,
           evaluation: selectedOutput
         }
@@ -388,7 +394,7 @@ function AttemptDetail(props: {
   const isRetryEvaluating =
     Boolean(retryFetcher.data?.ok) && !props.evaluation && props.evaluationStatus !== "completed";
   const retryError = retryFetcher.data?.error;
-  const [referenceAutoPlayToken, setReferenceAutoPlayToken] = React.useState(0);
+  const [referenceAutoPlayToken, setReferenceAutoPlayToken] = React.useState<number | null>(null);
   const [optimisticReferencePending, setOptimisticReferencePending] = React.useState(false);
   const isReferenceRequesting = referenceFetcher.state !== "idle";
   const isReferencePreparing =
@@ -523,7 +529,7 @@ function AttemptDetail(props: {
   }, [optimisticReferencePending]);
 
   const requestReferenceAudio = React.useCallback(() => {
-    setReferenceAutoPlayToken((current) => current + 1);
+    setReferenceAutoPlayToken((current) => (current == null ? 1 : current + 1));
     setOptimisticReferencePending(true);
     referenceFetcher.submit(
       {
