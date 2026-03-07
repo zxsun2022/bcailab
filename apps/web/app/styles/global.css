@@ -1066,54 +1066,15 @@ select.input:focus {
    ========================================================================== */
 
 .home {
-  padding-top: var(--space-lg);
-  padding-bottom: var(--space-lg);
-}
-
-.home.home-fullscreen {
-  flex: 1;
-  display: flex;
-  padding-top: 0;
-  padding-bottom: 0;
+  max-width: 880px;
+  margin: 0 auto;
+  padding-top: var(--space-3xl);
+  padding-bottom: var(--space-2xl);
 }
 
 .home-hero {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  min-height: 100%;
-  width: 100%;
-  border-bottom: 1px solid var(--border);
-}
-
-.home.home-fullscreen .home-hero {
-  flex: 1;
-}
-
-.home-hero-left,
-.home-hero-right {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: var(--space-3xl) 0;
-}
-
-.home-hero-left {
-  position: relative;
-  padding-right: var(--space-2xl);
-}
-
-.home-hero-left::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: var(--space-3xl);
-  bottom: var(--space-3xl);
-  width: 1px;
-  background: var(--divider-gradient);
-}
-
-.home-hero-right {
-  padding-left: var(--space-2xl);
+  text-align: center;
+  margin-bottom: var(--space-3xl);
 }
 
 .home-eyebrow {
@@ -1136,7 +1097,7 @@ select.input:focus {
 
 .home-title {
   font-family: var(--font-display);
-  font-size: clamp(36px, 5vw, 52px);
+  font-size: clamp(34px, 5vw, 48px);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.5px;
@@ -1148,23 +1109,15 @@ select.input:focus {
 }
 
 .home-desc {
-  margin-top: var(--space-lg);
-  max-width: 430px;
+  margin: var(--space-lg) auto 0;
+  max-width: 520px;
   font-size: 17px;
   line-height: 1.75;
   color: var(--text-muted);
 }
 
-.home-meta {
-  margin-top: var(--space-2xl);
-  color: var(--text-faint);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.6px;
-}
-
 .home-login-hint {
-  margin-top: var(--space-lg);
+  margin: var(--space-lg) auto 0;
   padding: 10px 12px;
   border: 1px solid rgba(181, 42, 28, 0.3);
   background: rgba(181, 42, 28, 0.08);
@@ -1176,11 +1129,23 @@ select.input:focus {
   width: fit-content;
 }
 
+/* ---- catalog ---- */
+
+.home-catalog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.home-category {
+  /* each category block */
+}
+
 .home-tools-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-md);
 }
 
 .home-tools-label {
@@ -1199,9 +1164,9 @@ select.input:focus {
   font-size: 11px;
 }
 
-.home-tool-list {
-  display: flex;
-  flex-direction: column;
+.home-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 14px;
 }
 
@@ -1210,12 +1175,17 @@ select.input:focus {
   color: inherit;
 }
 
+.home-tool-card-link.is-planned {
+  cursor: default;
+}
+
 .home-tool-card {
   position: relative;
   overflow: hidden;
-  padding: 28px 32px;
+  padding: 24px 28px;
   border: 1px solid var(--border);
   background: var(--bg-card);
+  height: 100%;
   transition: border-color var(--transition-base), background var(--transition-base);
 }
 
@@ -1232,12 +1202,12 @@ select.input:focus {
   transition: transform var(--transition-base);
 }
 
-.home-tool-card-link:hover .home-tool-card {
+.home-tool-card-link:not(.is-planned):hover .home-tool-card {
   border-color: var(--border-hover);
   background: var(--bg-card-hover);
 }
 
-.home-tool-card-link:hover .home-tool-card::before {
+.home-tool-card-link:not(.is-planned):hover .home-tool-card::before {
   transform: scaleY(1);
 }
 
@@ -1251,7 +1221,7 @@ select.input:focus {
 
 .home-tool-title {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
@@ -1262,9 +1232,20 @@ select.input:focus {
   transition: transform var(--transition-base), color var(--transition-base);
 }
 
-.home-tool-card-link:hover .home-tool-arrow {
+.home-tool-card-link:not(.is-planned):hover .home-tool-arrow {
   transform: translateX(4px);
   color: var(--accent);
+}
+
+.home-tool-badge {
+  border: 1px solid var(--copper-dim);
+  padding: 2px 8px;
+  color: var(--copper);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .home-tool-desc {
@@ -1290,18 +1271,8 @@ select.input:focus {
   text-transform: uppercase;
 }
 
-.home-more-tools {
-  padding: 20px 32px;
-  border: 1px dashed var(--border);
-  text-align: center;
-}
-
-.home-more-tools-text {
-  color: var(--text-faint);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
+.is-planned .home-tool-card {
+  opacity: 0.55;
 }
 
 /* ==========================================================================
@@ -1498,47 +1469,6 @@ select.input:focus {
 
 /* --- ESL Home (module cards) --- */
 
-.esl-module-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin-top: 20px;
-}
-
-.esl-module-card {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  min-height: 170px;
-}
-
-.esl-module-head {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.esl-module-title {
-  font-family: var(--font-display);
-  font-size: 22px;
-  line-height: 1.25;
-}
-
-.esl-module-desc {
-  color: var(--text-muted);
-  line-height: 1.6;
-  flex: 1;
-}
-
-.esl-module-status {
-  align-self: flex-start;
-}
-
-.esl-module-status.is-live {
-  border-color: rgba(196, 149, 106, 0.45);
-  color: var(--accent);
-}
 
 .btn.is-disabled {
   pointer-events: none;
@@ -3154,10 +3084,8 @@ select.input:focus {
    ========================================================================== */
 
 @media (max-width: 1024px) {
-  .home-hero-left,
-  .home-hero-right {
+  .home {
     padding-top: var(--space-2xl);
-    padding-bottom: var(--space-2xl);
   }
 }
 
@@ -3202,26 +3130,8 @@ select.input:focus {
     padding-top: var(--space-lg);
   }
 
-  .home-hero {
+  .home-tool-grid {
     grid-template-columns: 1fr;
-  }
-
-  .home-hero-left,
-  .home-hero-right {
-    padding: 36px 0;
-  }
-
-  .home-hero-left {
-    padding-right: 0;
-  }
-
-  .home-hero-left::after {
-    display: none;
-  }
-
-  .home-hero-right {
-    padding-left: 0;
-    border-top: 1px solid var(--border);
   }
 
   .home-title {
@@ -3504,8 +3414,7 @@ select.input:focus {
     font-size: 17px;
   }
 
-  .home-tool-card,
-  .home-more-tools {
+  .home-tool-card {
     padding-left: 20px;
     padding-right: 20px;
   }
