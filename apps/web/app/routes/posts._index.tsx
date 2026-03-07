@@ -253,34 +253,39 @@ export default function PostsTool() {
         <section className="posts-compose-main">
           <div className="posts-editor-toolbar">
             <div className="posts-editor-status">{statusLabel}</div>
-            {isEditing ? (
-              <div className="posts-editor-toolbar-actions">
-                <a
-                  href={activePostUrl ?? "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-ghost btn-sm"
-                >
-                  Open
-                </a>
-                <Button type="button" variant="ghost" size="sm" onClick={handleCopyUrl}>
-                  {copyState === "copied"
-                    ? "Copied!"
-                    : copyState === "failed"
-                      ? "Copy failed"
-                      : "Copy link"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  disabled={isDeleting}
-                  onClick={handleDelete}
-                >
-                  {isDeleting ? "Deleting..." : "Delete"}
-                </Button>
-              </div>
-            ) : null}
+            <div
+              className={`posts-editor-toolbar-actions ${isEditing ? "" : "is-empty"}`.trim()}
+              aria-hidden={isEditing ? undefined : true}
+            >
+              {isEditing ? (
+                <>
+                  <a
+                    href={activePostUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Open
+                  </a>
+                  <Button type="button" variant="ghost" size="sm" onClick={handleCopyUrl}>
+                    {copyState === "copied"
+                      ? "Copied!"
+                      : copyState === "failed"
+                        ? "Copy failed"
+                        : "Copy link"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="danger"
+                    size="sm"
+                    disabled={isDeleting}
+                    onClick={handleDelete}
+                  >
+                    {isDeleting ? "Deleting..." : "Delete"}
+                  </Button>
+                </>
+              ) : null}
+            </div>
           </div>
 
           {deleteError ? <div className="form-error">{deleteError}</div> : null}

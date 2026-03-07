@@ -110,6 +110,7 @@
   --transition-fast: 0.2s ease;
   --transition-base: 0.3s ease;
   --site-header-height: 72px;
+  --site-shell-height: calc(100dvh - var(--site-header-height) - 1px);
 
   --bg: #f6f2eb;
   --bg-alt: #eee8dd;
@@ -967,6 +968,8 @@ select.input:focus {
   width: 100%;
   max-width: 820px;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .posts-editor-toolbar {
@@ -974,8 +977,9 @@ select.input:focus {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  min-height: 36px;
+  height: 36px;
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .posts-editor-status {
@@ -992,9 +996,15 @@ select.input:focus {
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: wrap;
+  min-width: 256px;
+}
+
+.posts-editor-toolbar-actions.is-empty {
+  visibility: hidden;
 }
 
 .posts-compose-form {
+  flex: 1;
   min-height: clamp(560px, 74vh, 820px);
   display: flex;
   flex-direction: column;
@@ -1663,7 +1673,7 @@ select.input:focus {
 .esl-reading-shell {
   display: flex;
   gap: 0;
-  min-height: calc(100dvh - var(--site-header-height));
+  min-height: var(--site-shell-height);
 }
 
 .esl-sidebar {
@@ -2895,7 +2905,7 @@ select.input:focus {
 
 @media (min-width: 1024px) {
   .esl-reading-shell {
-    height: calc(100dvh - var(--site-header-height));
+    height: var(--site-shell-height);
     overflow: hidden;
   }
 
@@ -2913,7 +2923,8 @@ select.input:focus {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 0 24px;
+    padding: 0 24px 16px;
+    min-height: 0;
   }
 
   .esl-practice-layout {
@@ -2935,7 +2946,7 @@ select.input:focus {
     min-width: 220px;
     position: sticky;
     top: 0;
-    max-height: calc(100dvh - 104px);
+    max-height: 100%;
     overflow: hidden;
     padding-right: 4px;
     min-height: 0;
@@ -3349,10 +3360,12 @@ select.input:focus {
   .posts-editor-toolbar {
     flex-direction: column;
     align-items: stretch;
+    height: auto;
   }
 
   .posts-editor-toolbar-actions {
     width: 100%;
+    min-width: 0;
   }
 
   .posts-editor-toolbar-actions .btn {
@@ -3489,33 +3502,39 @@ select.input:focus {
   }
 
   .tool-page.posts-compose-page {
-    min-height: calc(100dvh - var(--site-header-height));
+    height: var(--site-shell-height);
+    min-height: 0;
+    overflow: hidden;
   }
 
   .posts-compose-layout {
     grid-template-columns: 280px minmax(0, 1fr);
-    align-items: start;
+    align-items: stretch;
+    height: 100%;
+    min-height: 0;
   }
 
   .posts-history-panel {
     order: 1;
     position: sticky;
-    top: 24px;
-    height: calc(100dvh - 128px);
+    top: 0;
+    height: 100%;
     max-height: none;
   }
 
   .posts-compose-main {
     order: 2;
     justify-self: start;
+    height: 100%;
+    min-height: 0;
   }
 
   .posts-compose-form {
-    min-height: calc(100dvh - 220px);
+    min-height: 0;
   }
 
   .tool-page.tts-shell {
-    height: calc(100dvh - var(--site-header-height));
+    height: var(--site-shell-height);
     padding-bottom: var(--space-md);
     overflow: hidden;
   }
@@ -3525,6 +3544,8 @@ select.input:focus {
     grid-template-columns: 300px minmax(0, 1fr);
     gap: var(--space-lg);
     align-items: stretch;
+    height: 100%;
+    min-height: 0;
   }
 
   .tts-sidebar {
@@ -3534,6 +3555,7 @@ select.input:focus {
     background: var(--bg-card);
     padding: var(--space-md);
     overflow: hidden;
+    min-height: 0;
   }
 
   .tts-sidebar-list {
@@ -3548,6 +3570,7 @@ select.input:focus {
 
   .tts-main {
     overflow: hidden;
+    min-height: 0;
   }
 
   .tts-main > .tts-primary-content {
