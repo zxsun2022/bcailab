@@ -174,7 +174,7 @@ export default function PostsTool() {
         : "Published"
       : isEditing
         ? "Editing"
-        : null;
+        : "New post";
   const submitLabel = isSubmitting
     ? isEditing
       ? "Saving..."
@@ -251,9 +251,9 @@ export default function PostsTool() {
         </aside>
 
         <section className="posts-compose-main">
-          {isEditing ? (
-            <div className="posts-editor-toolbar">
-              <div className="posts-editor-status">{statusLabel}</div>
+          <div className="posts-editor-toolbar">
+            <div className="posts-editor-status">{statusLabel}</div>
+            {isEditing ? (
               <div className="posts-editor-toolbar-actions">
                 <a
                   href={activePostUrl ?? "#"}
@@ -280,8 +280,8 @@ export default function PostsTool() {
                   {isDeleting ? "Deleting..." : "Delete"}
                 </Button>
               </div>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
 
           {deleteError ? <div className="form-error">{deleteError}</div> : null}
 
