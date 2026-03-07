@@ -843,10 +843,6 @@ select.input:focus {
   color: var(--accent);
 }
 
-.posts-list-link {
-  gap: 8px;
-}
-
 .posts-count {
   display: inline-flex;
   align-items: center;
@@ -856,6 +852,155 @@ select.input:focus {
   border: 1px solid var(--copper-dim);
   color: var(--copper);
   font-size: 10px;
+}
+
+.posts-compose-layout {
+  display: grid;
+  gap: clamp(24px, 4vw, 40px);
+}
+
+.posts-history-panel {
+  order: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.posts-history-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.posts-panel-eyebrow {
+  color: var(--copper);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.posts-panel-title {
+  margin-top: 6px;
+  font-size: clamp(28px, 3vw, 34px);
+}
+
+.posts-history-link {
+  flex-shrink: 0;
+}
+
+.posts-history-empty {
+  border: 1px dashed var(--border);
+  padding: 18px;
+  color: var(--text-muted);
+}
+
+.posts-history-empty-title {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin-bottom: 6px;
+}
+
+.posts-history-empty-desc {
+  font-size: 15px;
+}
+
+.posts-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.posts-history-item {
+  display: block;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  padding: 16px 18px;
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+
+.posts-history-item:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+}
+
+.posts-history-item-title {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 21px;
+  line-height: 1.25;
+  margin-bottom: 6px;
+}
+
+.posts-history-item-excerpt {
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+}
+
+.posts-compose-main {
+  order: 1;
+  width: 100%;
+  max-width: 780px;
+}
+
+.posts-compose-main-header {
+  margin-bottom: 18px;
+}
+
+.posts-compose-desc {
+  margin-bottom: 0;
+  max-width: 680px;
+}
+
+.posts-published-banner {
+  margin-top: 0;
+  margin-bottom: 18px;
+}
+
+.posts-compose-form {
+  min-height: clamp(500px, 68vh, 740px);
+  display: flex;
+  flex-direction: column;
+}
+
+.posts-compose-textarea {
+  min-height: clamp(320px, 48vh, 620px);
+}
+
+.posts-compose-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-top: 18px;
+}
+
+.posts-compose-status {
+  flex: 1;
+  min-width: 0;
+}
+
+.posts-compose-meta {
+  margin-top: 0;
+}
+
+.posts-compose-actions {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  padding-bottom: 2px;
+}
+
+.posts-compose-actions .btn {
+  min-width: 148px;
 }
 
 .post-meta {
@@ -3158,6 +3303,21 @@ select.input:focus {
     align-items: flex-start;
   }
 
+  .posts-compose-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .posts-compose-actions {
+    width: 100%;
+    justify-content: stretch;
+    padding-bottom: 0;
+  }
+
+  .posts-compose-actions .btn {
+    width: 100%;
+  }
+
   .post-row-title,
   .post-row-preview {
     font-size: 16px;
@@ -3278,27 +3438,30 @@ select.input:focus {
 
   .tool-page.posts-compose-page {
     min-height: calc(100dvh - var(--site-header-height));
-    display: flex;
-    flex-direction: column;
   }
 
-  .posts-compose-card {
-    flex: 1;
-    margin-top: 20px;
+  .posts-compose-layout {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 780px);
+    align-items: start;
+    justify-content: space-between;
+  }
+
+  .posts-history-panel {
+    order: 1;
+    position: sticky;
+    top: 24px;
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .posts-compose-main {
+    order: 2;
+    justify-self: end;
   }
 
   .posts-compose-form {
-    min-height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .posts-compose-form .posts-compose-textarea {
-    min-height: clamp(260px, 42vh, 560px);
-  }
-
-  .posts-compose-form .form-actions {
-    margin-top: 12px;
+    min-height: calc(100dvh - 240px);
   }
 
   .tool-page.tts-shell {
