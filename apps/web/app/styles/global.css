@@ -1011,8 +1011,11 @@ select.input:focus {
 }
 
 .posts-compose-textarea {
+  flex: 1;
   min-height: clamp(420px, 62vh, 760px);
-  max-height: calc(100dvh - 220px);
+  height: 100%;
+  resize: none;
+  overflow-y: auto;
 }
 
 .posts-compose-footer {
@@ -3504,6 +3507,7 @@ select.input:focus {
   .tool-page.posts-compose-page {
     height: var(--site-shell-height);
     min-height: 0;
+    padding-bottom: var(--space-md);
     overflow: hidden;
   }
 
