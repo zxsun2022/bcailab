@@ -2,6 +2,7 @@ import * as React from "react";
 import { Button } from "@bcailab/ui";
 import { useFetcher, useNavigate } from "@remix-run/react";
 import { formatDuration, type EslReadingMode } from "~/utils/esl-reading";
+import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
 
 type RecordingState = "idle" | "recording" | "preview";
 
@@ -49,6 +50,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const { action, submitLabel, canSubmit = true, children } = props;
   const fetcher = useFetcher<SubmitResult>();
   const navigate = useNavigate();
+  const [outputLanguage] = useReadingOutputLanguage();
 
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
@@ -193,6 +195,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
       action={action}
       className="esl-compose-form"
     >
+      <input type="hidden" name="outputLanguage" value={outputLanguage} />
       <div className="esl-compose-main">
         {children({ mode, hideText: mode === "recitation" })}
       </div>

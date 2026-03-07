@@ -65,8 +65,16 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     hasReferenceAudio:
       (passage.reference_tts_status === "completed" && Boolean(passage.reference_tts_r2_key)) ||
       hasFallbackReference,
-    evaluationStatus: effective?.status ?? null,
-    hasEvaluation: Boolean(parsed),
-    isStalePending: Boolean(effective?.isStalePending)
+    selected:
+      ownsAttempt && effective
+        ? {
+            evaluationStatus: effective.status,
+            hasEvaluation: Boolean(parsed),
+            isStalePending: Boolean(effective.isStalePending),
+            canRetryEvaluation: effective.isStalePending || effective.status === "failed",
+            evaluation: parsed,
+            score: parsed?.scores.overall ?? null
+          }
+        : null
   });
 };

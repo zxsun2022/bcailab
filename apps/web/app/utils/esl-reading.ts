@@ -103,6 +103,7 @@ export const parseEslReadingEvaluationOutput = (
     const raw = JSON.parse(input) as Record<string, unknown>;
     return {
       ...(raw as unknown as EslReadingEvaluationOutput),
+      ui_language: raw.ui_language === "en" ? "en" : "zh",
       commentary_zh: typeof raw.commentary_zh === "string" ? raw.commentary_zh : "",
       progress_vs_last: Array.isArray(raw.progress_vs_last)
         ? (raw.progress_vs_last as unknown[]).filter((x): x is string => typeof x === "string")

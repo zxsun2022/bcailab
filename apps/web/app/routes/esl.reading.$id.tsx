@@ -4,8 +4,7 @@ import {
   Link,
   useFetcher,
   useActionData,
-  useLoaderData,
-  useRevalidator
+  useLoaderData
 } from "@remix-run/react";
 import { Badge, Card } from "@bcailab/ui";
 import {
@@ -40,6 +39,8 @@ import {
   parseEslReadingEvaluationOutput,
   type EslReadingEvaluationOutput
 } from "~/utils/esl-reading";
+import { parseReadingOutputLanguage } from "~/utils/reading-settings";
+import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
 import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
@@ -221,6 +222,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
   if (intent === "retryEvaluation") {
     const attemptId = String(formData.get("attemptId") ?? "");
+    const outputLanguage = parseReadingOutputLanguage(formData.get("outputLanguage"));
     const retryTransport = String(formData.get("_transport") ?? "document");
     if (!attemptId) return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
 
@@ -228,7 +230,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       await retryEslReadingAttemptEvaluation(context, {
         userId: user.id,
         passage,
-        attemptId
+        attemptId,
+        outputLanguage
       });
       return retryTransport === "fetcher"
         ? json<ActionData>({ ok: true })
@@ -295,11 +298,70 @@ export default function EslReadingPracticePage() {
   const actionData = useActionData<typeof action>();
   const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
   const actionError = actionData && "error" in actionData ? actionData.error : undefined;
+  const [liveAttempts, setLiveAttempts] = React.useState(attempts);
+  const [liveReferenceAudio, setLiveReferenceAudio] = React.useState(referenceAudio);
+  const [liveSelected, setLiveSelected] = React.useState(selected);
   const headingSubtitle = composeView
     ? attempts.length === 0
       ? "Record the first attempt for this passage."
       : null
     : null;
+
+  React.useEffect(() => {
+    setLiveAttempts(attempts);
+  }, [attempts]);
+
+  React.useEffect(() => {
+    setLiveReferenceAudio(referenceAudio);
+  }, [referenceAudio]);
+
+  React.useEffect(() => {
+    setLiveSelected(selected);
+  }, [selected]);
+
+  const handleReferenceStateChange = React.useCallback(
+    (next: { status: "pending" | "completed" | "failed" | null; hasAudio: boolean }) => {
+      setLiveReferenceAudio({
+        status: next.status,
+        audioUrl: next.hasAudio ? `/esl/passage-audio/${passage.id}` : null
+      });
+    },
+    [passage.id]
+  );
+
+  const handleSelectedStateChange = React.useCallback(
+    (next: {
+      evaluationStatus: "pending" | "completed" | "failed";
+      isStalePending: boolean;
+      canRetryEvaluation: boolean;
+      evaluation: EslReadingEvaluationOutput | null;
+      score: number | null;
+    }) => {
+      setLiveSelected((current) =>
+        current
+          ? {
+              ...current,
+              evaluationStatus: next.evaluationStatus,
+              isStalePending: next.isStalePending,
+              canRetryEvaluation: next.canRetryEvaluation,
+              evaluation: next.evaluation
+            }
+          : current
+      );
+      setLiveAttempts((current) =>
+        current.map((attempt) =>
+          attempt.id === selected?.id
+            ? {
+                ...attempt,
+                evaluationStatus: next.evaluationStatus,
+                score: next.score
+              }
+            : attempt
+        )
+      );
+    },
+    [selected?.id]
+  );
 
   return (
     <div className="esl-practice-layout">
@@ -336,20 +398,22 @@ export default function EslReadingPracticePage() {
               </Card>
             )}
           </EslAttemptComposer>
-        ) : selected ? (
+        ) : liveSelected ? (
           <AttemptDetail
             passageId={passage.id}
-            attemptId={selected.id}
+            attemptId={liveSelected.id}
             passageText={passage.content_text}
-            referenceAudio={referenceAudio}
-            audioUrl={selected.audioUrl}
-            createdAt={selected.createdAt}
-            durationMs={selected.durationMs}
-            mode={selected.mode}
-            evaluationStatus={selected.evaluationStatus}
-            isStalePending={selected.isStalePending}
-            canRetryEvaluation={selected.canRetryEvaluation}
-            evaluation={selected.evaluation}
+            referenceAudio={liveReferenceAudio}
+            audioUrl={liveSelected.audioUrl}
+            createdAt={liveSelected.createdAt}
+            durationMs={liveSelected.durationMs}
+            mode={liveSelected.mode}
+            evaluationStatus={liveSelected.evaluationStatus}
+            isStalePending={liveSelected.isStalePending}
+            canRetryEvaluation={liveSelected.canRetryEvaluation}
+            evaluation={liveSelected.evaluation}
+            onReferenceStateChange={handleReferenceStateChange}
+            onSelectedStateChange={handleSelectedStateChange}
           />
         ) : (
           <Card className="tool-card-stack">
@@ -360,8 +424,8 @@ export default function EslReadingPracticePage() {
 
       <EslReadingHistoryRail
         passageId={passage.id}
-        attempts={attempts}
-        selectedAttemptId={selected?.id ?? null}
+        attempts={liveAttempts}
+        selectedAttemptId={liveSelected?.id ?? null}
         isComposeView={composeView}
         disableNewAttempt={composeView}
       />
@@ -385,10 +449,21 @@ function AttemptDetail(props: {
   isStalePending: boolean;
   canRetryEvaluation: boolean;
   evaluation: EslReadingEvaluationOutput | null;
+  onReferenceStateChange: (next: {
+    status: "pending" | "completed" | "failed" | null;
+    hasAudio: boolean;
+  }) => void;
+  onSelectedStateChange: (next: {
+    evaluationStatus: "pending" | "completed" | "failed";
+    isStalePending: boolean;
+    canRetryEvaluation: boolean;
+    evaluation: EslReadingEvaluationOutput | null;
+    score: number | null;
+  }) => void;
 }) {
   const retryFetcher = useFetcher<ActionData>();
   const referenceFetcher = useFetcher<ActionData>();
-  const revalidator = useRevalidator();
+  const [outputLanguage] = useReadingOutputLanguage();
   const autoRequestedReferenceRef = React.useRef(false);
   const isRetrySubmitting = retryFetcher.state === "submitting";
   const isRetryEvaluating =
@@ -404,18 +479,27 @@ function AttemptDetail(props: {
   const referenceError = referenceFetcher.data?.error;
 
   React.useEffect(() => {
-    if (!retryFetcher.data?.ok) return;
-    revalidator.revalidate();
-  }, [retryFetcher.data, revalidator]);
-
-  React.useEffect(() => {
     autoRequestedReferenceRef.current = false;
   }, [props.passageId]);
 
   React.useEffect(() => {
+    if (!retryFetcher.data?.ok) return;
+    props.onSelectedStateChange({
+      evaluationStatus: "pending",
+      isStalePending: false,
+      canRetryEvaluation: false,
+      evaluation: null,
+      score: null
+    });
+  }, [props.onSelectedStateChange, retryFetcher.data]);
+
+  React.useEffect(() => {
     if (!referenceFetcher.data?.ok) return;
-    revalidator.revalidate();
-  }, [referenceFetcher.data, revalidator]);
+    props.onReferenceStateChange({
+      status: "pending",
+      hasAudio: false
+    });
+  }, [props.onReferenceStateChange, referenceFetcher.data]);
 
   React.useEffect(() => {
     const shouldPollEvaluation =
@@ -443,22 +527,30 @@ function AttemptDetail(props: {
           return (await response.json()) as {
             referenceStatus: "pending" | "completed" | "failed" | null;
             hasReferenceAudio: boolean;
-            evaluationStatus: "pending" | "completed" | "failed" | null;
-            hasEvaluation: boolean;
-            isStalePending: boolean;
+            selected: {
+              evaluationStatus: "pending" | "completed" | "failed";
+              hasEvaluation: boolean;
+              isStalePending: boolean;
+              canRetryEvaluation: boolean;
+              evaluation: EslReadingEvaluationOutput | null;
+              score: number | null;
+            } | null;
           };
         })
         .then((statusPayload) => {
           if (cancelled || !statusPayload) return;
-          const referenceChanged =
-            statusPayload.referenceStatus !== props.referenceAudio.status ||
-            (statusPayload.hasReferenceAudio && !props.referenceAudio.audioUrl);
-          const evaluationChanged =
-            statusPayload.evaluationStatus !== props.evaluationStatus ||
-            statusPayload.hasEvaluation !== Boolean(props.evaluation) ||
-            statusPayload.isStalePending !== props.isStalePending;
-          if (referenceChanged || evaluationChanged) {
-            revalidator.revalidate();
+          props.onReferenceStateChange({
+            status: statusPayload.referenceStatus,
+            hasAudio: statusPayload.hasReferenceAudio
+          });
+          if (statusPayload.selected) {
+            props.onSelectedStateChange({
+              evaluationStatus: statusPayload.selected.evaluationStatus,
+              isStalePending: statusPayload.selected.isStalePending,
+              canRetryEvaluation: statusPayload.selected.canRetryEvaluation,
+              evaluation: statusPayload.selected.evaluation,
+              score: statusPayload.selected.score
+            });
           }
         })
         .catch(() => undefined)
@@ -477,10 +569,11 @@ function AttemptDetail(props: {
     props.evaluation,
     props.evaluationStatus,
     props.isStalePending,
+    props.onReferenceStateChange,
+    props.onSelectedStateChange,
     props.passageId,
     props.referenceAudio.audioUrl,
-    props.referenceAudio.status,
-    revalidator
+    props.referenceAudio.status
   ]);
 
   React.useEffect(() => {
@@ -494,6 +587,10 @@ function AttemptDetail(props: {
     }
     autoRequestedReferenceRef.current = true;
     setOptimisticReferencePending(true);
+    props.onReferenceStateChange({
+      status: "pending",
+      hasAudio: Boolean(props.referenceAudio.audioUrl)
+    });
     referenceFetcher.submit(
       {
         _intent: "requestReferenceAudio",
@@ -538,7 +635,7 @@ function AttemptDetail(props: {
       },
       { method: "post" }
     );
-  }, [referenceFetcher]);
+  }, [props.onReferenceStateChange, props.referenceAudio.audioUrl, referenceFetcher]);
 
   const referenceStatus = isReferencePreparing
     ? "pending"
@@ -632,6 +729,7 @@ function AttemptDetail(props: {
             <input type="hidden" name="_intent" value="retryEvaluation" />
             <input type="hidden" name="attemptId" value={props.attemptId} />
             <input type="hidden" name="_transport" value="fetcher" />
+            <input type="hidden" name="outputLanguage" value={outputLanguage} />
             <button type="submit" className="btn btn-ghost btn-sm" disabled={isRetrySubmitting}>
               {isRetrySubmitting ? "Requesting..." : isRetryEvaluating ? "Evaluating..." : "Retry feedback"}
             </button>

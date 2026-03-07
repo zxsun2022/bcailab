@@ -6,6 +6,7 @@ import {
   type EslReadingMode,
   type EslLearnerProfileData
 } from "~/utils/esl-reading";
+import { type ReadingOutputLanguage } from "~/utils/reading-settings";
 
 const RUBRIC_VERSION = "2026-03-05";
 const FALLBACK_MODEL_NAME = "local-heuristic-fallback";
@@ -76,7 +77,10 @@ const normalizeSpan = (value: unknown): { start: number; end: number } | null =>
   return { start: Math.max(0, Math.floor(start)), end: Math.max(Math.max(0, Math.floor(start)), Math.floor(end)) };
 };
 
-const normalizeEvalOutput = (raw: unknown): EslReadingEvaluationOutput | null => {
+const normalizeEvalOutput = (
+  raw: unknown,
+  fallbackLanguage: ReadingOutputLanguage
+): EslReadingEvaluationOutput | null => {
   if (!raw || typeof raw !== "object") return null;
   const root = raw as Record<string, unknown>;
   const scores = root.scores as Record<string, unknown> | undefined;
@@ -129,13 +133,15 @@ const normalizeEvalOutput = (raw: unknown): EslReadingEvaluationOutput | null =>
     typeof cefrGuessRaw === "string" && ["A1", "A2", "B1", "B2", "C1", "C2"].includes(cefrGuessRaw)
       ? (cefrGuessRaw as EslReadingEvaluationOutput["cefr_guess"])
       : null;
+  const uiLanguage =
+    root.ui_language === "zh" || root.ui_language === "en" ? root.ui_language : fallbackLanguage;
 
   return {
     rubric_version:
       typeof root.rubric_version === "string" && root.rubric_version.trim()
         ? root.rubric_version.trim()
         : RUBRIC_VERSION,
-    ui_language: "zh",
+    ui_language: uiLanguage,
     scores: {
       overall: Math.round(clamp(Number(scores.overall) || 0, 0, 100)),
       pronunciation: Math.round(clamp(Number(scores.pronunciation) || 0, 0, 100)),
@@ -156,6 +162,7 @@ const normalizeEvalOutput = (raw: unknown): EslReadingEvaluationOutput | null =>
 const buildHeuristicEvaluation = (input: {
   passageText: string;
   mode: EslReadingMode;
+  outputLanguage: ReadingOutputLanguage;
   audioBytes: number;
   durationMs: number | null;
 }): EslReadingEvaluationOutput => {
@@ -173,27 +180,51 @@ const buildHeuristicEvaluation = (input: {
 
   const sampleChunk = extractSampleChunk(input.passageText);
   const hiddenModeTip =
-    input.mode === "recitation"
-      ? "背诵模式下先用关键词提示，再尝试全隐藏复述。"
-      : "先做可见文本朗读，再切到背诵模式复练同一段。";
+    input.outputLanguage === "zh"
+      ? input.mode === "recitation"
+        ? "背诵模式下先用关键词提示，再尝试全隐藏复述。"
+        : "先做可见文本朗读，再切到背诵模式复练同一段。"
+      : input.mode === "recitation"
+        ? "In recitation mode, begin with a few keywords, then try a fully hidden retell."
+        : "Start with one visible-text read, then switch to recitation mode for the same passage.";
+  const topActions =
+    input.outputLanguage === "zh"
+      ? [
+          "先放慢 10% 语速，优先保证单词结尾辅音清晰。",
+          "按意群做停顿，不要逐词停顿；每句至少做一次完整连读。",
+          hiddenModeTip
+        ]
+      : [
+          "Slow down by about 10% and make the final consonants of words cleaner.",
+          "Pause by thought groups instead of word by word; keep at least one full linking run in each sentence.",
+          hiddenModeTip
+        ];
+  const highlightNote =
+    input.outputLanguage === "zh"
+      ? "优先复练这一句，关注重读词和连读。"
+      : "Practice this sentence first and focus on stressed words plus linking.";
+  const repeatPrompt =
+    input.outputLanguage === "zh"
+      ? "同一句连续读 3 次，第二次更慢，第三次恢复自然语速。"
+      : "Read the same sentence 3 times in a row: slower on the second pass, then back to natural speed on the third.";
+  const shadowingPrompt =
+    input.outputLanguage === "zh"
+      ? "跟读时模仿句子重音和停顿位置。"
+      : "Shadow the sentence and copy the stress pattern plus pause placement.";
 
   return {
     rubric_version: RUBRIC_VERSION,
-    ui_language: "zh",
+    ui_language: input.outputLanguage,
     scores: { overall, pronunciation, stress_rhythm: stressRhythm, fluency, clarity },
     cefr_guess: null,
     cefr_confidence: 0,
-    top_actions_zh: [
-      "先放慢 10% 语速，优先保证单词结尾辅音清晰。",
-      "按意群做停顿，不要逐词停顿；每句至少做一次完整连读。",
-      hiddenModeTip
-    ],
+    top_actions_zh: topActions,
     highlights: sampleChunk
       ? [{
           kind: "mispronunciation",
           severity: 2,
           text_span: { start: 0, end: sampleChunk.length },
-          note_zh: "优先复练这一句，关注重读词和连读。"
+          note_zh: highlightNote
         }]
       : [],
     next_drills: sampleChunk
@@ -202,13 +233,13 @@ const buildHeuristicEvaluation = (input: {
             drill_type: "repeat_sentence",
             target_text: sampleChunk,
             repeat: 3,
-            prompt_zh: "同一句连续读 3 次，第二次更慢，第三次恢复自然语速。"
+            prompt_zh: repeatPrompt
           },
           {
             drill_type: "shadowing",
             target_text: sampleChunk,
             repeat: 2,
-            prompt_zh: "跟读时模仿句子重音和停顿位置。"
+            prompt_zh: shadowingPrompt
           }
         ]
       : [],
@@ -220,68 +251,77 @@ const buildHeuristicEvaluation = (input: {
 const buildPrompt = (input: {
   passageText: string;
   mode: EslReadingMode;
+  outputLanguage: ReadingOutputLanguage;
   durationSeconds: number | null;
   history: HistoryEntry[];
   learnerProfile: EslLearnerProfileData | null;
 }): string => {
   const modeLabel = input.mode === "recitation" ? "recitation" : "reading";
+  const feedbackLanguage = input.outputLanguage === "zh" ? "Chinese" : "English";
 
   const parts: string[] = [
-    "你是一个专业的英语朗读/背诵教练。学习者母语是中文。",
-    "你会收到一段英文原文和学习者的录音。请评估当前录音并给出结构化反馈。",
+    "You are a professional English reading and recitation coach.",
+    "The learner's native language is Chinese.",
+    "You will receive the original English passage and a learner recording.",
+    "Evaluate the current recording and return structured feedback.",
     "",
-    `练习模式: ${modeLabel}`,
+    `Practice mode: ${modeLabel}`,
+    `Feedback language: ${feedbackLanguage}`
   ];
 
   if (input.durationSeconds != null) {
-    parts.push(`录音时长: ${input.durationSeconds.toFixed(1)} 秒`);
+    parts.push(`Recording duration: ${input.durationSeconds.toFixed(1)} seconds`);
   }
 
   parts.push(
     "",
-    "请以 JSON 格式回复（不要加 markdown 代码块），schema 如下:",
+    "Return valid JSON only. Do not wrap the response in markdown.",
+    "Important: keep the existing JSON field names even when the feedback language is English.",
+    `All learner-facing strings inside top_actions_zh, highlights[].note_zh, next_drills[].prompt_zh, commentary_zh, and progress_vs_last must be written in ${feedbackLanguage}.`,
+    "",
+    "JSON schema:",
     JSON.stringify({
       rubric_version: "string",
-      ui_language: "zh",
+      ui_language: input.outputLanguage,
       scores: { overall: "0-100", pronunciation: "0-100", stress_rhythm: "0-100", fluency: "0-100", clarity: "0-100" },
       cefr_guess: "A1|A2|B1|B2|C1|C2|null",
       cefr_confidence: "0-1",
-      top_actions_zh: ["string (2-3 items, actionable Chinese feedback)"],
+      top_actions_zh: [`string (2-3 actionable ${feedbackLanguage} items)`],
       highlights: [{ kind: "mispronunciation|stress|pause|intonation", severity: "1|2|3", text_span: { start: 0, end: 0 }, note_zh: "string" }],
-      next_drills: [{ drill_type: "repeat_sentence|minimal_pair|shadowing", target_text: "string", repeat: "1-8", prompt_zh: "string" }],
-      commentary_zh: "自由形式的中文教练反馈，可以引用历史数据、鼓励学习者、给出具体建议",
-      progress_vs_last: ["与上次对比的变化，如: +fluency: 语速提升, =pronunciation: th问题持续"]
+      next_drills: [{ drill_type: "repeat_sentence|minimal_pair|shadowing", target_text: "string", repeat: "1-8", prompt_zh: `string (${feedbackLanguage})` }],
+      commentary_zh: `freeform ${feedbackLanguage} coaching feedback that can reference history and give concrete guidance`,
+      progress_vs_last: [`changes vs last attempt, written in ${feedbackLanguage}`]
     }, null, 2)
   );
 
   parts.push(
     "",
-    "规则:",
-    "- 给出简短、可操作的中文反馈",
-    "- top_actions_zh 保持 2-3 条",
-    "- text_span 使用段落原文的字符偏移",
-    "- commentary_zh 用自然的中文写，像教练在跟学生说话，可以引用历史数据对比",
-    "- progress_vs_last 只在有历史数据时填写",
-    "- 如果不确定 CEFR，设 cefr_guess 为 null, cefr_confidence 为 0"
+    "Rules:",
+    `- Give concise, actionable feedback in ${feedbackLanguage}`,
+    "- Keep top_actions_zh to 2-3 items",
+    "- Use passage character offsets for text_span",
+    `- commentary_zh should sound like a coach speaking naturally to the learner in ${feedbackLanguage}`,
+    "- Fill progress_vs_last only when there is meaningful history",
+    "- If you are unsure about CEFR, set cefr_guess to null and cefr_confidence to 0"
   );
 
   if (input.learnerProfile) {
     parts.push(
       "",
-      "## 学习者画像",
-      `持续性问题: ${JSON.stringify(input.learnerProfile.persistent_issues)}`,
-      `优势: ${JSON.stringify(input.learnerProfile.strengths)}`
+      "## Learner profile",
+      `Persistent issues: ${JSON.stringify(input.learnerProfile.persistent_issues)}`,
+      `Strengths: ${JSON.stringify(input.learnerProfile.strengths)}`
     );
   }
 
   if (input.history.length > 0) {
-    parts.push("", "## 历史练习记录 (从新到旧)");
+    parts.push("", "## Practice history (newest first)");
 
     const recent = input.history.slice(0, 3);
     const older = input.history.slice(3);
 
     for (const entry of recent) {
-      const dur = entry.durationSeconds != null ? `${entry.durationSeconds.toFixed(0)}s` : "未知时长";
+      const dur = entry.durationSeconds != null ? `${entry.durationSeconds.toFixed(0)}s` : "unknown duration";
       parts.push(`### ${entry.date} | ${entry.mode} | ${dur}`);
       if (entry.fullEvaluation) {
         parts.push(JSON.stringify({
@@ -299,15 +339,15 @@ const buildPrompt = (input: {
     }
 
     if (older.length > 0) {
-      parts.push("### 更早记录 (仅分数)");
+      parts.push("### Older history (scores only)");
       for (const entry of older) {
         const dur = entry.durationSeconds != null ? `${entry.durationSeconds.toFixed(0)}s` : "?";
-        parts.push(`- ${entry.date} | ${entry.mode} | ${entry.overallScore}分 | ${dur}`);
+        parts.push(`- ${entry.date} | ${entry.mode} | ${entry.overallScore} points | ${dur}`);
       }
     }
   }
 
-  parts.push("", "## 段落原文", input.passageText);
+  parts.push("", "## Passage text", input.passageText);
 
   return parts.join("\n");
 };
@@ -316,6 +356,7 @@ const evaluateWithGemini = async (input: {
   env: Env;
   passageText: string;
   mode: EslReadingMode;
+  outputLanguage: ReadingOutputLanguage;
   audioBytes: Uint8Array;
   audioMimeType: string;
   durationMs: number | null;
@@ -330,6 +371,7 @@ const evaluateWithGemini = async (input: {
   const prompt = buildPrompt({
     passageText: input.passageText,
     mode: input.mode,
+    outputLanguage: input.outputLanguage,
     durationSeconds,
     history: input.history,
     learnerProfile: input.learnerProfile
@@ -365,7 +407,7 @@ const evaluateWithGemini = async (input: {
   if (!text) throw new Error("Gemini response missing text content.");
 
   const parsed = parseJsonFromText(text);
-  const normalized = normalizeEvalOutput(parsed);
+  const normalized = normalizeEvalOutput(parsed, input.outputLanguage);
   if (!normalized) throw new Error("Gemini response JSON does not match expected schema.");
 
   return { modelName, output: normalized };
@@ -375,6 +417,7 @@ export const evaluateEslReadingAttempt = async (input: {
   env: Env;
   passageText: string;
   mode: EslReadingMode;
+  outputLanguage: ReadingOutputLanguage;
   audioBytes: Uint8Array;
   audioMimeType: string;
   durationMs: number | null;
@@ -389,6 +432,7 @@ export const evaluateEslReadingAttempt = async (input: {
       output: buildHeuristicEvaluation({
         passageText: input.passageText,
         mode: input.mode,
+        outputLanguage: input.outputLanguage,
         audioBytes: input.audioBytes.byteLength,
         durationMs: input.durationMs
       })

@@ -346,6 +346,31 @@ main.container {
   flex-shrink: 0;
 }
 
+.header-icon-button {
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.header-icon-button:hover,
+.header-icon-button.is-open {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+.header-icon-button svg {
+  width: 16px;
+  height: 16px;
+}
+
 .footer {
   border-top: 1px solid var(--border);
   padding: 18px 0 22px;
@@ -566,6 +591,25 @@ select.input:focus {
   border-bottom: 1px solid var(--border);
 }
 
+.menu-setting-row {
+  margin-bottom: 10px;
+}
+
+.menu-setting-title {
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.menu-setting-hint {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
 .menu-label {
   margin-bottom: 8px;
   color: var(--text-faint);
@@ -581,7 +625,17 @@ select.input:focus {
   gap: 6px;
 }
 
-.menu-theme-option {
+.menu-option-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.menu-option-grid-two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.menu-theme-option,
+.menu-option-button {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
@@ -594,13 +648,15 @@ select.input:focus {
   transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
 
-.menu-theme-option:hover {
+.menu-theme-option:hover,
+.menu-option-button:hover {
   border-color: var(--border-hover);
   background: var(--bg-card-hover);
   color: var(--text);
 }
 
-.menu-theme-option.is-active {
+.menu-theme-option.is-active,
+.menu-option-button.is-active {
   border-color: rgba(196, 149, 106, 0.45);
   background: rgba(196, 149, 106, 0.08);
   color: var(--accent);

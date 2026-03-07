@@ -19,6 +19,10 @@ import {
   type EslLearnerProfileData,
   type EslReadingMode
 } from "~/utils/esl-reading";
+import {
+  parseReadingOutputLanguage,
+  type ReadingOutputLanguage
+} from "~/utils/reading-settings";
 
 const audioFormatByMime: Record<string, string> = {
   "audio/webm": "webm",
@@ -54,6 +58,7 @@ export class EslAttemptSubmissionError extends Error {
 
 export type ParsedEslAttemptSubmission = {
   mode: EslReadingMode;
+  outputLanguage: ReadingOutputLanguage;
   durationMs: number | null;
   audioBuffer: ArrayBuffer;
   audioFormat: string;
@@ -85,6 +90,7 @@ export const parseEslAttemptSubmission = async (
   if (!isSupportedReadingMode(modeRaw)) {
     throw new EslAttemptSubmissionError("Invalid mode.");
   }
+  const outputLanguage = parseReadingOutputLanguage(formData.get("outputLanguage"));
 
   const durationMsRaw = formData.get("durationMs");
   const durationMs = durationMsRaw ? Number(durationMsRaw) : null;
@@ -116,6 +122,7 @@ export const parseEslAttemptSubmission = async (
 
   return {
     mode: modeRaw,
+    outputLanguage,
     durationMs: durationMs && Number.isFinite(durationMs) && durationMs > 0 ? Math.round(durationMs) : null,
     audioBuffer: await file.arrayBuffer(),
     audioFormat,
@@ -130,6 +137,7 @@ const runReadingAttemptEvaluation = async (
     attemptId: string;
     passage: EslPassage;
     mode: EslReadingMode;
+    outputLanguage: ReadingOutputLanguage;
     durationMs: number | null;
     audioBytes: Uint8Array;
     audioMimeType: string;
@@ -179,6 +187,7 @@ const runReadingAttemptEvaluation = async (
       env: context.env,
       passageText: input.passage.content_text,
       mode: input.mode,
+      outputLanguage: input.outputLanguage,
       audioBytes: input.audioBytes,
       audioMimeType: input.audioMimeType,
       durationMs: input.durationMs,
@@ -233,6 +242,7 @@ const scheduleReadingAttemptEvaluation = async (
     attemptId: string;
     passage: EslPassage;
     mode: EslReadingMode;
+    outputLanguage: ReadingOutputLanguage;
     durationMs: number | null;
     audioBytes: Uint8Array;
     audioMimeType: string;
@@ -300,6 +310,7 @@ export const createAndScheduleEslReadingAttempt = async (
       attemptId,
       passage: input.passage,
       mode: input.submission.mode,
+      outputLanguage: input.submission.outputLanguage,
       durationMs: input.submission.durationMs,
       audioBytes: new Uint8Array(input.submission.audioBuffer),
       audioMimeType: input.submission.audioMimeType
@@ -316,6 +327,7 @@ export const retryEslReadingAttemptEvaluation = async (
     userId: string;
     attemptId: string;
     passage: EslPassage;
+    outputLanguage: ReadingOutputLanguage;
   }
 ) => {
   const attempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
@@ -350,6 +362,7 @@ export const retryEslReadingAttemptEvaluation = async (
     attemptId: attempt.id,
     passage: input.passage,
     mode: attempt.mode,
+    outputLanguage: input.outputLanguage,
     durationMs: attempt.duration_ms,
     audioBytes: new Uint8Array(audioBuffer),
     audioMimeType: attempt.audio_mime_type

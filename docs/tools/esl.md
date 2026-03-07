@@ -22,6 +22,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
 - **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
 - **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
+- **Header action**: On `/esl/reading*`, the global header adds a reading-only settings button to the left of the avatar. This is route-scoped and does not appear on the rest of the site.
 
 ### Passage Management
 - Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.
@@ -37,6 +38,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
+- Reading settings currently include `Output language` with `English` and `Chinese`. The preference is stored locally in the browser, defaults to English, and affects newly generated feedback plus manual retry-feedback requests.
 - After the first successful submit for a passage, the app also synthesizes one background reference TTS in American English and attaches it to the passage.
 - Reference synthesis can still complete on environments where passage-level TTS metadata columns are not yet available; the audio is stored under a deterministic R2 key and resolved directly from storage.
 - Attempt detail exposes two compact players together: `Reference` (passage TTS) and `Your attempt` (uploaded recording).
@@ -63,10 +65,10 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
   - Learner profile (persistent issues and strengths) if available
 - Evaluation output includes:
   - `scores` (overall/pronunciation/stress_rhythm/fluency/clarity)
-  - `top_actions_zh` (2-3 actionable Chinese feedback items)
+  - `top_actions_zh` (2-3 actionable feedback items in the selected output language; field name remains unchanged for compatibility)
   - `highlights` with `text_span` (word-level pronunciation notes)
   - `next_drills` (practice exercises)
-  - `commentary_zh` (freeform coach feedback in Chinese, can reference history)
+  - `commentary_zh` (freeform coach feedback in the selected output language; field name remains unchanged for compatibility)
   - `progress_vs_last` (delta observations vs previous attempt)
   - optional `cefr_guess` + `cefr_confidence`
 
