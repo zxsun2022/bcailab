@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { useFetcher, useLoaderData, Link, useRevalidator } from "@remix-run/react";
+import { useFetcher, useLoaderData, Link, useNavigate } from "@remix-run/react";
 import { Button } from "@bcailab/ui";
 import { createPost, getPostById, listPostsByUser, softDeletePost, updatePost } from "@bcailab/db";
 import { AutosizeTextarea } from "~/components/AutosizeTextarea";
@@ -11,16 +11,8 @@ import * as React from "react";
 
 type ComposerNotice = {
   id: string;
-  url: string;
   status: string;
 };
-
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric"
-  });
 
 const previewText = (md: string, maxLen = 84): string => {
   const plain = stripMarkdown(md);
@@ -42,7 +34,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     noticeStatus && noticePost && noticePost.user_id === user.id && !noticePost.deleted_at
       ? {
           id: noticePost.id,
-          url: `${url.origin}/posts/${noticePost.id}`,
           status: noticeStatus
         }
       : null;
@@ -54,7 +45,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     editingPost && editingPost.user_id === user.id && !editingPost.deleted_at
       ? {
           id: editingPost.id,
-          contentMd: editingPost.content_md
+          contentMd: editingPost.content_md,
+          url: `${url.origin}/posts/${editingPost.id}`
         }
       : null;
 
@@ -78,7 +70,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return json({ error: "Not authorized." }, { status: 403 });
     }
     await softDeletePost(context.env.DB, { id, userId: user.id });
-    return redirect("/posts");
+    if (acceptsHtml) {
+      return redirect("/posts");
+    }
+    return json({ deletedId: id });
   }
 
   const content = normalizePostContent(String(formData.get("content") ?? "")).trim();
@@ -94,7 +89,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   const id = String(formData.get("id") ?? "").trim();
   const contentHtml = await renderMarkdown(content);
-  const url = new URL(request.url);
 
   if (id) {
     const existing = await getPostById(context.env.DB, id, { includeDeleted: true });
@@ -109,17 +103,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       contentHtml
     });
 
-    const notice: ComposerNotice = {
-      id,
-      url: `${url.origin}/posts/${id}`,
-      status: "saved"
-    };
+    const redirectTo = `/posts?editing=${id}&saved=${id}`;
 
     if (acceptsHtml) {
-      return redirect(`/posts?editing=${id}&saved=${id}`);
+      return redirect(redirectTo);
     }
 
-    return json({ notice, content });
+    return json({ redirectTo });
   }
 
   const post = await createPost(context.env.DB, {
@@ -127,54 +117,64 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     contentMd: content,
     contentHtml
   });
-  const notice: ComposerNotice = {
-    id: post.id,
-    url: `${url.origin}/posts/${post.id}`,
-    status: "published"
-  };
+  const redirectTo = `/posts?editing=${post.id}&published=${post.id}`;
 
   if (acceptsHtml) {
-    return redirect(`/posts?published=${post.id}`);
+    return redirect(redirectTo);
   }
 
-  return json({ notice, content: "" });
+  return json({ redirectTo });
 };
 
 export default function PostsTool() {
-  const { posts, notice: initialNotice, editing: initialEditing } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-  const revalidator = useRevalidator();
-  const [content, setContent] = React.useState(initialEditing?.contentMd ?? "");
-  const [notice, setNotice] = React.useState<ComposerNotice | null>(initialNotice ?? null);
-  const lastEditingId = React.useRef<string | null>(initialEditing?.id ?? null);
+  const { posts, notice, editing } = useLoaderData<typeof loader>();
+  const saveFetcher = useFetcher<typeof action>();
+  const deleteFetcher = useFetcher<typeof action>();
+  const navigate = useNavigate();
+  const [content, setContent] = React.useState(editing?.contentMd ?? "");
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
+  const copyTimeoutRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
-    const nextEditingId = initialEditing?.id ?? null;
-    if (nextEditingId !== lastEditingId.current) {
-      lastEditingId.current = nextEditingId;
-      setContent(initialEditing?.contentMd ?? "");
-      setNotice(initialNotice ?? null);
-      return;
-    }
-
-    if (initialNotice) {
-      setNotice(initialNotice);
-    }
-  }, [initialEditing, initialNotice]);
+    setContent(editing?.contentMd ?? "");
+    setCopyState("idle");
+  }, [editing?.id, editing?.contentMd]);
 
   React.useEffect(() => {
-    if (!fetcher.data || !("notice" in fetcher.data)) return;
-    setNotice(fetcher.data.notice);
-    setContent(fetcher.data.content);
-    revalidator.revalidate();
-  }, [fetcher.data, revalidator]);
+    if (!saveFetcher.data || !("redirectTo" in saveFetcher.data)) return;
+    navigate(saveFetcher.data.redirectTo, { replace: true });
+  }, [saveFetcher.data, navigate]);
 
-  const errorMessage = fetcher.data && "error" in fetcher.data ? fetcher.data.error : undefined;
-  const isSubmitting = fetcher.state !== "idle";
+  React.useEffect(() => {
+    if (!deleteFetcher.data || !("deletedId" in deleteFetcher.data)) return;
+    navigate("/posts", { replace: true });
+  }, [deleteFetcher.data, navigate]);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current != null) {
+        window.clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const errorMessage = saveFetcher.data && "error" in saveFetcher.data ? saveFetcher.data.error : undefined;
+  const deleteError =
+    deleteFetcher.data && "error" in deleteFetcher.data ? deleteFetcher.data.error : undefined;
+  const isSubmitting = saveFetcher.state !== "idle";
+  const isDeleting = deleteFetcher.state !== "idle";
   const characterCount = content.length;
-  const recentPosts = posts.slice(0, 8);
-  const activePostId = initialEditing?.id ?? null;
+  const activePostId = editing?.id ?? null;
+  const activePostUrl = editing?.url ?? null;
   const isEditing = Boolean(activePostId);
+  const statusLabel =
+    notice && notice.id === activePostId
+      ? notice.status === "saved"
+        ? "Saved"
+        : "Published"
+      : isEditing
+        ? "Editing"
+        : null;
   const submitLabel = isSubmitting
     ? isEditing
       ? "Saving..."
@@ -183,18 +183,43 @@ export default function PostsTool() {
       ? "Save changes"
       : "Publish";
 
+  const handleCopyUrl = () => {
+    if (!activePostUrl) return;
+    navigator.clipboard.writeText(activePostUrl).then(
+      () => {
+        if (copyTimeoutRef.current != null) {
+          window.clearTimeout(copyTimeoutRef.current);
+        }
+        setCopyState("copied");
+        copyTimeoutRef.current = window.setTimeout(() => {
+          setCopyState("idle");
+          copyTimeoutRef.current = null;
+        }, 1500);
+      },
+      () => {
+        if (copyTimeoutRef.current != null) {
+          window.clearTimeout(copyTimeoutRef.current);
+          copyTimeoutRef.current = null;
+        }
+        setCopyState("failed");
+      }
+    );
+  };
+
+  const handleDelete = () => {
+    if (!activePostId) return;
+    if (!confirm("Delete this post? This cannot be undone.")) return;
+    deleteFetcher.submit({ _intent: "delete", id: activePostId }, { method: "post" });
+  };
+
   return (
     <div className="tool-page posts-compose-page">
       <div className="posts-compose-layout">
         <aside className="posts-history-panel" aria-label="Post history">
           <div className="posts-history-panel-header">
-            <div>
-              <div className="posts-panel-eyebrow">History</div>
-              <h2 className="posts-panel-title">Recent posts</h2>
-            </div>
-            <Link to="/posts/list" className="posts-link posts-history-link">
-              View all
-              <span className="posts-count">{posts.length}</span>
+            <div className="posts-panel-eyebrow">History</div>
+            <Link to="/posts" className="btn btn-primary btn-sm posts-history-new">
+              New post
             </Link>
           </div>
 
@@ -207,7 +232,7 @@ export default function PostsTool() {
             </div>
           ) : (
             <div className="posts-history-list">
-              {recentPosts.map((post) => {
+              {posts.map((post) => {
                 const title = extractTitle(post.content_md);
                 return (
                   <Link
@@ -217,10 +242,7 @@ export default function PostsTool() {
                     aria-current={activePostId === post.id ? "page" : undefined}
                   >
                     <div className="posts-history-item-title">{title || "Untitled post"}</div>
-                    <div className="posts-history-item-excerpt">
-                      {previewText(post.content_md)}
-                    </div>
-                    <div className="post-meta">{formatDate(post.updated_at)}</div>
+                    <div className="posts-history-item-excerpt">{previewText(post.content_md)}</div>
                   </Link>
                 );
               })}
@@ -229,44 +251,41 @@ export default function PostsTool() {
         </aside>
 
         <section className="posts-compose-main">
-          <div className="posts-compose-main-header">
-            <p className="tool-desc posts-compose-desc">
-              {isEditing
-                ? "Edit your post in Markdown and save changes."
-                : "Write a post in Markdown and publish it instantly."}
-            </p>
-          </div>
-
-          {notice ? (
-            <div className="published-banner posts-published-banner">
-              <div className="published-banner-header">
-                <span className="published-banner-label">
-                  {notice.status === "saved" ? "Saved" : "Published"}
-                </span>
-              </div>
-              <div className="published-banner-url">{notice.url}</div>
-              <div className="published-banner-actions">
+          {isEditing ? (
+            <div className="posts-editor-toolbar">
+              <div className="posts-editor-status">{statusLabel}</div>
+              <div className="posts-editor-toolbar-actions">
                 <a
-                  href={notice.url}
+                  href={activePostUrl ?? "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-ghost btn-sm"
                 >
                   Open
                 </a>
+                <Button type="button" variant="ghost" size="sm" onClick={handleCopyUrl}>
+                  {copyState === "copied"
+                    ? "Copied!"
+                    : copyState === "failed"
+                      ? "Copy failed"
+                      : "Copy link"}
+                </Button>
                 <Button
                   type="button"
-                  variant="ghost"
+                  variant="danger"
                   size="sm"
-                  onClick={() => navigator.clipboard.writeText(notice.url)}
+                  disabled={isDeleting}
+                  onClick={handleDelete}
                 >
-                  Copy URL
+                  {isDeleting ? "Deleting..." : "Delete"}
                 </Button>
               </div>
             </div>
           ) : null}
 
-          <fetcher.Form method="post" className="posts-compose-form">
+          {deleteError ? <div className="form-error">{deleteError}</div> : null}
+
+          <saveFetcher.Form method="post" className="posts-compose-form">
             {activePostId ? <input type="hidden" name="id" value={activePostId} /> : null}
             <AutosizeTextarea
               name="content"
@@ -290,17 +309,12 @@ export default function PostsTool() {
                 {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
               </div>
               <div className="posts-compose-actions">
-                {isEditing ? (
-                  <Link to="/posts" className="btn btn-ghost">
-                    New post
-                  </Link>
-                ) : null}
-                <Button type="submit" disabled={isSubmitting}>
+                <Button type="submit" disabled={isSubmitting || isDeleting}>
                   {submitLabel}
                 </Button>
               </div>
             </div>
-          </fetcher.Form>
+          </saveFetcher.Form>
         </section>
       </div>
     </div>

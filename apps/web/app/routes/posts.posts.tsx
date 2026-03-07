@@ -3,12 +3,12 @@ import { redirect } from "@remix-run/cloudflare";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  return redirect(`/posts/list${url.search}`, { status: 301 });
+  return redirect(`/posts${url.search}`, { status: 301 });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const url = new URL(request.url);
-  return redirect(`/posts/list${url.search}`, { status: 307 });
+  return redirect(`/posts${url.search}`, { status: 307 });
 };
 
 export default function LegacyPostsPosts() {

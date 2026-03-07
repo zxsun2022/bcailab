@@ -23,10 +23,10 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - `/` landing page
 - `/about` about page
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
-- `/posts` posts tool (compose)
-- `/posts/list` user's posts list
+- `/posts` posts tool (compose + history rail + in-place editing)
 - `/posts/:id` public post view
-- `/posts/:id/edit` edit UI (route file uses `_` to escape nesting: `posts.$id_.edit.tsx`)
+- `/posts/list` compatibility redirect to `/posts`
+- `/posts/:id/edit` compatibility redirect to `/posts?editing=:id`
 - `/speech` speech tool (generate + history panel on one page)
 - `/speech/audio/:id` authenticated speech audio stream/download endpoint
 - `/esl` ESL tool home

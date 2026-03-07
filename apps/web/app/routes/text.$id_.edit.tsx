@@ -7,7 +7,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     throw new Response("Not found", { status: 404 });
   }
   const url = new URL(request.url);
-  return redirect(`/posts/${id}/edit${url.search}`, { status: 301 });
+  const paramsOut = new URLSearchParams(url.searchParams);
+  paramsOut.set("editing", id);
+  return redirect(`/posts?${paramsOut.toString()}`, { status: 301 });
 };
 
 export const action = async ({ request, params }: ActionFunctionArgs) => {
@@ -16,7 +18,9 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
     throw new Response("Not found", { status: 404 });
   }
   const url = new URL(request.url);
-  return redirect(`/posts/${id}/edit${url.search}`, { status: 307 });
+  const paramsOut = new URLSearchParams(url.searchParams);
+  paramsOut.set("editing", id);
+  return redirect(`/posts?${paramsOut.toString()}`, { status: 307 });
 };
 
 export default function LegacyTextEdit() {

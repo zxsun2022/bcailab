@@ -153,13 +153,16 @@ export default function PostPage() {
   return (
     <div className={`tool-page post-view-page ${hasToc ? "has-toc" : ""}`}>
       <div className="post-view-header">
-        <div className="post-meta">{formatDate(post.updated_at)}</div>
+        <div className="post-view-meta">
+          <span className="post-meta">Created {formatDate(post.created_at)}</span>
+          <span className="post-meta">Last edited {formatDate(post.updated_at)}</span>
+        </div>
         <div style={{ display: "flex", gap: "8px" }}>
           <button type="button" className="btn btn-ghost btn-sm" onClick={handleCopy}>
             {copied ? "Copied!" : "Copy link"}
           </button>
           {canEdit && (
-            <Link to={`/posts/${post.id}/edit`} className="btn btn-ghost btn-sm">
+            <Link to={`/posts?editing=${post.id}`} className="btn btn-ghost btn-sm">
               Edit
             </Link>
           )}
