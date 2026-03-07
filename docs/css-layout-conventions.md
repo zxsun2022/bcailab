@@ -26,7 +26,7 @@ When adding `max-width` to constrain content width:
 
 For tool pages that should fill the viewport height without page-level scrolling:
 
-- Use `height: calc(100dvh - Npx)` (not `min-height`) on the shell. The offset `N` accounts for header + footer + padding.
+- Tool pages do not render the global footer. Use `height: calc(100dvh - Npx)` (not `min-height`) on the shell, where `N` accounts for the global header plus any in-shell padding.
 - Set `overflow: hidden` on the shell to prevent page scroll.
 - Propagate available space inward using `flex: 1; min-height: 0` on each nested container, all the way down to the content element that should scroll internally.
 - The innermost scrollable element (textarea, transcript, etc.) gets `overflow-y: auto`.
@@ -65,7 +65,7 @@ Every intermediate container needs `min-height: 0` to allow flex shrinking below
 
 ### Common mobile pitfalls
 
-1. **`max-height: 42vh` panels** — On phones, `42vh` is only ~350px. For panels that replace main content (like mobile history), use `calc(100dvh - Npx)` to fill remaining space.
+1. **`max-height: 42vh` panels** — On phones, `42vh` is only ~350px. For panels that replace main content (like mobile history), use `calc(100dvh - Npx)` to fill remaining space below the visible header/chrome.
 2. **Grid columns that don't collapse** — Any `grid-template-columns` defined in base styles will apply to mobile. Always define multi-column grids inside `@media (min-width: 1024px)` and use `display: block` as the base.
 3. **Desktop-only elements** — Use `display: none` in base styles and `display: block/flex` inside the desktop media query. Don't rely on `max-width: 768px` to hide things (leaves a gap between 768-1024px).
 
@@ -106,6 +106,6 @@ When something looks misaligned:
 1. **Element stuck to left?** — Check for `max-width` without `margin: auto`.
 2. **Element too tall / too short?** — Check for conflicting `min-height` + `flex: 1` chains. Ensure every flex container has `min-height: 0`.
 3. **Button/input height mismatch?** — Compare computed heights. Remove fixed `height`, use matching `padding` + `line-height` instead.
-4. **Mobile panel too small?** — Replace `vh` units with `calc(100dvh - Npx)` where `N` accounts for visible chrome.
+4. **Mobile panel too small?** — Replace `vh` units with `calc(100dvh - Npx)` where `N` accounts for visible header/chrome.
 5. **Content overflows on mobile?** — Check for `grid-template-columns` or `min-width` values defined outside media queries.
 6. **Heading anchors broken for CJK text?** — Never use regex-based slugify for heading IDs; use index-based IDs.

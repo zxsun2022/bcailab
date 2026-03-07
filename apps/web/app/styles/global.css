@@ -109,6 +109,7 @@
 
   --transition-fast: 0.2s ease;
   --transition-base: 0.3s ease;
+  --site-header-height: 72px;
 
   --bg: #f6f2eb;
   --bg-alt: #eee8dd;
@@ -275,7 +276,7 @@ main.container {
   align-items: center;
   justify-content: space-between;
   gap: var(--space-md);
-  min-height: 72px;
+  min-height: var(--site-header-height);
 }
 
 .header-nav {
@@ -352,9 +353,11 @@ main.container {
   border: 1px solid var(--border);
   background: transparent;
   color: var(--text-muted);
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
   cursor: pointer;
   transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
@@ -369,6 +372,7 @@ main.container {
 .header-icon-button svg {
   width: 16px;
   height: 16px;
+  display: block;
 }
 
 .footer {
@@ -552,6 +556,7 @@ select.input:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
   cursor: pointer;
   overflow: hidden;
   transition: border-color var(--transition-fast), background var(--transition-fast);
@@ -572,6 +577,9 @@ select.input:focus {
 
 .menu-shell {
   position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .menu {
@@ -1542,7 +1550,7 @@ select.input:focus {
 .esl-reading-shell {
   display: flex;
   gap: 0;
-  min-height: calc(100dvh - 148px);
+  min-height: calc(100dvh - var(--site-header-height));
 }
 
 .esl-sidebar {
@@ -1621,6 +1629,8 @@ select.input:focus {
   top: 50%;
   right: 8px;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-fast);
@@ -1643,6 +1653,7 @@ select.input:focus {
   align-items: center;
   justify-content: center;
   gap: 2px;
+  line-height: 0;
   cursor: pointer;
 }
 
@@ -2674,6 +2685,8 @@ select.input:focus {
   top: 50%;
   right: 8px;
   transform: translateY(-50%);
+  display: flex;
+  align-items: center;
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-fast);
@@ -2696,6 +2709,7 @@ select.input:focus {
   align-items: center;
   justify-content: center;
   gap: 2px;
+  line-height: 0;
   cursor: pointer;
 }
 
@@ -2768,7 +2782,7 @@ select.input:focus {
 
 @media (min-width: 1024px) {
   .esl-reading-shell {
-    height: calc(100dvh - 148px);
+    height: calc(100dvh - var(--site-header-height));
     overflow: hidden;
   }
 
@@ -2808,7 +2822,7 @@ select.input:focus {
     min-width: 220px;
     position: sticky;
     top: 0;
-    max-height: calc(100dvh - 180px);
+    max-height: calc(100dvh - 104px);
     overflow: hidden;
     padding-right: 4px;
     min-height: 0;
@@ -3353,7 +3367,7 @@ select.input:focus {
   }
 
   .tool-page.posts-compose-page {
-    min-height: calc(100dvh - 196px);
+    min-height: calc(100dvh - var(--site-header-height));
     display: flex;
     flex-direction: column;
   }
@@ -3378,7 +3392,7 @@ select.input:focus {
   }
 
   .tool-page.tts-shell {
-    height: calc(100dvh - 148px);
+    height: calc(100dvh - var(--site-header-height));
     padding-bottom: var(--space-md);
     overflow: hidden;
   }

@@ -7,7 +7,8 @@ import {
   Scripts,
   ScrollRestoration,
   LiveReload,
-  useLoaderData
+  useLoaderData,
+  useLocation
 } from "@remix-run/react";
 import globalStyles from "~/styles/global.css?url";
 import { Header } from "~/components/Header";
@@ -52,6 +53,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export default function App() {
   const { user } = useLoaderData<typeof loader>();
+  const location = useLocation();
+  const showFooter = location.pathname === "/" || location.pathname === "/about";
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -66,15 +70,17 @@ export default function App() {
         <main className="container">
           <Outlet context={{ user }} />
         </main>
-        <footer className="footer">
-          <div className="container footer-inner">
-            <span>© {new Date().getFullYear()} bcailab · Burnaby, British Columbia, Canada</span>
-            <div className="footer-links">
-              <a href="/about" className="footer-link">About</a>
-              <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
+        {showFooter ? (
+          <footer className="footer">
+            <div className="container footer-inner">
+              <span>© {new Date().getFullYear()} bcailab · Burnaby, British Columbia, Canada</span>
+              <div className="footer-links">
+                <a href="/about" className="footer-link">About</a>
+                <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
+              </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+        ) : null}
         <ScrollRestoration />
         <Scripts />
         <LiveReload />
