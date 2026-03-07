@@ -543,24 +543,29 @@ select.input:focus {
 }
 
 .avatar-button {
-  border: 1px solid transparent;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
   background: transparent;
-  border-radius: 50%;
+  border-radius: 0;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  overflow: hidden;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .avatar-button:hover {
   border-color: var(--border-hover);
+  background: var(--bg-card-hover);
 }
 
 .avatar-image {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
   object-fit: cover;
   display: block;
 }
@@ -1572,6 +1577,8 @@ select.input:focus {
 .esl-sidebar-item-shell {
   position: relative;
   z-index: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .esl-sidebar-item-shell.is-menu-open {
@@ -1580,6 +1587,8 @@ select.input:focus {
 
 .esl-sidebar-item {
   display: block;
+  flex: 1;
+  min-width: 0;
   padding: 11px 42px 11px 12px;
   border: 1px solid var(--border);
   background: var(--bg-card);
@@ -2558,6 +2567,15 @@ select.input:focus {
 
 .esl-history-new {
   width: 100%;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.esl-history-new:hover {
+  transform: none;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(196, 149, 106, 0.06);
 }
 
 .esl-history-empty {
@@ -2591,6 +2609,8 @@ select.input:focus {
 .esl-history-item-shell {
   position: relative;
   z-index: 0;
+  display: flex;
+  align-items: stretch;
 }
 
 .esl-history-item-shell.is-menu-open {
@@ -2599,6 +2619,8 @@ select.input:focus {
 
 .esl-history-item {
   display: flex;
+  flex: 1;
+  min-width: 0;
   align-items: center;
   gap: 8px;
   padding: 8px 40px 8px 10px;
