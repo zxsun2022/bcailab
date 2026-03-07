@@ -1,0 +1,119 @@
+# ESL Tool
+
+ESL is an authenticated English-learning workspace under `/esl`.
+
+Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**, while Dictionary and Writing are still planned.
+
+## Live Routes
+| Page | Route | Key behaviour |
+|------|-------|---------------|
+| ESL home | `/esl` | Auth required. Shows sub-tool cards and current availability. |
+| Reading layout | `/esl/reading` | Layout route with left sidebar (passage list). |
+| Reading index | `/esl/reading` (index) | Create a new passage and submit the first attempt in one page. |
+| Reading practice | `/esl/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
+| Reading status resource | `/esl/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
+| Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
+| Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
+
+## Reading / Recitation (v2)
+
+### Layout
+- **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
+- **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
+- **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
+- **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
+- **Header action**: On `/esl/reading*`, the global header adds a reading-only settings button to the left of the avatar. This is route-scoped and does not appear on the rest of the site.
+
+### Passage Management
+- Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.
+- Passage content is normalized to LF line endings before storage.
+- Max passage length: `8,000` characters (`MAX_ESL_PASSAGE_CHARS`).
+- Passage deletion is available from the passage list item menu and removes the passage plus all stored attempts for that passage.
+
+### Practice Workflow
+- New passage flow: paste passage text, record once, submit, then redirect into that first history entry.
+- Existing passage flow: click `New Attempt` in the history rail to open the read-only recording composer for that passage.
+- Mode toggle: Reading / Recitation. In recitation mode, both new-passage and existing-passage composers hide the passage text.
+- Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
+- Timer tracks elapsed time during recording.
+- Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
+- While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
+- Reading settings currently include `Output language` with `English` and `Chinese`. The preference is stored locally in the browser, defaults to English, and affects newly generated feedback plus manual retry-feedback requests.
+- After the first successful submit for a passage, the app also synthesizes one background reference TTS in American English and attaches it to the passage.
+- Reference synthesis can still complete on environments where passage-level TTS metadata columns are not yet available; the audio is stored under a deterministic R2 key and resolved directly from storage.
+- Attempt detail exposes two compact players together: `Reference` (passage TTS) and `Your attempt` (uploaded recording).
+- If a passage does not currently have a stored reference audio file, the first attempt detail load auto-queues a new background synthesis attempt. Clicking `Play` on `Reference` also queues/retries generation and shows an in-place preparing state until the file is ready.
+- The compact players intentionally omit waveform/progress UI and explanatory subtext; state is communicated through the button label plus a small indicator dot (green pulse while playing, warm pulse while preparing).
+- Reading timestamps render in the browser's local timezone instead of the server timezone. There is no separate ESL timezone setting.
+- Duration tracked client-side (`durationMs`) and stored in database.
+- Max audio size: `20 MB` (`MAX_ESL_READING_AUDIO_BYTES`).
+
+### Evaluation Pipeline
+- Attempt is stored first (R2 + D1), then evaluated asynchronously in a background `waitUntil` task.
+- If an older environment is missing `evaluation_status`, the app still prefers background evaluation when `waitUntil` is available; pending state is inferred from the absence of feedback on a fresh attempt.
+- Passage reference TTS is also generated asynchronously in the background after the first submit.
+- New attempts redirect immediately to their detail page with a pending state while evaluation is running.
+- If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
+- Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
+- Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
+- Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
+- Prompt includes:
+  - Passage text and current audio
+  - Recording duration in seconds
+  - Last 3 full evaluations (structured JSON, no audio)
+  - Older evaluations: scores + duration only
+  - Learner profile (persistent issues and strengths) if available
+- Evaluation output includes:
+  - `scores` (overall/pronunciation/stress_rhythm/fluency/clarity)
+  - `top_actions_zh` (2-3 actionable feedback items in the selected output language; field name remains unchanged for compatibility)
+  - `highlights` with `text_span` (word-level pronunciation notes)
+  - `next_drills` (practice exercises)
+  - `commentary_zh` (freeform coach feedback in the selected output language; field name remains unchanged for compatibility)
+  - `progress_vs_last` (delta observations vs previous attempt)
+  - optional `cefr_guess` + `cefr_confidence`
+
+### Learner Profile
+- Table: `esl_learner_profiles` (one per user)
+- Tracks: persistent_issues, strengths, CEFR estimate, total practice seconds, total attempts
+- Counters incremented after each evaluation
+- Profile data included in evaluation prompt for cross-passage continuity
+
+### Right Panel Behaviour
+- History rail always shows `New Attempt` at the top.
+- History list: click any entry to switch the center column to that attempt's detail view.
+- Pending and failed attempts stay in the rail with status labels until opened.
+
+### Delete Behaviour
+- Attempt deletion uses native `confirm()`.
+- Attempt deletion removes the R2 object, hard-deletes that attempt's AI evaluations, then soft-deletes the attempt row (`deleted_at`).
+- Passage deletion uses native `confirm()`.
+- Server deletes the passage reference audio object in R2 (if present), every attempt audio object in R2 for that passage, hard-deletes all linked AI evaluations, soft-deletes all attempt rows, then soft-deletes the passage row.
+
+## Data Model & Storage
+
+### Actively Used in Reading
+- D1:
+  - `esl_passages`
+  - `esl_reading_attempts` (includes `duration_ms`, `evaluation_status`)
+  - `esl_reading_evaluations`
+  - `esl_learner_profiles`
+- R2 key pattern:
+  - `esl/reading/{userId}/{yyyy}/{mm}/{attemptId}.{ext}`
+  - `esl/reference/{userId}/{passageId}.mp3`
+
+### Provisioned for Future ESL Modules
+- `esl_learning_items`
+- `esl_item_observations`
+
+These are created in migration `0003_esl.sql` but not yet surfaced in current Reading UI workflows.
+
+## Configuration
+- `GEMINI_API_KEY` (required for Gemini path)
+- `GEMINI_MODEL` (optional, defaults to `gemini-flash-latest`)
+
+## Planned (Not Yet Implemented)
+- Dictionary (`/esl/dictionary`)
+- Writing coach (`/esl/writing`, `/esl/writing/:id`)
+- Attempt-to-attempt delta comparison UI
+- Passage edit UX
+- Learner profile update via Gemini (every N evaluations)

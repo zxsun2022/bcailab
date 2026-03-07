@@ -36,6 +36,12 @@ This repository is intentionally structured for multi-agent collaboration across
 - A child route that should render as an **independent page** (not nested inside its parent) must use `_` to escape nesting.
   Example: `text.$id_.edit.tsx` renders `/text/:id/edit` as a sibling of `text.$id.tsx`, not a child.
   Without the `_`, the parent must render `<Outlet />` or the child page will never appear.
+- For index-route mutations inside a layout route (e.g. `esl.reading._index.tsx` under `esl.reading.tsx`), forms should submit with `action="?index"` when the action is defined on the index route.
+  Without `?index`, Remix posts to the parent route action by default.
+
+## Tool Route Canonicalization
+- Canonical speech routes are `/speech` and `/speech/audio/:id`.
+- Keep legacy `/tts`, `/tts/history`, and `/tts/*` redirects for backward compatibility.
 
 ## User Context Pattern
 - `root.tsx` fetches the optional user once and passes it down via `<Outlet context={{ user }} />`.
@@ -53,3 +59,9 @@ This repository is intentionally structured for multi-agent collaboration across
 
 ## Docs
 - Update `docs/` when adding new tools or changing infra.
+
+## Documentation Sync Rule
+- Any code change that affects external behavior must update docs in the same task/PR.
+- External behavior includes route/path changes, API request/response contracts, env vars, DB schema/migrations, auth flow, deployment/infra, user-visible UX rules, and feature constraints.
+- Pure internal refactors (no behavior or contract change) do not require doc edits.
+- If no doc update is needed, explicitly state `Docs impact: none` with a short reason.

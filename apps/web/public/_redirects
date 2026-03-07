@@ -1,9 +1,9 @@
 # Canonical posts routes
-/posts/posts /posts/list 301
+/posts/posts /posts 301
 
 # Legacy text routes
-/text/posts /posts/list 301
-/text/posts/ /posts/list 301
+/text/posts /posts 301
+/text/posts/ /posts 301
 /text /posts 301
 /text/ /posts 301
 /text/* /posts/:splat 301

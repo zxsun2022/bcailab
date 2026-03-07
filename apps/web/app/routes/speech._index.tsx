@@ -84,6 +84,33 @@ const formatDate = (value: string) =>
     day: "numeric"
   });
 
+const copyTextToClipboard = async (value: string): Promise<void> => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.inset = "0";
+  textarea.style.opacity = "0";
+  textarea.style.pointerEvents = "none";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+
+  try {
+    if (!document.execCommand("copy")) {
+      throw new Error("Copy failed");
+    }
+  } finally {
+    document.body.removeChild(textarea);
+  }
+};
+
 type PlaybackState = {
   currentChar: number;
   currentTokenIndex: number;
@@ -464,6 +491,7 @@ export default function TtsIndexPage() {
   const transcriptBodyRef = React.useRef<HTMLDivElement | null>(null);
   const currentWordRef = React.useRef<HTMLSpanElement | null>(null);
   const autoSelectedGenerationRef = React.useRef<string | null>(null);
+  const copyResetTimeoutRef = React.useRef<number | null>(null);
 
   const [content, setContent] = React.useState("");
   const [languageCode, setLanguageCode] = React.useState(() => {
@@ -475,6 +503,7 @@ export default function TtsIndexPage() {
   const [currentTokenIndex, setCurrentTokenIndex] = React.useState<number>(-1);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
   const [mobileHistoryOpen, setMobileHistoryOpen] = React.useState(false);
+  const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
 
   const selectedLanguage =
     languages.find((language) => language.code === languageCode) ??
@@ -498,6 +527,14 @@ export default function TtsIndexPage() {
     update();
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current !== null) {
+        window.clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
   }, []);
 
   const actionData = fetcher.data;
@@ -527,6 +564,7 @@ export default function TtsIndexPage() {
         : undefined
       : warning;
   const canHighlight = activeAlignment ? activeAlignment.marks.length >= 2 : false;
+  const selectedTextToCopy = activeAlignment?.displayText ?? selected?.processedText ?? "";
   const isSubmitting = fetcher.state !== "idle";
   const contentByteLength = React.useMemo(
     () => new TextEncoder().encode(content).length,
@@ -552,6 +590,14 @@ export default function TtsIndexPage() {
     setCurrentChar(0);
     setCurrentTokenIndex(-1);
   }, [generation?.id, selectedId]);
+
+  React.useEffect(() => {
+    if (copyResetTimeoutRef.current !== null) {
+      window.clearTimeout(copyResetTimeoutRef.current);
+      copyResetTimeoutRef.current = null;
+    }
+    setCopyState("idle");
+  }, [selectedId]);
 
   React.useEffect(() => {
     const audio = audioRef.current;
@@ -623,6 +669,26 @@ export default function TtsIndexPage() {
       behavior: prefersReducedMotion ? "auto" : "smooth"
     });
   }, [currentTokenIndex, canHighlight, prefersReducedMotion]);
+
+  const handleCopyText = async () => {
+    if (!selectedTextToCopy) return;
+
+    try {
+      await copyTextToClipboard(selectedTextToCopy);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
+
+    if (copyResetTimeoutRef.current !== null) {
+      window.clearTimeout(copyResetTimeoutRef.current);
+    }
+
+    copyResetTimeoutRef.current = window.setTimeout(() => {
+      setCopyState("idle");
+      copyResetTimeoutRef.current = null;
+    }, 1500);
+  };
 
   const renderTranscript = (displayText: string) => {
     if (!canHighlight) {
@@ -851,6 +917,13 @@ export default function TtsIndexPage() {
               <div className="tts-result-header">
                 <strong>Task details</strong>
                 <div className="tts-history-actions">
+                  <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
+                    {copyState === "copied"
+                      ? "Copied!"
+                      : copyState === "failed"
+                        ? "Copy failed"
+                        : "Copy text"}
+                  </Button>
                   <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
                     Download MP3
                   </a>

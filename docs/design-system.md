@@ -85,6 +85,7 @@ Core spacing tokens:
 
 - Main container: centered, responsive fixed-max width
 - Home: two-column hero on desktop, single-column <= 768px
+- Footer: reserved for the landing/about pages; tool surfaces do not render the global footer
 - Tool pages: same typography and card/field primitives
 - TTS: desktop sidebar layout at >= 1024px
 
@@ -93,7 +94,7 @@ Core spacing tokens:
 Header stays behavior-compatible with current product logic:
 
 - Left: logo + breadcrumb
-- Right: Google login button (signed out) OR avatar dropdown (signed in)
+- Right: Google login button (signed out) OR aligned 36px settings/avatar controls (signed in, reading route adds the settings control)
 - No `about/x/tools` nav links in header
 
 ## Component Rules

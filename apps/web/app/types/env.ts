@@ -6,6 +6,13 @@ export type Env = {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_TTS_SERVICE_ACCOUNT_JSON: string;
+  GEMINI_API_KEY?: string;
+  GEMINI_MODEL?: string;
   OAUTH_REDIRECT_URL: string;
   SESSION_SECRET: string;
+};
+
+export type AppExecutionContext = {
+  waitUntil(promise: Promise<unknown>): void;
+  passThroughOnException?(): void;
 };

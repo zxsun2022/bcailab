@@ -5,19 +5,19 @@ A lightweight publishing tool that accepts Markdown input and publishes a sharea
 ## Features
 - Markdown input (no live preview)
 - Publish generates a public URL: `/posts/:id`
-- Authenticated users can edit or delete their posts
-- Max length: 20,000 characters
-- Autosize textarea: min-height 120px, max-height 60vh (scrolls internally beyond that)
+- Authenticated users can edit or delete their posts from the main `/posts` workspace
+- Max length: 50,000 characters
+- Workspace editor uses a taller autosize textarea sized for long-form writing
 - Inline character counter and Markdown hint
 
 ## Page Structure & UX Rules
 
 | Page | Route | Key behaviour |
 |------|-------|---------------|
-| Compose | `/posts` | Write + Publish. Shows "Your posts" link with count. |
-| Posts list | `/posts/list` | View / Edit / Delete per post. Delete requires `confirm()`. |
-| Post view | `/posts/:id` | Public read. "Copy link" button (with "Copied!" feedback). Edit button visible to owner only. |
-| Edit | `/posts/:id/edit` | Save changes + Cancel (back to post view). **No Delete button here** — delete lives on the posts list only. |
+| Workspace | `/posts` | Write + Publish, plus a left-side history rail. Selecting a history item switches the right pane into in-place editing mode. |
+| Post view | `/posts/:id` | Public read. Shows created + last edited dates. "Copy link" button (with "Copied!" feedback). Edit button visible to owner only and returns to `/posts?editing=:id`. |
+| Legacy list | `/posts/list` | Redirects to `/posts` for compatibility. |
+| Legacy edit | `/posts/:id/edit` | Redirects to `/posts?editing=:id` for compatibility. |
 
 ## Legacy Routes
 
