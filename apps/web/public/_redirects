@@ -1,9 +1,9 @@
 # Canonical reading routes
-/esl/reading /reading 301
-/esl/reading/ /reading 301
-/esl/reading/* /reading/:splat 301
-/esl /reading 301
-/esl/ /reading 301
+/esl/reading /reading 308
+/esl/reading/ /reading 308
+/esl/reading/* /reading/:splat 308
+/esl /reading 308
+/esl/ /reading 308
 
 # Canonical posts routes
 /posts/posts /posts 301

@@ -19,6 +19,9 @@ root to resolve workspace dependencies (`@bcailab/*`).
 
 Redirects for canonical URLs are managed in `apps/web/public/_redirects`.
 Cloudflare Pages applies these at the edge before the request reaches Remix.
+Use `308` for canonical redirects that may receive non-GET traffic, since
+`301/302/303` can rewrite POST requests before Remix has a chance to handle
+them.
 
 A `wrangler.toml` exists at **both** the repo root (used by local `wrangler` commands)
 and `apps/web/` (picked up by Pages at deploy time). The D1/R2 bindings are
