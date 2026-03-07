@@ -1,6 +1,6 @@
 # ESL Tool
 
-ESL Reading now uses the canonical route `/reading`. Legacy `/esl` and `/esl/reading*` URLs redirect to the same experience.
+ESL Reading now uses the canonical route `/reading`. Legacy `/esl`, `/esl/reading`, `/esl/reading/`, and `/esl/reading/*` URLs redirect to the same experience with HTTP `308` so old non-GET requests still preserve their method.
 
 Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**, while Dictionary and Writing are still planned.
 

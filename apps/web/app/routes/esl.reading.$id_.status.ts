@@ -8,5 +8,5 @@ const getCanonicalReadingPath = (request: Request) => {
 };
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  return redirect(getCanonicalReadingPath(request), { status: 301 });
+  return redirect(getCanonicalReadingPath(request), { status: 308 });
 };
