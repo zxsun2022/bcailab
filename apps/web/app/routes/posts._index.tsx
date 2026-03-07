@@ -2,16 +2,17 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudfla
 import { json, redirect } from "@remix-run/cloudflare";
 import { useFetcher, useLoaderData, Link, useRevalidator } from "@remix-run/react";
 import { Button } from "@bcailab/ui";
-import { createPost, getPostById, listPostsByUser, softDeletePost } from "@bcailab/db";
+import { createPost, getPostById, listPostsByUser, softDeletePost, updatePost } from "@bcailab/db";
 import { AutosizeTextarea } from "~/components/AutosizeTextarea";
 import { renderMarkdown } from "~/utils/markdown.server";
 import { requireUser } from "~/utils/auth.server";
 import { MAX_POST_LENGTH, extractTitle, normalizePostContent, stripMarkdown } from "~/utils/posts";
 import * as React from "react";
 
-type PublishedInfo = {
+type ComposerNotice = {
   id: string;
   url: string;
+  status: string;
 };
 
 const formatDate = (value: string) =>
@@ -31,20 +32,36 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const posts = await listPostsByUser(context.env.DB, user.id);
   const url = new URL(request.url);
   const publishedId = url.searchParams.get("published");
-  const publishedPost = publishedId
-    ? await getPostById(context.env.DB, publishedId, { includeDeleted: true })
+  const savedId = url.searchParams.get("saved");
+  const noticeId = savedId ?? publishedId;
+  const noticeStatus = savedId ? "saved" : publishedId ? "published" : null;
+  const noticePost = noticeId
+    ? await getPostById(context.env.DB, noticeId, { includeDeleted: true })
     : null;
-  const published =
-    publishedPost && publishedPost.user_id === user.id && !publishedPost.deleted_at
+  const notice =
+    noticeStatus && noticePost && noticePost.user_id === user.id && !noticePost.deleted_at
       ? {
-          id: publishedPost.id,
-          url: `${url.origin}/posts/${publishedPost.id}`
+          id: noticePost.id,
+          url: `${url.origin}/posts/${noticePost.id}`,
+          status: noticeStatus
+        }
+      : null;
+  const editingId = url.searchParams.get("editing");
+  const editingPost = editingId
+    ? await getPostById(context.env.DB, editingId, { includeDeleted: true })
+    : null;
+  const editing =
+    editingPost && editingPost.user_id === user.id && !editingPost.deleted_at
+      ? {
+          id: editingPost.id,
+          contentMd: editingPost.content_md
         }
       : null;
 
   return json({
     posts,
-    published
+    notice,
+    editing
   });
 };
 
@@ -75,43 +92,80 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     );
   }
 
+  const id = String(formData.get("id") ?? "").trim();
   const contentHtml = await renderMarkdown(content);
+  const url = new URL(request.url);
+
+  if (id) {
+    const existing = await getPostById(context.env.DB, id, { includeDeleted: true });
+    if (!existing || existing.user_id !== user.id || existing.deleted_at) {
+      return json({ error: "Not authorized." }, { status: 403 });
+    }
+
+    await updatePost(context.env.DB, {
+      id,
+      userId: user.id,
+      contentMd: content,
+      contentHtml
+    });
+
+    const notice: ComposerNotice = {
+      id,
+      url: `${url.origin}/posts/${id}`,
+      status: "saved"
+    };
+
+    if (acceptsHtml) {
+      return redirect(`/posts?editing=${id}&saved=${id}`);
+    }
+
+    return json({ notice, content });
+  }
+
   const post = await createPost(context.env.DB, {
     userId: user.id,
     contentMd: content,
     contentHtml
   });
-  const url = new URL(request.url);
-  const published = { id: post.id, url: `${url.origin}/posts/${post.id}` };
+  const notice: ComposerNotice = {
+    id: post.id,
+    url: `${url.origin}/posts/${post.id}`,
+    status: "published"
+  };
 
   if (acceptsHtml) {
     return redirect(`/posts?published=${post.id}`);
   }
 
-  return json({ published });
+  return json({ notice, content: "" });
 };
 
 export default function PostsTool() {
-  const { posts, published: initialPublished } = useLoaderData<typeof loader>();
+  const { posts, notice: initialNotice, editing: initialEditing } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
-  const [content, setContent] = React.useState("");
-  const [published, setPublished] = React.useState<PublishedInfo | null>(initialPublished ?? null);
-  const lastPublishedId = React.useRef<string | null>(initialPublished?.id ?? null);
+  const [content, setContent] = React.useState(initialEditing?.contentMd ?? "");
+  const [notice, setNotice] = React.useState<ComposerNotice | null>(initialNotice ?? null);
+  const lastEditingId = React.useRef<string | null>(initialEditing?.id ?? null);
 
   React.useEffect(() => {
-    if (initialPublished && initialPublished.id !== lastPublishedId.current) {
-      lastPublishedId.current = initialPublished.id;
-      setPublished(initialPublished);
+    const nextEditingId = initialEditing?.id ?? null;
+    if (nextEditingId !== lastEditingId.current) {
+      lastEditingId.current = nextEditingId;
+      setContent(initialEditing?.contentMd ?? "");
+      setNotice(initialNotice ?? null);
+      return;
     }
-  }, [initialPublished]);
+
+    if (initialNotice) {
+      setNotice(initialNotice);
+    }
+  }, [initialEditing, initialNotice]);
 
   React.useEffect(() => {
-    if (!fetcher.data || !("published" in fetcher.data)) return;
-    if (fetcher.data.published.id === lastPublishedId.current) return;
-    lastPublishedId.current = fetcher.data.published.id;
-    setPublished(fetcher.data.published);
-    setContent("");
+    if (!fetcher.data || !("notice" in fetcher.data)) return;
+    setNotice(fetcher.data.notice);
+    setContent(fetcher.data.content);
     revalidator.revalidate();
   }, [fetcher.data, revalidator]);
 
@@ -119,6 +173,15 @@ export default function PostsTool() {
   const isSubmitting = fetcher.state !== "idle";
   const characterCount = content.length;
   const recentPosts = posts.slice(0, 8);
+  const activePostId = initialEditing?.id ?? null;
+  const isEditing = Boolean(activePostId);
+  const submitLabel = isSubmitting
+    ? isEditing
+      ? "Saving..."
+      : "Publishing..."
+    : isEditing
+      ? "Save changes"
+      : "Publish";
 
   return (
     <div className="tool-page posts-compose-page">
@@ -127,7 +190,7 @@ export default function PostsTool() {
           <div className="posts-history-panel-header">
             <div>
               <div className="posts-panel-eyebrow">History</div>
-              <h2 className="posts-panel-title">Your posts</h2>
+              <h2 className="posts-panel-title">Recent posts</h2>
             </div>
             <Link to="/posts/list" className="posts-link posts-history-link">
               View all
@@ -147,7 +210,12 @@ export default function PostsTool() {
               {recentPosts.map((post) => {
                 const title = extractTitle(post.content_md);
                 return (
-                  <Link key={post.id} to={`/posts/${post.id}`} className="posts-history-item">
+                  <Link
+                    key={post.id}
+                    to={`/posts?editing=${post.id}`}
+                    className={`posts-history-item ${activePostId === post.id ? "is-active" : ""}`}
+                    aria-current={activePostId === post.id ? "page" : undefined}
+                  >
                     <div className="posts-history-item-title">{title || "Untitled post"}</div>
                     <div className="posts-history-item-excerpt">
                       {previewText(post.content_md)}
@@ -163,19 +231,23 @@ export default function PostsTool() {
         <section className="posts-compose-main">
           <div className="posts-compose-main-header">
             <p className="tool-desc posts-compose-desc">
-              Write a post in Markdown and publish it instantly.
+              {isEditing
+                ? "Edit your post in Markdown and save changes."
+                : "Write a post in Markdown and publish it instantly."}
             </p>
           </div>
 
-          {published ? (
+          {notice ? (
             <div className="published-banner posts-published-banner">
               <div className="published-banner-header">
-                <span className="published-banner-label">Published</span>
+                <span className="published-banner-label">
+                  {notice.status === "saved" ? "Saved" : "Published"}
+                </span>
               </div>
-              <div className="published-banner-url">{published.url}</div>
+              <div className="published-banner-url">{notice.url}</div>
               <div className="published-banner-actions">
                 <a
-                  href={published.url}
+                  href={notice.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-primary btn-sm"
@@ -186,7 +258,7 @@ export default function PostsTool() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => navigator.clipboard.writeText(published.url)}
+                  onClick={() => navigator.clipboard.writeText(notice.url)}
                 >
                   Copy URL
                 </Button>
@@ -195,6 +267,7 @@ export default function PostsTool() {
           ) : null}
 
           <fetcher.Form method="post" className="posts-compose-form">
+            {activePostId ? <input type="hidden" name="id" value={activePostId} /> : null}
             <AutosizeTextarea
               name="content"
               className="posts-compose-textarea"
@@ -217,8 +290,13 @@ export default function PostsTool() {
                 {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
               </div>
               <div className="posts-compose-actions">
+                {isEditing ? (
+                  <Link to="/posts" className="btn btn-ghost">
+                    New post
+                  </Link>
+                ) : null}
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Publishing..." : "Publish"}
+                  {submitLabel}
                 </Button>
               </div>
             </div>
