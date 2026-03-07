@@ -10,6 +10,8 @@ type EslAttemptComposerProps = {
   action?: string;
   submitLabel: string;
   canSubmit?: boolean;
+  mode?: EslReadingMode;
+  onModeChange?: (mode: EslReadingMode) => void;
   children: (args: { mode: EslReadingMode; hideText: boolean }) => React.ReactNode;
 };
 
@@ -47,12 +49,14 @@ const extensionFromMimeType = (mimeType: string): string => {
 };
 
 export function EslAttemptComposer(props: EslAttemptComposerProps) {
-  const { action, submitLabel, canSubmit = true, children } = props;
+  const { action, submitLabel, canSubmit = true, mode: controlledMode, onModeChange, children } = props;
   const fetcher = useFetcher<SubmitResult>();
   const navigate = useNavigate();
   const [outputLanguage] = useReadingOutputLanguage();
 
-  const [mode, setMode] = React.useState<EslReadingMode>("reading");
+  const [internalMode, setInternalMode] = React.useState<EslReadingMode>("reading");
+  const mode = controlledMode ?? internalMode;
+  const setMode = onModeChange ?? setInternalMode;
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);
@@ -201,28 +205,11 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
       </div>
 
       <div className="esl-compose-footer">
-        <div className="esl-compose-footer-top">
-          <div className="esl-mode-toggle">
-            <button
-              type="button"
-              className={`esl-mode-btn ${mode === "reading" ? "is-active" : ""}`}
-              onClick={() => setMode("reading")}
-            >
-              Read
-            </button>
-            <button
-              type="button"
-              className={`esl-mode-btn ${mode === "recitation" ? "is-active" : ""}`}
-              onClick={() => setMode("recitation")}
-            >
-              Recite
-            </button>
-          </div>
-
-          {recordingState === "recording" ? (
+        {recordingState === "recording" ? (
+          <div className="esl-compose-footer-top">
             <div className="esl-record-timer">{formatDuration(elapsedMs)}</div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
 
         {recordingState === "preview" && recordedAudioUrl ? (
           <div className="esl-preview-area">
@@ -282,5 +269,29 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
 
       {submitError ? <div className="form-error">{submitError}</div> : null}
     </fetcher.Form>
+  );
+}
+
+export function EslModeToggle(props: {
+  mode: EslReadingMode;
+  onModeChange: (mode: EslReadingMode) => void;
+}) {
+  return (
+    <div className="esl-mode-toggle">
+      <button
+        type="button"
+        className={`esl-mode-btn ${props.mode === "reading" ? "is-active" : ""}`}
+        onClick={() => props.onModeChange("reading")}
+      >
+        Read
+      </button>
+      <button
+        type="button"
+        className={`esl-mode-btn ${props.mode === "recitation" ? "is-active" : ""}`}
+        onClick={() => props.onModeChange("recitation")}
+      >
+        Recite
+      </button>
+    </div>
   );
 }

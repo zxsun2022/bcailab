@@ -1726,6 +1726,10 @@ select.input:focus {
 
 .esl-welcome {
   margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .esl-welcome h2 {
@@ -1859,6 +1863,12 @@ select.input:focus {
   letter-spacing: 0.7px;
   color: var(--text-faint);
   text-transform: uppercase;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.esl-compose-count.is-visible {
+  opacity: 1;
 }
 
 .esl-compose-count.is-over-limit {
@@ -2551,10 +2561,22 @@ select.input:focus {
 }
 
 .esl-history-empty {
-  padding: 14px;
+  padding: 18px 14px;
   border: 1px dashed var(--border);
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.esl-history-empty-icon {
+  width: 28px;
+  height: 28px;
+  color: var(--text-faint);
 }
 
 .esl-history-list {

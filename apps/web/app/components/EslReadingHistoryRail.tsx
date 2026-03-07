@@ -53,7 +53,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
         {passageId ? (
           <Link
             to={disableNewAttempt ? "#" : `/esl/reading/${passageId}?compose=1`}
-            className={`btn btn-primary btn-sm esl-history-new ${disableNewAttempt ? "is-disabled" : ""}`}
+            className={`btn btn-ghost btn-sm esl-history-new ${disableNewAttempt ? "is-disabled" : ""}`}
             aria-disabled={disableNewAttempt}
             onClick={(event) => {
               if (disableNewAttempt) event.preventDefault();
@@ -62,7 +62,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
             New Attempt
           </Link>
         ) : (
-          <button type="button" className="btn btn-primary btn-sm esl-history-new is-disabled" disabled>
+          <button type="button" className="btn btn-ghost btn-sm esl-history-new is-disabled" disabled>
             New Attempt
           </button>
         )}
@@ -71,7 +71,13 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
       <div className="esl-eval-subtitle">History ({attempts.length})</div>
 
       {attempts.length === 0 ? (
-        <div className="esl-history-empty">No attempts yet</div>
+        <div className="esl-history-empty">
+          <svg className="esl-history-empty-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z" stroke="currentColor" strokeWidth="1.4" />
+            <path d="M12 9v4l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span>Record your first attempt to start tracking progress.</span>
+        </div>
       ) : (
         <div className="esl-history-list">
           {attempts.map((attempt) => {

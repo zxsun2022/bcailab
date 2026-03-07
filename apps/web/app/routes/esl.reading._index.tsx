@@ -2,7 +2,7 @@ import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { Textarea } from "@bcailab/ui";
 import { createEslPassage, softDeleteEslPassage } from "@bcailab/db";
-import { EslAttemptComposer } from "~/components/EslAttemptComposer";
+import { EslAttemptComposer, EslModeToggle } from "~/components/EslAttemptComposer";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
 import { requireUser } from "~/utils/auth.server";
 import {
@@ -12,7 +12,7 @@ import {
 } from "~/utils/esl-reading-attempt.server";
 import { schedulePassageReferenceSynthesis } from "~/utils/esl-passage-reference.server";
 import { generatePassageTitle } from "~/utils/esl-reading-eval.server";
-import { MAX_ESL_PASSAGE_CHARS, normalizeEslPassageText } from "~/utils/esl-reading";
+import { MAX_ESL_PASSAGE_CHARS, normalizeEslPassageText, type EslReadingMode } from "~/utils/esl-reading";
 import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string };
@@ -83,18 +83,22 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
 export default function EslReadingIndexPage() {
   const [content, setContent] = React.useState("");
+  const [mode, setMode] = React.useState<EslReadingMode>("reading");
 
   return (
     <div className="esl-practice-layout">
       <div className="esl-center-panel">
         <div className="esl-welcome">
           <h2>New Passage</h2>
+          <EslModeToggle mode={mode} onModeChange={setMode} />
         </div>
 
         <EslAttemptComposer
           action="?index"
           submitLabel="Submit"
           canSubmit={Boolean(content.trim())}
+          mode={mode}
+          onModeChange={setMode}
         >
           {({ hideText }) => (
             <div className="esl-compose-editor">
@@ -120,8 +124,8 @@ export default function EslReadingIndexPage() {
               )}
               <div
                 className={`esl-compose-count ${
-                  content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""
-                }`}
+                  content.length > 0 ? "is-visible" : ""
+                } ${content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""}`}
               >
                 <span className="textarea-count">
                   {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}

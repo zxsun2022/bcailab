@@ -167,23 +167,11 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                     aria-haspopup="menu"
                     aria-expanded={settingsOpen}
                   >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path
-                        d="M10.15 2.7a1 1 0 0 1 1.7 0l.73 1.23a1 1 0 0 0 1.08.46l1.4-.32a1 1 0 0 1 1.2 1.2l-.32 1.4a1 1 0 0 0 .46 1.08l1.23.73a1 1 0 0 1 0 1.7l-1.23.73a1 1 0 0 0-.46 1.08l.32 1.4a1 1 0 0 1-1.2 1.2l-1.4-.32a1 1 0 0 0-1.08.46l-.73 1.23a1 1 0 0 1-1.7 0l-.73-1.23a1 1 0 0 0-1.08-.46l-1.4.32a1 1 0 0 1-1.2-1.2l.32-1.4a1 1 0 0 0-.46-1.08l-1.23-.73a1 1 0 0 1 0-1.7l1.23-.73a1 1 0 0 0 .46-1.08l-.32-1.4a1 1 0 0 1 1.2-1.2l1.4.32a1 1 0 0 0 1.08-.46z"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="3.1"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                      />
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M4 7h5M13 7h7M4 12h10M18 12h2M4 17h3M11 17h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                      <circle cx="11" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="16" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
+                      <circle cx="9" cy="17" r="2" stroke="currentColor" strokeWidth="1.5" />
                     </svg>
                   </button>
                   {settingsOpen ? (

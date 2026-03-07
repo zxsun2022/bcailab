@@ -18,7 +18,7 @@ import {
   softDeleteEslReadingAttemptsByPassage
 } from "@bcailab/db";
 import { CompactAudioPlayer } from "~/components/CompactAudioPlayer";
-import { EslAttemptComposer } from "~/components/EslAttemptComposer";
+import { EslAttemptComposer, EslModeToggle } from "~/components/EslAttemptComposer";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
 import { requireUser } from "~/utils/auth.server";
@@ -37,7 +37,8 @@ import {
   formatDuration,
   getDisplayEslPassageTitle,
   parseEslReadingEvaluationOutput,
-  type EslReadingEvaluationOutput
+  type EslReadingEvaluationOutput,
+  type EslReadingMode
 } from "~/utils/esl-reading";
 import { parseReadingOutputLanguage } from "~/utils/reading-settings";
 import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
@@ -301,6 +302,7 @@ export default function EslReadingPracticePage() {
   const [liveAttempts, setLiveAttempts] = React.useState(attempts);
   const [liveReferenceAudio, setLiveReferenceAudio] = React.useState(referenceAudio);
   const [liveSelected, setLiveSelected] = React.useState(selected);
+  const [mode, setMode] = React.useState<EslReadingMode>("reading");
   const headingSubtitle = composeView
     ? attempts.length === 0
       ? "Record the first attempt for this passage."
@@ -377,6 +379,7 @@ export default function EslReadingPracticePage() {
                 <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
               ) : null}
             </div>
+            {composeView ? <EslModeToggle mode={mode} onModeChange={setMode} /> : null}
           </div>
         </div>
 
@@ -385,6 +388,8 @@ export default function EslReadingPracticePage() {
         {composeView ? (
           <EslAttemptComposer
             submitLabel="Submit"
+            mode={mode}
+            onModeChange={setMode}
           >
             {({ hideText }) => (
               <Card className="tool-card-stack esl-compose-card esl-compose-card-readonly">
