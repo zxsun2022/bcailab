@@ -52,7 +52,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
       <div className="esl-history-rail-header">
         {passageId ? (
           <Link
-            to={disableNewAttempt ? "#" : `/esl/reading/${passageId}?compose=1`}
+            to={disableNewAttempt ? "#" : `/reading/${passageId}?compose=1`}
             className={`btn btn-ghost btn-sm esl-history-new ${disableNewAttempt ? "is-disabled" : ""}`}
             aria-disabled={disableNewAttempt}
             onClick={(event) => {
@@ -90,7 +90,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
                 } ${openMenuId === attempt.id ? "is-menu-open" : ""}`}
               >
                 <Link
-                  to={`/esl/reading/${passageId}?attempt=${attempt.id}`}
+                  to={`/reading/${passageId}?attempt=${attempt.id}`}
                   className={`esl-history-item ${
                     !isComposeView && selectedAttemptId === attempt.id ? "is-active" : ""
                   }`}
@@ -127,7 +127,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
                     <div className="esl-history-item-menu">
                       <form
                         method="post"
-                        action={`/esl/reading/${passageId}`}
+                        action={`/reading/${passageId}`}
                         onSubmit={(event) => {
                           if (!confirm("Delete this attempt and its AI feedback?")) {
                             event.preventDefault();

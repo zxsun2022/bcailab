@@ -19,10 +19,10 @@ interface Category {
 const categories: Category[] = [
   {
     key: "english",
-    label: "English Learning",
+    label: "Language Learning",
     tools: [
       {
-        slug: "esl/reading",
+        slug: "reading",
         title: "Reading / Recitation",
         description: "Read aloud or recite passages with AI-powered evaluation.",
         tags: ["Speaking", "Practice"]

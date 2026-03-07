@@ -1,9 +1,8 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { useFetcher, useLoaderData, Link, useNavigate } from "@remix-run/react";
-import { Button } from "@bcailab/ui";
+import { Button, Textarea } from "@bcailab/ui";
 import { createPost, getPostById, listPostsByUser, softDeletePost, updatePost } from "@bcailab/db";
-import { AutosizeTextarea } from "~/components/AutosizeTextarea";
 import { renderMarkdown } from "~/utils/markdown.server";
 import { requireUser } from "~/utils/auth.server";
 import { MAX_POST_LENGTH, extractTitle, normalizePostContent, stripMarkdown } from "~/utils/posts";
@@ -292,8 +291,9 @@ export default function PostsTool() {
 
           <saveFetcher.Form method="post" className="posts-compose-form">
             {activePostId ? <input type="hidden" name="id" value={activePostId} /> : null}
-            <AutosizeTextarea
+            <Textarea
               name="content"
+              rows={18}
               className="posts-compose-textarea"
               placeholder="Write your post in Markdown..."
               value={content}

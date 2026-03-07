@@ -1,17 +1,17 @@
 # ESL Tool
 
-ESL is an authenticated English-learning workspace under `/esl`.
+ESL Reading now uses the canonical route `/reading`. Legacy `/esl` and `/esl/reading*` URLs redirect to the same experience.
 
 Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**, while Dictionary and Writing are still planned.
 
 ## Live Routes
 | Page | Route | Key behaviour |
 |------|-------|---------------|
-| ESL home | `/esl` | Auth required. Shows sub-tool cards and current availability. |
-| Reading layout | `/esl/reading` | Layout route with left sidebar (passage list). |
-| Reading index | `/esl/reading` (index) | Create a new passage and submit the first attempt in one page. |
-| Reading practice | `/esl/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
-| Reading status resource | `/esl/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
+| ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
+| Reading layout | `/reading` | Layout route with left sidebar (passage list). |
+| Reading index | `/reading` (index) | Create a new passage and submit the first attempt in one page. |
+| Reading practice | `/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
+| Reading status resource | `/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
 | Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
 
@@ -22,7 +22,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
 - **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
 - **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
-- **Header action**: On `/esl/reading*`, the global header adds a reading-only settings button to the left of the avatar. This is route-scoped and does not appear on the rest of the site.
+- **Header action**: On `/reading*`, the global header adds a reading-only settings button to the left of the avatar. This is route-scoped and does not appear on the rest of the site.
 
 ### Passage Management
 - Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.

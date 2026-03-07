@@ -34,7 +34,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
   const [outputLanguage, setOutputLanguage] = useReadingOutputLanguage();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const isReadingRoute =
-    location.pathname === "/esl/reading" || location.pathname.startsWith("/esl/reading/");
+    location.pathname === "/reading" || location.pathname.startsWith("/reading/");
 
   const applyThemePreference = React.useCallback((preference: ThemePreference) => {
     const resolved =
