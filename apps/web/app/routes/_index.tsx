@@ -41,11 +41,10 @@ const categories: Category[] = [
         planned: true
       },
       {
-        slug: "esl/writing",
+        slug: "writing",
         title: "Writing Coach",
         description: "Iterative feedback loop for draft revisions.",
-        tags: ["Writing", "AI"],
-        planned: true
+        tags: ["Writing", "AI"]
       }
     ]
   },
