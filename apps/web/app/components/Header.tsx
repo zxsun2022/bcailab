@@ -1,12 +1,7 @@
 import * as React from "react";
 import { Button } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
-import { Link, useLocation, useMatches } from "@remix-run/react";
-import {
-  READING_OUTPUT_LANGUAGE_OPTIONS,
-  type ReadingOutputLanguage
-} from "~/utils/reading-settings";
-import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
+import { Link, useMatches } from "@remix-run/react";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
 const THEME_STORAGE_KEY = "bcailab-theme-preference";
@@ -24,17 +19,12 @@ const getStoredThemePreference = (): ThemePreference => {
 
 export const Header: React.FC<{ user: User | null }> = ({ user }) => {
   const matches = useMatches();
-  const location = useLocation();
   const breadcrumbs = matches
     .filter((match) => (match.handle as BreadcrumbHandle)?.breadcrumb)
     .map((match) => (match.handle as BreadcrumbHandle).breadcrumb!);
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [themePreference, setThemePreference] = React.useState<ThemePreference>("system");
-  const [outputLanguage, setOutputLanguage] = useReadingOutputLanguage();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
-  const isReadingRoute =
-    location.pathname === "/reading" || location.pathname.startsWith("/reading/");
 
   const applyThemePreference = React.useCallback((preference: ThemePreference) => {
     const resolved =
@@ -62,18 +52,11 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
       if (!menuRef.current) return;
       if (!menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
-        setSettingsOpen(false);
       }
     };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
-
-  React.useEffect(() => {
-    if (!isReadingRoute) {
-      setSettingsOpen(false);
-    }
-  }, [isReadingRoute]);
 
   React.useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -108,11 +91,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
     window.localStorage.setItem(THEME_STORAGE_KEY, preference);
     setThemePreference(preference);
     applyThemePreference(preference);
-  };
-
-  const handleOutputLanguageChange = (next: ReadingOutputLanguage) => {
-    setOutputLanguage(next);
-    setSettingsOpen(false);
   };
 
   return (
@@ -154,63 +132,12 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
             </Button>
           ) : (
             <>
-              {isReadingRoute ? (
-                <div className="menu-shell">
-                  <button
-                    type="button"
-                    className={`header-icon-button ${settingsOpen ? "is-open" : ""}`}
-                    onClick={() => {
-                      setSettingsOpen((prev) => !prev);
-                      setMenuOpen(false);
-                    }}
-                    aria-label="Open reading settings"
-                    aria-haspopup="menu"
-                    aria-expanded={settingsOpen}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M4 7h5M13 7h7M4 12h10M18 12h2M4 17h3M11 17h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="11" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="16" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="9" cy="17" r="2" stroke="currentColor" strokeWidth="1.5" />
-                    </svg>
-                  </button>
-                  {settingsOpen ? (
-                    <div className="menu menu-settings">
-                      <div className="menu-section">
-                        <div className="menu-label">Reading Settings</div>
-                        <div className="menu-setting-row">
-                          <div className="menu-setting-title">Output Language</div>
-                          <div className="menu-setting-hint">
-                            New feedback and retries use this language.
-                          </div>
-                        </div>
-                        <div className="menu-option-grid menu-option-grid-two">
-                          {READING_OUTPUT_LANGUAGE_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              className={`menu-option-button ${
-                                outputLanguage === option.value ? "is-active" : ""
-                              }`}
-                              aria-pressed={outputLanguage === option.value}
-                              onClick={() => handleOutputLanguageChange(option.value)}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
               <div className="menu-shell">
                 <button
                   type="button"
                   className="avatar-button"
                   onClick={() => {
                     setMenuOpen((prev) => !prev);
-                    setSettingsOpen(false);
                   }}
                   aria-label="Open user menu"
                 >

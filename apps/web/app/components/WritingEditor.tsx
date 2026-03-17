@@ -5,6 +5,7 @@ type WritingEditorProps = {
   value: string;
   onChange: (value: string) => void;
   agent: WritingAgent;
+  name?: string;
   readOnly?: boolean;
   className?: string;
 };
@@ -13,6 +14,7 @@ export function WritingEditor({
   value,
   onChange,
   agent,
+  name,
   readOnly = false,
   className
 }: WritingEditorProps) {
@@ -35,6 +37,7 @@ export function WritingEditor({
   return (
     <div className={`writing-editor ${className ?? ""}`}>
       <textarea
+        name={name}
         className="writing-editor-textarea"
         value={value}
         onChange={(e) => onChange(e.currentTarget.value)}

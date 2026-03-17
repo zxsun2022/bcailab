@@ -94,7 +94,7 @@ Core spacing tokens:
 Header stays behavior-compatible with current product logic:
 
 - Left: logo + breadcrumb
-- Right: Google login button (signed out) OR aligned 36px settings/avatar controls (signed in, reading route adds the settings control)
+- Right: Google login button (signed out) OR aligned 36px avatar/menu controls (signed in)
 - No `about/x/tools` nav links in header
 
 ## Component Rules

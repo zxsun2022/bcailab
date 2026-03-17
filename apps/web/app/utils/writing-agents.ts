@@ -7,12 +7,48 @@ export type WritingAgent = {
   tone: string;
   minWords: number;
   maxWords: number;
+  assessmentPrefix?: string;
+  assessmentExample: string;
+  assessmentGuidance: string;
 };
 
 export const WRITING_AGENTS: Record<string, WritingAgent> = {
+  general: {
+    id: "general",
+    label: "General",
+    description:
+      "General-purpose writing feedback focused on clarity, structure, style, and correctness.",
+    dimensions: ["Clarity", "Structure", "Style & Voice", "Grammar & Mechanics"],
+    rubric: [
+      "Evaluate the writing as a general writing coach.",
+      "",
+      "Clarity:",
+      "- Is the main idea understandable on a first read?",
+      "- Are claims, examples, and transitions easy to follow?",
+      "",
+      "Structure:",
+      "- Does the piece have a clear beginning, middle, and end?",
+      "- Do paragraphs and sentences build logically toward the main point?",
+      "",
+      "Style & Voice:",
+      "- Is the tone appropriate for the writing?",
+      "- Does the prose feel specific, controlled, and readable instead of vague or repetitive?",
+      "",
+      "Grammar & Mechanics:",
+      "- Identify recurring grammar, wording, punctuation, or sentence-control issues that reduce readability.",
+      "- Prioritize issues that materially affect clarity or flow."
+    ].join("\n"),
+    tone:
+      "Direct, thoughtful, and human. Sound like an experienced writing coach who points out what is unclear, flat, or structurally weak without rewriting the piece for the user.",
+    minWords: 30,
+    maxWords: 1200,
+    assessmentExample: "Strong",
+    assessmentGuidance:
+      "Use a short overall assessment such as Strong, Developing, or Needs focus.",
+  },
   ielts_task2: {
     id: "ielts_task2",
-    label: "IELTS Task 2",
+    label: "IELTS Tutor",
     description:
       "Academic essay responding to a point of view, argument, or problem. Evaluated against IELTS Band 7–9 descriptors.",
     dimensions: [
@@ -47,7 +83,11 @@ export const WRITING_AGENTS: Record<string, WritingAgent> = {
     tone:
       "Direct and constructive, like a strict but fair IELTS examiner-coach. Point out weaknesses clearly, but acknowledge genuine strengths. Never soften serious issues.",
     minWords: 250,
-    maxWords: 400
+    maxWords: 400,
+    assessmentPrefix: "Band",
+    assessmentExample: "6.5",
+    assessmentGuidance:
+      "Use an IELTS band-style value such as 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, or 8.5.",
   }
 };
 
@@ -61,3 +101,12 @@ export const getWritingAgentOrDefault = (id: string): WritingAgent =>
 
 export const listWritingAgents = (): WritingAgent[] =>
   Object.values(WRITING_AGENTS);
+
+export const formatWritingAssessment = (
+  value: string,
+  assessmentPrefix?: string | null
+): string => {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  return assessmentPrefix ? `${assessmentPrefix} ${trimmed}` : trimmed;
+};

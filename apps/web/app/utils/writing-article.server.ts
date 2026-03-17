@@ -20,6 +20,18 @@ export const countWords = (text: string): number =>
     .split(/\s+/)
     .filter(Boolean).length;
 
+const scheduleWritingTask = async (
+  context: AppLoadContext,
+  task: Promise<unknown>
+): Promise<void> => {
+  if (context.ctx?.waitUntil) {
+    context.ctx.waitUntil(task);
+    return;
+  }
+
+  await task;
+};
+
 export const createArticleWithFirstRevision = async (
   context: AppLoadContext,
   input: {
@@ -46,8 +58,8 @@ export const createArticleWithFirstRevision = async (
     wordCount
   });
 
-  const ctx = context as unknown as { waitUntil(p: Promise<unknown>): void };
-  ctx.waitUntil(
+  await scheduleWritingTask(
+    context,
     (async () => {
       try {
         const { modelName, feedback } = await evaluateWriting({
@@ -77,7 +89,8 @@ export const createArticleWithFirstRevision = async (
   );
 
   if (!input.title) {
-    ctx.waitUntil(
+    await scheduleWritingTask(
+      context,
       (async () => {
         const title = await generateArticleTitle(context.env, input.userText);
         if (title) {
@@ -103,7 +116,13 @@ export const submitRevision = async (
     userText: string;
     feedbackLanguage: "en" | "zh";
   }
-): Promise<{ revisionId: string }> => {
+): Promise<{
+  revisionId: string;
+  roundNumber: number;
+  createdAt: string;
+  wordCount: number;
+  userText: string;
+}> => {
   const wordCount = countWords(input.userText);
   const revisions = await listWritingRevisionsByArticle(context.env.DB, input.articleId);
   const roundNumber = revisions.length + 1;
@@ -117,7 +136,7 @@ export const submitRevision = async (
     .filter((r) => r.feedback_json)
     .map((r) => {
       const fb = JSON.parse(r.feedback_json!) as WritingFeedback;
-      return { round: r.round_number, band: fb.round_summary?.band_estimate ?? "?" };
+      return { round: r.round_number, assessment: fb.round_summary?.band_estimate ?? "?" };
     });
 
   const revision = await createWritingRevision(context.env.DB, {
@@ -130,8 +149,8 @@ export const submitRevision = async (
 
   await touchWritingArticle(context.env.DB, { id: input.articleId, userId: input.userId });
 
-  const ctx = context as unknown as { waitUntil(p: Promise<unknown>): void };
-  ctx.waitUntil(
+  await scheduleWritingTask(
+    context,
     (async () => {
       try {
         const { modelName, feedback } = await evaluateWriting({
@@ -167,7 +186,13 @@ export const submitRevision = async (
     })()
   );
 
-  return { revisionId: revision.id };
+  return {
+    revisionId: revision.id,
+    roundNumber: revision.round_number,
+    createdAt: revision.created_at,
+    wordCount: revision.word_count,
+    userText: revision.user_text
+  };
 };
 
 export const retryRevisionFeedback = async (
@@ -194,7 +219,7 @@ export const retryRevisionFeedback = async (
     .filter((r) => r.feedback_json && r.round_number < revision.round_number)
     .map((r) => {
       const fb = JSON.parse(r.feedback_json!) as WritingFeedback;
-      return { round: r.round_number, band: fb.round_summary?.band_estimate ?? "?" };
+      return { round: r.round_number, assessment: fb.round_summary?.band_estimate ?? "?" };
     });
 
   await updateWritingRevisionFeedback(context.env.DB, {
@@ -204,8 +229,8 @@ export const retryRevisionFeedback = async (
     modelName: ""
   });
 
-  const ctx = context as unknown as { waitUntil(p: Promise<unknown>): void };
-  ctx.waitUntil(
+  await scheduleWritingTask(
+    context,
     (async () => {
       try {
         const { modelName, feedback } = await evaluateWriting({

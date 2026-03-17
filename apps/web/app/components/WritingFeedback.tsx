@@ -3,10 +3,12 @@ import type {
   WritingAnnotation,
   WritingDelta
 } from "~/utils/writing-eval.server";
+import { formatWritingAssessment } from "~/utils/writing-agents";
 
 type WritingFeedbackProps = {
   feedback: WritingFeedbackType;
   roundNumber: number;
+  assessmentPrefix?: string | null;
 };
 
 const severityConfig = {
@@ -73,12 +75,20 @@ function DeltaSection({ delta }: { delta: WritingDelta }) {
   );
 }
 
-export function WritingFeedbackPanel({ feedback, roundNumber }: WritingFeedbackProps) {
+export function WritingFeedbackPanel({
+  feedback,
+  roundNumber,
+  assessmentPrefix
+}: WritingFeedbackProps) {
   const grouped = {
     critical: feedback.annotations.filter((a) => a.severity === "critical"),
     improvement: feedback.annotations.filter((a) => a.severity === "improvement"),
     strength: feedback.annotations.filter((a) => a.severity === "strength")
   };
+  const assessmentText = formatWritingAssessment(
+    feedback.round_summary.band_estimate,
+    assessmentPrefix
+  );
 
   return (
     <div className="writing-feedback">
@@ -98,9 +108,9 @@ export function WritingFeedbackPanel({ feedback, roundNumber }: WritingFeedbackP
 
       <div className="writing-round-summary">
         <div className="writing-summary-head">
-          <span className="writing-summary-band">
-            Band {feedback.round_summary.band_estimate}
-          </span>
+          {assessmentText ? (
+            <span className="writing-summary-band">{assessmentText}</span>
+          ) : null}
           <span className="writing-summary-counts">
             <span className="is-critical">{feedback.round_summary.critical_count} critical</span>
             {" · "}

@@ -1,5 +1,9 @@
 import type { Env } from "~/types/env";
-import { getWritingAgentOrDefault, type WritingAgent } from "~/utils/writing-agents";
+import {
+  formatWritingAssessment,
+  getWritingAgentOrDefault,
+  type WritingAgent
+} from "~/utils/writing-agents";
 
 const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -131,7 +135,7 @@ const buildPrompt = (input: {
   wordCount: number;
   feedbackLanguage: "en" | "zh";
   previousRound: PreviousRoundContext | null;
-  historyScores: Array<{ round: number; band: string }>;
+  historyScores: Array<{ round: number; assessment: string }>;
 }): string => {
   const langLabel = input.feedbackLanguage === "zh" ? "Chinese" : "English";
   const isFirstRound = input.previousRound === null;
@@ -153,6 +157,7 @@ const buildPrompt = (input: {
     "- Identify genuine weaknesses — do not confirm existing strengths unless truly notable.",
     `- All learner-facing strings (diagnosis, guiding_question, overall_comment, delta strings) must be in ${langLabel}.`,
     `- Feedback language: ${langLabel}`,
+    `- round_summary.band_estimate should follow this format: ${input.agent.assessmentGuidance}`,
     "",
     "## JSON schema",
     "Return valid JSON only. Do not wrap in markdown code fences.",
@@ -172,7 +177,7 @@ const buildPrompt = (input: {
           improvement_count: 0,
           strengths_count: 0,
           overall_comment: "coaching summary for this round",
-          band_estimate: "6.5"
+          band_estimate: input.agent.assessmentExample
         },
         delta: isFirstRound
           ? null
@@ -190,7 +195,12 @@ const buildPrompt = (input: {
   if (input.historyScores.length > 0) {
     parts.push("", "## Score history (oldest to newest)");
     for (const h of input.historyScores) {
-      parts.push(`- Round ${h.round}: Band ${h.band}`);
+      parts.push(
+        `- Round ${h.round}: ${formatWritingAssessment(
+          h.assessment,
+          input.agent.assessmentPrefix
+        )}`
+      );
     }
   }
 
@@ -220,7 +230,7 @@ export const evaluateWriting = async (input: {
   wordCount: number;
   feedbackLanguage: "en" | "zh";
   previousRound: PreviousRoundContext | null;
-  historyScores: Array<{ round: number; band: string }>;
+  historyScores: Array<{ round: number; assessment: string }>;
 }): Promise<{ modelName: string; feedback: WritingFeedback }> => {
   const apiKey = input.env.GEMINI_API_KEY?.trim();
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");

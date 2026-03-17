@@ -1,21 +1,21 @@
 import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { useActionData } from "@remix-run/react";
+import { useFetcher, useNavigate } from "@remix-run/react";
 import * as React from "react";
 import { requireUser } from "~/utils/auth.server";
 import { listWritingAgents, DEFAULT_AGENT_ID } from "~/utils/writing-agents";
 import { getWritingAgentOrDefault } from "~/utils/writing-agents";
 import { createArticleWithFirstRevision, countWords } from "~/utils/writing-article.server";
 import { WritingEditor } from "~/components/WritingEditor";
+import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 
-type ActionData = { error?: string };
-
-const FEEDBACK_LANGUAGE_KEY = "bcailab-writing-feedback-language";
+type ActionData = { error?: string; redirectTo?: string };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "createArticle");
+  const transport = String(formData.get("_transport") ?? "document");
 
   if (intent !== "createArticle") {
     return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
@@ -43,32 +43,29 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       title,
       feedbackLanguage
     });
-    return redirect(`/writing/${articleId}`);
+    const redirectTo = `/writing/${articleId}`;
+    return transport === "fetcher"
+      ? json<ActionData>({ redirectTo })
+      : redirect(redirectTo);
   } catch {
     return json<ActionData>({ error: "Failed to create article. Please retry." }, { status: 500 });
   }
 };
 
 export default function WritingIndexPage() {
-  const actionData = useActionData<typeof action>();
+  const fetcher = useFetcher<ActionData>();
+  const navigate = useNavigate();
   const [agentType, setAgentType] = React.useState(DEFAULT_AGENT_ID);
   const [text, setText] = React.useState("");
-  const [feedbackLanguage, setFeedbackLanguage] = React.useState<"en" | "zh">("en");
+  const [feedbackLanguage] = useWritingFeedbackLanguage();
   const agent = getWritingAgentOrDefault(agentType);
   const agents = listWritingAgents();
 
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(FEEDBACK_LANGUAGE_KEY);
-    if (stored === "zh" || stored === "en") setFeedbackLanguage(stored);
-  }, []);
-
-  const handleLanguageChange = (lang: "en" | "zh") => {
-    setFeedbackLanguage(lang);
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(FEEDBACK_LANGUAGE_KEY, lang);
-    }
-  };
+    const redirectTo = fetcher.data?.redirectTo;
+    if (!redirectTo) return;
+    navigate(redirectTo);
+  }, [fetcher.data, navigate]);
 
   return (
     <div className="writing-index">
@@ -77,14 +74,21 @@ export default function WritingIndexPage() {
         <p className="writing-index-subtitle">{agent.description}</p>
       </div>
 
-      <form method="post" action="?index" className="writing-index-form">
+      <fetcher.Form method="post" action="?index" className="writing-index-form">
         <input type="hidden" name="_intent" value="createArticle" />
+        <input type="hidden" name="_transport" value="fetcher" />
         <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
 
-        <div className="writing-index-controls">
+        <WritingEditor value={text} onChange={setText} agent={agent} name="userText" />
+
+        {fetcher.data?.error ? (
+          <div className="form-error">{fetcher.data.error}</div>
+        ) : null}
+
+        <div className="writing-index-actions">
           <div className="writing-control-group">
             <label className="writing-label" htmlFor="agentType">
-              Writing type
+              Coach
             </label>
             <select
               id="agentType"
@@ -100,35 +104,15 @@ export default function WritingIndexPage() {
               ))}
             </select>
           </div>
-
-          <div className="writing-control-group">
-            <label className="writing-label" htmlFor="feedbackLang">
-              Feedback language
-            </label>
-            <select
-              id="feedbackLang"
-              className="writing-select"
-              value={feedbackLanguage}
-              onChange={(e) => handleLanguageChange(e.currentTarget.value as "en" | "zh")}
-            >
-              <option value="en">English</option>
-              <option value="zh">Chinese</option>
-            </select>
-          </div>
-        </div>
-
-        <WritingEditor value={text} onChange={setText} agent={agent} />
-
-        {actionData?.error ? (
-          <div className="form-error">{actionData.error}</div>
-        ) : null}
-
-        <div className="writing-index-actions">
-          <button type="submit" className="btn btn-primary" disabled={!text.trim()}>
-            Submit for feedback
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={!text.trim() || fetcher.state === "submitting"}
+          >
+            {fetcher.state === "submitting" ? "Submitting..." : "Submit for feedback"}
           </button>
         </div>
-      </form>
+      </fetcher.Form>
     </div>
   );
 }

@@ -10,6 +10,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
 | Reading layout | `/reading` | Layout route with left sidebar (passage list). |
 | Reading index | `/reading` (index) | Create a new passage and submit the first attempt in one page. |
+| Reading settings | `/reading/settings` | Reading-specific settings page inside the center canvas. |
 | Reading practice | `/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
 | Reading status resource | `/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
@@ -19,10 +20,10 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 
 ### Layout
 - **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
+- **Left sidebar footer**: A persistent `Settings` entry opens `/reading/settings` in the center canvas.
 - **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
 - **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
 - **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
-- **Header action**: On `/reading*`, the global header adds a reading-only settings button to the left of the avatar. This is route-scoped and does not appear on the rest of the site.
 
 ### Passage Management
 - Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.

@@ -1,11 +1,10 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Link, Outlet, useLoaderData, useParams } from "@remix-run/react";
+import { Link, NavLink, Outlet, useLoaderData, useLocation, useParams } from "@remix-run/react";
 import * as React from "react";
 import { listWritingArticlesByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { getWritingAgentOrDefault } from "~/utils/writing-agents";
-import type { WritingFeedback } from "~/utils/writing-eval.server";
 
 export const handle = {
   breadcrumb: { label: "writing", href: "/writing" }
@@ -29,6 +28,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export default function WritingLayout() {
   const { articles } = useLoaderData<typeof loader>();
   const params = useParams();
+  const location = useLocation();
   const activeId = params.id ?? null;
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
@@ -45,7 +45,7 @@ export default function WritingLayout() {
 
   React.useEffect(() => {
     setSidebarOpen(false);
-  }, [activeId]);
+  }, [location.pathname]);
 
   return (
     <div className="writing-shell">
@@ -130,6 +130,28 @@ export default function WritingLayout() {
             ))
           )}
         </nav>
+        <div className="writing-sidebar-footer">
+          <NavLink
+            to="/writing/settings"
+            className={({ isActive }) =>
+              `writing-sidebar-settings ${isActive ? "is-active" : ""}`
+            }
+            onClick={() => setOpenMenuId(null)}
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 7h5M13 7h7M4 12h10M18 12h2M4 17h3M11 17h9"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <circle cx="11" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="16" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="9" cy="17" r="2" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span>Settings</span>
+          </NavLink>
+        </div>
       </aside>
 
       <div className="writing-main">

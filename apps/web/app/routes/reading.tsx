@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Link, Outlet, useLoaderData, useParams } from "@remix-run/react";
+import { Link, NavLink, Outlet, useLocation, useLoaderData, useParams } from "@remix-run/react";
 import * as React from "react";
 import { listEslPassagesByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
@@ -19,6 +19,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export default function EslReadingLayout() {
   const { passages } = useLoaderData<typeof loader>();
   const params = useParams();
+  const location = useLocation();
   const activeId = params.id ?? null;
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
 
@@ -31,6 +32,10 @@ export default function EslReadingLayout() {
     document.addEventListener("click", closeMenu);
     return () => document.removeEventListener("click", closeMenu);
   }, []);
+
+  React.useEffect(() => {
+    setOpenMenuId(null);
+  }, [location.pathname]);
 
   return (
     <div className="esl-reading-shell">
@@ -109,6 +114,27 @@ export default function EslReadingLayout() {
             ))
           )}
         </nav>
+        <div className="esl-sidebar-footer">
+          <NavLink
+            to="/reading/settings"
+            className={({ isActive }) =>
+              `esl-sidebar-settings ${isActive ? "is-active" : ""}`
+            }
+          >
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M4 7h5M13 7h7M4 12h10M18 12h2M4 17h3M11 17h9"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <circle cx="11" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="16" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="9" cy="17" r="2" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span>Settings</span>
+          </NavLink>
+        </div>
       </aside>
       <div className="esl-main">
         <Outlet />

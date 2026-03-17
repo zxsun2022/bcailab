@@ -1852,6 +1852,76 @@ select.input:focus {
   border: 1px dashed var(--border);
 }
 
+.esl-sidebar-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.esl-sidebar-settings {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.esl-sidebar-settings:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+.esl-sidebar-settings.is-active {
+  border-color: rgba(196, 149, 106, 0.45);
+  background: rgba(196, 149, 106, 0.08);
+  color: var(--accent);
+}
+
+.esl-sidebar-settings svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.esl-settings-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-top: var(--space-lg);
+}
+
+.esl-settings-card {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  padding: 22px;
+}
+
+.esl-settings-header h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+
+.esl-settings-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.esl-settings-section {
+  margin-top: var(--space-lg);
+}
+
+.esl-settings-options {
+  max-width: 360px;
+}
+
 /* --- Practice Layout (center + right) --- */
 
 .esl-practice-layout {
@@ -2959,6 +3029,10 @@ select.input:focus {
     display: none;
   }
 
+  .esl-settings-page {
+    padding-top: 16px;
+  }
+
   .esl-passage-card-main {
     max-height: 32vh;
   }
@@ -3754,6 +3828,43 @@ select.input:focus {
   text-align: center;
 }
 
+.writing-sidebar-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.writing-sidebar-settings {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+
+.writing-sidebar-settings:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+  color: var(--text);
+}
+
+.writing-sidebar-settings.is-active {
+  border-color: rgba(196, 149, 106, 0.45);
+  background: rgba(196, 149, 106, 0.08);
+  color: var(--accent);
+}
+
+.writing-sidebar-settings svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 .writing-sidebar-item-shell {
   position: relative;
   z-index: 0;
@@ -3887,6 +3998,10 @@ select.input:focus {
   padding-top: var(--space-lg);
 }
 
+.writing-index-header {
+  margin-bottom: var(--space-lg);
+}
+
 .writing-index-header h2 {
   font-family: var(--font-display);
   font-size: 24px;
@@ -3896,7 +4011,9 @@ select.input:focus {
 .writing-index-subtitle {
   color: var(--text-muted);
   font-size: 14px;
-  margin: 0 0 var(--space-lg);
+  line-height: 1.6;
+  min-height: calc(1.6em * 3);
+  margin: 0;
 }
 
 .writing-index-controls {
@@ -3933,7 +4050,47 @@ select.input:focus {
 .writing-index-actions {
   margin-top: var(--space-md);
   display: flex;
-  justify-content: flex-end;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.writing-index-actions .btn {
+  margin-left: auto;
+}
+
+.writing-settings-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-top: var(--space-lg);
+}
+
+.writing-settings-card {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  padding: 22px;
+}
+
+.writing-settings-header h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  margin: 0 0 6px;
+}
+
+.writing-settings-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.writing-settings-section {
+  margin-top: var(--space-lg);
+}
+
+.writing-settings-options {
+  max-width: 360px;
 }
 
 /* --- Editor --- */
@@ -3971,6 +4128,7 @@ select.input:focus {
 .writing-editor-footer {
   display: flex;
   justify-content: flex-end;
+  min-height: 28px;
   padding: 6px 0;
 }
 
@@ -3978,6 +4136,7 @@ select.input:focus {
   font-size: 13px;
   color: var(--text-muted);
   font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 .writing-editor-count.is-warning {
@@ -4107,10 +4266,31 @@ select.input:focus {
   flex-direction: column;
 }
 
+.writing-submit-form.is-compose {
+  min-height: min(72vh, 760px);
+}
+
+.writing-submit-form.is-compose .writing-editor {
+  flex: 1;
+}
+
+.writing-submit-form.is-compose .writing-editor-textarea {
+  min-height: min(56vh, 620px);
+}
+
 .writing-submit-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: var(--space-sm);
+}
+
+.writing-submit-form.is-compose .writing-submit-actions {
+  position: sticky;
+  bottom: 0;
+  margin-top: auto;
+  padding-top: var(--space-md);
+  padding-bottom: 6px;
+  background: linear-gradient(180deg, rgba(250, 248, 244, 0) 0%, var(--bg) 36%);
 }
 
 /* --- Feedback --- */
@@ -4487,6 +4667,10 @@ select.input:focus {
 
   .writing-mobile-back {
     display: none;
+  }
+
+  .writing-settings-page {
+    padding-top: 16px;
   }
 }
 

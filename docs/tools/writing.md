@@ -5,16 +5,17 @@ AI-powered iterative writing coach. Users submit a piece of writing, receive str
 ## Design Principles
 
 - **Coach, not ghostwriter.** AI identifies issues; user executes revisions. The product never rewrites text on behalf of the user during a session.
-- **Intent-grounded feedback.** Every piece of feedback is anchored to a declared writing purpose via an Intent Agent. There is no generic "good writing" standard.
+- **Coach-grounded feedback.** Every piece of feedback is anchored to a selected coach. There is no single generic "good writing" standard.
 - **Deliberate difficulty.** The tool surfaces the user's actual weaknesses, not confirms existing strengths.
-- **Minimum viable friction.** Selecting an agent and submitting text should take under 30 seconds. The cognitive load is in the writing, not the interface.
+- **Minimum viable friction.** Selecting a coach and submitting text should take under 30 seconds. The cognitive load is in the writing, not the interface.
 
 ## Routes
 
 | Page | Route | Behaviour |
 |------|-------|-----------|
 | Writing layout | `/writing` | Auth required. Three-column shell with article list sidebar. |
-| Writing index | `/writing` (index) | Create a new article: select agent, write first draft, submit. |
+| Writing index | `/writing` (index) | Create a new article: choose a coach, write the first draft, submit. |
+| Writing settings | `/writing/settings` | Writing-specific settings page opened inside the center canvas. |
 | Article detail | `/writing/:id` | Editor + feedback panel + revision history rail. |
 | Status resource | `/writing/:id/status` | Auth required. JSON endpoint for feedback status polling. |
 
@@ -24,8 +25,8 @@ Three-column collapsible shell. The layout is designed to be extracted into a re
 
 ### Columns
 
-- **Left panel — Article list**: All user articles sorted by `updated_at` DESC. Each entry shows title (or text preview), agent badge, round count, latest score. "+ New article" button at the top. Article deletion via hover three-dot menu with `confirm()`.
-- **Center — Main workspace**: Editor (textarea) at top with word count footer. Feedback panel below showing structured annotation cards and round summary. Submit / revision button between editor and feedback.
+- **Left panel — Navigation rail**: All user articles sorted by `updated_at` DESC. Each entry shows title plus coach badge. "+ New article" button at the top. A persistent `Settings` entry sits at the bottom. Article deletion via hover three-dot menu with `confirm()`.
+- **Center — Main workspace**: Editor (textarea) at top with word count footer. Feedback panel below showing structured annotation cards and round summary. The new-article composer places the `Coach` selector to the left of the submit button.
 - **Right panel — Revision timeline**: All rounds for the current article. Each entry shows round number, timestamp, score summary. Clickable to view past rounds. Active round highlighted.
 
 ### Responsive Behaviour
@@ -75,22 +76,23 @@ CREATE INDEX idx_writing_revisions_article ON writing_revisions(article_id, roun
 
 - D1 only. No R2 needed for V0 (text-only, no binary assets).
 
-## Intent Agents
+## Coaches
 
-Each agent embeds a writing evaluation standard. Agent = Writing Purpose + Evaluation Criteria + Feedback Tone. Agents are defined in code (`utils/writing-agents.ts`), not in the database.
+Each coach embeds a writing evaluation standard. Coach = Writing Purpose + Evaluation Criteria + Feedback Tone. Coaches are defined in code (`utils/writing-agents.ts`), not in the database.
 
-### V0 Agent Roster
+### V0 Coach Roster
 
-| Agent | Evaluation Standard | Feedback Focus |
+| Coach | Evaluation Standard | Feedback Focus |
 |-------|-------------------|----------------|
-| IELTS Task 2 | Band 7–9 descriptors (TR, CC, LR, GRA) | Argument coherence, lexical range, grammatical accuracy |
+| General | General writing rubric | Clarity, structure, style, grammar |
+| IELTS Tutor | IELTS Task 2 Band 7–9 descriptors (TR, CC, LR, GRA) | Argument coherence, lexical range, grammatical accuracy |
 
-### Agent Definition Schema
+### Coach Definition Schema
 
 ```typescript
 type WritingAgent = {
   id: string;            // e.g. "ielts_task2"
-  label: string;         // e.g. "IELTS Task 2"
+  label: string;         // e.g. "IELTS Tutor"
   description: string;
   dimensions: string[];  // evaluation dimensions
   rubric: string;        // full rubric text injected into prompt
@@ -100,7 +102,7 @@ type WritingAgent = {
 };
 ```
 
-### Future Agents (V1+)
+### Future Coaches (V1+)
 
 Academic Writing, Business Writing, Fiction (Short Story), Diagnosis Mode.
 
@@ -121,7 +123,7 @@ Academic Writing, Business Writing, Fiction (Short Story), Diagnosis Mode.
 
 ### V1+: Rich Text Editor
 
-When agents requiring formatting (Business Writing, Academic) are added, migrate to Tiptap with markdown serialization. The AI always receives plain text or markdown for evaluation.
+When coaches requiring formatting (Business Writing, Academic) are added, migrate to Tiptap with markdown serialization. The AI always receives plain text or markdown for evaluation.
 
 ## Feedback Structure
 
@@ -169,10 +171,10 @@ When agents requiring formatting (Business Writing, Academic) are added, migrate
 ### Feedback Language
 
 Same as Reading tool:
-- User selects feedback language (Chinese / English) via a settings control.
+- User selects feedback language (Chinese / English) from `/writing/settings`.
 - Preference stored in `localStorage`, defaults to English.
 - Controls the language of `diagnosis`, `guiding_question`, `overall_comment`, and `delta` strings.
-- The user's writing text language is not affected (IELTS essays are in English).
+- The user's writing text language is not affected.
 
 ## Evaluation Pipeline
 
@@ -186,7 +188,7 @@ Follows the same async pattern as Reading:
 
 ### Prompt Structure
 
-- System context: Agent rubric, feedback tone, JSON schema, rules ("never rewrite, only diagnose and question").
+- System context: coach rubric, feedback tone, JSON schema, rules ("never rewrite, only diagnose and question").
 - User content: Current text, word count, previous round's feedback (if any), revision history summary (scores from older rounds).
 - Feedback language directive (Chinese or English).
 - Model: `gemini-flash-latest` (same env var `GEMINI_MODEL` as Reading).
@@ -198,14 +200,12 @@ Follows the same async pattern as Reading:
 
 1. User navigates to `/writing`. Empty state shows "Start your first writing session".
 2. Clicks "+ New article" in left panel.
-3. Selects agent type (V0: IELTS Task 2 only, but UI shows a selector for extensibility).
-4. Redirected to `/writing/:id` with a new empty article.
-5. Writes in the textarea. Word count updates live.
-6. Clicks "Submit for feedback".
-7. Text saved as Round 1 (`feedback_status: 'pending'`). Title auto-generated in background if not provided.
-8. Button shows "Analyzing..." state. Frontend polls status endpoint.
-9. Feedback appears in the panel below the editor.
-10. Round 1 appears in the right revision timeline.
+3. Writes in the textarea and chooses a `Coach` in the action row beside the submit button.
+4. Redirected to `/writing/:id` with the newly created article.
+5. Text saved as Round 1 (`feedback_status: 'pending'`). Title auto-generated in background if not provided.
+6. Button shows "Analyzing..." state. Frontend polls status endpoint.
+7. Feedback appears in the panel below the editor.
+8. Round 1 appears in the right revision timeline.
 
 ### Flow B — Revision
 
@@ -227,10 +227,11 @@ Follows the same async pattern as Reading:
 ### Flow D — Manage Articles
 
 1. Left panel lists all articles sorted by `updated_at` DESC.
-2. Each entry: title (or text preview truncated to ~40 chars), agent badge, round count.
-3. Hover reveals three-dot menu → "Delete article" (native `confirm()` dialog).
-4. Deletion soft-deletes the article and all its revisions.
-5. Clicking an article navigates to `/writing/:id`.
+2. Each entry: title plus coach badge.
+3. Bottom of the rail includes a persistent `Settings` entry that opens `/writing/settings` in the center canvas.
+4. Hover reveals three-dot menu → "Delete article" (native `confirm()` dialog).
+5. Deletion soft-deletes the article and all its revisions.
+6. Clicking an article navigates to `/writing/:id`.
 
 ### Flow E — Edit Title
 
@@ -252,11 +253,14 @@ Follows the same async pattern as Reading:
 | `migrations/0007_writing.sql` | Migration | Create `writing_articles` and `writing_revisions` tables |
 | `packages/db/src/index.ts` | Package | Add Writing types and CRUD functions |
 | `apps/web/app/routes/writing.tsx` | Route | Layout: three-column shell, article list loader |
-| `apps/web/app/routes/writing._index.tsx` | Route | New article: agent selection + first draft |
+| `apps/web/app/routes/writing._index.tsx` | Route | New article: coach selection + first draft |
+| `apps/web/app/routes/writing.settings.tsx` | Route | Writing settings page in the center canvas |
 | `apps/web/app/routes/writing.$id.tsx` | Route | Article detail: editor + feedback + actions |
 | `apps/web/app/routes/writing.$id_.status.ts` | Route | Feedback status polling endpoint |
 | `apps/web/app/utils/writing-eval.server.ts` | Server | Gemini prompt construction, response parsing, fallback |
-| `apps/web/app/utils/writing-agents.ts` | Shared | Agent definitions (rubric, tone, constraints) |
+| `apps/web/app/utils/writing-agents.ts` | Shared | Coach definitions (rubric, tone, constraints) |
+| `apps/web/app/utils/writing-settings.ts` | Shared | Writing feedback-language storage and change events |
+| `apps/web/app/utils/use-writing-feedback-language.ts` | Shared | Hook for reading and updating the writing feedback language |
 | `apps/web/app/utils/writing-article.server.ts` | Server | Article/revision CRUD, feedback scheduling |
 | `apps/web/app/components/WritingEditor.tsx` | Component | Textarea editor with word count |
 | `apps/web/app/components/WritingFeedback.tsx` | Component | Feedback annotation cards and summary |
@@ -284,10 +288,10 @@ Follows the same async pattern as Reading:
 
 ## Future Roadmap (V1+)
 
-- Additional agents: Academic Writing, Business Writing, Fiction, Diagnosis Mode
+- Additional coaches: Academic Writing, Business Writing, Fiction, Diagnosis Mode
 - Tiptap rich text editor with markdown serialization
 - Inline text annotation (highlight spans in editor, mapped from `quoted_text`)
 - Extract three-column collapsible shell into reusable `ToolShell` component
 - Apply `ToolShell` to Reading and Speech tools
-- Writing prompts per agent (optional starter prompts)
+- Writing prompts per coach (optional starter prompts)
 - Session completion marking and progress analytics

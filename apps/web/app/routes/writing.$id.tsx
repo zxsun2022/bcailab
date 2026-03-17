@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { useFetcher, useLoaderData, Link } from "@remix-run/react";
+import { useFetcher, useLoaderData, Link, useNavigate } from "@remix-run/react";
 import * as React from "react";
 import {
   getWritingArticleById,
@@ -16,9 +16,20 @@ import type { WritingFeedback } from "~/utils/writing-eval.server";
 import { WritingEditor } from "~/components/WritingEditor";
 import { WritingFeedbackPanel } from "~/components/WritingFeedback";
 import { WritingRevisionRail, type RevisionEntry } from "~/components/WritingRevisionRail";
+import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 
-type ActionData = { error?: string; ok?: boolean };
-const FEEDBACK_LANGUAGE_KEY = "bcailab-writing-feedback-language";
+type ActionData = {
+  error?: string;
+  ok?: boolean;
+  redirectTo?: string;
+  revision?: {
+    id: string;
+    roundNumber: number;
+    createdAt: string;
+    wordCount: number;
+    userText: string;
+  };
+};
 const PENDING_STALE_MS = 60_000;
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
@@ -35,6 +46,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   const agent = getWritingAgentOrDefault(article.agent_type);
 
   const url = new URL(request.url);
+  const isComposeView = url.searchParams.get("compose") === "1";
   const requestedRound = url.searchParams.get("round");
   const viewingRound = requestedRound
     ? Math.max(1, Math.min(Number(requestedRound), revisions.length))
@@ -93,6 +105,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
         }
       : null,
     activeFeedback,
+    isComposeView,
     isViewingPastRound,
     isPending,
     isStalePending: Boolean(isStalePending),
@@ -147,17 +160,30 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     if (!userText) {
       return json<ActionData>({ error: "Please write something before submitting." }, { status: 400 });
     }
+    const transport = String(formData.get("_transport") ?? "document");
     const feedbackLanguage = formData.get("feedbackLanguage") === "zh" ? "zh" as const : "en" as const;
 
     try {
-      await submitRevision(context, {
+      const result = await submitRevision(context, {
         userId: user.id,
         articleId: article.id,
         agentType: article.agent_type,
         userText,
         feedbackLanguage
       });
-      return redirect(`/writing/${article.id}`);
+      return transport === "fetcher"
+        ? json<ActionData>({
+            ok: true,
+            redirectTo: `/writing/${article.id}`,
+            revision: {
+              id: result.revisionId,
+              roundNumber: result.roundNumber,
+              createdAt: result.createdAt,
+              wordCount: result.wordCount,
+              userText: result.userText
+            }
+          })
+        : redirect(`/writing/${article.id}`);
     } catch {
       return json<ActionData>({ error: "Failed to submit revision. Please retry." }, { status: 500 });
     }
@@ -192,6 +218,7 @@ export default function WritingArticlePage() {
     revisions,
     activeRevision,
     activeFeedback,
+    isComposeView,
     isViewingPastRound,
     isPending,
     isStalePending,
@@ -200,24 +227,52 @@ export default function WritingArticlePage() {
   } = useLoaderData<typeof loader>();
 
   const [text, setText] = React.useState(latestText);
+  const [liveTitle, setLiveTitle] = React.useState(article.title);
+  const [liveRevisions, setLiveRevisions] = React.useState(revisions);
+  const [liveActiveRevision, setLiveActiveRevision] = React.useState(activeRevision);
+  const [liveActiveFeedback, setLiveActiveFeedback] = React.useState(activeFeedback);
+  const [liveLatestRound, setLiveLatestRound] = React.useState(latestRound);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [titleValue, setTitleValue] = React.useState(article.title ?? "");
+  const submitFetcher = useFetcher<ActionData>();
+  const navigate = useNavigate();
   const titleFetcher = useFetcher<ActionData>();
   const retryFetcher = useFetcher<ActionData>();
   const titleInputRef = React.useRef<HTMLInputElement>(null);
 
   const fullAgent = getWritingAgentOrDefault(agent.id);
 
-  const [feedbackLanguage, setFeedbackLanguage] = React.useState<"en" | "zh">("en");
-  React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem(FEEDBACK_LANGUAGE_KEY);
-    if (stored === "zh" || stored === "en") setFeedbackLanguage(stored);
-  }, []);
+  const [feedbackLanguage] = useWritingFeedbackLanguage();
 
   React.useEffect(() => {
     setText(latestText);
   }, [latestText]);
+
+  React.useEffect(() => {
+    setLiveTitle(article.title);
+  }, [article.title]);
+
+  React.useEffect(() => {
+    setLiveRevisions(revisions);
+  }, [revisions]);
+
+  React.useEffect(() => {
+    setLiveActiveRevision(activeRevision);
+  }, [activeRevision]);
+
+  React.useEffect(() => {
+    setLiveActiveFeedback(activeFeedback);
+  }, [activeFeedback]);
+
+  React.useEffect(() => {
+    setLiveLatestRound(latestRound);
+  }, [latestRound]);
+
+  React.useEffect(() => {
+    const redirectTo = submitFetcher.data?.redirectTo;
+    if (!redirectTo) return;
+    navigate(redirectTo);
+  }, [navigate, submitFetcher.data]);
 
   React.useEffect(() => {
     setTitleValue(article.title ?? "");
@@ -230,31 +285,144 @@ export default function WritingArticlePage() {
     }
   }, [editingTitle]);
 
-  // Polling for pending feedback
+  const liveIsPending = !isViewingPastRound && liveActiveRevision?.feedback_status === "pending";
+  const liveIsStalePending =
+    liveIsPending &&
+    liveActiveRevision &&
+    Date.now() - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+
   React.useEffect(() => {
-    if (!isPending || !activeRevision) return;
+    const nextRevision = submitFetcher.data?.revision;
+    if (!submitFetcher.data?.ok || !nextRevision) return;
+
+    setText(nextRevision.userText);
+    setLiveLatestRound(nextRevision.roundNumber);
+    setLiveActiveFeedback(null);
+    setLiveActiveRevision({
+      id: nextRevision.id,
+      round_number: nextRevision.roundNumber,
+      user_text: nextRevision.userText,
+      word_count: nextRevision.wordCount,
+      feedback_status: "pending",
+      created_at: nextRevision.createdAt
+    });
+    setLiveRevisions((current) => {
+      const nextEntry: RevisionEntry = {
+        id: nextRevision.id,
+        round_number: nextRevision.roundNumber,
+        word_count: nextRevision.wordCount,
+        feedback_status: "pending",
+        band_estimate: null,
+        created_at: nextRevision.createdAt
+      };
+      const filtered = current.filter((revision) => revision.id !== nextRevision.id);
+      return [...filtered, nextEntry].sort((a, b) => a.round_number - b.round_number);
+    });
+  }, [submitFetcher.data]);
+
+  React.useEffect(() => {
+    if (!retryFetcher.data?.ok || !liveActiveRevision) return;
+    setLiveActiveRevision((current) =>
+      current
+        ? {
+            ...current,
+            feedback_status: "pending"
+          }
+        : current
+    );
+    setLiveActiveFeedback(null);
+    setLiveRevisions((current) =>
+      current.map((revision) =>
+        revision.id === liveActiveRevision.id
+          ? {
+              ...revision,
+              feedback_status: "pending",
+              band_estimate: null
+            }
+          : revision
+      )
+    );
+  }, [liveActiveRevision, retryFetcher.data]);
+
+  // Poll pending latest-round feedback without reloading the whole page.
+  React.useEffect(() => {
+    if (!liveIsPending || !liveActiveRevision || liveIsStalePending) return;
     let cancelled = false;
+    let inFlight = false;
+
     const intervalId = window.setInterval(() => {
-      if (cancelled) return;
-      window.location.reload();
-    }, 3000);
+      if (cancelled || inFlight) return;
+      inFlight = true;
+      const statusUrl = new URL(`/writing/${article.id}/status`, window.location.origin);
+
+      void fetch(statusUrl.toString(), {
+        headers: { Accept: "application/json" }
+      })
+        .then(async (response) => {
+          if (!response.ok) return null;
+          return (await response.json()) as {
+            articleTitle: string | null;
+            feedbackStatus: "pending" | "completed" | "failed";
+            feedback: WritingFeedback | null;
+            roundNumber: number;
+            bandEstimate: string | null;
+          };
+        })
+        .then((statusPayload) => {
+          if (cancelled || !statusPayload) return;
+          if (statusPayload.articleTitle !== null) {
+            setLiveTitle(statusPayload.articleTitle);
+            if (!editingTitle) {
+              setTitleValue(statusPayload.articleTitle);
+            }
+          }
+          if (statusPayload.roundNumber !== liveActiveRevision.round_number) return;
+
+          setLiveActiveRevision((current) =>
+            current
+              ? {
+                  ...current,
+                  feedback_status: statusPayload.feedbackStatus
+                }
+              : current
+          );
+          setLiveActiveFeedback(statusPayload.feedback);
+          setLiveRevisions((current) =>
+            current.map((revision) =>
+              revision.round_number === statusPayload.roundNumber
+                ? {
+                    ...revision,
+                    feedback_status: statusPayload.feedbackStatus,
+                    band_estimate: statusPayload.bandEstimate
+                  }
+                : revision
+            )
+          );
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          inFlight = false;
+        });
+    }, 2000);
+
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [isPending, activeRevision]);
+  }, [article.id, editingTitle, liveActiveRevision, liveIsPending, liveIsStalePending]);
 
   const handleTitleSave = () => {
     const trimmed = titleValue.trim();
-    if (!trimmed || trimmed === article.title) {
+    if (!trimmed || trimmed === liveTitle) {
       setEditingTitle(false);
-      setTitleValue(article.title ?? "");
+      setTitleValue(liveTitle ?? "");
       return;
     }
     titleFetcher.submit(
       { _intent: "updateTitle", title: trimmed },
       { method: "post" }
     );
+    setLiveTitle(trimmed);
     setEditingTitle(false);
   };
 
@@ -264,11 +432,11 @@ export default function WritingArticlePage() {
       handleTitleSave();
     } else if (e.key === "Escape") {
       setEditingTitle(false);
-      setTitleValue(article.title ?? "");
+      setTitleValue(liveTitle ?? "");
     }
   };
 
-  const displayTitle = article.title || "Untitled";
+  const displayTitle = liveTitle || "Untitled";
 
   return (
     <div className="writing-detail-layout">
@@ -309,9 +477,9 @@ export default function WritingArticlePage() {
             <span className="writing-agent-label">{agent.label}</span>
           </div>
 
-          {isViewingPastRound && activeRevision ? (
+          {isViewingPastRound && liveActiveRevision ? (
             <div className="writing-past-round-banner">
-              Viewing Round {activeRevision.round_number} of {latestRound}
+              Viewing Round {liveActiveRevision.round_number} of {liveLatestRound}
               <Link to={`/writing/${article.id}`} className="btn btn-ghost btn-sm">
                 Back to latest
               </Link>
@@ -319,99 +487,112 @@ export default function WritingArticlePage() {
           ) : null}
         </div>
 
-        {isViewingPastRound && activeRevision ? (
-          <div className="writing-readonly-view">
-            <div className="writing-readonly-text">{activeRevision.user_text}</div>
-            <div className="writing-editor-footer">
-              <span className="writing-editor-count">{activeRevision.word_count} words</span>
-            </div>
-          </div>
-        ) : (
-          <form method="post" className="writing-submit-form">
+        {isComposeView ? (
+          <submitFetcher.Form method="post" className="writing-submit-form is-compose">
             <input type="hidden" name="_intent" value="submitRevision" />
+            <input type="hidden" name="_transport" value="fetcher" />
             <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
-            <WritingEditor value={text} onChange={setText} agent={fullAgent} />
+            <WritingEditor value={text} onChange={setText} agent={fullAgent} name="userText" />
             <div className="writing-submit-actions">
               <button
                 type="submit"
-                name="userText"
-                value={text}
                 className="btn btn-primary"
-                disabled={!text.trim() || isPending}
+                disabled={!text.trim() || liveIsPending || submitFetcher.state === "submitting"}
               >
-                {latestRound === 0 ? "Submit for feedback" : "Submit revision"}
+                {submitFetcher.state === "submitting" ? "Submitting..." : "Submit revision"}
               </button>
             </div>
-          </form>
+            {submitFetcher.data?.error ? <div className="form-error">{submitFetcher.data.error}</div> : null}
+          </submitFetcher.Form>
+        ) : liveActiveRevision ? (
+          <div className="writing-readonly-view">
+            <div className="writing-readonly-text">{liveActiveRevision.user_text}</div>
+            <div className="writing-editor-footer">
+              <span className="writing-editor-count">{liveActiveRevision.word_count} words</span>
+            </div>
+          </div>
+        ) : (
+          <div className="writing-status-card">
+            <div className="writing-status-title">Start writing</div>
+            <p className="writing-status-desc">
+              Choose New Revision to draft the next round.
+            </p>
+          </div>
         )}
 
-        <div className="writing-feedback-section">
-          {isPending && !isStalePending ? (
-            <div className="writing-status-card">
-              <div className="writing-status-title">Analyzing...</div>
-              <p className="writing-status-desc">
-                Your text has been submitted. AI feedback is being generated.
-              </p>
-            </div>
-          ) : isStalePending && activeRevision ? (
-            <div className="writing-status-card">
-              <div className="writing-status-title">Feedback interrupted</div>
-              <p className="writing-status-desc">
-                The feedback job did not finish. You can retry without resubmitting.
-              </p>
-              <retryFetcher.Form method="post" className="writing-retry-form">
-                <input type="hidden" name="_intent" value="retryFeedback" />
-                <input type="hidden" name="revisionId" value={activeRevision.id} />
-                <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
-                <button
-                  type="submit"
-                  className="btn btn-ghost btn-sm"
-                  disabled={retryFetcher.state === "submitting"}
-                >
-                  {retryFetcher.state === "submitting" ? "Requesting..." : "Retry feedback"}
-                </button>
-              </retryFetcher.Form>
-            </div>
-          ) : activeRevision?.feedback_status === "failed" ? (
-            <div className="writing-status-card">
-              <div className="writing-status-title">Feedback unavailable</div>
-              <p className="writing-status-desc">
-                AI feedback failed for this round.
-              </p>
-              <retryFetcher.Form method="post" className="writing-retry-form">
-                <input type="hidden" name="_intent" value="retryFeedback" />
-                <input type="hidden" name="revisionId" value={activeRevision.id} />
-                <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
-                <button
-                  type="submit"
-                  className="btn btn-ghost btn-sm"
-                  disabled={retryFetcher.state === "submitting"}
-                >
-                  Retry feedback
-                </button>
-              </retryFetcher.Form>
-            </div>
-          ) : activeFeedback && activeRevision ? (
-            <WritingFeedbackPanel
-              feedback={activeFeedback}
-              roundNumber={activeRevision.round_number}
-            />
-          ) : latestRound === 0 ? (
-            <div className="writing-status-card">
-              <div className="writing-status-title">Start writing</div>
-              <p className="writing-status-desc">
-                Write your first draft above and submit for AI feedback.
-              </p>
-            </div>
-          ) : null}
-        </div>
+        {!isComposeView ? (
+          <div className="writing-feedback-section">
+            {liveIsPending && !liveIsStalePending ? (
+              <div className="writing-status-card">
+                <div className="writing-status-title">Analyzing...</div>
+                <p className="writing-status-desc">
+                  Your text has been submitted. AI feedback is being generated.
+                </p>
+              </div>
+            ) : liveIsStalePending && liveActiveRevision ? (
+              <div className="writing-status-card">
+                <div className="writing-status-title">Feedback interrupted</div>
+                <p className="writing-status-desc">
+                  The feedback job did not finish. You can retry without resubmitting.
+                </p>
+                <retryFetcher.Form method="post" className="writing-retry-form">
+                  <input type="hidden" name="_intent" value="retryFeedback" />
+                  <input type="hidden" name="revisionId" value={liveActiveRevision.id} />
+                  <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
+                  <button
+                    type="submit"
+                    className="btn btn-ghost btn-sm"
+                    disabled={retryFetcher.state === "submitting"}
+                  >
+                    {retryFetcher.state === "submitting" ? "Requesting..." : "Retry feedback"}
+                  </button>
+                </retryFetcher.Form>
+              </div>
+            ) : liveActiveRevision?.feedback_status === "failed" ? (
+              <div className="writing-status-card">
+                <div className="writing-status-title">Feedback unavailable</div>
+                <p className="writing-status-desc">
+                  AI feedback failed for this round.
+                </p>
+                <retryFetcher.Form method="post" className="writing-retry-form">
+                  <input type="hidden" name="_intent" value="retryFeedback" />
+                  <input type="hidden" name="revisionId" value={liveActiveRevision.id} />
+                  <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
+                  <button
+                    type="submit"
+                    className="btn btn-ghost btn-sm"
+                    disabled={retryFetcher.state === "submitting"}
+                  >
+                    Retry feedback
+                  </button>
+                </retryFetcher.Form>
+              </div>
+            ) : liveActiveFeedback && liveActiveRevision ? (
+              <WritingFeedbackPanel
+                feedback={liveActiveFeedback}
+                roundNumber={liveActiveRevision.round_number}
+                assessmentPrefix={fullAgent.assessmentPrefix}
+              />
+            ) : liveLatestRound === 0 ? (
+              <div className="writing-status-card">
+                <div className="writing-status-title">Start writing</div>
+                <p className="writing-status-desc">
+                  Write your first draft above and submit for AI feedback.
+                </p>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <WritingRevisionRail
         articleId={article.id}
-        revisions={revisions}
-        activeRound={activeRevision?.round_number ?? null}
-        latestRound={latestRound}
+        revisions={liveRevisions}
+        activeRound={isComposeView ? null : liveActiveRevision?.round_number ?? null}
+        latestRound={liveLatestRound}
+        isComposeView={isComposeView}
+        disableNewRevision={liveIsPending}
+        assessmentPrefix={fullAgent.assessmentPrefix}
       />
     </div>
   );
