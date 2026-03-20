@@ -2,7 +2,7 @@ import type { AppLoadContext } from "@remix-run/cloudflare";
 import {
   createWritingArticle,
   createWritingRevision,
-  getLatestWritingRevision,
+  getWritingArticleById,
   listWritingRevisionsByArticle,
   updateWritingArticleTitle,
   updateWritingRevisionFeedback,
@@ -40,6 +40,7 @@ export const createArticleWithFirstRevision = async (
     userText: string;
     title?: string | null;
     feedbackLanguage: "en" | "zh";
+    topic?: string;
   }
 ): Promise<{ articleId: string; revisionId: string }> => {
   const wordCount = countWords(input.userText);
@@ -47,6 +48,7 @@ export const createArticleWithFirstRevision = async (
   const article = await createWritingArticle(context.env.DB, {
     userId: input.userId,
     title: input.title || null,
+    essayPrompt: input.topic || null,
     agentType: input.agentType
   });
 
@@ -69,7 +71,8 @@ export const createArticleWithFirstRevision = async (
           wordCount,
           feedbackLanguage: input.feedbackLanguage,
           previousRound: null,
-          historyScores: []
+          historyScores: [],
+          topic: input.topic
         });
         await updateWritingRevisionFeedback(context.env.DB, {
           id: revision.id,
@@ -115,6 +118,7 @@ export const submitRevision = async (
     agentType: string;
     userText: string;
     feedbackLanguage: "en" | "zh";
+    topic?: string;
   }
 ): Promise<{
   revisionId: string;
@@ -167,7 +171,8 @@ export const submitRevision = async (
                 word_count: previousRevision.word_count
               }
             : null,
-          historyScores
+          historyScores,
+          topic: input.topic
         });
         await updateWritingRevisionFeedback(context.env.DB, {
           id: revision.id,
@@ -205,6 +210,11 @@ export const retryRevisionFeedback = async (
     feedbackLanguage: "en" | "zh";
   }
 ): Promise<void> => {
+  const article = await getWritingArticleById(context.env.DB, input.articleId, { includeDeleted: true });
+  if (!article || article.user_id !== input.userId || article.deleted_at) {
+    throw new Error("Article not found.");
+  }
+
   const revisions = await listWritingRevisionsByArticle(context.env.DB, input.articleId);
   const revision = revisions.find((r) => r.id === input.revisionId);
   if (!revision) throw new Error("Revision not found.");
@@ -247,7 +257,8 @@ export const retryRevisionFeedback = async (
                 word_count: previousRevision.word_count
               }
             : null,
-          historyScores
+          historyScores,
+          topic: article.essay_prompt ?? undefined
         });
         await updateWritingRevisionFeedback(context.env.DB, {
           id: revision.id,

@@ -17,7 +17,7 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 ## Key Flows
 - Google OAuth handled in the Remix app; sessions are stored in D1 and referenced by a secure cookie.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
-- Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu; the preference is stored locally in the browser.
+- Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or tool settings pages; the preference is stored locally in the browser.
 
 ## Routing
 - `/` landing page
@@ -34,6 +34,13 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - `/reading/:id/status` authenticated ESL reading status polling endpoint
 - `/esl/audio/:id` authenticated ESL attempt audio stream/download endpoint
 - `/esl/passage-audio/:id` authenticated ESL passage reference audio playback endpoint
+- `/writing` writing tool layout (three-column shell with nav rail + canvas)
+- `/writing` (index) new article creation with coach selection
+- `/writing/:id` article detail: editor + feedback + revision rail
+- `/writing/:id/status` authenticated feedback status polling endpoint
+- `/writing/progress` writing progress dashboard
+- `/writing/settings` writing-specific settings
+- `/writing/dashboard` legacy redirect to `/writing/progress`
 - Legacy compatibility: `/esl` redirects to `/reading`
 - Legacy compatibility: `/esl/reading*` redirects to `/reading*`
 - Legacy compatibility: `/tts`, `/tts/history`, `/tts/*` redirect to `/speech*`

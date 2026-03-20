@@ -15,39 +15,64 @@ AI-powered iterative writing coach. Users submit a piece of writing, receive str
 |------|-------|-----------|
 | Writing layout | `/writing` | Auth required. Three-column shell with article list sidebar. |
 | Writing index | `/writing` (index) | Create a new article: choose a coach, write the first draft, submit. |
+| Writing progress | `/writing/progress` | Progress dashboard opened inside the center canvas. |
+| Legacy progress redirect | `/writing/dashboard` | Redirects to `/writing/progress` for backward compatibility. |
 | Writing settings | `/writing/settings` | Writing-specific settings page opened inside the center canvas. |
-| Article detail | `/writing/:id` | Editor + feedback panel + revision history rail. |
+| Article detail | `/writing/:id` | Fixed article context + draft body + feedback aside with round navigation. |
 | Status resource | `/writing/:id/status` | Auth required. JSON endpoint for feedback status polling. |
 
 ## Layout
 
-Three-column collapsible shell. The layout is designed to be extracted into a reusable `ToolShell` pattern once validated.
+Three-column collapsible shell following the **Canvas-centered** pattern (see `docs/css-layout-conventions.md`). Writing is the current reference implementation for the shared shell/detail model described in `docs/tool-shell-pattern.md`.
+
+### Shell Structure
+
+```
+.writing-shell (flex row, full viewport height)
+├── <WritingNavRail />          ← left panel (aside)
+└── .writing-main (flex: 1, overflow-y: auto)
+    └── .writing-canvas (max-width: 1020px, margin: 0 auto)
+        └── <Outlet />          ← route content
+```
 
 ### Columns
 
-- **Left panel — Navigation rail**: All user articles sorted by `updated_at` DESC. Each entry shows title plus coach badge. "+ New article" button at the top. A persistent `Settings` entry sits at the bottom. Article deletion via hover three-dot menu with `confirm()`.
-- **Center — Main workspace**: Editor (textarea) at top with word count footer. Feedback panel below showing structured annotation cards and round summary. The new-article composer places the `Coach` selector to the left of the submit button.
-- **Right panel — Revision timeline**: All rounds for the current article. Each entry shows round number, timestamp, score summary. Clickable to view past rounds. Active round highlighted.
+- **Left panel — Navigation rail (`ToolNavRail` / `WritingNavRail`)**: Collapsible sidebar (260px expanded → 52px collapsed). All user articles sorted by `updated_at` DESC. Each entry shows title only (single line, no coach badge) for higher density. Pinned top: "+ New Article", "Progress". Pinned bottom: user avatar → settings. Article deletion via three-dot menu with `confirm()`. Collapse state persisted in `localStorage` key `"writing-nav-rail-collapsed"`. On mobile, rendered as a drawer overlay (280px) with hamburger toggle at top-left and backdrop.
+- **Center — Main canvas**: All route content renders inside `.writing-canvas` (max-width `1020px`, auto-centered). Sub-pages apply their own inner max-width for readability:
+  - New article (`writing._index`): `720px`
+  - Article detail (`writing.$id`): `center stage` containing a narrower `article column`, plus a separate right rail shell
+  - Progress (`writing.progress`): `760px`
+  - Settings (`writing.settings`): `600px`
+- **Right panel — Feedback aside (`WritingDetailAside`)**: Part of the article detail page (`writing.$id`), rendered inside a dedicated right rail shell that stays docked to the far right edge of the main area. Collapsible (persisted in `localStorage` key `"writing-aside-collapsed"`). When expanded: a wrapped navigation strip with `New Revision` first, then the latest round, then older rounds from left to right. The active state reflects either the selected historical round or compose mode. Feedback content below is scrollable. When collapsed: shrinks to the same `52px` width used by the left collapsed nav rail, with a collapse toggle and new-revision icon button. The rail shell owns the divider line so it spans the full desktop workspace height. On mobile (<1024px): hidden; feedback renders inline in the center panel instead.
+- **Detail workspace behaviour**: On desktop, the article detail page uses a full-width two-track shell. The right rail stays pinned to the main area's right edge; the left side is the `center stage`, and inside it the actual `article column` keeps its own max width and padding. The desktop detail page scrolls at the `center stage` level, so the vertical scrollbar sits at the boundary between the content area and the right rail. Collapsing the right aside changes the available width of the center stage, then the article column recenters inside that remaining space.
 
 ### Responsive Behaviour
 
-| Breakpoint | Left panel | Right panel |
-|------------|-----------|-------------|
-| < 1024px (mobile) | Hidden; overlay via toggle button | Hidden; overlay via toggle button |
-| 1024–1280px | Visible, 220px | Hidden; expandable via toggle button |
-| > 1280px | Visible, 240px | Visible, 240px |
+| Breakpoint | Nav rail (left) | Canvas (center) | Feedback aside (right) |
+|------------|----------------|-----------------|----------------------|
+| < 1024px (mobile) | Hidden; drawer overlay (280px) via top-left hamburger | Full width, feedback inline below text | Hidden |
+| 1024–1279px (tablet) | Persistent, 260px (collapsible → 52px) | Centered, max-width 1020px | 300px (collapsible → 52px) |
+| ≥ 1280px (desktop) | Persistent, 260px (collapsible → 52px) | Centered, max-width 1020px | 300–340px (collapsible → 52px) |
 
-Both panels have a collapse/expand toggle button. Collapse state is persisted in `localStorage`.
+Nav rail collapse state is persisted in `localStorage`.
+
+### Mobile-specific UI
+
+- Hamburger toggle button fixed at top-left (`nav-rail-mobile-toggle`), matching Claude.ai's pattern
+- Backdrop overlay when nav rail is open
+- "← Articles" back link shown in article detail header
+- All content stacked vertically (single column)
 
 ## Data Model
 
-### Migration: `0007_writing.sql`
+### Migrations: `0007_writing.sql`, `0008_writing_essay_prompt.sql`
 
 ```sql
 CREATE TABLE writing_articles (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id),
   title TEXT,
+  essay_prompt TEXT,
   agent_type TEXT NOT NULL DEFAULT 'ielts_task2',
   status TEXT NOT NULL DEFAULT 'active',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -71,6 +96,9 @@ CREATE TABLE writing_revisions (
 CREATE INDEX idx_writing_articles_user ON writing_articles(user_id, created_at DESC);
 CREATE INDEX idx_writing_revisions_article ON writing_revisions(article_id, round_number);
 ```
+
+- `essay_prompt` belongs to `writing_articles`, not `writing_revisions`. An article represents repeated work on one prompt.
+- Round 1 may leave `essay_prompt` blank. In later states, the prompt field remains blank and read-only rather than showing placeholder helper copy; when empty, it collapses to a compact blank slot instead of reserving a large text box.
 
 ### Storage
 
@@ -120,6 +148,8 @@ Academic Writing, Business Writing, Fiction (Short Story), Diagnosis Mode.
 - Uses the project's `Source Serif 4` body font for a clean writing experience.
 - Word count displayed in a footer bar below the editor, updated on every keystroke.
 - IELTS Task 2: minimum 250 words, maximum 400 words. Word count indicator turns amber below minimum, red above maximum. Submit is allowed regardless (the AI feedback will address length issues).
+- On article detail pages, `Writing guide` and `Essay prompt` are always shown above the draft body in `Latest`, `History`, and `Compose` states so the page structure stays stable while switching modes.
+- In article detail compose mode, the prompt is always read-only. It is locked from Round 1 onward.
 
 ### V1+: Rich Text Editor
 
@@ -209,31 +239,41 @@ Follows the same async pattern as Reading:
 
 ### Flow B — Revision
 
-1. User reads feedback. Clicks annotation cards to review diagnosis and guiding question.
-2. Edits text in the editor.
-3. Clicks "Submit revision".
-4. Saved as Round N+1. AI receives previous round's feedback for delta computation.
-5. New feedback appears with delta section: "2 critical issues resolved, 1 new improvement identified".
-6. Right panel updates with new round entry.
+1. User reads feedback in the right aside panel. Clicks annotation cards to review diagnosis and guiding question.
+2. Clicks `New Revision` in the right aside navigation strip. The strip order is `New Revision`, latest round, older rounds.
+3. Compose mode reuses the same center layout as viewing mode: `Writing guide`, `Essay prompt`, then the draft body.
+4. The essay prompt is locked (read-only, set in Round 1). If it was never filled, the field stays blank.
+5. Previous round's feedback is shown in the right aside for reference.
+6. Edits text in the editor.
+7. Clicks "Submit revision".
+8. Saved as Round N+1. AI receives previous round's feedback for delta computation.
+9. New feedback appears with delta section: "2 critical issues resolved, 1 new improvement identified".
+10. Right panel updates with the new latest round and keeps `New Revision` highlighted only while compose mode is active.
 
 ### Flow C — View Past Round
 
-1. Clicks a past round in the right revision timeline.
-2. Editor switches to **read-only**, showing that round's text.
-3. Feedback panel shows that round's feedback.
-4. Header shows "Viewing Round 1 of 3" with a "Back to latest" button.
-5. Clicking "Back to latest" returns to the current editable state.
+1. Clicks a past round in the right aside.
+2. Center panel switches to `History` state with a banner: `Viewing Round n of N`.
+3. The page still shows `Writing guide` and `Essay prompt` above the historical draft text.
+4. Right aside loads that round's feedback and highlights the selected round.
+5. Clicking `Back to latest` returns to the newest round.
 
-### Flow D — Manage Articles
+### Flow D — Pending / Retry
+
+1. While the latest round is `pending`, `New Revision` is disabled.
+2. If the latest feedback job stalls or fails, the right aside shows retry messaging for that latest round.
+3. Retry reuses the article's stored essay prompt so evaluation context stays stable across retries.
+
+### Flow E — Manage Articles
 
 1. Left panel lists all articles sorted by `updated_at` DESC.
-2. Each entry: title plus coach badge.
+2. Pinned actions at the top open `/writing` and `/writing/progress`.
 3. Bottom of the rail includes a persistent `Settings` entry that opens `/writing/settings` in the center canvas.
 4. Hover reveals three-dot menu → "Delete article" (native `confirm()` dialog).
 5. Deletion soft-deletes the article and all its revisions.
 6. Clicking an article navigates to `/writing/:id`.
 
-### Flow E — Edit Title
+### Flow F — Edit Title
 
 1. Article detail header shows the title as plain text with a small pencil icon.
 2. Clicking the title text or pencil icon switches to an inline input field.
@@ -251,9 +291,12 @@ Follows the same async pattern as Reading:
 | File | Type | Purpose |
 |------|------|---------|
 | `migrations/0007_writing.sql` | Migration | Create `writing_articles` and `writing_revisions` tables |
+| `migrations/0008_writing_essay_prompt.sql` | Migration | Add article-level `essay_prompt` persistence |
 | `packages/db/src/index.ts` | Package | Add Writing types and CRUD functions |
 | `apps/web/app/routes/writing.tsx` | Route | Layout: three-column shell, article list loader |
 | `apps/web/app/routes/writing._index.tsx` | Route | New article: coach selection + first draft |
+| `apps/web/app/routes/writing.progress.tsx` | Route | Progress dashboard in the center canvas |
+| `apps/web/app/routes/writing.dashboard.tsx` | Route | Legacy redirect from `/writing/dashboard` to `/writing/progress` |
 | `apps/web/app/routes/writing.settings.tsx` | Route | Writing settings page in the center canvas |
 | `apps/web/app/routes/writing.$id.tsx` | Route | Article detail: editor + feedback + actions |
 | `apps/web/app/routes/writing.$id_.status.ts` | Route | Feedback status polling endpoint |
@@ -264,7 +307,7 @@ Follows the same async pattern as Reading:
 | `apps/web/app/utils/writing-article.server.ts` | Server | Article/revision CRUD, feedback scheduling |
 | `apps/web/app/components/WritingEditor.tsx` | Component | Textarea editor with word count |
 | `apps/web/app/components/WritingFeedback.tsx` | Component | Feedback annotation cards and summary |
-| `apps/web/app/components/WritingRevisionRail.tsx` | Component | Right panel revision timeline |
+| `apps/web/app/components/WritingDetailAside.tsx` | Component | Right panel: round selector + feedback content |
 | `apps/web/app/styles/global.css` | CSS | Three-column layout styles, writing-specific styles |
 | `apps/web/app/routes/_index.tsx` | Route | Update homepage: slug `esl/writing` → `writing` |
 | `docs/tools/writing.md` | Doc | This document |

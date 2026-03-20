@@ -6,13 +6,15 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
-  LiveReload,
   useLoaderData,
-  useLocation
+  useLocation,
+  useMatches
 } from "@remix-run/react";
 import globalStyles from "~/styles/global.css?url";
 import { Header } from "~/components/Header";
 import { getOptionalUser } from "~/utils/auth.server";
+
+type RouteHandle = { hideHeader?: boolean };
 
 const themeInitScript = `
 (() => {
@@ -54,20 +56,22 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export default function App() {
   const { user } = useLoaderData<typeof loader>();
   const location = useLocation();
+  const matches = useMatches();
   const showFooter = location.pathname === "/" || location.pathname === "/about";
+  const hideHeader = matches.some((m) => (m.handle as RouteHandle)?.hideHeader);
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
+      <head suppressHydrationWarning>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <Meta />
         <Links />
       </head>
-      <body>
-        <Header user={user} />
-        <main className="container">
+      <body className={hideHeader ? "tool-body" : undefined}>
+        {hideHeader ? null : <Header user={user} />}
+        <main className={hideHeader ? "tool-main" : "container"}>
           <Outlet context={{ user }} />
         </main>
         {showFooter ? (
@@ -83,7 +87,6 @@ export default function App() {
         ) : null}
         <ScrollRestoration />
         <Scripts />
-        <LiveReload />
       </body>
     </html>
   );

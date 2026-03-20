@@ -94,6 +94,7 @@ export type WritingArticle = {
   id: string;
   user_id: string;
   title: string | null;
+  essay_prompt: string | null;
   agent_type: string;
   status: string;
   created_at: string;
@@ -226,6 +227,7 @@ const mapWritingArticle = (row: Record<string, unknown>): WritingArticle => ({
   id: String(row.id),
   user_id: String(row.user_id),
   title: row.title ? String(row.title) : null,
+  essay_prompt: row.essay_prompt ? String(row.essay_prompt) : null,
   agent_type: String(row.agent_type),
   status: String(row.status),
   created_at: String(row.created_at),
@@ -934,14 +936,20 @@ export async function incrementEslLearnerProfileCounters(
 
 export async function createWritingArticle(
   db: Db,
-  input: { id?: string; userId: string; title?: string | null; agentType: string }
+  input: {
+    id?: string;
+    userId: string;
+    title?: string | null;
+    essayPrompt?: string | null;
+    agentType: string;
+  }
 ): Promise<WritingArticle> {
   const id = input.id ?? crypto.randomUUID();
   await db
     .prepare(
-      "INSERT INTO writing_articles (id, user_id, title, agent_type) VALUES (?, ?, ?, ?)"
+      "INSERT INTO writing_articles (id, user_id, title, essay_prompt, agent_type) VALUES (?, ?, ?, ?, ?)"
     )
-    .bind(id, input.userId, input.title ?? null, input.agentType)
+    .bind(id, input.userId, input.title ?? null, input.essayPrompt ?? null, input.agentType)
     .run();
 
   const created = await getWritingArticleById(db, id, { includeDeleted: true });
@@ -1106,4 +1114,23 @@ export async function softDeleteWritingRevisionsByArticle(
     )
     .bind(input.articleId, input.userId)
     .run();
+}
+
+export async function listCompletedWritingRevisionsByUser(
+  db: Db,
+  userId: string
+): Promise<WritingRevision[]> {
+  const result = await db
+    .prepare(
+      `SELECT r.* FROM writing_revisions r
+       JOIN writing_articles a ON r.article_id = a.id
+       WHERE r.user_id = ?
+         AND r.feedback_status = 'completed'
+         AND r.feedback_json IS NOT NULL
+         AND a.deleted_at IS NULL
+       ORDER BY r.created_at ASC`
+    )
+    .bind(userId)
+    .all();
+  return (result.results ?? []).map(mapWritingRevision);
 }

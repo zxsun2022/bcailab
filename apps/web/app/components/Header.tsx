@@ -2,19 +2,13 @@ import * as React from "react";
 import { Button } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
 import { Link, useMatches } from "@remix-run/react";
+import { useThemePreference } from "~/utils/use-theme-preference";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
-const THEME_STORAGE_KEY = "bcailab-theme-preference";
-
-type ThemePreference = "system" | "light" | "dark";
 
 type BreadcrumbHandle = {
   breadcrumb?: { label: string; href?: string };
-};
-
-const getStoredThemePreference = (): ThemePreference => {
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+  hideHeaderUserMenu?: boolean;
 };
 
 export const Header: React.FC<{ user: User | null }> = ({ user }) => {
@@ -22,19 +16,12 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
   const breadcrumbs = matches
     .filter((match) => (match.handle as BreadcrumbHandle)?.breadcrumb)
     .map((match) => (match.handle as BreadcrumbHandle).breadcrumb!);
+  const hideUserMenu = matches.some(
+    (match) => (match.handle as BreadcrumbHandle)?.hideHeaderUserMenu
+  );
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [themePreference, setThemePreference] = React.useState<ThemePreference>("system");
+  const [themePreference, setThemePreference] = useThemePreference();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
-
-  const applyThemePreference = React.useCallback((preference: ThemePreference) => {
-    const resolved =
-      preference === "system"
-        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-        : preference;
-    const root = document.documentElement;
-    root.dataset.themePreference = preference;
-    root.dataset.resolvedTheme = resolved;
-  }, []);
 
   React.useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -58,23 +45,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
     return () => document.removeEventListener("click", handleClick);
   }, []);
 
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const preference = getStoredThemePreference();
-    setThemePreference(preference);
-    applyThemePreference(preference);
-
-    const handleSystemThemeChange = () => {
-      const currentPreference = getStoredThemePreference();
-      if (currentPreference === "system") {
-        applyThemePreference("system");
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
-  }, [applyThemePreference]);
-
   const handleLogin = () => {
     const width = 520;
     const height = 640;
@@ -85,12 +55,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
       "bcailab-auth",
       `width=${width},height=${height},left=${left},top=${top}`
     );
-  };
-
-  const handleThemeChange = (preference: ThemePreference) => {
-    window.localStorage.setItem(THEME_STORAGE_KEY, preference);
-    setThemePreference(preference);
-    applyThemePreference(preference);
   };
 
   return (
@@ -125,20 +89,18 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
             </nav>
           )}
         </div>
-        <div className="nav-actions" ref={menuRef}>
-          {!user ? (
-            <Button type="button" onClick={handleLogin}>
-              Continue with Google
-            </Button>
-          ) : (
-            <>
+        {!hideUserMenu ? (
+          <div className="nav-actions" ref={menuRef}>
+            {!user ? (
+              <Button type="button" onClick={handleLogin}>
+                Continue with Google
+              </Button>
+            ) : (
               <div className="menu-shell">
                 <button
                   type="button"
                   className="avatar-button"
-                  onClick={() => {
-                    setMenuOpen((prev) => !prev);
-                  }}
+                  onClick={() => setMenuOpen((prev) => !prev)}
                   aria-label="Open user menu"
                 >
                   <img
@@ -168,7 +130,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                               themePreference === option.value ? "is-active" : ""
                             }`}
                             aria-pressed={themePreference === option.value}
-                            onClick={() => handleThemeChange(option.value)}
+                            onClick={() => setThemePreference(option.value)}
                           >
                             {option.label}
                           </button>
@@ -183,9 +145,9 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   </div>
                 ) : null}
               </div>
-            </>
-          )}
-        </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </header>
   );

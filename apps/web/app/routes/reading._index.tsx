@@ -16,6 +16,7 @@ import { MAX_ESL_PASSAGE_CHARS, normalizeEslPassageText, type EslReadingMode } f
 import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string };
+const HISTORY_RAIL_COLLAPSED_KEY = "reading-history-rail-collapsed";
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -84,59 +85,80 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 export default function EslReadingIndexPage() {
   const [content, setContent] = React.useState("");
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
+  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(() => {
+    try { return localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY) === "true"; } catch { return false; }
+  });
+
+  const handleHistoryRailToggle = React.useCallback(() => {
+    setHistoryRailCollapsed((current) => {
+      const next = !current;
+      try { localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   return (
-    <div className="esl-practice-layout">
-      <div className="esl-center-panel">
-        <div className="esl-welcome">
-          <h2>New Passage</h2>
-          <EslModeToggle mode={mode} onModeChange={setMode} />
-        </div>
-
-        <EslAttemptComposer
-          action="?index"
-          submitLabel="Submit"
-          canSubmit={Boolean(content.trim())}
-          mode={mode}
-          onModeChange={setMode}
-        >
-          {({ hideText }) => (
-            <div className="esl-compose-editor">
-              {hideText ? (
-                <>
-                  <input type="hidden" name="content" value={content} />
-                  <div className="textarea esl-compose-textarea esl-compose-hidden-text">
-                    Text hidden for recitation mode. Switch back to Read if you want to review or
-                    edit the passage.
-                  </div>
-                </>
-              ) : (
-                <Textarea
-                  name="content"
-                  rows={18}
-                  className="esl-compose-textarea"
-                  placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
-                  value={content}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setContent(event.currentTarget.value)
-                  }
-                />
-              )}
-              <div
-                className={`esl-compose-count ${
-                  content.length > 0 ? "is-visible" : ""
-                } ${content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""}`}
-              >
-                <span className="textarea-count">
-                  {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}
-                </span>
-              </div>
+    <div className={`esl-practice-layout reading-workspace${historyRailCollapsed ? " is-history-collapsed" : ""}`}>
+      <div className="reading-center-stage">
+        <div className="reading-content-column">
+          <div className="esl-center-panel">
+            <div className="esl-welcome">
+              <h2>New Passage</h2>
+              <EslModeToggle mode={mode} onModeChange={setMode} />
             </div>
-          )}
-        </EslAttemptComposer>
+
+            <EslAttemptComposer
+              action="?index"
+              submitLabel="Submit"
+              canSubmit={Boolean(content.trim())}
+              mode={mode}
+              onModeChange={setMode}
+            >
+              {({ hideText }) => (
+                <div className={`esl-compose-editor${hideText ? " is-masked" : ""}`}>
+                  <Textarea
+                    name="content"
+                    rows={18}
+                    className={`esl-compose-textarea${hideText ? " is-masked" : ""}`}
+                    placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
+                    value={content}
+                    readOnly={hideText}
+                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setContent(event.currentTarget.value)
+                    }
+                  />
+                  {hideText ? (
+                    <div className="esl-compose-mask" aria-hidden="true">
+                      <div className="esl-compose-mask-chip">Recite Mode</div>
+                      <div className="esl-compose-mask-copy">
+                        Text hidden for recitation mode. Switch back to Read if you want to review or edit the passage.
+                      </div>
+                    </div>
+                  ) : null}
+                  <div
+                    className={`esl-compose-count ${
+                      content.length > 0 ? "is-visible" : ""
+                    } ${content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""}`}
+                  >
+                    <span className="textarea-count">
+                      {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </EslAttemptComposer>
+          </div>
+        </div>
       </div>
 
-      <EslReadingHistoryRail attempts={[]} disableNewAttempt />
+      <div className="reading-detail-rail">
+        <EslReadingHistoryRail
+          attempts={[]}
+          disableNewAttempt
+          collapsed={historyRailCollapsed}
+          onToggle={handleHistoryRailToggle}
+        />
+      </div>
     </div>
   );
 }

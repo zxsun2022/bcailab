@@ -1,19 +1,16 @@
 import { useRouteLoaderData } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
-import { READING_OUTPUT_LANGUAGE_OPTIONS } from "~/utils/reading-settings";
-import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
-import type { loader as readingLoader } from "~/routes/reading";
+import type { loader as speechLoader } from "~/routes/speech";
 
 export const handle = {
-  breadcrumb: { label: "settings", href: "/reading/settings" }
+  breadcrumb: { label: "settings", href: "/speech/settings" }
 };
 
-export default function ReadingSettingsPage() {
-  const data = useRouteLoaderData<typeof readingLoader>("routes/reading");
+export default function SpeechSettingsPage() {
+  const data = useRouteLoaderData<typeof speechLoader>("routes/speech");
   const user = data?.user;
 
   const [themePreference, setThemePreference] = useThemePreference();
-  const [outputLanguage, setOutputLanguage] = useReadingOutputLanguage();
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? "Account";
@@ -55,30 +52,6 @@ export default function ReadingSettingsPage() {
                 onClick={() => setThemePreference(value)}
               >
                 {value === "system" ? "Auto" : value.charAt(0).toUpperCase() + value.slice(1)}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Reading-specific: output language */}
-        <section className="tool-settings-section">
-          <div className="menu-label">Reading feedback</div>
-          <div className="menu-setting-row">
-            <div className="menu-setting-title">Output Language</div>
-            <div className="menu-setting-hint">
-              New feedback and retry requests use this language.
-            </div>
-          </div>
-          <div className="menu-option-grid menu-option-grid-two">
-            {READING_OUTPUT_LANGUAGE_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`menu-option-button${outputLanguage === option.value ? " is-active" : ""}`}
-                aria-pressed={outputLanguage === option.value}
-                onClick={() => setOutputLanguage(option.value)}
-              >
-                {option.label}
               </button>
             ))}
           </div>

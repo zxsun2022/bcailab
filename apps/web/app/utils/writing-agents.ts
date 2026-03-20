@@ -2,6 +2,7 @@ export type WritingAgent = {
   id: string;
   label: string;
   description: string;
+  scaffold: string;
   dimensions: string[];
   rubric: string;
   tone: string;
@@ -18,6 +19,8 @@ export const WRITING_AGENTS: Record<string, WritingAgent> = {
     label: "General",
     description:
       "General-purpose writing feedback focused on clarity, structure, style, and correctness.",
+    scaffold:
+      "No fixed structure required.\n\nTips: Start with a clear opening, develop your ideas logically, and end with a strong conclusion. Avoid vague claims — be specific.",
     dimensions: ["Clarity", "Structure", "Style & Voice", "Grammar & Mechanics"],
     rubric: [
       "Evaluate the writing as a general writing coach.",
@@ -51,6 +54,8 @@ export const WRITING_AGENTS: Record<string, WritingAgent> = {
     label: "IELTS Tutor",
     description:
       "Academic essay responding to a point of view, argument, or problem. Evaluated against IELTS Band 7–9 descriptors.",
+    scaffold:
+      "Structure: Introduction → Body paragraph 1 → Body paragraph 2 → Conclusion\n\nWord target: 250–400 words\n\nTips: State a clear position in your introduction. Open each body paragraph with a topic sentence. Support claims with specific examples. Avoid bullet points.",
     dimensions: [
       "Task Response (TR)",
       "Coherence & Cohesion (CC)",

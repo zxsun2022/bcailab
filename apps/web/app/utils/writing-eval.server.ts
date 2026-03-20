@@ -136,6 +136,7 @@ const buildPrompt = (input: {
   feedbackLanguage: "en" | "zh";
   previousRound: PreviousRoundContext | null;
   historyScores: Array<{ round: number; assessment: string }>;
+  topic?: string;
 }): string => {
   const langLabel = input.feedbackLanguage === "zh" ? "Chinese" : "English";
   const isFirstRound = input.previousRound === null;
@@ -192,6 +193,10 @@ const buildPrompt = (input: {
     )
   ];
 
+  if (input.topic) {
+    parts.push("", "## Essay Prompt / Topic", input.topic);
+  }
+
   if (input.historyScores.length > 0) {
     parts.push("", "## Score history (oldest to newest)");
     for (const h of input.historyScores) {
@@ -231,6 +236,7 @@ export const evaluateWriting = async (input: {
   feedbackLanguage: "en" | "zh";
   previousRound: PreviousRoundContext | null;
   historyScores: Array<{ round: number; assessment: string }>;
+  topic?: string;
 }): Promise<{ modelName: string; feedback: WritingFeedback }> => {
   const apiKey = input.env.GEMINI_API_KEY?.trim();
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
@@ -243,7 +249,8 @@ export const evaluateWriting = async (input: {
     wordCount: input.wordCount,
     feedbackLanguage: input.feedbackLanguage,
     previousRound: input.previousRound,
-    historyScores: input.historyScores
+    historyScores: input.historyScores,
+    topic: input.topic
   });
 
   const response = await fetch(

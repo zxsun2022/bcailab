@@ -6,36 +6,52 @@ import {
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import type { WritingFeedback } from "~/utils/writing-eval.server";
+import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   const articleId = params.id;
   if (!articleId) throw new Response("Not found", { status: 404 });
 
-  const article = await getWritingArticleById(context.env.DB, articleId, { includeDeleted: true });
-  if (!article || article.user_id !== user.id || article.deleted_at) {
-    throw new Response("Not found", { status: 404 });
-  }
-
-  const latest = await getLatestWritingRevision(context.env.DB, articleId);
-  if (!latest) {
-    return json({ feedbackStatus: "none" as const, feedback: null });
-  }
-
-  let feedback: WritingFeedback | null = null;
-  if (latest.feedback_json) {
-    try {
-      feedback = JSON.parse(latest.feedback_json) as WritingFeedback;
-    } catch {
-      feedback = null;
+  try {
+    const article = await getWritingArticleById(context.env.DB, articleId, { includeDeleted: true });
+    if (!article || article.user_id !== user.id || article.deleted_at) {
+      throw new Response("Not found", { status: 404 });
     }
-  }
 
-  return json({
-    articleTitle: article.title,
-    feedbackStatus: latest.feedback_status,
-    feedback,
-    roundNumber: latest.round_number,
-    bandEstimate: feedback?.round_summary?.band_estimate ?? null
-  });
+    const latest = await getLatestWritingRevision(context.env.DB, articleId);
+    if (!latest) {
+      return json({ feedbackStatus: "none" as const, feedback: null });
+    }
+
+    let feedback: WritingFeedback | null = null;
+    if (latest.feedback_json) {
+      try {
+        feedback = JSON.parse(latest.feedback_json) as WritingFeedback;
+      } catch {
+        feedback = null;
+      }
+    }
+
+    return json({
+      articleTitle: article.title,
+      feedbackStatus: latest.feedback_status,
+      feedback,
+      roundNumber: latest.round_number,
+      bandEstimate: feedback?.round_summary?.band_estimate ?? null
+    });
+  } catch (error) {
+    if (!isWritingSchemaMissingError(error)) throw error;
+    logWritingSchemaMissing("writing.status.loader", error);
+    return json(
+      {
+        articleTitle: null,
+        feedbackStatus: "unavailable" as const,
+        feedback: null,
+        roundNumber: 0,
+        bandEstimate: null
+      },
+      { status: 503 }
+    );
+  }
 };
