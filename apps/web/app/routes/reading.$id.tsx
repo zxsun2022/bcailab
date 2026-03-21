@@ -45,6 +45,7 @@ import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
 import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
+const HISTORY_RAIL_COLLAPSED_KEY = "reading-history-rail-collapsed";
 
 const deleteAttemptArtifacts = async (
   context: ActionFunctionArgs["context"],
@@ -303,11 +304,31 @@ export default function EslReadingPracticePage() {
   const [liveReferenceAudio, setLiveReferenceAudio] = React.useState(referenceAudio);
   const [liveSelected, setLiveSelected] = React.useState(selected);
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
+  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(() => {
+    try { return localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY) === "true"; } catch { return false; }
+  });
+  const sortedAttempts = React.useMemo(
+    () => [...liveAttempts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    [liveAttempts]
+  );
+  const latestAttempt = sortedAttempts[0] ?? null;
   const headingSubtitle = composeView
     ? attempts.length === 0
       ? "Record the first attempt for this passage."
       : null
     : null;
+  const isViewingHistory = Boolean(
+    !composeView && liveSelected && latestAttempt && liveSelected.id !== latestAttempt.id
+  );
+  const isPassageHiddenInContext = composeView && mode === "recitation";
+
+  const handleHistoryRailToggle = React.useCallback(() => {
+    setHistoryRailCollapsed((current) => {
+      const next = !current;
+      try { localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   React.useEffect(() => {
     setLiveAttempts(attempts);
@@ -366,74 +387,124 @@ export default function EslReadingPracticePage() {
   );
 
   return (
-    <div className="esl-practice-layout">
-      <div className="esl-center-panel">
-        <div className="esl-passage-header">
-          <Link to="/reading" className="posts-link esl-mobile-back">
-            &larr; Passages
-          </Link>
-          <div className="esl-passage-heading-row">
-            <div className="esl-passage-heading-copy">
-              <h1>{displayTitle}</h1>
-              {headingSubtitle ? (
-                <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
-              ) : null}
+    <div className={`esl-practice-layout reading-workspace${historyRailCollapsed ? " is-history-collapsed" : ""}`}>
+      <div className="reading-center-stage">
+        <div className="reading-content-column">
+          <div className="esl-center-panel">
+            <div className="esl-passage-header">
+              <Link to="/reading" className="posts-link esl-mobile-back">
+                &larr; Passages
+              </Link>
+              <div className="esl-passage-heading-row">
+                <div className="esl-passage-heading-copy">
+                  <h1>{displayTitle}</h1>
+                  {headingSubtitle ? (
+                    <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
+                  ) : null}
+                </div>
+                {composeView ? <EslModeToggle mode={mode} onModeChange={setMode} /> : null}
+              </div>
             </div>
-            {composeView ? <EslModeToggle mode={mode} onModeChange={setMode} /> : null}
-          </div>
-        </div>
 
-        {actionError ? <div className="form-error">{actionError}</div> : null}
-
-        {composeView ? (
-          <EslAttemptComposer
-            submitLabel="Submit"
-            mode={mode}
-            onModeChange={setMode}
-          >
-            {({ hideText }) => (
-              <Card className="tool-card-stack esl-compose-card esl-compose-card-readonly">
-                {hideText ? (
-                  <div className="esl-passage-hidden">
-                    Text hidden for recitation mode. Try reciting from memory.
+            {composeView && liveAttempts.length > 0 ? (
+              <div className="esl-state-banner">
+                <div className="esl-state-banner-copy">
+                  <div className="esl-state-banner-label">New Attempt</div>
+                  <div className="esl-state-banner-text">
+                    Record a fresh attempt for this passage. Your latest scored attempt stays available in history.
                   </div>
-                ) : (
+                </div>
+                <Link to={`/reading/${passage.id}`} className="btn btn-ghost btn-sm esl-state-banner-action">
+                  Back to latest
+                </Link>
+              </div>
+            ) : null}
+
+            {isViewingHistory && liveSelected ? (
+              <div className="esl-state-banner">
+                <div className="esl-state-banner-copy">
+                  <div className="esl-state-banner-label">Viewing History</div>
+                  <div className="esl-state-banner-text">
+                    Reviewing an earlier attempt from <LocalDateTime value={liveSelected.createdAt} />.
+                  </div>
+                </div>
+                <Link to={`/reading/${passage.id}`} className="btn btn-ghost btn-sm esl-state-banner-action">
+                  Back to latest
+                </Link>
+              </div>
+            ) : null}
+
+            <Card className="tool-card-stack esl-passage-context-card">
+              <div className="esl-detail-section-label">Passage</div>
+              {isPassageHiddenInContext ? (
+                <div className="esl-passage-hidden esl-passage-context-hidden">
+                  Passage text is hidden in recitation mode. Switch back to Read if you want to review it before recording.
+                </div>
+              ) : (
+                <div className="esl-passage-context-body">
                   <div className="esl-passage-body">{passage.content_text}</div>
+                </div>
+              )}
+            </Card>
+
+            {actionError ? <div className="form-error">{actionError}</div> : null}
+
+            {composeView ? (
+              <EslAttemptComposer
+                submitLabel="Submit"
+                mode={mode}
+                onModeChange={setMode}
+              >
+                {({ hideText }) => (
+                  <Card className="tool-card-stack esl-compose-card esl-compose-session-card">
+                    <div className="esl-detail-section-label">Recorder</div>
+                    <div className="esl-compose-session-title">
+                      {hideText ? "Recite from memory" : "Read the passage aloud"}
+                    </div>
+                    <p className="esl-compose-session-desc">
+                      {hideText
+                        ? "Press record when you are ready. You can listen back, re-record, and submit for AI feedback."
+                        : "Use the passage context above while you record. You can review the audio, re-record, and then submit for feedback."}
+                    </p>
+                  </Card>
                 )}
+              </EslAttemptComposer>
+            ) : liveSelected ? (
+              <AttemptDetail
+                passageId={passage.id}
+                attemptId={liveSelected.id}
+                referenceAudio={liveReferenceAudio}
+                audioUrl={liveSelected.audioUrl}
+                createdAt={liveSelected.createdAt}
+                durationMs={liveSelected.durationMs}
+                mode={liveSelected.mode}
+                evaluationStatus={liveSelected.evaluationStatus}
+                isStalePending={liveSelected.isStalePending}
+                canRetryEvaluation={liveSelected.canRetryEvaluation}
+                evaluation={liveSelected.evaluation}
+                onReferenceStateChange={handleReferenceStateChange}
+                onSelectedStateChange={handleSelectedStateChange}
+              />
+            ) : (
+              <Card className="tool-card-stack">
+                No attempt selected. Choose a history item or start a new attempt.
               </Card>
             )}
-          </EslAttemptComposer>
-        ) : liveSelected ? (
-          <AttemptDetail
-            passageId={passage.id}
-            attemptId={liveSelected.id}
-            passageText={passage.content_text}
-            referenceAudio={liveReferenceAudio}
-            audioUrl={liveSelected.audioUrl}
-            createdAt={liveSelected.createdAt}
-            durationMs={liveSelected.durationMs}
-            mode={liveSelected.mode}
-            evaluationStatus={liveSelected.evaluationStatus}
-            isStalePending={liveSelected.isStalePending}
-            canRetryEvaluation={liveSelected.canRetryEvaluation}
-            evaluation={liveSelected.evaluation}
-            onReferenceStateChange={handleReferenceStateChange}
-            onSelectedStateChange={handleSelectedStateChange}
-          />
-        ) : (
-          <Card className="tool-card-stack">
-            No attempt selected. Choose a history item or start a new attempt.
-          </Card>
-        )}
+          </div>
+        </div>
       </div>
 
-      <EslReadingHistoryRail
-        passageId={passage.id}
-        attempts={liveAttempts}
-        selectedAttemptId={liveSelected?.id ?? null}
-        isComposeView={composeView}
-        disableNewAttempt={composeView}
-      />
+      <div className="reading-detail-rail">
+        <EslReadingHistoryRail
+          passageId={passage.id}
+          attempts={liveAttempts}
+          selectedAttemptId={liveSelected?.id ?? null}
+          isComposeView={composeView}
+          disableNewAttempt={composeView}
+          collapsed={historyRailCollapsed}
+          onToggle={handleHistoryRailToggle}
+        />
+      </div>
     </div>
   );
 }
@@ -441,7 +512,6 @@ export default function EslReadingPracticePage() {
 function AttemptDetail(props: {
   passageId: string;
   attemptId: string;
-  passageText: string;
   referenceAudio: {
     status: "pending" | "completed" | "failed" | null;
     audioUrl: string | null;
@@ -652,11 +722,6 @@ function AttemptDetail(props: {
 
   return (
     <div className="esl-detail-stack">
-      <Card className="tool-card-stack esl-detail-passage-card">
-        <div className="esl-detail-section-label">Passage</div>
-        <div className="esl-passage-body">{props.passageText}</div>
-      </Card>
-
       <Card className="tool-card-stack esl-detail-card">
         <div className="esl-detail-head">
           <div className="esl-detail-head-main">

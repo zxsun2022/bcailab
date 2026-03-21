@@ -13,10 +13,12 @@ Style: Editorial Craft (journal + workshop)
 
 ## Theme Policy
 
-Theme mode is `auto` only.
+Users can choose between `System` (auto), `Light`, and `Dark` modes.
 
-- Light/dark follows the user OS/browser environment via `prefers-color-scheme`
-- No manual theme switch and no persisted theme preference
+- Preference is stored in `localStorage` under `"bcailab-theme-preference"`
+- On page load, a blocking `<script>` in `<head>` reads the stored preference, resolves it (system → media query), and sets `data-themePreference` / `data-resolvedTheme` on `<html>` to prevent FOUC
+- Tool pages (which hide the global header) apply the theme via `useThemePreference()` hook
+- Settings pages expose a three-button grid (Auto / Light / Dark) for selection
 
 ## Typography
 
@@ -83,18 +85,49 @@ Core spacing tokens:
 
 ## Layout Rules
 
-- Main container: centered, responsive fixed-max width
+- Main container: centered, responsive fixed-max width (`--container-width: 1220px`)
 - Home: two-column hero on desktop, single-column <= 768px
 - Footer: reserved for the landing/about pages; tool surfaces do not render the global footer
 - Tool pages: same typography and card/field primitives
-- TTS: desktop sidebar layout at >= 1024px
+
+### Tool Shell Pattern
+
+Tool pages (Writing, Reading, Speech) use a full-viewport shell that hides the global header and footer. The shell follows a three-zone layout:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ .tool-body (100dvh, overflow: hidden)               │
+│ ┌──────────┬────────────────────────────────────────┐│
+│ │ Nav Rail │ .tool-main                             ││
+│ │ (aside)  │ ┌──────────────────────────────────┐   ││
+│ │ 248px    │ │ .canvas (max-width, margin:auto) │   ││
+│ │ ↕ 52px   │ │    [route content]               │   ││
+│ │          │ │    [optional aside panel]         │   ││
+│ │          │ └──────────────────────────────────┘   ││
+│ └──────────┴────────────────────────────────────────┘│
+└─────────────────────────────────────────────────────┘
+```
+
+**Key principles:**
+- The **canvas** constrains content width and centers it horizontally. Sub-pages may apply narrower inner max-widths (e.g. 720px for editors, 600px for settings).
+- The **nav rail** is collapsible (persisted in localStorage). On mobile (<1024px), it renders as a drawer overlay.
+- Optional **aside panels** (e.g. revision timeline) sit inside the canvas alongside the main content, not at the shell level.
+- The canvas stays centered regardless of nav rail collapse state or screen width.
+
+### Responsive Breakpoints (Tool Pages)
+
+| Breakpoint | Nav Rail | Canvas | Aside Panel |
+|------------|---------|--------|-------------|
+| < 1024px | Drawer overlay | Full width | Hidden |
+| 1024–1279px | Persistent sidebar | Centered, max-width constrained | Compact (if applicable) |
+| ≥ 1280px | Persistent sidebar | Centered, max-width constrained | Full width (if applicable) |
 
 ## Header and Auth Constraints
 
 Header stays behavior-compatible with current product logic:
 
 - Left: logo + breadcrumb
-- Right: Google login button (signed out) OR aligned 36px settings/avatar controls (signed in, reading route adds the settings control)
+- Right: Google login button (signed out) OR aligned 36px avatar/menu controls (signed in)
 - No `about/x/tools` nav links in header
 
 ## Component Rules

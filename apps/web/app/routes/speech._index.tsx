@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { Link, useActionData, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
+import { useActionData, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { Button, Card, Textarea } from "@bcailab/ui";
 import {
   createTtsGeneration,
@@ -33,14 +33,6 @@ type LoaderLanguage = {
   voices: SpeechVoiceOption[];
 };
 
-type HistoryItem = {
-  id: string;
-  inputText: string;
-  languageCode: string;
-  voiceName: string;
-  createdAt: string;
-};
-
 type SelectedRecord = {
   id: string;
   inputText: string;
@@ -62,6 +54,9 @@ type ActionSuccess = {
   alignment: SpeechAlignment;
   warning?: string;
 };
+
+const filterSpeechVoices = (voices: SpeechVoiceOption[]): SpeechVoiceOption[] =>
+  voices.filter((voice) => voice.family === "chirp3");
 
 const formatError = (error: unknown): string => {
   if (error instanceof TtsValidationError) return error.message;
@@ -312,35 +307,33 @@ const computePlaybackState = (input: {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
-  const generations = await listTtsGenerationsByUser(context.env.DB, user.id);
   const url = new URL(request.url);
   const selectedId = url.searchParams.get("record");
-  const selectedRow =
-    selectedId ? generations.find((generation) => generation.id === selectedId) : null;
-  const selected: SelectedRecord | null = selectedRow
-    ? {
-        id: selectedRow.id,
-        inputText: selectedRow.input_text,
-        processedText: selectedRow.processed_text,
-        languageCode: selectedRow.language_code,
-        voiceName: selectedRow.voice_name,
-        createdAt: selectedRow.created_at,
-        audioUrl: `/speech/audio/${selectedRow.id}`,
-        downloadUrl: `/speech/audio/${selectedRow.id}?download=1`
-      }
-    : null;
-  const history: HistoryItem[] = generations.map((generation) => ({
-    id: generation.id,
-    inputText: generation.input_text,
-    languageCode: generation.language_code,
-    voiceName: generation.voice_name,
-    createdAt: generation.created_at
-  }));
+
+  let selected: SelectedRecord | null = null;
+  if (selectedId) {
+    const row = await getTtsGenerationById(context.env.DB, selectedId);
+    if (row && row.user_id === user.id && !row.deleted_at) {
+      selected = {
+        id: row.id,
+        inputText: row.input_text,
+        processedText: row.processed_text,
+        languageCode: row.language_code,
+        voiceName: row.voice_name,
+        createdAt: row.created_at,
+        audioUrl: `/speech/audio/${row.id}`,
+        downloadUrl: `/speech/audio/${row.id}?download=1`
+      };
+    }
+  }
 
   let voiceError: string | null = null;
   let voicesByLanguage: Record<string, SpeechVoiceOption[]> = {};
   try {
-    voicesByLanguage = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
+    const rawVoices = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
+    voicesByLanguage = Object.fromEntries(
+      Object.entries(rawVoices).map(([code, voices]) => [code, filterSpeechVoices(voices)])
+    );
   } catch (error) {
     voiceError = formatError(error);
   }
@@ -354,7 +347,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return json({
     languages,
     voiceError,
-    history,
     selected
   });
 };
@@ -405,7 +397,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   try {
     const voiceMap = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
-    const languageVoices = voiceMap[languageCode] ?? [];
+    const languageVoices = filterSpeechVoices(voiceMap[languageCode] ?? []);
     const selectedVoice = languageVoices.find((voice) => voice.name === voiceName);
 
     if (!selectedVoice) {
@@ -483,7 +475,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function TtsIndexPage() {
-  const { languages, voiceError, history, selected } = useLoaderData<typeof loader>();
+  const { languages, voiceError, selected } = useLoaderData<typeof loader>();
   const routeActionData = useActionData<typeof action>();
   const fetcher = useFetcher<typeof action>();
   const navigate = useNavigate();
@@ -502,7 +494,6 @@ export default function TtsIndexPage() {
   const [currentChar, setCurrentChar] = React.useState(0);
   const [currentTokenIndex, setCurrentTokenIndex] = React.useState<number>(-1);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
-  const [mobileHistoryOpen, setMobileHistoryOpen] = React.useState(false);
   const [copyState, setCopyState] = React.useState<"idle" | "copied" | "failed">("idle");
 
   const selectedLanguage =
@@ -741,228 +732,151 @@ export default function TtsIndexPage() {
   };
 
   return (
-    <div className="tool-page tts-shell">
-      <aside className="tts-sidebar">
-        <div className="tts-sidebar-header">
-          <Link to="/speech" className="btn btn-primary">
-            New task
-          </Link>
-        </div>
-        <div className="tts-sidebar-list">
-          {history.length === 0 ? (
-            <div className="tts-sidebar-empty">No tasks yet.</div>
-          ) : (
-            history.map((item) => (
-              <Link
-                key={item.id}
-                to={`/speech?record=${item.id}`}
-                className={`tts-sidebar-item ${selectedId === item.id ? "is-active" : ""}`}
-              >
-                <div className="tts-sidebar-item-title">
-                  {item.inputText.slice(0, 80)}
-                  {item.inputText.length > 80 ? "..." : ""}
-                </div>
-                <div className="tts-sidebar-item-meta">
-                  <span>{item.languageCode}</span>
-                  <span>{formatDate(item.createdAt)}</span>
-                </div>
-              </Link>
-            ))
-          )}
-        </div>
-      </aside>
-
-      <div className={`tts-main ${mobileHistoryOpen ? "is-history-open" : ""}`}>
-        <div className="tts-mobile-actions">
-          <Link
-            to="/speech"
-            className="btn btn-ghost btn-sm tts-mobile-action"
-            onClick={() => setMobileHistoryOpen(false)}
-          >
-            New task
-          </Link>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm tts-mobile-action"
-            onClick={() => setMobileHistoryOpen((prev) => !prev)}
-            aria-expanded={mobileHistoryOpen}
-            aria-controls="tts-mobile-history"
-          >
-            {mobileHistoryOpen ? "Hide history" : "History"}
-            <span className="tts-mobile-count">{history.length}</span>
-          </button>
-        </div>
-        {mobileHistoryOpen ? (
-          <div id="tts-mobile-history" className="tts-mobile-history-panel">
-            {history.length === 0 ? (
-              <div className="tts-sidebar-empty">No tasks yet.</div>
-            ) : (
-              <div className="tts-mobile-history-list">
-                {history.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={`/speech?record=${item.id}`}
-                    className={`tts-sidebar-item ${selectedId === item.id ? "is-active" : ""}`}
-                    onClick={() => setMobileHistoryOpen(false)}
-                  >
-                    <div className="tts-sidebar-item-title">
-                      {item.inputText.slice(0, 80)}
-                      {item.inputText.length > 80 ? "..." : ""}
-                    </div>
-                    <div className="tts-sidebar-item-meta">
-                      <span>{item.languageCode}</span>
-                      <span>{formatDate(item.createdAt)}</span>
-                    </div>
-                  </Link>
-                ))}
+    <div className="speech-workspace">
+      <div className="speech-center-stage">
+        <div className="speech-content-column">
+          <div className="tts-primary-content">
+            {voiceError ? (
+              <div className="banner tts-warning">
+                Voice list could not be loaded: {voiceError}
               </div>
-            )}
-          </div>
-        ) : null}
-        <div className="tts-primary-content">
-          {voiceError ? (
-            <div className="banner tts-warning">
-              Voice list could not be loaded: {voiceError}
-            </div>
-          ) : null}
-          {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
+            ) : null}
+            {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
 
-          {!selected ? (
-            <Card className="tool-card-stack tts-primary-card">
-              <fetcher.Form method="post" className="tts-form">
-                <input type="hidden" name="_intent" value="generate" />
-                <Textarea
-                  name="content"
-                  placeholder="Enter text for speech generation..."
-                  value={content}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setContent(event.currentTarget.value)
-                  }
-                />
-                <div className="textarea-meta">
-                  <span>Markdown syntax is cleaned automatically before synthesis.</span>
-                  <span className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}>
-                    {content.length.toLocaleString()} chars
-                    {isOverLimit
-                      ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
-                      : null}
-                  </span>
-                </div>
+            {!selected ? (
+              <Card className="tool-card-stack tts-primary-card tts-compose-card">
+                <fetcher.Form method="post" className="tts-form speech-compose-form">
+                  <input type="hidden" name="_intent" value="generate" />
+                  <Textarea
+                    name="content"
+                    placeholder="Enter text for speech generation..."
+                    value={content}
+                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setContent(event.currentTarget.value)
+                    }
+                  />
+                  <div className="textarea-meta">
+                    <span>Markdown syntax is cleaned automatically before synthesis.</span>
+                    <span className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}>
+                      {content.length.toLocaleString()} chars
+                      {isOverLimit
+                        ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
+                        : null}
+                    </span>
+                  </div>
 
-                <div className="tts-controls">
-                <div className="tts-select-grid">
-                    <div className="tts-select-field">
-                      <label className="tts-label" htmlFor="languageCode">
-                        Language
-                      </label>
-                      <select
-                        id="languageCode"
-                        name="languageCode"
-                        className="input"
-                        value={selectedLanguage?.code ?? ""}
-                        onChange={(event) => setLanguageCode(event.currentTarget.value)}
-                      >
-                        {languages.map((language) => (
-                          <option
-                            key={language.code}
-                            value={language.code}
-                            disabled={language.voices.length === 0}
-                          >
-                            {language.label}
-                            {language.voices.length === 0 ? " (no supported voice available)" : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="tts-controls">
+                    <div className="tts-select-grid">
+                      <div className="tts-select-field">
+                        <label className="tts-label" htmlFor="languageCode">
+                          Language
+                        </label>
+                        <select
+                          id="languageCode"
+                          name="languageCode"
+                          className="input"
+                          value={selectedLanguage?.code ?? ""}
+                          onChange={(event) => setLanguageCode(event.currentTarget.value)}
+                        >
+                          {languages.map((language) => (
+                            <option
+                              key={language.code}
+                              value={language.code}
+                              disabled={language.voices.length === 0}
+                            >
+                              {language.label}
+                              {language.voices.length === 0 ? " (no supported voice available)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="tts-select-field">
-                      <label className="tts-label" htmlFor="voiceName">
-                        Voice
-                      </label>
-                      <select
-                        id="voiceName"
-                        name="voiceName"
-                        className="input"
-                        value={voiceName}
-                        onChange={(event) => setVoiceName(event.currentTarget.value)}
-                        disabled={voiceOptions.length === 0}
-                      >
-                        {voiceOptions.length === 0 ? (
-                          <option value="">No supported voice available</option>
-                        ) : null}
-                        {voiceOptions.map((voice) => (
-                          <option key={voice.name} value={voice.name}>
-                            {voice.family === "chirp3" ? "Chirp3 · " : "Neural2 · "}
-                            {voice.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                      <div className="tts-select-field">
+                        <label className="tts-label" htmlFor="voiceName">
+                          Voice
+                        </label>
+                        <select
+                          id="voiceName"
+                          name="voiceName"
+                          className="input"
+                          value={voiceName}
+                          onChange={(event) => setVoiceName(event.currentTarget.value)}
+                          disabled={voiceOptions.length === 0}
+                        >
+                          {voiceOptions.length === 0 ? (
+                            <option value="">No supported voice available</option>
+                          ) : null}
+                          {voiceOptions.map((voice) => (
+                            <option key={voice.name} value={voice.name}>{voice.label}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="tts-generate-wrap">
-                      <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
-                        {isSubmitting ? "Generating..." : "Generate"}
-                      </Button>
+                      <div className="tts-generate-wrap">
+                        <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
+                          {isSubmitting ? "Generating..." : "Generate"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
-              </fetcher.Form>
-            </Card>
-          ) : null}
+                  {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
+                </fetcher.Form>
+              </Card>
+            ) : null}
 
-          {selected ? (
-            <Card className="tool-card-stack tts-primary-card">
-              <div className="tts-result-header">
-                <strong>Task details</strong>
-                <div className="tts-history-actions">
-                  <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
-                    {copyState === "copied"
-                      ? "Copied!"
-                      : copyState === "failed"
-                        ? "Copy failed"
-                        : "Copy text"}
-                  </Button>
-                  <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
-                    Download MP3
-                  </a>
-                  <form
-                    method="post"
-                    onSubmit={(event) => {
-                      if (!confirm("Delete this generation? This cannot be undone.")) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="_intent" value="delete" />
-                    <input type="hidden" name="id" value={selected.id} />
-                    <Button type="submit" variant="danger" size="sm">
-                      Delete
+            {selected ? (
+              <Card className="tool-card-stack tts-primary-card tts-selected-card">
+                <div className="tts-result-header">
+                  <strong>Task details</strong>
+                  <div className="tts-history-actions">
+                    <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
+                      {copyState === "copied"
+                        ? "Copied!"
+                        : copyState === "failed"
+                          ? "Copy failed"
+                          : "Copy text"}
                     </Button>
-                  </form>
+                    <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
+                      Download MP3
+                    </a>
+                    <form
+                      method="post"
+                      onSubmit={(event) => {
+                        if (!confirm("Delete this generation? This cannot be undone.")) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <input type="hidden" name="_intent" value="delete" />
+                      <input type="hidden" name="id" value={selected.id} />
+                      <Button type="submit" variant="danger" size="sm">
+                        Delete
+                      </Button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-              <audio
-                ref={audioRef}
-                className="tts-audio"
-                controls
-                preload="metadata"
-                src={selected.audioUrl}
-              />
-              <div className="tts-history-meta" style={{ marginTop: "12px" }}>
-                <span>{selected.languageCode}</span>
-                <span>{selected.voiceName}</span>
-                <span>{formatDate(selected.createdAt)}</span>
-              </div>
-              {activeAlignment
-                ? renderTranscript(activeAlignment.displayText)
-                : (
-                  <div className="tts-transcript-fallback">{selected.processedText}</div>
-                  )}
-              {activeWarning ? <div className="banner tts-warning">{activeWarning}</div> : null}
-            </Card>
-          ) : null}
+                <audio
+                  ref={audioRef}
+                  className="tts-audio"
+                  controls
+                  preload="metadata"
+                  src={selected.audioUrl}
+                />
+                <div className="tts-history-meta" style={{ marginTop: "12px" }}>
+                  <span>{selected.languageCode}</span>
+                  <span>{selected.voiceName}</span>
+                  <span>{formatDate(selected.createdAt)}</span>
+                </div>
+                {activeAlignment
+                  ? renderTranscript(activeAlignment.displayText)
+                  : (
+                    <div className="tts-transcript-fallback">{selected.processedText}</div>
+                    )}
+                {activeWarning ? <div className="banner tts-warning">{activeWarning}</div> : null}
+              </Card>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

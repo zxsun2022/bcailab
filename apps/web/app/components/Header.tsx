@@ -1,50 +1,27 @@
 import * as React from "react";
 import { Button } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
-import { Link, useLocation, useMatches } from "@remix-run/react";
-import {
-  READING_OUTPUT_LANGUAGE_OPTIONS,
-  type ReadingOutputLanguage
-} from "~/utils/reading-settings";
-import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
+import { Link, useMatches } from "@remix-run/react";
+import { useThemePreference } from "~/utils/use-theme-preference";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
-const THEME_STORAGE_KEY = "bcailab-theme-preference";
-
-type ThemePreference = "system" | "light" | "dark";
 
 type BreadcrumbHandle = {
   breadcrumb?: { label: string; href?: string };
-};
-
-const getStoredThemePreference = (): ThemePreference => {
-  const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
-  return stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+  hideHeaderUserMenu?: boolean;
 };
 
 export const Header: React.FC<{ user: User | null }> = ({ user }) => {
   const matches = useMatches();
-  const location = useLocation();
   const breadcrumbs = matches
     .filter((match) => (match.handle as BreadcrumbHandle)?.breadcrumb)
     .map((match) => (match.handle as BreadcrumbHandle).breadcrumb!);
+  const hideUserMenu = matches.some(
+    (match) => (match.handle as BreadcrumbHandle)?.hideHeaderUserMenu
+  );
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [settingsOpen, setSettingsOpen] = React.useState(false);
-  const [themePreference, setThemePreference] = React.useState<ThemePreference>("system");
-  const [outputLanguage, setOutputLanguage] = useReadingOutputLanguage();
+  const [themePreference, setThemePreference] = useThemePreference();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
-  const isReadingRoute =
-    location.pathname === "/reading" || location.pathname.startsWith("/reading/");
-
-  const applyThemePreference = React.useCallback((preference: ThemePreference) => {
-    const resolved =
-      preference === "system"
-        ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
-        : preference;
-    const root = document.documentElement;
-    root.dataset.themePreference = preference;
-    root.dataset.resolvedTheme = resolved;
-  }, []);
 
   React.useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -62,35 +39,11 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
       if (!menuRef.current) return;
       if (!menuRef.current.contains(event.target as Node)) {
         setMenuOpen(false);
-        setSettingsOpen(false);
       }
     };
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
   }, []);
-
-  React.useEffect(() => {
-    if (!isReadingRoute) {
-      setSettingsOpen(false);
-    }
-  }, [isReadingRoute]);
-
-  React.useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const preference = getStoredThemePreference();
-    setThemePreference(preference);
-    applyThemePreference(preference);
-
-    const handleSystemThemeChange = () => {
-      const currentPreference = getStoredThemePreference();
-      if (currentPreference === "system") {
-        applyThemePreference("system");
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
-    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
-  }, [applyThemePreference]);
 
   const handleLogin = () => {
     const width = 520;
@@ -102,17 +55,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
       "bcailab-auth",
       `width=${width},height=${height},left=${left},top=${top}`
     );
-  };
-
-  const handleThemeChange = (preference: ThemePreference) => {
-    window.localStorage.setItem(THEME_STORAGE_KEY, preference);
-    setThemePreference(preference);
-    applyThemePreference(preference);
-  };
-
-  const handleOutputLanguageChange = (next: ReadingOutputLanguage) => {
-    setOutputLanguage(next);
-    setSettingsOpen(false);
   };
 
   return (
@@ -147,71 +89,18 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
             </nav>
           )}
         </div>
-        <div className="nav-actions" ref={menuRef}>
-          {!user ? (
-            <Button type="button" onClick={handleLogin}>
-              Continue with Google
-            </Button>
-          ) : (
-            <>
-              {isReadingRoute ? (
-                <div className="menu-shell">
-                  <button
-                    type="button"
-                    className={`header-icon-button ${settingsOpen ? "is-open" : ""}`}
-                    onClick={() => {
-                      setSettingsOpen((prev) => !prev);
-                      setMenuOpen(false);
-                    }}
-                    aria-label="Open reading settings"
-                    aria-haspopup="menu"
-                    aria-expanded={settingsOpen}
-                  >
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M4 7h5M13 7h7M4 12h10M18 12h2M4 17h3M11 17h9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                      <circle cx="11" cy="7" r="2" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="16" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="9" cy="17" r="2" stroke="currentColor" strokeWidth="1.5" />
-                    </svg>
-                  </button>
-                  {settingsOpen ? (
-                    <div className="menu menu-settings">
-                      <div className="menu-section">
-                        <div className="menu-label">Reading Settings</div>
-                        <div className="menu-setting-row">
-                          <div className="menu-setting-title">Output Language</div>
-                          <div className="menu-setting-hint">
-                            New feedback and retries use this language.
-                          </div>
-                        </div>
-                        <div className="menu-option-grid menu-option-grid-two">
-                          {READING_OUTPUT_LANGUAGE_OPTIONS.map((option) => (
-                            <button
-                              key={option.value}
-                              type="button"
-                              className={`menu-option-button ${
-                                outputLanguage === option.value ? "is-active" : ""
-                              }`}
-                              aria-pressed={outputLanguage === option.value}
-                              onClick={() => handleOutputLanguageChange(option.value)}
-                            >
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+        {!hideUserMenu ? (
+          <div className="nav-actions" ref={menuRef}>
+            {!user ? (
+              <Button type="button" onClick={handleLogin}>
+                Continue with Google
+              </Button>
+            ) : (
               <div className="menu-shell">
                 <button
                   type="button"
                   className="avatar-button"
-                  onClick={() => {
-                    setMenuOpen((prev) => !prev);
-                    setSettingsOpen(false);
-                  }}
+                  onClick={() => setMenuOpen((prev) => !prev)}
                   aria-label="Open user menu"
                 >
                   <img
@@ -241,7 +130,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                               themePreference === option.value ? "is-active" : ""
                             }`}
                             aria-pressed={themePreference === option.value}
-                            onClick={() => handleThemeChange(option.value)}
+                            onClick={() => setThemePreference(option.value)}
                           >
                             {option.label}
                           </button>
@@ -256,9 +145,9 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   </div>
                 ) : null}
               </div>
-            </>
-          )}
-        </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </header>
   );

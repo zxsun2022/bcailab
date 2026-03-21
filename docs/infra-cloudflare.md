@@ -73,4 +73,9 @@ Recommended setup:
   - `R2` -> staging R2 bucket
   - `GEMINI_API_KEY`, `GEMINI_MODEL`, and all auth/session env vars
 
+If preview/staging is missing newer D1 migrations, tool routes that depend on
+them may be unavailable. In particular, `/writing` requires `0007_writing.sql`.
+The UI now shows an unavailable state instead of crashing, but the migration
+still needs to be applied for the tool to work.
+
 With this setup, branch push -> Preview deploy -> isolated test database/bucket.

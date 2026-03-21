@@ -28,6 +28,12 @@ const categories: Category[] = [
         tags: ["Speaking", "Practice"]
       },
       {
+        slug: "writing",
+        title: "Writing Coach",
+        description: "Iterative feedback loop for draft revisions.",
+        tags: ["Writing", "AI"]
+      },
+      {
         slug: "speech",
         title: "Speech",
         description: "Generate natural speech audio with optional synced text.",
@@ -38,13 +44,6 @@ const categories: Category[] = [
         title: "AI Dictionary",
         description: "Word and phrase explanation with bilingual support.",
         tags: ["Vocabulary", "AI"],
-        planned: true
-      },
-      {
-        slug: "esl/writing",
-        title: "Writing Coach",
-        description: "Iterative feedback loop for draft revisions.",
-        tags: ["Writing", "AI"],
         planned: true
       }
     ]

@@ -2,6 +2,8 @@
 
 Patterns and pitfalls discovered while building and fixing layout across bcailab tool pages. This document is intended for both humans and AI agents working on the codebase.
 
+For the higher-level shared shell and detail-page interaction model, see `docs/tool-shell-pattern.md`. That document treats Writing as the current reference implementation for cross-tool layout behaviour.
+
 ## Container & Content Width
 
 The site container is `1220px` (`--container-width`). Individual tool pages constrain their content to narrower widths for readability.
@@ -13,6 +15,31 @@ The site container is `1220px` (`--container-width`). Individual tool pages cons
 | TTS grid (with sidebar) | Full container | Sidebar + main fill the viewport |
 
 **Key rule**: any `max-width` constraint **must** be paired with `margin-left: auto; margin-right: auto` (or `margin: 0 auto`) to center the element within the wider container. Forgetting `margin: auto` causes the element to stick to the left edge.
+
+## Canvas Centering (Tool Pages)
+
+Tool pages use a `.canvas` wrapper inside the main content area to constrain width and center content. This ensures consistent centering regardless of nav rail state.
+
+```css
+.writing-canvas {
+  width: 100%;
+  max-width: 1020px;     /* accommodates center-panel + aside panel */
+  margin: 0 auto;        /* centers within .writing-main */
+  flex: 1;
+  min-height: 0;
+}
+```
+
+Sub-pages apply their own narrower max-widths inside the canvas:
+- Editor/composer: `720px`
+- Settings: `600px`
+- Dashboard: `760px`
+
+For detail pages with a docked right rail, do not stop at canvas centering. Use the shared `center stage + article column + right rail shell` pattern described in `docs/tool-shell-pattern.md`.
+
+For pages with a side panel (e.g. article detail with revision rail), the canvas holds both the center-panel and the aside as flex children. The center-panel gets its own `max-width` (e.g. 720px) so it never stretches too wide even when the aside is absent.
+
+**Key rule:** The canvas `max-width` should equal the sum of center-panel max-width + gap + aside panel width. Example: `720px + 28px + 260px ≈ 1020px`.
 
 ## Centering Checklist
 
@@ -61,7 +88,8 @@ Every intermediate container needs `min-height: 0` to allow flex shrinking below
 | `max-width: 1024px` | Home hero layout stacks |
 | `max-width: 768px` | Primary mobile breakpoint — sidebars hide, grids collapse to single column, header stacks |
 | `max-width: 480px` | Small phone tweaks — reduced padding, smaller logo |
-| `min-width: 1024px` | Desktop enhancements — grid layouts, viewport-filling tools, TOC sidebar |
+| `min-width: 1024px` | Tool pages: nav rail becomes persistent sidebar, detail layouts switch to horizontal flex, revision rail appears (compact) |
+| `min-width: 1280px` | Tool pages: revision rail expands to full width (220–260px via `clamp`) |
 
 ### Common mobile pitfalls
 

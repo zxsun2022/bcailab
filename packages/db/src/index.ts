@@ -90,6 +90,31 @@ export type EslReadingEvaluation = {
   created_at: string;
 };
 
+export type WritingArticle = {
+  id: string;
+  user_id: string;
+  title: string | null;
+  essay_prompt: string | null;
+  agent_type: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type WritingRevision = {
+  id: string;
+  article_id: string;
+  user_id: string;
+  round_number: number;
+  user_text: string;
+  word_count: number;
+  feedback_json: string | null;
+  feedback_status: "pending" | "completed" | "failed";
+  model_name: string | null;
+  created_at: string;
+};
+
 export type GoogleProfile = {
   sub: string;
   email?: string;
@@ -195,6 +220,34 @@ const mapEslReadingEvaluation = (row: Record<string, unknown>): EslReadingEvalua
   model_name: String(row.model_name),
   rubric_version: String(row.rubric_version),
   output_json: String(row.output_json),
+  created_at: String(row.created_at)
+});
+
+const mapWritingArticle = (row: Record<string, unknown>): WritingArticle => ({
+  id: String(row.id),
+  user_id: String(row.user_id),
+  title: row.title ? String(row.title) : null,
+  essay_prompt: row.essay_prompt ? String(row.essay_prompt) : null,
+  agent_type: String(row.agent_type),
+  status: String(row.status),
+  created_at: String(row.created_at),
+  updated_at: String(row.updated_at),
+  deleted_at: row.deleted_at ? String(row.deleted_at) : null
+});
+
+const mapWritingRevision = (row: Record<string, unknown>): WritingRevision => ({
+  id: String(row.id),
+  article_id: String(row.article_id),
+  user_id: String(row.user_id),
+  round_number: Number(row.round_number),
+  user_text: String(row.user_text),
+  word_count: Number(row.word_count),
+  feedback_json: row.feedback_json ? String(row.feedback_json) : null,
+  feedback_status:
+    row.feedback_status === "pending" || row.feedback_status === "failed"
+      ? row.feedback_status
+      : "completed",
+  model_name: row.model_name ? String(row.model_name) : null,
   created_at: String(row.created_at)
 });
 
@@ -875,4 +928,209 @@ export async function incrementEslLearnerProfileCounters(
     if (isMissingTableError(error, "esl_learner_profiles")) return;
     throw error;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Writing Articles
+// ---------------------------------------------------------------------------
+
+export async function createWritingArticle(
+  db: Db,
+  input: {
+    id?: string;
+    userId: string;
+    title?: string | null;
+    essayPrompt?: string | null;
+    agentType: string;
+  }
+): Promise<WritingArticle> {
+  const id = input.id ?? crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO writing_articles (id, user_id, title, essay_prompt, agent_type) VALUES (?, ?, ?, ?, ?)"
+    )
+    .bind(id, input.userId, input.title ?? null, input.essayPrompt ?? null, input.agentType)
+    .run();
+
+  const created = await getWritingArticleById(db, id, { includeDeleted: true });
+  if (!created) throw new Error("Failed to create writing article.");
+  return created;
+}
+
+export async function getWritingArticleById(
+  db: Db,
+  id: string,
+  options: { includeDeleted?: boolean } = {}
+): Promise<WritingArticle | null> {
+  const { includeDeleted = false } = options;
+  const query = includeDeleted
+    ? "SELECT * FROM writing_articles WHERE id = ? LIMIT 1"
+    : "SELECT * FROM writing_articles WHERE id = ? AND deleted_at IS NULL LIMIT 1";
+  const result = await db.prepare(query).bind(id).first();
+  return result ? mapWritingArticle(result) : null;
+}
+
+export async function listWritingArticlesByUser(
+  db: Db,
+  userId: string
+): Promise<WritingArticle[]> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM writing_articles WHERE user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC, created_at DESC"
+    )
+    .bind(userId)
+    .all();
+  if (!result.results) return [];
+  return result.results.map(mapWritingArticle);
+}
+
+export async function updateWritingArticleTitle(
+  db: Db,
+  input: { id: string; userId: string; title: string }
+): Promise<WritingArticle | null> {
+  await db
+    .prepare(
+      "UPDATE writing_articles SET title = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+    )
+    .bind(input.title, input.id, input.userId)
+    .run();
+  return getWritingArticleById(db, input.id, { includeDeleted: true });
+}
+
+export async function touchWritingArticle(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE writing_articles SET updated_at = datetime('now') WHERE id = ? AND user_id = ?"
+    )
+    .bind(input.id, input.userId)
+    .run();
+}
+
+export async function softDeleteWritingArticle(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE writing_articles SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?"
+    )
+    .bind(input.id, input.userId)
+    .run();
+}
+
+// ---------------------------------------------------------------------------
+// Writing Revisions
+// ---------------------------------------------------------------------------
+
+export async function createWritingRevision(
+  db: Db,
+  input: {
+    id?: string;
+    articleId: string;
+    userId: string;
+    roundNumber: number;
+    userText: string;
+    wordCount: number;
+  }
+): Promise<WritingRevision> {
+  const id = input.id ?? crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO writing_revisions (id, article_id, user_id, round_number, user_text, word_count) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .bind(id, input.articleId, input.userId, input.roundNumber, input.userText, input.wordCount)
+    .run();
+
+  const created = await getWritingRevisionById(db, id);
+  if (!created) throw new Error("Failed to create writing revision.");
+  return created;
+}
+
+export async function getWritingRevisionById(
+  db: Db,
+  id: string
+): Promise<WritingRevision | null> {
+  const result = await db
+    .prepare("SELECT * FROM writing_revisions WHERE id = ? LIMIT 1")
+    .bind(id)
+    .first();
+  return result ? mapWritingRevision(result) : null;
+}
+
+export async function listWritingRevisionsByArticle(
+  db: Db,
+  articleId: string
+): Promise<WritingRevision[]> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM writing_revisions WHERE article_id = ? ORDER BY round_number ASC"
+    )
+    .bind(articleId)
+    .all();
+  if (!result.results) return [];
+  return result.results.map(mapWritingRevision);
+}
+
+export async function getLatestWritingRevision(
+  db: Db,
+  articleId: string
+): Promise<WritingRevision | null> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM writing_revisions WHERE article_id = ? ORDER BY round_number DESC LIMIT 1"
+    )
+    .bind(articleId)
+    .first();
+  return result ? mapWritingRevision(result) : null;
+}
+
+export async function updateWritingRevisionFeedback(
+  db: Db,
+  input: {
+    id: string;
+    feedbackJson: string | null;
+    feedbackStatus: "pending" | "completed" | "failed";
+    modelName: string;
+  }
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE writing_revisions SET feedback_json = ?, feedback_status = ?, model_name = ? WHERE id = ?"
+    )
+    .bind(input.feedbackJson, input.feedbackStatus, input.modelName, input.id)
+    .run();
+}
+
+export async function softDeleteWritingRevisionsByArticle(
+  db: Db,
+  input: { articleId: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare(
+      "DELETE FROM writing_revisions WHERE article_id = ? AND user_id = ?"
+    )
+    .bind(input.articleId, input.userId)
+    .run();
+}
+
+export async function listCompletedWritingRevisionsByUser(
+  db: Db,
+  userId: string
+): Promise<WritingRevision[]> {
+  const result = await db
+    .prepare(
+      `SELECT r.* FROM writing_revisions r
+       JOIN writing_articles a ON r.article_id = a.id
+       WHERE r.user_id = ?
+         AND r.feedback_status = 'completed'
+         AND r.feedback_json IS NOT NULL
+         AND a.deleted_at IS NULL
+       ORDER BY r.created_at ASC`
+    )
+    .bind(userId)
+    .all();
+  return (result.results ?? []).map(mapWritingRevision);
 }

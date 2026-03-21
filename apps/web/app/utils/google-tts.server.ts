@@ -236,6 +236,15 @@ const detectVoiceFamily = (name: string): VoiceFamily | null => {
 const voiceFamilyPriority = (family: VoiceFamily): number =>
   family === "chirp3" ? 0 : 1;
 
+const formatVoiceLabel = (name: string, ssmlGender?: string | null): string => {
+  const cleaned = name
+    .replace(/^[a-z]{2}-[A-Z]{2}-/i, "")
+    .replace(/^Chirp3(?:-HD)?-/i, "")
+    .replace(/^Neural2-/i, "");
+
+  return ssmlGender ? `${cleaned} (${ssmlGender})` : cleaned;
+};
+
 const loadSupportedVoices = async (
   env: Env,
   languages: SpeechLanguage[]
@@ -272,7 +281,7 @@ const loadSupportedVoices = async (
       collected.set(key, {
         languageCode: code,
         name: voice.name,
-        label: voice.ssmlGender ? `${voice.name} (${voice.ssmlGender})` : voice.name,
+        label: formatVoiceLabel(voice.name, voice.ssmlGender ?? null),
         family,
         ssmlGender: voice.ssmlGender ?? null
       });

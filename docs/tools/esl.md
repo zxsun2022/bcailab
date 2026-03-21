@@ -10,7 +10,8 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
 | Reading layout | `/reading` | Layout route with left sidebar (passage list). |
 | Reading index | `/reading` (index) | Create a new passage and submit the first attempt in one page. |
-| Reading practice | `/reading/:id` | Two-column: center switches between new-attempt composer and attempt detail; right rail is history only. |
+| Reading settings | `/reading/settings` | Reading-specific settings page inside the center canvas. |
+| Reading practice | `/reading/:id` | Desktop workspace shell: center stage switches between new-attempt composer and attempt detail; right rail is history/navigation only. |
 | Reading status resource | `/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
 | Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
@@ -19,10 +20,13 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 
 ### Layout
 - **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
+- **Left sidebar footer**: A persistent `Settings` entry opens `/reading/settings` in the center canvas.
+- **Desktop workspace shell**: Reading now follows the shared tool-shell model used by Writing. The main area is split into `center stage + reading content column + right rail shell`.
 - **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
-- **Passage center column**: Either a new-attempt composer (read-only passage text) or a selected attempt detail view.
-- **Right column**: History rail only, with a persistent `New Attempt` button at the top. Attempt deletion lives in each history row's hover menu.
-- **Header action**: On `/reading*`, the global header adds a reading-only settings button to the left of the avatar. This is route-scoped and does not appear on the rest of the site.
+- **Passage center column**: Either a new-attempt composer or a selected attempt detail view, but both now share the same top skeleton.
+- **Persistent passage context**: On `/reading/:id`, compose / latest / history all show the same read-only `Passage` context block above the main body so the page stays anchored while the state changes.
+- **Right rail shell**: History/navigation only, docked to the far right edge of the main area. The shell owns the vertical divider and the rail width.
+- **Desktop scroll ownership**: The primary page scroll belongs to the center stage, while the history list inside the right rail scrolls independently when it overflows.
 
 ### Passage Management
 - Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.
@@ -33,7 +37,8 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 ### Practice Workflow
 - New passage flow: paste passage text, record once, submit, then redirect into that first history entry.
 - Existing passage flow: click `New Attempt` in the history rail to open the read-only recording composer for that passage.
-- Mode toggle: Reading / Recitation. In recitation mode, both new-passage and existing-passage composers hide the passage text.
+- When recording a new attempt for an existing passage, the passage text moves into the shared `Passage` context block instead of being embedded inside a special compose-only card.
+- Mode toggle: Reading / Recitation. On the new-passage page, recitation mode keeps the textarea footprint but applies a visual mask so the stored passage text is fully covered. On existing passages, recitation mode hides the shared `Passage` context block content.
 - Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
@@ -80,8 +85,13 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 
 ### Right Panel Behaviour
 - History rail always shows `New Attempt` at the top.
+- Desktop history rail is collapsible. Expanded mode shows the full history list; collapsed mode reduces the rail to the same `52px` width used by Writing.
+- Desktop history rail collapse/expand animates the rail-shell width and fades the expanded rail body instead of swapping it instantly.
+- History list is ordered newest to oldest.
 - History list: click any entry to switch the center column to that attempt's detail view.
 - Pending and failed attempts stay in the rail with status labels until opened.
+- Collapsing the rail changes the desktop workspace allocation, but the evaluation content remains in the center column.
+- When viewing an older attempt, the center column shows a lightweight history banner with a `Back to latest` action.
 
 ### Delete Behaviour
 - Attempt deletion uses native `confirm()`.
