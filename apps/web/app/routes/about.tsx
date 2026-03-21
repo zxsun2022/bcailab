@@ -3,41 +3,56 @@ export default function About() {
     <div className="page">
       <h1>About bcailab</h1>
       <p className="page-intro">
-        bcailab is a personal lab for small, practical tools. The goal is simple: build focused
-        software for one clear job, keep the interface calm, and make it easy to move between tools
-        with the same account.
+        bcailab is a small AI tools lab focused on real workflows. The product direction is simple:
+        build one clear tool for one clear job, keep the interface calm, and let people move
+        between tools with the same account and the same overall design language.
       </p>
       <section>
-        <h2>What this lab is for</h2>
+        <h2>What this lab builds</h2>
         <p>
-          This project is intentionally small in scope. Instead of one large product with many
-          modes, bcailab grows as a collection of independent utilities that share the same
-          foundation. That keeps each tool easier to understand, easier to maintain, and faster to
-          use.
+          Instead of one large app with many loosely related features, bcailab grows as a set of
+          focused workspaces built on shared foundations: authentication, storage, layout patterns,
+          and deployment infrastructure. That keeps each tool easier to learn, easier to maintain,
+          and easier to improve without turning the whole product into a control panel.
         </p>
       </section>
       <section>
         <h2>Current tools</h2>
         <p>
-          <strong>Posts</strong>: write in Markdown, publish quickly, and share a clean public URL
-          without extra formatting overhead.
+          <strong>Writing Coach</strong>: an iterative writing workflow where you choose a coach,
+          submit a draft, receive structured feedback, revise, and track progress across rounds.
         </p>
         <p>
-          <strong>Speech</strong>: turn text into MP3 audio with Google Cloud TTS voices. Neural2
-          supports synchronized text highlighting, while Chirp3 is optimized for high-quality speech
-          output.
+          <strong>Reading / Recitation</strong>: practice reading passages aloud or from memory,
+          store attempts, and get AI-supported evaluation on pronunciation, fluency, and clarity.
+        </p>
+        <p>
+          <strong>Speech</strong>: turn text into natural MP3 audio with Google Cloud TTS voices,
+          keep a private generation history, and play or download results on demand.
+        </p>
+        <p>
+          <strong>Posts</strong>: write in Markdown, publish quickly, and share a clean public URL
+          without unnecessary formatting overhead.
         </p>
       </section>
       <section>
-        <h2>Access and workflow</h2>
+        <h2>How the platform works</h2>
         <p>
-          Access is handled through Google sign-in. Once signed in, you can move from one tool to
-          another without logging in again. The homepage is designed as the entry point, so starting
-          a session and switching tools stays lightweight.
+          Access is handled through Google sign-in. Once signed in, you can move between workspaces
+          without logging in again. Shared infrastructure on Cloudflare handles app delivery, data
+          storage, and private asset storage so each tool can stay focused on its own job.
+        </p>
+      </section>
+      <section>
+        <h2>Product principles</h2>
+        <p>
+          The standard for new work is practical usefulness over feature count. A tool should solve
+          a concrete problem, keep the learning curve low, and feel coherent with the rest of the
+          lab without being forced into a one-size-fits-all interface.
         </p>
         <p>
-          More tools may be added over time, but the principle stays the same: each one should solve
-          a concrete problem well, without unnecessary steps or clutter.
+          More tools may be added over time, but growth is deliberate. bcailab stays small on
+          purpose so the shipped tools can stay sharp.
         </p>
       </section>
     </div>
