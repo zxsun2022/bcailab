@@ -1,13 +1,13 @@
 # Speech Tool
 
-Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chirp3 and Neural2 voices.
+Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chirp3 voices.
 
 ## Features
 - Input text and generate MP3 audio (`/speech`)
 - Input text is automatically rendered to clean plain text before synthesis
-- Language + voice selection (Chirp3 preferred, Neural2 fallback)
+- Language + voice selection (Chirp3 only in the Speech workspace)
 - Generated audio is immediately playable and downloadable
-- History is integrated on the same `/speech` page (sidebar + mobile panel)
+- History is integrated on the same `/speech` page via the shared left rail shell
 - Selected record is controlled by query param: `?record=<generationId>`
 - “Copy text” action in the selected record toolbar with transient success/failure feedback
 - Generated MP3 files are stored privately in Cloudflare R2
@@ -19,20 +19,22 @@ Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chir
 | Audio stream/download | `/speech/audio/:id` | Auth required. Owner-only playback/download endpoint. |
 | Legacy compatibility | `/tts`, `/tts/history`, `/tts/*` | 301 redirect to `/speech*`. |
 
+## Workspace Structure
+- Desktop `/speech` follows the shared tool-shell pattern used by Writing and Reading:
+  - shared left rail shell for history and settings access
+  - a single `speech-center-stage` that owns the main page scroll
+  - a constrained `speech-content-column` for the generator and selected-record views
+- In the desktop compose state, the input card intentionally fills the available workspace height so the textarea remains the dominant surface and the generate controls stay anchored near the bottom edge.
+- Speech intentionally does **not** introduce a right rail. History remains in the left rail only.
+- Long-form controls such as the synced transcript may still keep local overflow when needed for playback-follow behavior, but the workspace-level scroll belongs to the center stage.
+
 ## Text Preprocessing
 - User input is parsed as Markdown and converted to plain readable text before synthesis.
 - Markdown formatting symbols are removed automatically in preprocessing.
 
-## Time-Synced Highlighting
-- Timing is derived from SSML `<mark>` timepoints (`SSML_MARK`), not automatic word timestamps.
-- Generated text is tokenized before synthesis:
-  - English/French/Spanish: word-level
-  - Japanese: character-level
-- Neural2 generation supports playback highlighting with:
-  - read text color progression
-  - current line background highlight
-  - current word accent highlight
-- Chirp3 generation does not provide usable word timepoints, so playback is shown without highlighting.
+## Playback View
+- Speech currently exposes Chirp3 voices only.
+- Chirp3 generation does not provide usable word timepoints, so playback is shown without word-level synchronized highlighting.
 
 ## Data & Deletion
 - D1 table: `tts_generations`
@@ -43,5 +45,5 @@ Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chir
   3. Reload selected history state from the remaining records
 
 ## Constraints
-- Voice list is limited to Chirp3 and Neural2 families.
+- Voice list in the Speech workspace is limited to the Chirp3 family.
 - Google TTS input limit is **5,000 bytes per request** (text/SSML); app-side validation enforces this on the final SSML payload.

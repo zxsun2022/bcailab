@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Outlet, useLoaderData, useSearchParams } from "@remix-run/react";
+import { Outlet, useLoaderData, useLocation, useSearchParams } from "@remix-run/react";
 import { listTtsGenerationsByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { SpeechNavRail } from "~/components/SpeechNavRail";
@@ -33,13 +33,19 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export default function TtsLayout() {
   const { history, user } = useLoaderData<typeof loader>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const activeId = searchParams.get("record");
+  const isWorkspaceRoute = location.pathname === "/speech";
+  const mainClassName = `writing-main${isWorkspaceRoute ? " is-workspace" : ""}`;
+  const canvasClassName = `speech-canvas${isWorkspaceRoute ? " is-workspace" : ""}`;
 
   return (
     <div className="writing-shell">
       <SpeechNavRail history={history} activeId={activeId} user={user} />
-      <div className="writing-main">
-        <Outlet />
+      <div className={mainClassName}>
+        <div className={canvasClassName}>
+          <Outlet />
+        </div>
       </div>
     </div>
   );

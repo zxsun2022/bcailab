@@ -15,12 +15,6 @@ type SpeechNavRailProps = {
   user: NavUser;
 };
 
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-
 export function SpeechNavRail({ history, activeId, user }: SpeechNavRailProps) {
   const location = useLocation();
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
@@ -40,7 +34,12 @@ export function SpeechNavRail({ history, activeId, user }: SpeechNavRailProps) {
   }, []);
 
   const pinnedActions = [
-    { icon: <IconNew />, label: "New Task", to: "/speech" },
+    {
+      icon: <IconNew />,
+      label: "New Task",
+      to: "/speech",
+      active: location.pathname === "/speech" && !activeId,
+    },
   ];
 
   return (
@@ -55,17 +54,11 @@ export function SpeechNavRail({ history, activeId, user }: SpeechNavRailProps) {
         <div className="nav-rail-empty">No tasks yet</div>
       ) : (
         history.map((item) => (
-          <NavRailItem
+            <NavRailItem
             key={item.id}
             to={`/speech?record=${item.id}`}
             isActive={activeId === item.id}
             title={item.inputText.slice(0, 60) || "Untitled"}
-            meta={
-              <>
-                <span className="nav-rail-agent-badge">{item.languageCode}</span>
-                <span>{formatDate(item.createdAt)}</span>
-              </>
-            }
             menuOpen={openMenuId === item.id}
             onMenuOpen={() =>
               setOpenMenuId((cur) => (cur === item.id ? null : item.id))

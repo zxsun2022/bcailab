@@ -86,6 +86,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 ### Right Panel Behaviour
 - History rail always shows `New Attempt` at the top.
 - Desktop history rail is collapsible. Expanded mode shows the full history list; collapsed mode reduces the rail to the same `52px` width used by Writing.
+- Desktop history rail collapse/expand animates the rail-shell width and fades the expanded rail body instead of swapping it instantly.
 - History list is ordered newest to oldest.
 - History list: click any entry to switch the center column to that attempt's detail view.
 - Pending and failed attempts stay in the rail with status labels until opened.

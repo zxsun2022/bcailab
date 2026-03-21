@@ -2930,6 +2930,25 @@ select.input:focus {
   display: none;
 }
 
+.esl-history-rail-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition: opacity 0.18s ease, transform 0.28s ease, visibility 0s linear;
+}
+
+.esl-history-rail-content.is-hidden {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.12s ease, transform 0.22s ease, visibility 0s linear 0.22s;
+}
+
 .esl-history-toggle-btn,
 .esl-history-icon-btn {
   width: 36px;
@@ -3248,6 +3267,7 @@ select.input:focus {
     height: 100%;
     min-height: 100%;
     align-items: stretch;
+    transition: grid-template-columns 0.28s ease;
   }
 
   .esl-practice-layout.reading-workspace.is-history-collapsed {
@@ -3271,6 +3291,7 @@ select.input:focus {
     max-width: var(--reading-detail-center-max);
     min-height: 100%;
     margin: 0 auto;
+    transition: width 0.28s ease, max-width 0.28s ease;
   }
 
   .reading-content-column > .esl-center-panel {
@@ -3285,6 +3306,7 @@ select.input:focus {
     border-left: 1px solid var(--border);
     overflow: hidden;
     padding: 16px 0 0 16px;
+    transition: width 0.28s ease, padding 0.28s ease;
   }
 
   .esl-practice-layout.reading-workspace.is-history-collapsed .reading-detail-rail {
@@ -3454,7 +3476,10 @@ select.input:focus {
 }
 
 .tts-primary-content {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
 }
 
 .tts-sidebar-header {
@@ -3535,7 +3560,7 @@ select.input:focus {
 
 .tts-select-grid {
   display: grid;
-  grid-template-columns: minmax(170px, 0.72fr) minmax(320px, 1.28fr) auto;
+  grid-template-columns: minmax(140px, 0.78fr) minmax(220px, 1.22fr) auto;
   gap: 12px;
   align-items: end;
 }
@@ -3649,6 +3674,24 @@ select.input:focus {
 
 .tts-primary-card {
   margin-top: 0;
+}
+
+.speech-workspace,
+.speech-center-stage,
+.speech-content-column {
+  min-width: 0;
+}
+
+.speech-workspace {
+  min-height: 0;
+}
+
+.speech-canvas {
+  width: 100%;
+  max-width: 1020px;
+  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
 }
 
 /* ==========================================================================
@@ -3916,6 +3959,74 @@ select.input:focus {
     height: var(--site-shell-height);
     padding-bottom: var(--space-md);
     overflow: hidden;
+  }
+
+  .speech-canvas {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .speech-canvas.is-workspace {
+    width: 100%;
+    max-width: none;
+    min-height: 0;
+  }
+
+  .speech-workspace {
+    --speech-content-max: 860px;
+    --speech-content-pad-x: clamp(40px, 5vw, 64px);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+
+  .speech-center-stage {
+    display: flex;
+    justify-content: center;
+    height: 100%;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    padding: 16px var(--speech-content-pad-x) 24px;
+  }
+
+  .speech-content-column {
+    width: min(100%, var(--speech-content-max));
+    max-width: var(--speech-content-max);
+    min-height: 100%;
+    margin: 0 auto;
+  }
+
+  .speech-content-column > .tts-primary-content {
+    min-height: 100%;
+  }
+
+  .speech-content-column > .tts-primary-content > .tts-compose-card {
+    min-height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .speech-workspace .speech-compose-form {
+    flex: 1;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .speech-workspace .speech-compose-form .textarea {
+    flex: 1 1 auto;
+    min-height: clamp(360px, 56vh, 720px);
+    resize: none;
+  }
+
+  .speech-workspace .speech-compose-form .tts-controls {
+    margin-top: auto;
+    padding-top: 24px;
   }
 
   .tts-shell {
@@ -4961,6 +5072,25 @@ select.input:focus {
   display: none;
 }
 
+.writing-aside-content {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  opacity: 1;
+  transform: translateX(0);
+  visibility: visible;
+  transition: opacity 0.18s ease, transform 0.28s ease, visibility 0s linear;
+}
+
+.writing-aside-content.is-hidden {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.12s ease, transform 0.22s ease, visibility 0s linear 0.22s;
+}
+
 .writing-aside-toolbar {
   display: flex;
   align-items: center;
@@ -5230,6 +5360,7 @@ select.input:focus {
     min-height: 100%;
     align-items: stretch;
     width: 100%;
+    transition: grid-template-columns 0.28s ease;
   }
 
   .writing-detail-layout.is-aside-collapsed {
@@ -5257,6 +5388,7 @@ select.input:focus {
     min-height: 100%;
     margin: 0 auto;
     padding: 0;
+    transition: width 0.28s ease, max-width 0.28s ease;
   }
 
   .writing-detail-rail {
@@ -5267,6 +5399,7 @@ select.input:focus {
     overflow: hidden;
     border-left: 1px solid var(--border);
     padding: 16px 0 0 16px;
+    transition: width 0.28s ease, padding 0.28s ease;
   }
 
   .writing-detail-layout.is-aside-collapsed .writing-detail-rail {

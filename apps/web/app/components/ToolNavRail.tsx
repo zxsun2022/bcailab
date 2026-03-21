@@ -12,6 +12,7 @@ export type PinnedAction = {
   icon: React.ReactNode;
   label: string;
   to: string;
+  active?: boolean;
 };
 
 type ToolNavRailProps = {
@@ -160,7 +161,9 @@ export function ToolNavRail({
               key={action.to}
               to={action.to}
               end
-              className={({ isActive }) => `nav-rail-action${isActive ? " is-active" : ""}`}
+              className={({ isActive }) =>
+                `nav-rail-action${(action.active ?? isActive) ? " is-active" : ""}`
+              }
             >
               {action.icon}
               <span className="nav-rail-label">{action.label}</span>

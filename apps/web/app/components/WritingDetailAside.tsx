@@ -70,46 +70,47 @@ export function WritingDetailAside({
         ) : null}
       </div>
 
-      {!collapsed && (
-        <>
-          <div className="writing-aside-rounds">
-            <Link
-              to={newRevisionHref}
-              className={`writing-aside-new-btn${disableNewRevision ? " is-disabled" : ""}${isNewRevisionActive ? " is-active" : ""}`}
-              aria-disabled={disableNewRevision}
-              onClick={(e) => { if (disableNewRevision) e.preventDefault(); }}
-            >
-              New Revision
-            </Link>
-            {sortedRounds.map((round) => {
-              const isActive = !isComposeView && activeRound === round.round_number;
-              const isLatest = round.round_number === latestRound;
-              const scoreText = round.band_estimate
-                ? formatWritingAssessment(round.band_estimate, assessmentPrefix)
-                : null;
-              const statusLabel = isLatest ? "Latest" : `Round ${round.round_number}`;
-              return (
-                <Link
-                  key={round.id}
-                  to={isLatest ? `/writing/${articleId}` : `/writing/${articleId}?round=${round.round_number}`}
-                  className={`writing-aside-pill${isActive ? " is-active" : ""}${round.feedback_status === "pending" ? " is-pending" : ""}${round.feedback_status === "failed" ? " is-failed" : ""}`}
-                  title={`${statusLabel}${scoreText ? ` — ${scoreText}` : ""}`}
-                >
-                  {round.round_number}
-                </Link>
-              );
-            })}
-          </div>
+      <div
+        className={`writing-aside-content${collapsed ? " is-hidden" : ""}`}
+        aria-hidden={collapsed}
+      >
+        <div className="writing-aside-rounds">
+          <Link
+            to={newRevisionHref}
+            className={`writing-aside-new-btn${disableNewRevision ? " is-disabled" : ""}${isNewRevisionActive ? " is-active" : ""}`}
+            aria-disabled={disableNewRevision}
+            onClick={(e) => { if (disableNewRevision) e.preventDefault(); }}
+          >
+            New Revision
+          </Link>
+          {sortedRounds.map((round) => {
+            const isActive = !isComposeView && activeRound === round.round_number;
+            const isLatest = round.round_number === latestRound;
+            const scoreText = round.band_estimate
+              ? formatWritingAssessment(round.band_estimate, assessmentPrefix)
+              : null;
+            const statusLabel = isLatest ? "Latest" : `Round ${round.round_number}`;
+            return (
+              <Link
+                key={round.id}
+                to={isLatest ? `/writing/${articleId}` : `/writing/${articleId}?round=${round.round_number}`}
+                className={`writing-aside-pill${isActive ? " is-active" : ""}${round.feedback_status === "pending" ? " is-pending" : ""}${round.feedback_status === "failed" ? " is-failed" : ""}`}
+                title={`${statusLabel}${scoreText ? ` — ${scoreText}` : ""}`}
+              >
+                {round.round_number}
+              </Link>
+            );
+          })}
+        </div>
 
-          {latestEntry?.feedback_status === "pending" ? (
-            <div className="writing-aside-note">Finish the latest round analysis before starting a new revision.</div>
-          ) : null}
+        {latestEntry?.feedback_status === "pending" ? (
+          <div className="writing-aside-note">Finish the latest round analysis before starting a new revision.</div>
+        ) : null}
 
-          <div className="writing-aside-body">
-            {children}
-          </div>
-        </>
-      )}
+        <div className="writing-aside-body">
+          {children}
+        </div>
+      </div>
     </aside>
   );
 }

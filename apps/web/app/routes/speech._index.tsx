@@ -55,6 +55,9 @@ type ActionSuccess = {
   warning?: string;
 };
 
+const filterSpeechVoices = (voices: SpeechVoiceOption[]): SpeechVoiceOption[] =>
+  voices.filter((voice) => voice.family === "chirp3");
+
 const formatError = (error: unknown): string => {
   if (error instanceof TtsValidationError) return error.message;
   if (error instanceof Error && error.message) return error.message;
@@ -327,7 +330,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   let voiceError: string | null = null;
   let voicesByLanguage: Record<string, SpeechVoiceOption[]> = {};
   try {
-    voicesByLanguage = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
+    const rawVoices = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
+    voicesByLanguage = Object.fromEntries(
+      Object.entries(rawVoices).map(([code, voices]) => [code, filterSpeechVoices(voices)])
+    );
   } catch (error) {
     voiceError = formatError(error);
   }
@@ -391,7 +397,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   try {
     const voiceMap = await getVoicesByLanguage(context.env, SUPPORTED_SPEECH_LANGUAGES);
-    const languageVoices = voiceMap[languageCode] ?? [];
+    const languageVoices = filterSpeechVoices(voiceMap[languageCode] ?? []);
     const selectedVoice = languageVoices.find((voice) => voice.name === voiceName);
 
     if (!selectedVoice) {
@@ -726,150 +732,153 @@ export default function TtsIndexPage() {
   };
 
   return (
-    <div className="tts-primary-content">
-      {voiceError ? (
-        <div className="banner tts-warning">
-          Voice list could not be loaded: {voiceError}
-        </div>
-      ) : null}
-      {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
+    <div className="speech-workspace">
+      <div className="speech-center-stage">
+        <div className="speech-content-column">
+          <div className="tts-primary-content">
+            {voiceError ? (
+              <div className="banner tts-warning">
+                Voice list could not be loaded: {voiceError}
+              </div>
+            ) : null}
+            {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
 
-          {!selected ? (
-            <Card className="tool-card-stack tts-primary-card">
-              <fetcher.Form method="post" className="tts-form">
-                <input type="hidden" name="_intent" value="generate" />
-                <Textarea
-                  name="content"
-                  placeholder="Enter text for speech generation..."
-                  value={content}
-                  onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    setContent(event.currentTarget.value)
-                  }
-                />
-                <div className="textarea-meta">
-                  <span>Markdown syntax is cleaned automatically before synthesis.</span>
-                  <span className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}>
-                    {content.length.toLocaleString()} chars
-                    {isOverLimit
-                      ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
-                      : null}
-                  </span>
-                </div>
+            {!selected ? (
+              <Card className="tool-card-stack tts-primary-card tts-compose-card">
+                <fetcher.Form method="post" className="tts-form speech-compose-form">
+                  <input type="hidden" name="_intent" value="generate" />
+                  <Textarea
+                    name="content"
+                    placeholder="Enter text for speech generation..."
+                    value={content}
+                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      setContent(event.currentTarget.value)
+                    }
+                  />
+                  <div className="textarea-meta">
+                    <span>Markdown syntax is cleaned automatically before synthesis.</span>
+                    <span className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}>
+                      {content.length.toLocaleString()} chars
+                      {isOverLimit
+                        ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
+                        : null}
+                    </span>
+                  </div>
 
-                <div className="tts-controls">
-                <div className="tts-select-grid">
-                    <div className="tts-select-field">
-                      <label className="tts-label" htmlFor="languageCode">
-                        Language
-                      </label>
-                      <select
-                        id="languageCode"
-                        name="languageCode"
-                        className="input"
-                        value={selectedLanguage?.code ?? ""}
-                        onChange={(event) => setLanguageCode(event.currentTarget.value)}
-                      >
-                        {languages.map((language) => (
-                          <option
-                            key={language.code}
-                            value={language.code}
-                            disabled={language.voices.length === 0}
-                          >
-                            {language.label}
-                            {language.voices.length === 0 ? " (no supported voice available)" : ""}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="tts-controls">
+                    <div className="tts-select-grid">
+                      <div className="tts-select-field">
+                        <label className="tts-label" htmlFor="languageCode">
+                          Language
+                        </label>
+                        <select
+                          id="languageCode"
+                          name="languageCode"
+                          className="input"
+                          value={selectedLanguage?.code ?? ""}
+                          onChange={(event) => setLanguageCode(event.currentTarget.value)}
+                        >
+                          {languages.map((language) => (
+                            <option
+                              key={language.code}
+                              value={language.code}
+                              disabled={language.voices.length === 0}
+                            >
+                              {language.label}
+                              {language.voices.length === 0 ? " (no supported voice available)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="tts-select-field">
-                      <label className="tts-label" htmlFor="voiceName">
-                        Voice
-                      </label>
-                      <select
-                        id="voiceName"
-                        name="voiceName"
-                        className="input"
-                        value={voiceName}
-                        onChange={(event) => setVoiceName(event.currentTarget.value)}
-                        disabled={voiceOptions.length === 0}
-                      >
-                        {voiceOptions.length === 0 ? (
-                          <option value="">No supported voice available</option>
-                        ) : null}
-                        {voiceOptions.map((voice) => (
-                          <option key={voice.name} value={voice.name}>
-                            {voice.family === "chirp3" ? "Chirp3 · " : "Neural2 · "}
-                            {voice.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                      <div className="tts-select-field">
+                        <label className="tts-label" htmlFor="voiceName">
+                          Voice
+                        </label>
+                        <select
+                          id="voiceName"
+                          name="voiceName"
+                          className="input"
+                          value={voiceName}
+                          onChange={(event) => setVoiceName(event.currentTarget.value)}
+                          disabled={voiceOptions.length === 0}
+                        >
+                          {voiceOptions.length === 0 ? (
+                            <option value="">No supported voice available</option>
+                          ) : null}
+                          {voiceOptions.map((voice) => (
+                            <option key={voice.name} value={voice.name}>{voice.label}</option>
+                          ))}
+                        </select>
+                      </div>
 
-                    <div className="tts-generate-wrap">
-                      <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
-                        {isSubmitting ? "Generating..." : "Generate"}
-                      </Button>
+                      <div className="tts-generate-wrap">
+                        <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
+                          {isSubmitting ? "Generating..." : "Generate"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
-              </fetcher.Form>
-            </Card>
-          ) : null}
+                  {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
+                </fetcher.Form>
+              </Card>
+            ) : null}
 
-          {selected ? (
-            <Card className="tool-card-stack tts-primary-card">
-              <div className="tts-result-header">
-                <strong>Task details</strong>
-                <div className="tts-history-actions">
-                  <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
-                    {copyState === "copied"
-                      ? "Copied!"
-                      : copyState === "failed"
-                        ? "Copy failed"
-                        : "Copy text"}
-                  </Button>
-                  <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
-                    Download MP3
-                  </a>
-                  <form
-                    method="post"
-                    onSubmit={(event) => {
-                      if (!confirm("Delete this generation? This cannot be undone.")) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    <input type="hidden" name="_intent" value="delete" />
-                    <input type="hidden" name="id" value={selected.id} />
-                    <Button type="submit" variant="danger" size="sm">
-                      Delete
+            {selected ? (
+              <Card className="tool-card-stack tts-primary-card tts-selected-card">
+                <div className="tts-result-header">
+                  <strong>Task details</strong>
+                  <div className="tts-history-actions">
+                    <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
+                      {copyState === "copied"
+                        ? "Copied!"
+                        : copyState === "failed"
+                          ? "Copy failed"
+                          : "Copy text"}
                     </Button>
-                  </form>
+                    <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
+                      Download MP3
+                    </a>
+                    <form
+                      method="post"
+                      onSubmit={(event) => {
+                        if (!confirm("Delete this generation? This cannot be undone.")) {
+                          event.preventDefault();
+                        }
+                      }}
+                    >
+                      <input type="hidden" name="_intent" value="delete" />
+                      <input type="hidden" name="id" value={selected.id} />
+                      <Button type="submit" variant="danger" size="sm">
+                        Delete
+                      </Button>
+                    </form>
+                  </div>
                 </div>
-              </div>
-              <audio
-                ref={audioRef}
-                className="tts-audio"
-                controls
-                preload="metadata"
-                src={selected.audioUrl}
-              />
-              <div className="tts-history-meta" style={{ marginTop: "12px" }}>
-                <span>{selected.languageCode}</span>
-                <span>{selected.voiceName}</span>
-                <span>{formatDate(selected.createdAt)}</span>
-              </div>
-              {activeAlignment
-                ? renderTranscript(activeAlignment.displayText)
-                : (
-                  <div className="tts-transcript-fallback">{selected.processedText}</div>
-                  )}
-              {activeWarning ? <div className="banner tts-warning">{activeWarning}</div> : null}
-            </Card>
-          ) : null}
+                <audio
+                  ref={audioRef}
+                  className="tts-audio"
+                  controls
+                  preload="metadata"
+                  src={selected.audioUrl}
+                />
+                <div className="tts-history-meta" style={{ marginTop: "12px" }}>
+                  <span>{selected.languageCode}</span>
+                  <span>{selected.voiceName}</span>
+                  <span>{formatDate(selected.createdAt)}</span>
+                </div>
+                {activeAlignment
+                  ? renderTranscript(activeAlignment.displayText)
+                  : (
+                    <div className="tts-transcript-fallback">{selected.processedText}</div>
+                    )}
+                {activeWarning ? <div className="banner tts-warning">{activeWarning}</div> : null}
+              </Card>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
