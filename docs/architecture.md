@@ -30,6 +30,7 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - `/speech` speech tool (generate + history panel on one page)
 - `/speech/audio/:id` authenticated speech audio stream/download endpoint
 - `/reading` ESL reading/recitation passage list + creation
+- `/reading/progress` ESL reading/recitation progress dashboard
 - `/reading/:id` ESL reading/recitation practice page
 - `/reading/:id/status` authenticated ESL reading status polling endpoint
 - `/esl/audio/:id` authenticated ESL attempt audio stream/download endpoint
