@@ -2022,6 +2022,14 @@ select.input:focus {
   gap: 2px;
 }
 
+.esl-passage-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .esl-passage-heading-subtitle {
   color: var(--text-muted);
   line-height: 1.6;
@@ -2155,6 +2163,50 @@ select.input:focus {
   max-width: 62ch;
   color: var(--text-muted);
   line-height: 1.7;
+}
+
+.esl-compose-brief-card {
+  gap: 18px;
+  min-height: auto;
+}
+
+.esl-compose-brief-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.esl-compose-brief-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.esl-compose-mode-badge {
+  flex-shrink: 0;
+}
+
+.esl-compose-passage-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.esl-compose-passage-body {
+  max-height: clamp(220px, 30vh, 360px);
+}
+
+.esl-compose-hidden-panel {
+  min-height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .esl-compose-editor {
