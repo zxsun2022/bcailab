@@ -90,6 +90,12 @@ export type EslReadingEvaluation = {
   created_at: string;
 };
 
+export type EslReadingAttemptWithEvaluation = EslReadingAttempt & {
+  passage_title: string | null;
+  passage_content_text: string;
+  evaluation_output_json: string;
+};
+
 export type WritingArticle = {
   id: string;
   user_id: string;
@@ -221,6 +227,15 @@ const mapEslReadingEvaluation = (row: Record<string, unknown>): EslReadingEvalua
   rubric_version: String(row.rubric_version),
   output_json: String(row.output_json),
   created_at: String(row.created_at)
+});
+
+const mapEslReadingAttemptWithEvaluation = (
+  row: Record<string, unknown>
+): EslReadingAttemptWithEvaluation => ({
+  ...mapEslReadingAttempt(row),
+  passage_title: row.passage_title ? String(row.passage_title) : null,
+  passage_content_text: String(row.passage_content_text),
+  evaluation_output_json: String(row.evaluation_output_json)
 });
 
 const mapWritingArticle = (row: Record<string, unknown>): WritingArticle => ({
@@ -832,6 +847,33 @@ export async function getLatestEslReadingEvaluationByAttemptId(
     .bind(attemptId)
     .first();
   return result ? mapEslReadingEvaluation(result) : null;
+}
+
+export async function listCompletedEslReadingAttemptsByUser(
+  db: Db,
+  userId: string
+): Promise<EslReadingAttemptWithEvaluation[]> {
+  const result = await db
+    .prepare(
+      `SELECT a.*, p.title AS passage_title, p.content_text AS passage_content_text, e.output_json AS evaluation_output_json
+       FROM esl_reading_attempts a
+       JOIN esl_passages p ON p.id = a.passage_id
+       JOIN esl_reading_evaluations e
+         ON e.id = (
+           SELECT e2.id
+           FROM esl_reading_evaluations e2
+           WHERE e2.attempt_id = a.id
+           ORDER BY e2.created_at DESC, e2.id DESC
+           LIMIT 1
+         )
+       WHERE a.user_id = ?
+         AND a.deleted_at IS NULL
+         AND p.deleted_at IS NULL
+       ORDER BY a.created_at ASC`
+    )
+    .bind(userId)
+    .all();
+  return (result.results ?? []).map(mapEslReadingAttemptWithEvaluation);
 }
 
 export async function getEslLearnerProfile(

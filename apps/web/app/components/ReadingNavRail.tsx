@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, useLocation } from "@remix-run/react";
-import { ToolNavRail, NavRailItem, IconNew, type NavUser } from "~/components/ToolNavRail";
+import { ToolNavRail, NavRailItem, IconNew, IconProgress, type NavUser } from "~/components/ToolNavRail";
 
 type PassageSummary = {
   id: string;
@@ -40,6 +40,7 @@ export function ReadingNavRail({ passages, activeId, user }: ReadingNavRailProps
 
   const pinnedActions = [
     { icon: <IconNew />, label: "New Passage", to: "/reading" },
+    { icon: <IconProgress />, label: "Progress", to: "/reading/progress" },
   ];
 
   return (

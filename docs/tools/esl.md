@@ -10,6 +10,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
 | Reading layout | `/reading` | Layout route with left sidebar (passage list). |
 | Reading index | `/reading` (index) | Create a new passage and submit the first attempt in one page. |
+| Reading progress | `/reading/progress` | Progress dashboard inside the center canvas with score trends, averages, and recent notes. |
 | Reading settings | `/reading/settings` | Reading-specific settings page inside the center canvas. |
 | Reading practice | `/reading/:id` | Desktop workspace shell: center stage switches between new-attempt composer and attempt detail; right rail is history/navigation only. |
 | Reading status resource | `/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
@@ -19,7 +20,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 ## Reading / Recitation (v2)
 
 ### Layout
-- **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
+- **Left sidebar** (desktop 1024px+): Passage list with titles only. Pinned top actions: `New passage`, `Progress`. Passage deletion lives in the hover menu on each list item.
 - **Left sidebar footer**: A persistent `Settings` entry opens `/reading/settings` in the center canvas.
 - **Desktop workspace shell**: Reading now follows the shared tool-shell model used by Writing. The main area is split into `center stage + reading content column + right rail shell`.
 - **Index center column**: New passage composer with a single large editable text area, internal character count, and recorder controls anchored at the bottom of the same compose card.
@@ -61,6 +62,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
 - Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
 - Highlights render the explicit target word or phrase from `text_quote` when available, otherwise they fall back to a validated `text_span`. The UI suppresses obviously broken partial-word spans instead of showing misleading chips.
+- Progress dashboard aggregates current non-deleted passages plus evaluated attempts, showing total passages, evaluated attempts, practice time, best score, overall-score trend, average subscores, recent AI progress notes, and recent passages with their latest score.
 - Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
