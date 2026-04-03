@@ -34,6 +34,7 @@ export type EslReadingEvaluationOutput = {
     kind: "mispronunciation" | "stress" | "pause" | "intonation";
     severity: 1 | 2 | 3;
     text_span: { start: number; end: number };
+    text_quote?: string | null;
     note_zh: string;
   }>;
   next_drills: Array<{

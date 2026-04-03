@@ -33,6 +33,7 @@ import {
   schedulePassageReferenceSynthesis
 } from "~/utils/esl-passage-reference.server";
 import {
+  clipText,
   deriveEslAttemptEvaluationState,
   formatDuration,
   getDisplayEslPassageTitle,
@@ -313,14 +314,14 @@ export default function EslReadingPracticePage() {
   );
   const latestAttempt = sortedAttempts[0] ?? null;
   const headingSubtitle = composeView
-    ? attempts.length === 0
+    ? liveAttempts.length === 0
       ? "Record the first attempt for this passage."
-      : null
+      : "Start a fresh attempt. Your latest scored attempt stays in history."
     : null;
   const isViewingHistory = Boolean(
     !composeView && liveSelected && latestAttempt && liveSelected.id !== latestAttempt.id
   );
-  const isPassageHiddenInContext = composeView && mode === "recitation";
+  const showComposeBackLink = composeView && liveAttempts.length > 0;
 
   const handleHistoryRailToggle = React.useCallback(() => {
     setHistoryRailCollapsed((current) => {
@@ -402,23 +403,18 @@ export default function EslReadingPracticePage() {
                     <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
                   ) : null}
                 </div>
-                {composeView ? <EslModeToggle mode={mode} onModeChange={setMode} /> : null}
+                {composeView ? (
+                  <div className="esl-passage-heading-actions">
+                    {showComposeBackLink ? (
+                      <Link to={`/reading/${passage.id}`} className="btn btn-ghost btn-sm">
+                        Back to latest
+                      </Link>
+                    ) : null}
+                    <EslModeToggle mode={mode} onModeChange={setMode} />
+                  </div>
+                ) : null}
               </div>
             </div>
-
-            {composeView && liveAttempts.length > 0 ? (
-              <div className="esl-state-banner">
-                <div className="esl-state-banner-copy">
-                  <div className="esl-state-banner-label">New Attempt</div>
-                  <div className="esl-state-banner-text">
-                    Record a fresh attempt for this passage. Your latest scored attempt stays available in history.
-                  </div>
-                </div>
-                <Link to={`/reading/${passage.id}`} className="btn btn-ghost btn-sm esl-state-banner-action">
-                  Back to latest
-                </Link>
-              </div>
-            ) : null}
 
             {isViewingHistory && liveSelected ? (
               <div className="esl-state-banner">
@@ -434,18 +430,14 @@ export default function EslReadingPracticePage() {
               </div>
             ) : null}
 
-            <Card className="tool-card-stack esl-passage-context-card">
-              <div className="esl-detail-section-label">Passage</div>
-              {isPassageHiddenInContext ? (
-                <div className="esl-passage-hidden esl-passage-context-hidden">
-                  Passage text is hidden in recitation mode. Switch back to Read if you want to review it before recording.
-                </div>
-              ) : (
+            {!composeView ? (
+              <Card className="tool-card-stack esl-passage-context-card">
+                <div className="esl-detail-section-label">Passage</div>
                 <div className="esl-passage-context-body">
                   <div className="esl-passage-body">{passage.content_text}</div>
                 </div>
-              )}
-            </Card>
+              </Card>
+            ) : null}
 
             {actionError ? <div className="form-error">{actionError}</div> : null}
 
@@ -455,23 +447,46 @@ export default function EslReadingPracticePage() {
                 mode={mode}
                 onModeChange={setMode}
               >
-                {({ hideText }) => (
-                  <Card className="tool-card-stack esl-compose-card esl-compose-session-card">
-                    <div className="esl-detail-section-label">Recorder</div>
-                    <div className="esl-compose-session-title">
-                      {hideText ? "Recite from memory" : "Read the passage aloud"}
-                    </div>
-                    <p className="esl-compose-session-desc">
-                      {hideText
-                        ? "Press record when you are ready. You can listen back, re-record, and submit for AI feedback."
-                        : "Use the passage context above while you record. You can review the audio, re-record, and then submit for feedback."}
-                    </p>
-                  </Card>
-                )}
+                {({ hideText, recorder }) => {
+                  const sessionTitle = hideText ? "Recite from memory" : "Read the passage aloud";
+                  const sessionDescription = hideText
+                    ? "Hide the passage and recite in one take. You can listen back, re-record, and then submit for AI feedback."
+                    : "Keep the passage in view while you record, then review the audio and submit for feedback.";
+
+                  return (
+                    <Card className="tool-card-stack esl-compose-card esl-compose-brief-card">
+                      <div className="esl-compose-brief-head">
+                        <div className="esl-compose-brief-copy">
+                          <div className="esl-compose-session-title">{sessionTitle}</div>
+                          <p className="esl-compose-session-desc">{sessionDescription}</p>
+                        </div>
+                        <Badge className="esl-compose-mode-badge">
+                          {hideText ? "Text hidden" : "Passage visible"}
+                        </Badge>
+                      </div>
+
+                      <div className="esl-compose-passage-block">
+                        <div className="esl-detail-section-label">Passage</div>
+                        {hideText ? (
+                          <div className="esl-passage-hidden esl-passage-context-hidden esl-compose-hidden-panel">
+                            Passage text is hidden in recitation mode. Switch back to Read any time for a quick refresh before you record.
+                          </div>
+                        ) : (
+                          <div className="esl-passage-context-body esl-compose-passage-body">
+                            <div className="esl-passage-body">{passage.content_text}</div>
+                          </div>
+                        )}
+                      </div>
+
+                      {recorder}
+                    </Card>
+                  );
+                }}
               </EslAttemptComposer>
             ) : liveSelected ? (
               <AttemptDetail
                 passageId={passage.id}
+                passageText={passage.content_text}
                 attemptId={liveSelected.id}
                 referenceAudio={liveReferenceAudio}
                 audioUrl={liveSelected.audioUrl}
@@ -511,6 +526,7 @@ export default function EslReadingPracticePage() {
 
 function AttemptDetail(props: {
   passageId: string;
+  passageText: string;
   attemptId: string;
   referenceAudio: {
     status: "pending" | "completed" | "failed" | null;
@@ -782,7 +798,7 @@ function AttemptDetail(props: {
             </p>
           </div>
         ) : props.evaluation ? (
-          <AttemptEvaluation evaluation={props.evaluation} />
+          <AttemptEvaluation evaluation={props.evaluation} passageText={props.passageText} />
         ) : (
           <div className="esl-attempt-state">
             <div className="esl-attempt-state-title">Evaluation unavailable</div>
@@ -816,8 +832,72 @@ function AttemptDetail(props: {
   );
 }
 
-function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput }) {
-  const { evaluation } = props;
+const HIGHLIGHT_KIND_LABELS: Record<EslReadingEvaluationOutput["highlights"][number]["kind"], string> = {
+  mispronunciation: "Mispronunciation",
+  stress: "Stress",
+  pause: "Pause",
+  intonation: "Intonation"
+};
+
+const HIGHLIGHT_QUOTE_REGEX = /['"“”‘’]([^'"“”‘’]{2,80})['"“”‘’]/g;
+const HIGHLIGHT_WORD_CHAR_REGEX = /[A-Za-z0-9]/;
+
+const normalizeHighlightText = (input: string) => input.replace(/\s+/g, " ").trim();
+
+const isHighlightWordChar = (value: string | undefined) =>
+  typeof value === "string" && HIGHLIGHT_WORD_CHAR_REGEX.test(value);
+
+const findHighlightTargetInPassage = (passageText: string, candidate: string) => {
+  const normalizedCandidate = normalizeHighlightText(candidate);
+  if (!normalizedCandidate) return "";
+  const matchIndex = passageText.toLowerCase().indexOf(normalizedCandidate.toLowerCase());
+  if (matchIndex < 0) return "";
+  return clipText(
+    normalizeHighlightText(passageText.slice(matchIndex, matchIndex + normalizedCandidate.length)),
+    72
+  );
+};
+
+const extractQuotedHighlightCandidates = (note: string) => {
+  const candidates: string[] = [];
+  for (const match of note.matchAll(HIGHLIGHT_QUOTE_REGEX)) {
+    const candidate = normalizeHighlightText(match[1] ?? "");
+    if (candidate.length >= 2) candidates.push(candidate);
+  }
+  return candidates;
+};
+
+const getSpanTargetText = (
+  passageText: string,
+  span: EslReadingEvaluationOutput["highlights"][number]["text_span"]
+) => {
+  const start = Math.max(0, span.start);
+  const end = Math.max(start, span.end);
+  const raw = passageText.slice(start, end);
+  const normalized = normalizeHighlightText(raw);
+  if (!normalized) return "";
+  if (isHighlightWordChar(passageText[start]) && isHighlightWordChar(passageText[start - 1])) return "";
+  if (isHighlightWordChar(passageText[end - 1]) && isHighlightWordChar(passageText[end])) return "";
+  return clipText(normalized, 72);
+};
+
+const getHighlightTargetText = (
+  passageText: string,
+  highlight: EslReadingEvaluationOutput["highlights"][number]
+) => {
+  const candidates = [
+    highlight.text_quote ?? "",
+    ...extractQuotedHighlightCandidates(highlight.note_zh)
+  ];
+  for (const candidate of candidates) {
+    const matched = findHighlightTargetInPassage(passageText, candidate);
+    if (matched) return matched;
+  }
+  return getSpanTargetText(passageText, highlight.text_span);
+};
+
+function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput; passageText: string }) {
+  const { evaluation, passageText } = props;
   const dimensions = [
     { label: "Pronunciation", score: evaluation.scores.pronunciation },
     { label: "Fluency", score: evaluation.scores.fluency },
@@ -883,12 +963,22 @@ function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput }) {
         <>
           <div className="esl-eval-subtitle">Highlights</div>
           <div className="esl-highlights">
-            {evaluation.highlights.map((highlight, index) => (
-              <div key={index} className={`esl-highlight sev-${highlight.severity}`}>
-                <span className="esl-highlight-kind">{highlight.kind}</span>
-                <span className="esl-highlight-note">{highlight.note_zh}</span>
-              </div>
-            ))}
+            {evaluation.highlights.map((highlight, index) => {
+              const targetText = getHighlightTargetText(passageText, highlight);
+              return (
+                <div key={index} className={`esl-highlight sev-${highlight.severity}`}>
+                  <div className="esl-highlight-head">
+                    <span className="esl-highlight-kind">{HIGHLIGHT_KIND_LABELS[highlight.kind]}</span>
+                    {targetText ? (
+                      <span className="esl-highlight-target" title={targetText}>
+                        {targetText}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="esl-highlight-note">{highlight.note_zh}</div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}

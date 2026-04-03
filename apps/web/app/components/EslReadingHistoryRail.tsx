@@ -53,6 +53,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
     () => [...attempts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     [attempts]
   );
+  const isEmpty = sortedAttempts.length === 0;
   const newAttemptHref = disableNewAttempt || !passageId ? "#" : `/reading/${passageId}?compose=1`;
   const effectiveCollapsed = collapsed && isDesktop;
 
@@ -87,7 +88,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
   }, [effectiveCollapsed]);
 
   return (
-    <aside className={`esl-history-rail${effectiveCollapsed ? " is-collapsed" : ""}`}>
+    <aside className={`esl-history-rail${effectiveCollapsed ? " is-collapsed" : ""}${isEmpty ? " is-empty" : ""}`}>
       <div className="esl-history-toolbar">
         <button
           type="button"
@@ -122,7 +123,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
       </div>
 
       <div
-        className={`esl-history-rail-content${effectiveCollapsed ? " is-hidden" : ""}`}
+        className={`esl-history-rail-content${effectiveCollapsed ? " is-hidden" : ""}${isEmpty ? " is-empty" : ""}`}
         aria-hidden={effectiveCollapsed}
       >
         <div className="esl-history-rail-header">
@@ -146,7 +147,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
 
         <div className="esl-eval-subtitle">History ({attempts.length})</div>
 
-        {sortedAttempts.length === 0 ? (
+        {isEmpty ? (
           <div className="esl-history-empty">
             <svg className="esl-history-empty-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z" stroke="currentColor" strokeWidth="1.4" />

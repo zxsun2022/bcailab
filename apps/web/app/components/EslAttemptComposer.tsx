@@ -12,7 +12,12 @@ type EslAttemptComposerProps = {
   canSubmit?: boolean;
   mode?: EslReadingMode;
   onModeChange?: (mode: EslReadingMode) => void;
-  children: (args: { mode: EslReadingMode; hideText: boolean }) => React.ReactNode;
+  children: (args: {
+    mode: EslReadingMode;
+    hideText: boolean;
+    recordingState: RecordingState;
+    recorder: React.ReactNode;
+  }) => React.ReactNode;
 };
 
 type SubmitResult = {
@@ -191,6 +196,58 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const isUploading = fetcher.state === "submitting";
   const submitError = fetcher.data?.error;
   const submitButtonLabel = isUploading ? "Submitting..." : submitLabel;
+  const recorder = (
+    <div className="esl-compose-footer">
+      {recordingState === "recording" ? (
+        <div className="esl-compose-footer-top">
+          <div className="esl-record-timer">{formatDuration(elapsedMs)}</div>
+        </div>
+      ) : null}
+
+      {recordingState === "preview" && recordedAudioUrl ? (
+        <div className="esl-preview-area">
+          <audio controls src={recordedAudioUrl} className="esl-audio-player" />
+          <div className="esl-preview-side">
+            <div className="esl-preview-meta">{formatDuration(durationMsRef.current)}</div>
+            <div className="esl-preview-actions">
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={discardRecording}
+                disabled={isUploading}
+              >
+                Re-record
+              </button>
+              <Button type="submit" disabled={isUploading || !canSubmit}>
+                {submitButtonLabel}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className={`esl-record-panel ${recordingState === "recording" ? "is-recording" : ""}`}>
+          <div className="esl-record-copy">
+            <div className="esl-record-label">
+              {recordingState === "recording" ? "Recording" : "Ready to record"}
+            </div>
+            <div className="esl-record-hint">
+              {recordingState === "recording" ? "Tap again to stop" : "Tap to start recording"}
+            </div>
+          </div>
+
+          {recordingState === "idle" ? (
+            <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
+              <span className="esl-record-btn-inner" />
+            </button>
+          ) : (
+            <button type="button" className="esl-record-btn is-recording" onClick={stopRecording}>
+              <span className="esl-record-btn-stop" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <fetcher.Form
@@ -201,71 +258,24 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
     >
       <input type="hidden" name="outputLanguage" value={outputLanguage} />
       <div className="esl-compose-main">
-        {children({ mode, hideText: mode === "recitation" })}
+        {children({
+          mode,
+          hideText: mode === "recitation",
+          recordingState,
+          recorder
+        })}
       </div>
-
-      <div className="esl-compose-footer">
-        {recordingState === "recording" ? (
-          <div className="esl-compose-footer-top">
-            <div className="esl-record-timer">{formatDuration(elapsedMs)}</div>
-          </div>
-        ) : null}
-
-        {recordingState === "preview" && recordedAudioUrl ? (
-          <div className="esl-preview-area">
-            <audio controls src={recordedAudioUrl} className="esl-audio-player" />
-            <div className="esl-preview-side">
-              <div className="esl-preview-meta">{formatDuration(durationMsRef.current)}</div>
-              <div className="esl-preview-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={discardRecording}
-                  disabled={isUploading}
-                >
-                  Re-record
-                </button>
-                <Button type="submit" disabled={isUploading || !canSubmit}>
-                  {submitButtonLabel}
-                </Button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className={`esl-record-panel ${recordingState === "recording" ? "is-recording" : ""}`}>
-            <div className="esl-record-copy">
-              <div className="esl-record-label">
-                {recordingState === "recording" ? "Recording" : "Ready to record"}
-              </div>
-              <div className="esl-record-hint">
-                {recordingState === "recording" ? "Tap again to stop" : "Tap to start recording"}
-              </div>
-            </div>
-
-            {recordingState === "idle" ? (
-              <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
-                <span className="esl-record-btn-inner" />
-              </button>
-            ) : (
-              <button type="button" className="esl-record-btn is-recording" onClick={stopRecording}>
-                <span className="esl-record-btn-stop" />
-              </button>
-            )}
-          </div>
-        )}
-
-        <input type="hidden" name="_intent" value="submitAttempt" />
-        <input type="hidden" name="_transport" value="fetcher" />
-        <input type="hidden" name="mode" value={mode} />
-        <input type="hidden" name="durationMs" value={String(durationMsRef.current)} />
-        <input
-          ref={fileInputRef}
-          name="audioFile"
-          type="file"
-          accept="audio/*"
-          className="esl-hidden-input"
-        />
-      </div>
+      <input type="hidden" name="_intent" value="submitAttempt" />
+      <input type="hidden" name="_transport" value="fetcher" />
+      <input type="hidden" name="mode" value={mode} />
+      <input type="hidden" name="durationMs" value={String(durationMsRef.current)} />
+      <input
+        ref={fileInputRef}
+        name="audioFile"
+        type="file"
+        accept="audio/*"
+        className="esl-hidden-input"
+      />
 
       {submitError ? <div className="form-error">{submitError}</div> : null}
     </fetcher.Form>

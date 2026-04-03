@@ -8,7 +8,7 @@ import {
 } from "~/utils/esl-reading";
 import { type ReadingOutputLanguage } from "~/utils/reading-settings";
 
-const RUBRIC_VERSION = "2026-03-05";
+const RUBRIC_VERSION = "2026-04-02";
 const FALLBACK_MODEL_NAME = "local-heuristic-fallback";
 const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -93,6 +93,7 @@ const normalizeEvalOutput = (
     const record = item as Record<string, unknown>;
     const kind = String(record.kind ?? "");
     const note = typeof record.note_zh === "string" ? record.note_zh.trim() : "";
+    const textQuote = typeof record.text_quote === "string" ? record.text_quote.trim() : "";
     const span = normalizeSpan(record.text_span);
     if (!span || !note) continue;
     if (!["mispronunciation", "stress", "pause", "intonation"].includes(kind)) continue;
@@ -102,6 +103,7 @@ const normalizeEvalOutput = (
       kind: kind as EslReadingEvaluationOutput["highlights"][number]["kind"],
       severity,
       text_span: span,
+      text_quote: textQuote || null,
       note_zh: note
     });
     if (highlights.length >= 8) break;
@@ -224,6 +226,7 @@ const buildHeuristicEvaluation = (input: {
           kind: "mispronunciation",
           severity: 2,
           text_span: { start: 0, end: sampleChunk.length },
+          text_quote: sampleChunk,
           note_zh: highlightNote
         }]
       : [],
@@ -287,7 +290,13 @@ const buildPrompt = (input: {
       cefr_guess: "A1|A2|B1|B2|C1|C2|null",
       cefr_confidence: "0-1",
       top_actions_zh: [`string (2-3 actionable ${feedbackLanguage} items)`],
-      highlights: [{ kind: "mispronunciation|stress|pause|intonation", severity: "1|2|3", text_span: { start: 0, end: 0 }, note_zh: "string" }],
+      highlights: [{
+        kind: "mispronunciation|stress|pause|intonation",
+        severity: "1|2|3",
+        text_span: { start: 0, end: 0 },
+        text_quote: "exact word or short phrase copied from the passage",
+        note_zh: `string (${feedbackLanguage}; must name the exact word or phrase first)`
+      }],
       next_drills: [{ drill_type: "repeat_sentence|minimal_pair|shadowing", target_text: "string", repeat: "1-8", prompt_zh: `string (${feedbackLanguage})` }],
       commentary_zh: `freeform ${feedbackLanguage} coaching feedback that can reference history and give concrete guidance`,
       progress_vs_last: [`changes vs last attempt, written in ${feedbackLanguage}`]
@@ -300,6 +309,12 @@ const buildPrompt = (input: {
     `- Give concise, actionable feedback in ${feedbackLanguage}`,
     "- Keep top_actions_zh to 2-3 items",
     "- Use passage character offsets for text_span",
+    "- Every highlight must include text_quote copied verbatim from the passage",
+    "- text_quote must agree with text_span; if they disagree, fix the span before returning JSON",
+    "- Every highlight must point to the smallest relevant word or phrase, not a whole sentence unless the issue truly spans the full sentence",
+    "- For mispronunciation highlights, prefer a single word as text_span",
+    "- highlights[].note_zh must explicitly name the exact target word or phrase from the passage before explaining the problem",
+    "- Never write a vague note like 'avoid adding an h sound' without saying which word it applies to",
     `- commentary_zh should sound like a coach speaking naturally to the learner in ${feedbackLanguage}`,
     "- Fill progress_vs_last only when there is meaningful history",
     "- If you are unsure about CEFR, set cefr_guess to null and cefr_confidence to 0"
@@ -330,6 +345,7 @@ const buildPrompt = (input: {
           highlights: entry.fullEvaluation.highlights.map(h => ({
             kind: h.kind,
             text_span: h.text_span,
+            text_quote: h.text_quote ?? null,
             note_zh: h.note_zh
           }))
         }));
