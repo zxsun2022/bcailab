@@ -22,9 +22,9 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - **Left sidebar** (desktop 1024px+): Passage list with titles only. "New passage" button. Passage deletion lives in the hover menu on each list item.
 - **Left sidebar footer**: A persistent `Settings` entry opens `/reading/settings` in the center canvas.
 - **Desktop workspace shell**: Reading now follows the shared tool-shell model used by Writing. The main area is split into `center stage + reading content column + right rail shell`.
-- **Index center column**: New passage composer with a single large editable text area, internal character count, and sticky recording controls at the bottom.
+- **Index center column**: New passage composer with a single large editable text area, internal character count, and recorder controls anchored at the bottom of the same compose card.
 - **Passage center column**: Either a new-attempt composer or a selected attempt detail view, but both now share the same top skeleton.
-- **Persistent passage context**: On `/reading/:id`, compose / latest / history all show the same read-only `Passage` context block above the main body so the page stays anchored while the state changes.
+- **Persistent passage context**: On `/reading/:id`, latest / history keep the read-only `Passage` context block as a separate section. In new-attempt compose mode, the passage lives inside the compose card and the recorder still stays at the bottom.
 - **Right rail shell**: History/navigation only, docked to the far right edge of the main area. The shell owns the vertical divider and the rail width.
 - **Desktop scroll ownership**: The primary page scroll belongs to the center stage, while the history list inside the right rail scrolls independently when it overflows.
 
@@ -37,9 +37,9 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 ### Practice Workflow
 - New passage flow: paste passage text, record once, submit, then redirect into that first history entry.
 - Existing passage flow: click `New Attempt` in the history rail to open the read-only recording composer for that passage.
-- When recording a new attempt for an existing passage, the passage text moves into the shared `Passage` context block instead of being embedded inside a special compose-only card.
-- Mode toggle: Reading / Recitation. On the new-passage page, recitation mode keeps the textarea footprint but applies a visual mask so the stored passage text is fully covered. On existing passages, recitation mode hides the shared `Passage` context block content.
-- Recording composer uses a compact bottom control bar: mode toggle, recorder state, preview playback, re-record, and submit.
+- When recording a new attempt for an existing passage, the compose view uses one card: title/briefing, passage block, then recorder at the bottom.
+- Mode toggle: Reading / Recitation. On the new-passage page, recitation mode keeps the textarea shell but compresses the hidden-state footprint. On existing passages, recitation mode replaces the passage body with a shorter hidden-state panel inside the compose card.
+- Recording composer keeps recorder states inline at the bottom of the compose card: idle, recording with timer, and preview with playback / re-record / submit.
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
@@ -60,6 +60,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
 - If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
 - Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
+- Highlights render the explicit target word or phrase from `text_quote` when available, otherwise they fall back to a validated `text_span`. The UI suppresses obviously broken partial-word spans instead of showing misleading chips.
 - Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
@@ -71,11 +72,12 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 - Evaluation output includes:
   - `scores` (overall/pronunciation/stress_rhythm/fluency/clarity)
   - `top_actions_zh` (2-3 actionable feedback items in the selected output language; field name remains unchanged for compatibility)
-  - `highlights` with `text_span` (word-level pronunciation notes)
+  - `highlights` with `text_span` + `text_quote` (target word/phrase offsets and the copied text itself, plus pronunciation/prosody notes)
   - `next_drills` (practice exercises)
   - `commentary_zh` (freeform coach feedback in the selected output language; field name remains unchanged for compatibility)
   - `progress_vs_last` (delta observations vs previous attempt)
   - optional `cefr_guess` + `cefr_confidence`
+- Prompt constrains each highlight to the smallest relevant span, requires `text_quote`, and tells the model to name the exact target word or phrase inside `note_zh`.
 
 ### Learner Profile
 - Table: `esl_learner_profiles` (one per user)
@@ -85,6 +87,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 
 ### Right Panel Behaviour
 - History rail always shows `New Attempt` at the top.
+- On the new-passage page, the desktop history rail starts collapsed when there are no attempts yet, so the empty rail does not dominate the layout.
 - Desktop history rail is collapsible. Expanded mode shows the full history list; collapsed mode reduces the rail to the same `52px` width used by Writing.
 - Desktop history rail collapse/expand animates the rail-shell width and fades the expanded rail body instead of swapping it instantly.
 - History list is ordered newest to oldest.

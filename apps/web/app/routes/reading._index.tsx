@@ -1,6 +1,6 @@
 import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
-import { Textarea } from "@bcailab/ui";
+import { Card, Textarea } from "@bcailab/ui";
 import { createEslPassage, softDeleteEslPassage } from "@bcailab/db";
 import { EslAttemptComposer, EslModeToggle } from "~/components/EslAttemptComposer";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
@@ -86,7 +86,12 @@ export default function EslReadingIndexPage() {
   const [content, setContent] = React.useState("");
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
   const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(() => {
-    try { return localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY) === "true"; } catch { return false; }
+    try {
+      const stored = localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY);
+      return stored === null ? true : stored === "true";
+    } catch {
+      return true;
+    }
   });
 
   const handleHistoryRailToggle = React.useCallback(() => {
@@ -114,37 +119,41 @@ export default function EslReadingIndexPage() {
               mode={mode}
               onModeChange={setMode}
             >
-              {({ hideText }) => (
-                <div className={`esl-compose-editor${hideText ? " is-masked" : ""}`}>
-                  <Textarea
-                    name="content"
-                    rows={18}
-                    className={`esl-compose-textarea${hideText ? " is-masked" : ""}`}
-                    placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
-                    value={content}
-                    readOnly={hideText}
-                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                      setContent(event.currentTarget.value)
-                    }
-                  />
-                  {hideText ? (
-                    <div className="esl-compose-mask" aria-hidden="true">
-                      <div className="esl-compose-mask-chip">Recite Mode</div>
-                      <div className="esl-compose-mask-copy">
-                        Text hidden for recitation mode. Switch back to Read if you want to review or edit the passage.
+              {({ hideText, recorder }) => (
+                <Card className="tool-card-stack esl-compose-card esl-compose-draft-card">
+                  <div className={`esl-compose-editor${hideText ? " is-masked" : ""}`}>
+                    <Textarea
+                      name="content"
+                      rows={18}
+                      className={`esl-compose-textarea${hideText ? " is-masked" : ""}`}
+                      placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
+                      value={content}
+                      readOnly={hideText}
+                      onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
+                        setContent(event.currentTarget.value)
+                      }
+                    />
+                    {hideText ? (
+                      <div className="esl-compose-mask" aria-hidden="true">
+                        <div className="esl-compose-mask-chip">Recite Mode</div>
+                        <div className="esl-compose-mask-copy">
+                          Text hidden for recitation mode. Switch back to Read if you want to review or edit the passage.
+                        </div>
                       </div>
+                    ) : null}
+                    <div
+                      className={`esl-compose-count ${
+                        content.length > 0 ? "is-visible" : ""
+                      } ${content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""}`}
+                    >
+                      <span className="textarea-count">
+                        {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}
+                      </span>
                     </div>
-                  ) : null}
-                  <div
-                    className={`esl-compose-count ${
-                      content.length > 0 ? "is-visible" : ""
-                    } ${content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""}`}
-                  >
-                    <span className="textarea-count">
-                      {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}
-                    </span>
                   </div>
-                </div>
+
+                  {recorder}
+                </Card>
               )}
             </EslAttemptComposer>
           </div>

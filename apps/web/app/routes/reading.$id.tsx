@@ -33,6 +33,7 @@ import {
   schedulePassageReferenceSynthesis
 } from "~/utils/esl-passage-reference.server";
 import {
+  clipText,
   deriveEslAttemptEvaluationState,
   formatDuration,
   getDisplayEslPassageTitle,
@@ -446,7 +447,7 @@ export default function EslReadingPracticePage() {
                 mode={mode}
                 onModeChange={setMode}
               >
-                {({ hideText }) => {
+                {({ hideText, recorder }) => {
                   const sessionTitle = hideText ? "Recite from memory" : "Read the passage aloud";
                   const sessionDescription = hideText
                     ? "Hide the passage and recite in one take. You can listen back, re-record, and then submit for AI feedback."
@@ -476,6 +477,8 @@ export default function EslReadingPracticePage() {
                           </div>
                         )}
                       </div>
+
+                      {recorder}
                     </Card>
                   );
                 }}
@@ -483,6 +486,7 @@ export default function EslReadingPracticePage() {
             ) : liveSelected ? (
               <AttemptDetail
                 passageId={passage.id}
+                passageText={passage.content_text}
                 attemptId={liveSelected.id}
                 referenceAudio={liveReferenceAudio}
                 audioUrl={liveSelected.audioUrl}
@@ -522,6 +526,7 @@ export default function EslReadingPracticePage() {
 
 function AttemptDetail(props: {
   passageId: string;
+  passageText: string;
   attemptId: string;
   referenceAudio: {
     status: "pending" | "completed" | "failed" | null;
@@ -793,7 +798,7 @@ function AttemptDetail(props: {
             </p>
           </div>
         ) : props.evaluation ? (
-          <AttemptEvaluation evaluation={props.evaluation} />
+          <AttemptEvaluation evaluation={props.evaluation} passageText={props.passageText} />
         ) : (
           <div className="esl-attempt-state">
             <div className="esl-attempt-state-title">Evaluation unavailable</div>
@@ -827,8 +832,72 @@ function AttemptDetail(props: {
   );
 }
 
-function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput }) {
-  const { evaluation } = props;
+const HIGHLIGHT_KIND_LABELS: Record<EslReadingEvaluationOutput["highlights"][number]["kind"], string> = {
+  mispronunciation: "Mispronunciation",
+  stress: "Stress",
+  pause: "Pause",
+  intonation: "Intonation"
+};
+
+const HIGHLIGHT_QUOTE_REGEX = /['"“”‘’]([^'"“”‘’]{2,80})['"“”‘’]/g;
+const HIGHLIGHT_WORD_CHAR_REGEX = /[A-Za-z0-9]/;
+
+const normalizeHighlightText = (input: string) => input.replace(/\s+/g, " ").trim();
+
+const isHighlightWordChar = (value: string | undefined) =>
+  typeof value === "string" && HIGHLIGHT_WORD_CHAR_REGEX.test(value);
+
+const findHighlightTargetInPassage = (passageText: string, candidate: string) => {
+  const normalizedCandidate = normalizeHighlightText(candidate);
+  if (!normalizedCandidate) return "";
+  const matchIndex = passageText.toLowerCase().indexOf(normalizedCandidate.toLowerCase());
+  if (matchIndex < 0) return "";
+  return clipText(
+    normalizeHighlightText(passageText.slice(matchIndex, matchIndex + normalizedCandidate.length)),
+    72
+  );
+};
+
+const extractQuotedHighlightCandidates = (note: string) => {
+  const candidates: string[] = [];
+  for (const match of note.matchAll(HIGHLIGHT_QUOTE_REGEX)) {
+    const candidate = normalizeHighlightText(match[1] ?? "");
+    if (candidate.length >= 2) candidates.push(candidate);
+  }
+  return candidates;
+};
+
+const getSpanTargetText = (
+  passageText: string,
+  span: EslReadingEvaluationOutput["highlights"][number]["text_span"]
+) => {
+  const start = Math.max(0, span.start);
+  const end = Math.max(start, span.end);
+  const raw = passageText.slice(start, end);
+  const normalized = normalizeHighlightText(raw);
+  if (!normalized) return "";
+  if (isHighlightWordChar(passageText[start]) && isHighlightWordChar(passageText[start - 1])) return "";
+  if (isHighlightWordChar(passageText[end - 1]) && isHighlightWordChar(passageText[end])) return "";
+  return clipText(normalized, 72);
+};
+
+const getHighlightTargetText = (
+  passageText: string,
+  highlight: EslReadingEvaluationOutput["highlights"][number]
+) => {
+  const candidates = [
+    highlight.text_quote ?? "",
+    ...extractQuotedHighlightCandidates(highlight.note_zh)
+  ];
+  for (const candidate of candidates) {
+    const matched = findHighlightTargetInPassage(passageText, candidate);
+    if (matched) return matched;
+  }
+  return getSpanTargetText(passageText, highlight.text_span);
+};
+
+function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput; passageText: string }) {
+  const { evaluation, passageText } = props;
   const dimensions = [
     { label: "Pronunciation", score: evaluation.scores.pronunciation },
     { label: "Fluency", score: evaluation.scores.fluency },
@@ -894,12 +963,22 @@ function AttemptEvaluation(props: { evaluation: EslReadingEvaluationOutput }) {
         <>
           <div className="esl-eval-subtitle">Highlights</div>
           <div className="esl-highlights">
-            {evaluation.highlights.map((highlight, index) => (
-              <div key={index} className={`esl-highlight sev-${highlight.severity}`}>
-                <span className="esl-highlight-kind">{highlight.kind}</span>
-                <span className="esl-highlight-note">{highlight.note_zh}</span>
-              </div>
-            ))}
+            {evaluation.highlights.map((highlight, index) => {
+              const targetText = getHighlightTargetText(passageText, highlight);
+              return (
+                <div key={index} className={`esl-highlight sev-${highlight.severity}`}>
+                  <div className="esl-highlight-head">
+                    <span className="esl-highlight-kind">{HIGHLIGHT_KIND_LABELS[highlight.kind]}</span>
+                    {targetText ? (
+                      <span className="esl-highlight-target" title={targetText}>
+                        {targetText}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="esl-highlight-note">{highlight.note_zh}</div>
+                </div>
+              );
+            })}
           </div>
         </>
       )}
