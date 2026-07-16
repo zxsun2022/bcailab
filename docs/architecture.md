@@ -20,8 +20,10 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or tool settings pages; the preference is stored locally in the browser.
 
 ## Routing
-- `/` landing page
+- `/` studio homepage (lab intro, product cards linking to landing pages, principles, team info)
 - `/about` about page
+- `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Speech as modules of one product)
+- `/translate` LLM-powered translation tool (auth required; Gemini-driven, DeepL-style two-pane UI)
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
 - `/posts` posts tool (compose + history rail + in-place editing)
 - `/posts/:id` public post view
