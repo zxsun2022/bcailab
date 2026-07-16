@@ -1,5 +1,3 @@
-export const TRANSLATE_MAX_CHARS = 5000;
-
 export const TRANSLATE_LANGUAGES = [
   { code: "en", label: "English" },
   { code: "zh-Hans", label: "Chinese (Simplified)" },

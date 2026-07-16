@@ -2,6 +2,12 @@
 
 This repository is intentionally structured for multi-agent collaboration across tools.
 
+## Roadmap Discipline
+- `docs/roadmap.md` is the single source of truth for iteration planning (Now / Next / Later / Done).
+- Read it before starting product work; move finished items to Done (with date) in the same commit/PR.
+- Never add or reprioritize roadmap items without explicit owner confirmation.
+- The goal: any AI coding tool can pick up where another left off using only the repo's docs.
+
 ## Repo Layout
 - `apps/` - Product surfaces (Remix app, future tools)
 - `packages/` - Shared libraries (UI, auth, DB, utilities)

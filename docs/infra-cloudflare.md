@@ -42,8 +42,14 @@ Set the following for the Pages project:
 - `GOOGLE_TTS_SERVICE_ACCOUNT_JSON`
 - `GEMINI_API_KEY`
 - `GEMINI_MODEL` (recommended: `gemini-flash-latest`)
+- `GEMINI_BASE_URL` (optional; point at Cloudflare AI Gateway instead of the Google API origin)
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
+- `RESEND_API_KEY` (email OTP sign-in codes; set via `wrangler pages secret put RESEND_API_KEY`)
+- `RESEND_FROM` (optional; default `bcailab <login@bcailab.com>` — the domain must be verified in Resend with SPF/DKIM DNS records)
+
+Without `RESEND_API_KEY`, email sign-in still works in local dev: the code is logged to the
+server console and shown inline in the dev UI.
 
 Recommended additional settings:
 - `PNPM_VERSION` = `9.12.0`

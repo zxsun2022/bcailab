@@ -1859,6 +1859,45 @@ select.input:focus {
   font-size: 15px;
 }
 
+.translate-quota-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding: 10px 16px;
+  border: 1px solid var(--copper-dim);
+  background: var(--bg-alt);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.translate-quota-cta {
+  padding: 5px 12px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.translate-quota-cta:hover {
+  background: var(--accent);
+  color: #f6f2eb;
+}
+
+.translate-error .translate-quota-cta {
+  margin-left: 10px;
+}
+
 .translate-board {
   border: 1px solid var(--border);
   background: var(--bg-card);
@@ -2076,6 +2115,167 @@ select.input:focus {
   .translate-toolbar {
     flex-wrap: wrap;
   }
+}
+
+/* ==========================================================================
+   7d. LOGIN (popup page)
+   ========================================================================== */
+
+.login-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--bg);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 360px;
+  padding: 32px 28px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
+}
+
+.login-logo {
+  margin: 0 auto 14px;
+}
+
+.login-title {
+  margin-bottom: var(--space-lg);
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.login-google {
+  padding: 11px 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #f6f2eb;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.login-google:hover {
+  background: var(--accent-hover);
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: var(--space-lg) 0;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.login-label {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.login-input {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+}
+
+.login-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.login-input-code {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  letter-spacing: 8px;
+  text-align: center;
+}
+
+.login-submit {
+  margin-top: 4px;
+  padding: 11px 16px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #f6f2eb;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.login-submit:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.login-submit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.login-alt {
+  padding: 6px 0;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.login-alt:hover {
+  color: var(--accent);
+}
+
+.login-devcode {
+  padding: 8px 10px;
+  border: 1px dashed var(--copper);
+  color: var(--copper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+}
+
+.login-error {
+  margin-top: var(--space-md);
+  color: var(--accent);
+  font-size: 13px;
 }
 
 /* ==========================================================================

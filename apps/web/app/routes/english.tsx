@@ -23,6 +23,8 @@ interface Module {
   detail: string;
   tags: string[];
   planned?: boolean;
+  /** Public modules are usable without signing in. */
+  public?: boolean;
 }
 
 const modules: Module[] = [
@@ -47,8 +49,9 @@ const modules: Module[] = [
     title: "Translate",
     description: "DeepL-style translation between English, Chinese, and more.",
     detail:
-      "Two-pane translation driven by an LLM: auto-detect the source language, keep formatting intact, and swap directions in one click.",
-    tags: ["Translation", "LLM"]
+      "Two-pane translation driven by an LLM: auto-detect the source language, keep formatting intact, and swap directions in one click. Free to try without an account.",
+    tags: ["Translation", "LLM", "Free to try"],
+    public: true
   },
   {
     slug: "speech",
@@ -71,12 +74,12 @@ const modules: Module[] = [
 export default function EnglishLanding() {
   const { user } = useOutletContext<{ user: User | null }>();
 
-  const handleModuleClick = (event: React.MouseEvent, planned?: boolean) => {
-    if (planned) {
+  const handleModuleClick = (event: React.MouseEvent, mod: Module) => {
+    if (mod.planned) {
       event.preventDefault();
       return;
     }
-    if (!user) {
+    if (!user && !mod.public) {
       event.preventDefault();
       openLoginPopup();
     }
@@ -118,7 +121,7 @@ export default function EnglishLanding() {
               key={mod.slug}
               to={`/${mod.slug}`}
               className={`landing-module${mod.planned ? " is-planned" : ""}`}
-              onClick={(e) => handleModuleClick(e, mod.planned)}
+              onClick={(e) => handleModuleClick(e, mod)}
             >
               <div className="landing-module-main">
                 <div className="landing-module-head">

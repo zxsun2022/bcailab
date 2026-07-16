@@ -1,7 +1,7 @@
 /**
- * Opens the Google OAuth popup used across the site. The popup posts a
- * "bcailab-auth" message back to the opener on success (handled in Header),
- * which reloads the page.
+ * Opens the sign-in popup (/login: Google OAuth or email code). The popup
+ * posts a "bcailab-auth" message back to the opener on success (handled in
+ * Header), which reloads the page.
  */
 export const openLoginPopup = () => {
   const width = 520;
@@ -9,7 +9,7 @@ export const openLoginPopup = () => {
   const left = window.screenX + (window.outerWidth - width) / 2;
   const top = window.screenY + (window.outerHeight - height) / 2;
   window.open(
-    "/auth/google",
+    "/login",
     "bcailab-auth",
     `width=${width},height=${height},left=${left},top=${top}`
   );

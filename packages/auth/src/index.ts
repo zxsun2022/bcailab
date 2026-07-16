@@ -68,6 +68,21 @@ const getSessionStorage = (env: AuthEnv, request: Request) => {
   });
 };
 
+/**
+ * Commits a DB session id into the signed session cookie. Used by login flows
+ * that are not the Google OAuth callback (e.g. email OTP).
+ */
+export const createSessionCookie = async (
+  request: Request,
+  env: AuthEnv,
+  sessionId: string
+): Promise<string> => {
+  const storage = getSessionStorage(env, request);
+  const session = await storage.getSession(request.headers.get("Cookie"));
+  session.set("session_id", sessionId);
+  return storage.commitSession(session, { maxAge: SESSION_DAYS * 24 * 60 * 60 });
+};
+
 export const clearSessionCookie = async (request: Request, env: AuthEnv) => {
   const storage = getSessionStorage(env, request);
   const session = await storage.getSession(request.headers.get("Cookie"));
