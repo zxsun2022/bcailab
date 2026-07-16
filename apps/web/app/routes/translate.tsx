@@ -340,7 +340,7 @@ export default function TranslatePage() {
               ) : null}
             </span>
           ) : (
-            <span />
+            <span className="translate-hint">Tip: press ⌘/Ctrl + Enter to translate.</span>
           )}
           <button
             type="submit"
@@ -350,7 +350,6 @@ export default function TranslatePage() {
             {busy ? "Translating…" : "Translate"}
           </button>
         </div>
-        <p className="translate-hint">Tip: press ⌘/Ctrl + Enter to translate.</p>
       </fetcher.Form>
     </div>
   );

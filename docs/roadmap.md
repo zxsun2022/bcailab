@@ -22,8 +22,11 @@ no-account acquisition funnel into it.
 - [x] Email OTP login (for users who cannot use Google OAuth, e.g. mainland China):
       `/login` popup with Google + email code, Resend sender (dev fallback logs the code),
       identity decoupled from Google (email is the primary identity; Google merges by email).
-- [ ] Resend domain verification + real-delivery test to QQ/163 mailboxes (owner action:
-      DNS records + test).
+- [x] Resend domain verification for bcailab.com (verified 2026-07-16 via Resend's
+      Cloudflare integration).
+- [ ] Real-delivery test of the sign-in code to QQ/163 mailboxes (owner action). Note:
+      `wrangler pages secret put` only sets the **Production** env — set `RESEND_API_KEY`
+      for the **Preview** env in the Pages dashboard to test email sign-in on preview URLs.
 
 ## Next
 
@@ -45,6 +48,11 @@ no-account acquisition funnel into it.
 - Chinese UI (at least Translate + landing pages) — decided to defer, 2026-07-15.
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
+- Translate history for signed-in users — opt-in only (current privacy stance: translation
+  text is never persisted). Most interesting framed as learning material: saved translations
+  feeding vocabulary/dictionary and the learner profile, not a standalone log.
+- Decided 2026-07-16: Translate stays inside English Studio as its free funnel (not a
+  standalone homepage product); revisit only if usage data shows a distinct audience.
 - Engineering quality: vitest for LLM-output parsers + ESLint; fix evaluation-history N+1
   query; audio Range request support; session cleanup cron; session secret rotation.
 

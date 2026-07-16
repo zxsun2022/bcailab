@@ -49,6 +49,19 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     if (!result.ok) {
       return json<ActionData>({ intent: "request", ok: false, error: result.error }, { status: 429 });
     }
+    if (result.devCode) {
+      // No email provider configured. Exposing the code in the response is a
+      // local-development convenience only — on any deployed host it would let
+      // anyone sign in as any email.
+      const hostname = new URL(request.url).hostname;
+      const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
+      if (!isLocal) {
+        return json<ActionData>(
+          { intent: "request", ok: false, error: "Email sign-in is not configured on this deployment." },
+          { status: 503 }
+        );
+      }
+    }
     return json<ActionData>({ intent: "request", ok: true, email, devCode: result.devCode });
   }
 

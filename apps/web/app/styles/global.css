@@ -1838,12 +1838,12 @@ select.input:focus {
 .translate-page {
   max-width: 1080px;
   margin: 0 auto;
-  padding-top: var(--space-2xl);
-  padding-bottom: var(--space-3xl);
+  padding-top: var(--space-lg);
+  padding-bottom: var(--space-xl);
 }
 
 .translate-head {
-  margin-bottom: var(--space-xl);
+  margin-bottom: var(--space-lg);
 }
 
 .translate-title {
@@ -1962,13 +1962,17 @@ select.input:focus {
 
 .translate-panes {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, 1fr) keeps the columns equal even when a pane holds long
+     unbreakable content (plain 1fr lets min-content skew the tracks). */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 
 .translate-pane {
   display: flex;
   flex-direction: column;
-  min-height: 320px;
+  /* Fill the viewport: grow on tall screens (DeepL-like), never below 220px.
+     590px ≈ header + page/head/banner/toolbar/foot/actions chrome. */
+  min-height: max(220px, calc(100dvh - 590px));
 }
 
 .translate-pane.is-output {
@@ -2097,7 +2101,6 @@ select.input:focus {
 }
 
 .translate-hint {
-  padding: 0 20px 14px;
   color: var(--text-faint);
   font-size: 12px;
 }
