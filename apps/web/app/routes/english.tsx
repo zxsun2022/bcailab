@@ -105,7 +105,7 @@ export default function EnglishLanding() {
         </p>
         {!user ? (
           <button type="button" className="landing-cta" onClick={() => openLoginPopup()}>
-            Continue with Google
+            Sign in to start
           </button>
         ) : null}
       </section>

@@ -86,7 +86,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
           <div className="nav-actions" ref={menuRef}>
             {!user ? (
               <Button type="button" onClick={handleLogin}>
-                Continue with Google
+                Sign in
               </Button>
             ) : (
               <div className="menu-shell">
