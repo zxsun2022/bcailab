@@ -7,24 +7,10 @@ import {
   type EslLearnerProfileData
 } from "~/utils/esl-reading";
 import { type ReadingOutputLanguage } from "~/utils/reading-settings";
+import { callGemini, parseJsonFromText, toBase64, toStringArray } from "~/utils/llm.server";
 
 const RUBRIC_VERSION = "2026-04-02";
 const FALLBACK_MODEL_NAME = "local-heuristic-fallback";
-const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
-const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-
-type GeminiResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{
-        text?: string;
-      }>;
-    };
-  }>;
-  error?: {
-    message?: string;
-  };
-};
 
 type HistoryEntry = {
   date: string;
@@ -41,31 +27,6 @@ const extractSampleChunk = (text: string): string => {
   if (!trimmed) return "";
   const sentence = trimmed.split(/[.!?]/).find((part) => part.trim().length > 0)?.trim();
   return (sentence ?? trimmed).slice(0, 180);
-};
-
-const toBase64 = (bytes: Uint8Array): string => {
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary);
-};
-
-const parseJsonFromText = (input: string): unknown => {
-  const raw = input.trim();
-  if (!raw) throw new Error("Gemini response is empty.");
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const payload = fenced ? fenced[1] : raw;
-  return JSON.parse(payload);
-};
-
-const toStringArray = (value: unknown, maxLen: number): string[] => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item) => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, maxLen);
 };
 
 const normalizeSpan = (value: unknown): { start: number; end: number } | null => {
@@ -379,10 +340,6 @@ const evaluateWithGemini = async (input: {
   history: HistoryEntry[];
   learnerProfile: EslLearnerProfileData | null;
 }): Promise<{ modelName: string; output: EslReadingEvaluationOutput }> => {
-  const apiKey = input.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
-  const modelName = input.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
-
   const durationSeconds = input.durationMs != null ? input.durationMs / 1000 : null;
   const prompt = buildPrompt({
     passageText: input.passageText,
@@ -393,34 +350,15 @@ const evaluateWithGemini = async (input: {
     learnerProfile: input.learnerProfile
   });
 
-  const response = await fetch(
-    `${GEMINI_BASE_URL}/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: input.audioMimeType, data: toBase64(input.audioBytes) } }
-          ]
-        }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini request failed (${response.status}): ${errorText.slice(0, 500)}`);
-  }
-
-  const json = (await response.json()) as GeminiResponse;
-  if (json.error?.message) throw new Error(`Gemini error: ${json.error.message}`);
-
-  const text = json.candidates?.[0]?.content?.parts?.find((part) => typeof part.text === "string")?.text;
-  if (!text) throw new Error("Gemini response missing text content.");
+  const { modelName, text } = await callGemini({
+    env: input.env,
+    task: "reading_eval",
+    parts: [
+      { text: prompt },
+      { inline_data: { mime_type: input.audioMimeType, data: toBase64(input.audioBytes) } }
+    ],
+    generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
+  });
 
   const parsed = parseJsonFromText(text);
   const normalized = normalizeEvalOutput(parsed, input.outputLanguage);
@@ -457,10 +395,8 @@ export const evaluateEslReadingAttempt = async (input: {
 };
 
 export const generatePassageTitle = async (env: Env, contentText: string): Promise<string> => {
-  const apiKey = env.GEMINI_API_KEY?.trim();
-  if (!apiKey) return buildFallbackEslPassageTitle(contentText);
+  if (!env.GEMINI_API_KEY?.trim()) return buildFallbackEslPassageTitle(contentText);
 
-  const model = "gemini-2.5-flash-lite";
   const prompt = [
     "Generate one short English title for the passage below.",
     "Rules:",
@@ -475,25 +411,17 @@ export const generatePassageTitle = async (env: Env, contentText: string): Promi
   ].join("\n");
 
   try {
-    const response = await fetch(
-      `${GEMINI_BASE_URL}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 24,
-            thinkingConfig: { thinkingBudget: 0 }
-          }
-        })
+    const { text } = await callGemini({
+      env,
+      task: "title_generation",
+      parts: [{ text: prompt }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 24,
+        thinkingConfig: { thinkingBudget: 0 }
       }
-    );
-    if (!response.ok) return buildFallbackEslPassageTitle(contentText);
-    const json = (await response.json()) as GeminiResponse;
-    const text = json.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === "string")?.text;
-    const normalized = text ? normalizeEslPassageTitle(text) : "";
+    });
+    const normalized = normalizeEslPassageTitle(text);
     const wordCount = normalized ? normalized.split(/\s+/).filter(Boolean).length : 0;
     return normalized && normalized.length <= 42 && wordCount >= 2 && wordCount <= 6
       ? normalized

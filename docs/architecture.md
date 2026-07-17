@@ -14,14 +14,27 @@ See [design-system.md](./design-system.md) for visual design guidelines includin
 - Border radius system (coordinated with serif fonts)
 - Component patterns and usage examples
 
+## LLM Calls
+All model calls go through `apps/web/app/utils/llm.server.ts`, which owns the task → model
+routing table (e.g. anonymous translation uses a cheaper model). The optional `GEMINI_BASE_URL`
+env var can point calls at Cloudflare AI Gateway without code changes.
+
 ## Key Flows
+- Sign-in happens in a popup at `/login`: Google OAuth, or an email one-time code (for users
+  who cannot reach Google). Email is the primary identity; a Google login with a matching
+  email attaches to the same account.
 - Google OAuth handled in the Remix app; sessions are stored in D1 and referenced by a secure cookie.
+- Email OTP codes are sent via Resend (`RESEND_API_KEY`); in local dev without the key, the
+  code is logged to the server console and shown in the dev UI.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
 - Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or tool settings pages; the preference is stored locally in the browser.
 
 ## Routing
-- `/` landing page
+- `/` studio homepage (lab intro, product cards linking to landing pages, principles, team info)
 - `/about` about page
+- `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Speech as modules of one product)
+- `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
+- `/login` sign-in popup page (Google OAuth or email OTP code)
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
 - `/posts` posts tool (compose + history rail + in-place editing)
 - `/posts/:id` public post view

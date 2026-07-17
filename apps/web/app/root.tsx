@@ -57,7 +57,10 @@ export default function App() {
   const { user } = useLoaderData<typeof loader>();
   const location = useLocation();
   const matches = useMatches();
-  const showFooter = location.pathname === "/" || location.pathname === "/about";
+  const showFooter =
+    location.pathname === "/" ||
+    location.pathname === "/about" ||
+    location.pathname === "/english";
   const hideHeader = matches.some((m) => (m.handle as RouteHandle)?.hideHeader);
 
   return (

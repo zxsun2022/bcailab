@@ -3,6 +3,7 @@ import { Button } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
 import { Link, useMatches } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
+import { openLoginPopup } from "~/utils/login-popup";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
 
@@ -46,15 +47,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
   }, []);
 
   const handleLogin = () => {
-    const width = 520;
-    const height = 640;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    window.open(
-      "/auth/google",
-      "bcailab-auth",
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
+    openLoginPopup();
   };
 
   return (
@@ -93,7 +86,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
           <div className="nav-actions" ref={menuRef}>
             {!user ? (
               <Button type="button" onClick={handleLogin}>
-                Continue with Google
+                Sign in
               </Button>
             ) : (
               <div className="menu-shell">

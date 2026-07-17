@@ -1,6 +1,6 @@
 /// <reference types="@cloudflare/workers-types" />
 
-type Db = D1Database;
+export type Db = D1Database;
 
 export type User = {
   id: string;
@@ -310,6 +310,24 @@ export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile
       throw new Error("Failed to load updated user.");
     }
     return updated;
+  }
+
+  // Merge with an existing email-login account so both methods share one user.
+  if (profile.email) {
+    const byEmail = await getUserByEmail(db, profile.email);
+    if (byEmail) {
+      await db
+        .prepare(
+          "UPDATE users SET google_sub = ?, name = COALESCE(?, name), avatar_url = COALESCE(?, avatar_url), updated_at = datetime('now') WHERE id = ?"
+        )
+        .bind(profile.sub, profile.name ?? null, profile.picture ?? null, byEmail.id)
+        .run();
+      const merged = await getUserById(db, byEmail.id);
+      if (!merged) {
+        throw new Error("Failed to load merged user.");
+      }
+      return merged;
+    }
   }
 
   const id = crypto.randomUUID();
@@ -1175,4 +1193,149 @@ export async function listCompletedWritingRevisionsByUser(
     .bind(userId)
     .all();
   return (result.results ?? []).map(mapWritingRevision);
+}
+
+/* ---------- email login (OTP) ---------- */
+
+export type LoginCode = {
+  id: string;
+  email: string;
+  code_hash: string;
+  ip: string | null;
+  expires_at: number;
+  attempts: number;
+  consumed_at: string | null;
+  created_at: string;
+};
+
+const mapLoginCode = (row: Record<string, unknown>): LoginCode => ({
+  id: String(row.id),
+  email: String(row.email),
+  code_hash: String(row.code_hash),
+  ip: row.ip ? String(row.ip) : null,
+  expires_at: Number(row.expires_at),
+  attempts: Number(row.attempts ?? 0),
+  consumed_at: row.consumed_at ? String(row.consumed_at) : null,
+  created_at: String(row.created_at)
+});
+
+export async function getUserByEmail(db: Db, email: string): Promise<User | null> {
+  const result = await db
+    .prepare("SELECT * FROM users WHERE email = ? LIMIT 1")
+    .bind(email)
+    .first();
+  return result ? mapUser(result) : null;
+}
+
+export async function createUserWithEmail(db: Db, email: string): Promise<User> {
+  const id = crypto.randomUUID();
+  await db.prepare("INSERT INTO users (id, email) VALUES (?, ?)").bind(id, email).run();
+  const created = await getUserById(db, id);
+  if (!created) {
+    throw new Error("Failed to create user.");
+  }
+  return created;
+}
+
+export async function createLoginCode(
+  db: Db,
+  input: { email: string; codeHash: string; ip: string | null; expiresAt: number }
+): Promise<string> {
+  const id = crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO login_codes (id, email, code_hash, ip, expires_at) VALUES (?, ?, ?, ?, ?)"
+    )
+    .bind(id, input.email, input.codeHash, input.ip, input.expiresAt)
+    .run();
+  return id;
+}
+
+export async function getActiveLoginCode(db: Db, email: string): Promise<LoginCode | null> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM login_codes WHERE email = ? AND consumed_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 1"
+    )
+    .bind(email)
+    .first();
+  return result ? mapLoginCode(result) : null;
+}
+
+export async function incrementLoginCodeAttempts(db: Db, id: string): Promise<void> {
+  await db.prepare("UPDATE login_codes SET attempts = attempts + 1 WHERE id = ?").bind(id).run();
+}
+
+export async function consumeLoginCode(db: Db, id: string): Promise<void> {
+  await db
+    .prepare("UPDATE login_codes SET consumed_at = datetime('now') WHERE id = ?")
+    .bind(id)
+    .run();
+}
+
+export async function countRecentLoginCodes(
+  db: Db,
+  input: { email?: string; ip?: string; sinceIso: string }
+): Promise<number> {
+  if (input.email) {
+    const row = await db
+      .prepare("SELECT COUNT(*) AS n FROM login_codes WHERE email = ? AND created_at >= ?")
+      .bind(input.email, input.sinceIso)
+      .first();
+    return Number(row?.n ?? 0);
+  }
+  if (input.ip) {
+    const row = await db
+      .prepare("SELECT COUNT(*) AS n FROM login_codes WHERE ip = ? AND created_at >= ?")
+      .bind(input.ip, input.sinceIso)
+      .first();
+    return Number(row?.n ?? 0);
+  }
+  return 0;
+}
+
+/* ---------- translate usage quotas ---------- */
+
+export type TranslateUsage = {
+  subject: string;
+  day: string;
+  requests: number;
+  chars: number;
+};
+
+export async function getTranslateUsage(
+  db: Db,
+  subjects: string[],
+  day: string
+): Promise<TranslateUsage[]> {
+  if (subjects.length === 0) return [];
+  const placeholders = subjects.map(() => "?").join(", ");
+  const result = await db
+    .prepare(
+      `SELECT subject, day, requests, chars FROM translate_usage WHERE day = ? AND subject IN (${placeholders})`
+    )
+    .bind(day, ...subjects)
+    .all();
+  return (result.results ?? []).map((row) => ({
+    subject: String(row.subject),
+    day: String(row.day),
+    requests: Number(row.requests ?? 0),
+    chars: Number(row.chars ?? 0)
+  }));
+}
+
+export async function incrementTranslateUsage(
+  db: Db,
+  subjects: string[],
+  day: string,
+  chars: number
+): Promise<void> {
+  if (subjects.length === 0) return;
+  const statement = db.prepare(
+    `INSERT INTO translate_usage (subject, day, requests, chars) VALUES (?, ?, 1, ?)
+     ON CONFLICT(subject, day) DO UPDATE SET
+       requests = requests + 1,
+       chars = chars + excluded.chars,
+       updated_at = datetime('now')`
+  );
+  await db.batch(subjects.map((subject) => statement.bind(subject, day, chars)));
 }

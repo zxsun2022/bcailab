@@ -1,94 +1,60 @@
 import { Link, useOutletContext, useSearchParams } from "@remix-run/react";
-import { Card } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
+import { openLoginPopup } from "~/utils/login-popup";
 
-interface Tool {
-  slug: string;
+interface Product {
+  href: string;
+  kicker: string;
   title: string;
   description: string;
-  tags: string[];
-  planned?: boolean;
+  modules: string[];
+  requiresAuth?: boolean;
 }
 
-interface Category {
-  key: string;
-  label: string;
-  tools: Tool[];
-}
-
-const categories: Category[] = [
+const products: Product[] = [
   {
-    key: "english",
-    label: "Language Learning",
-    tools: [
-      {
-        slug: "reading",
-        title: "Reading / Recitation",
-        description: "Read aloud or recite passages with AI-powered evaluation.",
-        tags: ["Speaking", "Practice"]
-      },
-      {
-        slug: "writing",
-        title: "Writing Coach",
-        description: "Iterative feedback loop for draft revisions.",
-        tags: ["Writing", "AI"]
-      },
-      {
-        slug: "speech",
-        title: "Speech",
-        description: "Generate natural speech audio with optional synced text.",
-        tags: ["TTS", "Audio"]
-      },
-      {
-        slug: "esl/dictionary",
-        title: "AI Dictionary",
-        description: "Word and phrase explanation with bilingual support.",
-        tags: ["Vocabulary", "AI"],
-        planned: true
-      }
-    ]
+    href: "/english",
+    kicker: "Flagship product",
+    title: "English Studio",
+    description:
+      "One workspace for deliberate English practice. Recite passages with AI evaluation, revise essays with a writing coach, generate speech audio for shadowing, and translate with an LLM — all under one account with shared progress.",
+    modules: ["Reading & Recitation", "Writing Coach", "Translate", "Speech", "Dictionary (soon)"]
   },
   {
-    key: "utilities",
-    label: "Utilities",
-    tools: [
-      {
-        slug: "posts",
-        title: "Posts",
-        description: "Publish Markdown posts and share a clean public URL.",
-        tags: ["Markdown", "Publish"]
-      }
-    ]
+    href: "/posts",
+    kicker: "Utility",
+    title: "Posts",
+    description:
+      "A quiet publishing tool. Write in Markdown, publish in one step, and share a clean public URL without formatting overhead.",
+    modules: ["Markdown", "Publish"],
+    requiresAuth: true
   }
 ];
 
-const totalTools = categories.reduce((sum, cat) => sum + cat.tools.length, 0);
+const principles = [
+  {
+    title: "One clear tool for one clear job",
+    body: "Each product solves a concrete problem with a calm interface, instead of growing into a control panel of loosely related features."
+  },
+  {
+    title: "AI in the loop, not in the way",
+    body: "Models do the evaluating, coaching, and translating behind the scenes; the surface stays simple enough to use every day."
+  },
+  {
+    title: "Shared foundations",
+    body: "One account, one design language, one infrastructure. Products stay small because the platform underneath does the heavy lifting."
+  }
+];
 
 export default function Index() {
   const { user } = useOutletContext<{ user: User | null }>();
   const [params] = useSearchParams();
   const loginHint = params.get("login");
 
-  const handleLogin = () => {
-    const width = 520;
-    const height = 640;
-    const left = window.screenX + (window.outerWidth - width) / 2;
-    const top = window.screenY + (window.outerHeight - height) / 2;
-    window.open(
-      "/auth/google",
-      "bcailab-auth",
-      `width=${width},height=${height},left=${left},top=${top}`
-    );
-  };
-
-  const handleToolClick = (event: React.MouseEvent, planned?: boolean) => {
-    if (planned) {
+  const handleProductClick = (event: React.MouseEvent, product: Product) => {
+    if (product.requiresAuth && !user) {
       event.preventDefault();
-      return;
-    }
-    if (!user) {
-      event.preventDefault();
-      handleLogin();
+      openLoginPopup();
     }
   };
 
@@ -97,7 +63,7 @@ export default function Index() {
       <section className="home-hero">
         <div className="home-eyebrow">
           <span className="home-eyebrow-line" />
-          Exploring AI applications
+          An independent AI product lab
         </div>
         <h1 className="home-title">
           Where AI meets
@@ -105,9 +71,9 @@ export default function Index() {
           <em>everyday life.</em>
         </h1>
         <p className="home-desc">
-          We explore, iterate, and build tools that bring AI into real
-          workflows — reading, writing, speaking, creating. One useful tool at a
-          time.
+          bcailab is a small studio that designs and ships focused AI products —
+          tools that bring language models into real workflows like reading,
+          writing, speaking, and publishing.
         </p>
         {loginHint ? (
           <div className="home-login-hint">
@@ -116,44 +82,76 @@ export default function Index() {
         ) : null}
       </section>
 
-      <section className="home-catalog">
-        {categories.map((cat) => (
-          <div key={cat.key} className="home-category">
-            <div className="home-tools-header">
-              <span className="home-tools-label">{cat.label}</span>
-              <span className="home-tools-count">{cat.tools.length}</span>
+      <section className="home-products">
+        <div className="home-tools-header">
+          <span className="home-tools-label">Products</span>
+          <span className="home-tools-count">{products.length}</span>
+        </div>
+        <div className="home-product-list">
+          {products.map((product) => (
+            <Link
+              key={product.href}
+              to={product.href}
+              className="home-product"
+              onClick={(e) => handleProductClick(e, product)}
+            >
+              <div className="home-product-kicker">{product.kicker}</div>
+              <div className="home-product-head">
+                <h2 className="home-product-title">{product.title}</h2>
+                <span className="home-tool-arrow">&rarr;</span>
+              </div>
+              <p className="home-product-desc">{product.description}</p>
+              <div className="home-tool-tags">
+                {product.modules.map((mod) => (
+                  <span key={mod} className="home-tool-tag">
+                    {mod}
+                  </span>
+                ))}
+              </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-principles">
+        <div className="home-tools-header">
+          <span className="home-tools-label">How we build</span>
+        </div>
+        <div className="home-principle-grid">
+          {principles.map((principle, index) => (
+            <div key={principle.title} className="home-principle">
+              <div className="home-principle-index">{String(index + 1).padStart(2, "0")}</div>
+              <h3 className="home-principle-title">{principle.title}</h3>
+              <p className="home-principle-body">{principle.body}</p>
             </div>
-            <div className="home-tool-grid">
-              {cat.tools.map((tool) => (
-                <Link
-                  key={tool.slug}
-                  to={`/${tool.slug}`}
-                  className={`home-tool-card-link${tool.planned ? " is-planned" : ""}`}
-                  onClick={(e) => handleToolClick(e, tool.planned)}
-                >
-                  <Card className="home-tool-card">
-                    <div className="home-tool-head">
-                      <h3 className="home-tool-title">{tool.title}</h3>
-                      {tool.planned ? (
-                        <span className="home-tool-badge">Soon</span>
-                      ) : (
-                        <span className="home-tool-arrow">&rarr;</span>
-                      )}
-                    </div>
-                    <p className="home-tool-desc">{tool.description}</p>
-                    <div className="home-tool-tags">
-                      {tool.tags.map((tag) => (
-                        <span key={tag} className="home-tool-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="home-lab">
+        <div className="home-tools-header">
+          <span className="home-tools-label">The lab</span>
+        </div>
+        <div className="home-lab-body">
+          <p>
+            bcailab is built and run by <strong>Zhongxing Sun</strong> from Burnaby,
+            British Columbia, Canada. The lab stays small on purpose so the shipped
+            tools can stay sharp — growth is deliberate, one useful product at a time.
+          </p>
+          <div className="home-lab-links">
+            <Link to="/about" className="home-lab-link">
+              About the lab &rarr;
+            </Link>
+            <a
+              href="https://x.com/Zhongxing_Sun"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="home-lab-link"
+            >
+              Follow on X &rarr;
+            </a>
           </div>
-        ))}
+        </div>
       </section>
     </div>
   );

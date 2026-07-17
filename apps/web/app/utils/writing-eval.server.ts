@@ -4,18 +4,7 @@ import {
   getWritingAgentOrDefault,
   type WritingAgent
 } from "~/utils/writing-agents";
-
-const DEFAULT_GEMINI_MODEL = "gemini-flash-latest";
-const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-
-type GeminiResponse = {
-  candidates?: Array<{
-    content?: {
-      parts?: Array<{ text?: string }>;
-    };
-  }>;
-  error?: { message?: string };
-};
+import { callGemini, parseJsonFromText, toStringArray } from "~/utils/llm.server";
 
 export type WritingFeedback = {
   annotations: WritingAnnotation[];
@@ -50,23 +39,6 @@ type PreviousRoundContext = {
   user_text: string;
   feedback: WritingFeedback | null;
   word_count: number;
-};
-
-const parseJsonFromText = (input: string): unknown => {
-  const raw = input.trim();
-  if (!raw) throw new Error("Gemini response is empty.");
-  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  const payload = fenced ? fenced[1] : raw;
-  return JSON.parse(payload);
-};
-
-const toStringArray = (value: unknown, maxLen: number): string[] => {
-  if (!Array.isArray(value)) return [];
-  return value
-    .filter((item) => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .slice(0, maxLen);
 };
 
 const normalizeSeverity = (value: unknown): WritingAnnotation["severity"] => {
@@ -238,9 +210,6 @@ export const evaluateWriting = async (input: {
   historyScores: Array<{ round: number; assessment: string }>;
   topic?: string;
 }): Promise<{ modelName: string; feedback: WritingFeedback }> => {
-  const apiKey = input.env.GEMINI_API_KEY?.trim();
-  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
-  const modelName = input.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
   const agent = getWritingAgentOrDefault(input.agentType);
 
   const prompt = buildPrompt({
@@ -253,28 +222,12 @@ export const evaluateWriting = async (input: {
     topic: input.topic
   });
 
-  const response = await fetch(
-    `${GEMINI_BASE_URL}/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json", temperature: 0.3 }
-      })
-    }
-  );
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini request failed (${response.status}): ${errorText.slice(0, 500)}`);
-  }
-
-  const json = (await response.json()) as GeminiResponse;
-  if (json.error?.message) throw new Error(`Gemini error: ${json.error.message}`);
-
-  const text = json.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === "string")?.text;
-  if (!text) throw new Error("Gemini response missing text content.");
+  const { modelName, text } = await callGemini({
+    env: input.env,
+    task: "writing_feedback",
+    parts: [{ text: prompt }],
+    generationConfig: { responseMimeType: "application/json", temperature: 0.3 }
+  });
 
   const parsed = parseJsonFromText(text);
   const isFirstRound = input.previousRound === null;
@@ -288,10 +241,8 @@ export const generateArticleTitle = async (
   env: Env,
   userText: string
 ): Promise<string | null> => {
-  const apiKey = env.GEMINI_API_KEY?.trim();
-  if (!apiKey) return null;
+  if (!env.GEMINI_API_KEY?.trim()) return null;
 
-  const model = "gemini-2.5-flash-lite";
   const prompt = [
     "Generate one short English title for the essay below.",
     "Rules:",
@@ -306,27 +257,16 @@ export const generateArticleTitle = async (
   ].join("\n");
 
   try {
-    const response = await fetch(
-      `${GEMINI_BASE_URL}/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            maxOutputTokens: 32,
-            thinkingConfig: { thinkingBudget: 0 }
-          }
-        })
+    const { text } = await callGemini({
+      env,
+      task: "title_generation",
+      parts: [{ text: prompt }],
+      generationConfig: {
+        temperature: 0.2,
+        maxOutputTokens: 32,
+        thinkingConfig: { thinkingBudget: 0 }
       }
-    );
-    if (!response.ok) return null;
-    const json = (await response.json()) as GeminiResponse;
-    const text = json.candidates?.[0]?.content?.parts?.find(
-      (p) => typeof p.text === "string"
-    )?.text;
-    if (!text) return null;
+    });
     const cleaned = text
       .trim()
       .replace(/^["']+|["']+$/g, "")

@@ -2,6 +2,12 @@
 
 This repository is intentionally structured for multi-agent collaboration across tools.
 
+## Roadmap Discipline
+- `docs/roadmap.md` is the single source of truth for iteration planning (Now / Next / Later / Done).
+- Read it before starting product work; move finished items to Done (with date) in the same commit/PR.
+- Never add or reprioritize roadmap items without explicit owner confirmation.
+- The goal: any AI coding tool can pick up where another left off using only the repo's docs.
+
 ## Repo Layout
 - `apps/` - Product surfaces (Remix app, future tools)
 - `packages/` - Shared libraries (UI, auth, DB, utilities)
@@ -49,7 +55,7 @@ This repository is intentionally structured for multi-agent collaboration across
 - Routes that **require** authentication call `requireUser()` in their own loader; this redirects to `/?login=1` when unauthenticated.
 
 ## Unauthenticated Interaction
-- On the homepage, clicking a tool card when not signed in opens the Google OAuth popup directly (same popup used by the Header login button). It does **not** navigate to the tool page first.
+- The homepage is a studio page: product cards link to landing pages. `/english` is public; clicking a module card there (or an auth-required product card like Posts on the homepage) when not signed in opens the Google OAuth popup directly (same popup used by the Header login button). It does **not** navigate to the tool page first. The popup helper lives in `apps/web/app/utils/login-popup.ts`.
 - The OAuth flow is popup-based: `window.open("/auth/google", …)` → callback posts a message → parent reloads. There is no standalone login page.
 
 ## Delete / Destructive Actions
