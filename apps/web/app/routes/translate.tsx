@@ -130,9 +130,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     );
   } catch (error) {
     console.error("translate action failed", error);
+    // Keep handled provider failures in the fetcher data path. In production,
+    // Cloudflare can replace a 502 response body with its HTML error page,
+    // which Remix cannot deserialize and promotes to the route error boundary.
     return json<ActionData>(
       { ok: false, error: "Translation failed. Please try again in a moment." },
-      { status: 502, headers: extraHeaders }
+      extraHeaders ? { headers: extraHeaders } : undefined
     );
   }
 };

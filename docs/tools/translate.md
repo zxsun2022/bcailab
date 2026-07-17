@@ -37,6 +37,12 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
 - **Limits**: per-tier — see "Quotas & Tiers" above. The char counter and submit button use
   the tier limit returned by the loader.
 - **Copy / Clear**: output pane has a copy button; input pane has a clear button.
+- **Stable layout**: the translate workspace has a fixed responsive width, so adding or removing
+  translation output does not resize the two-pane container.
+- **Provider failures**: model or upstream failures stay inside the fetcher data path and render
+  the inline retry message. They deliberately return a normal JSON response because Cloudflare
+  may replace HTTP 502 bodies with an HTML gateway page, which would otherwise trigger Remix's
+  page-level error boundary.
 
 ## Server
 - `apps/web/app/utils/translate.server.ts` builds the prompt and delegates the model call to
