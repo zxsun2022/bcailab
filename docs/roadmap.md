@@ -11,27 +11,21 @@ Product direction (agreed 2026-07): bcailab is a studio; **English Studio** is t
 product (an AI English coach: read, write, listen, translate). Translate is the free,
 no-account acquisition funnel into it.
 
-## Now (current iteration — started 2026-07-15)
+## Now (current iteration — started 2026-07-20, confirmed by owner)
 
-- [x] Unified LLM call layer `llm.server.ts`: task → model routing table, per-tier translate
-      models (anonymous = flash-lite, signed-in = flash), optional `GEMINI_BASE_URL` override
-      for Cloudflare AI Gateway.
-- [x] Anonymous translation with quotas: 5,000 chars/request + 8 requests/day (anon cookie +
-      IP counters in D1); signed-in 20,000 chars/request + 200/day invisible abuse cap;
-      quota banner + sign-in CTA.
-- [x] Email OTP login (for users who cannot use Google OAuth, e.g. mainland China):
-      `/login` popup with Google + email code, Resend sender (dev fallback logs the code),
-      identity decoupled from Google (email is the primary identity; Google merges by email).
-- [x] Resend domain verification for bcailab.com (verified 2026-07-16 via Resend's
-      Cloudflare integration).
-- [ ] Real-delivery test of the sign-in code to QQ/163 mailboxes (owner action). Note:
-      `wrangler pages secret put` only sets the **Production** env — set `RESEND_API_KEY`
-      for the **Preview** env in the Pages dashboard to test email sign-in on preview URLs.
+- [ ] Extend "try before sign-in" to Reading/Writing: one full sample evaluation for
+      anonymous users (reuses the quota infrastructure from the previous iteration).
+- [ ] Dictation v1 — fills the "listen" slot of the coach: pre-generated material library
+      (LLM-written short passages at fixed difficulty bands, e.g. CEFR A2–C1) with
+      per-sentence TTS reusing the Speech pipeline (Chirp3 → R2 + D1; per-sentence
+      synthesis, since Chirp3 provides no word timepoints); sentence-by-sentence playback
+      with replay + speed control; deterministic diff-based scoring (LLM only for
+      error-pattern feedback); anonymous "try one passage" via the existing quota
+      infrastructure. Technical design: `docs/dictation-v1-design.md` (its Appendix A
+      also holds the try-before-sign-in implementation checklist).
 
 ## Next
 
-- Extend "try before sign-in" to Reading/Writing: one full sample evaluation for anonymous
-  users (reuses the quota infrastructure from this iteration).
 - Unified feedback-language setting (currently duplicated per tool in localStorage).
 - Unified progress center: make `learner_profile` a user-visible growth curve across
   reading and writing.
@@ -51,13 +45,26 @@ no-account acquisition funnel into it.
 - Translate history for signed-in users — opt-in only (current privacy stance: translation
   text is never persisted). Most interesting framed as learning material: saved translations
   feeding vocabulary/dictionary and the learner profile, not a standalone log.
+- Dictation v2 — level-adaptive material generation (agreed 2026-07-20): elevate
+  `learner_profile` into a shared learner-model layer (tools write observations, the
+  profile layer aggregates) and add a unified material-generation service on the
+  `llm.server.ts` routing table that consumes profile + task type. Dictation consumes it
+  first; Reading/Writing migrate to the same interface gradually (interface migration,
+  not a rewrite). Prerequisites: unified progress center (Next) + dictation v1.
 - Decided 2026-07-16: Translate stays inside English Studio as its free funnel (not a
   standalone homepage product); revisit only if usage data shows a distinct audience.
 - Engineering quality: vitest for LLM-output parsers + ESLint; fix evaluation-history N+1
   query; audio Range request support; session cleanup cron; session secret rotation.
+- Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
+  data to fall back on — noted 2026-07-20, not urgent.
 
 ## Done
 
+- 2026-07-20 — Iteration started 2026-07-15 completed: unified LLM call layer
+  (`llm.server.ts` routing table, per-tier translate models, `GEMINI_BASE_URL` override);
+  anonymous translate quotas (5,000 chars × 8/day anon; 20,000 chars × 200/day signed-in);
+  email OTP login via Resend (domain verified 2026-07-16; real delivery to QQ/163
+  mailboxes tested and sign-in confirmed 2026-07-20).
 - 2026-07-15 — Homepage redesigned as studio page (every.to style); `/english` product
   landing page merging Reading/Writing/Translate/Speech as one product; `/translate`
   DeepL-style tool (Gemini-driven).
