@@ -6,7 +6,8 @@
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
     "typecheck": "pnpm --filter web typecheck",
-    "lint": "pnpm --filter web lint"
+    "lint": "pnpm --filter web lint",
+    "context": "./scripts/context-pack.sh"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260203.0",

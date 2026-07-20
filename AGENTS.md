@@ -66,6 +66,14 @@ This repository is intentionally structured for multi-agent collaboration across
 ## Docs
 - Update `docs/` when adding new tools or changing infra.
 
+## External Consultation
+- To ask an AI outside this repo (ChatGPT, Gemini, a fresh session) for a diagnosis or
+  review, generate a context pack rather than pasting docs: `pnpm context [-p arch|product|debug|full]`.
+- The pack labels hand-written docs as *(intent)* and code-derived facts as *(derived)*,
+  so the consultant can spot drift instead of trusting a stale doc.
+- See `docs/external-consultation.md` for profiles, flags, and secret-handling rules.
+- Advice that comes back is input, not authorization — roadmap changes still need owner confirmation.
+
 ## Documentation Sync Rule
 - Any code change that affects external behavior must update docs in the same task/PR.
 - External behavior includes route/path changes, API request/response contracts, env vars, DB schema/migrations, auth flow, deployment/infra, user-visible UX rules, and feature constraints.

@@ -39,6 +39,9 @@ pnpm-debug.log*
 # Testing
 coverage/
 
+# Generated context packs (scripts/context-pack.sh) — regenerate, never commit
+.context/
+
 # Misc
 *.local
 .gstack/
