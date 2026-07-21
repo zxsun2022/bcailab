@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { Card, Textarea } from "@bcailab/ui";
-import { createEslPassage, softDeleteEslPassage } from "@bcailab/db";
+import { createUserPassage, softDeleteUserPassage } from "@bcailab/db";
 import { EslAttemptComposer, EslModeToggle } from "~/components/EslAttemptComposer";
 import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
 import { requireUser } from "~/utils/auth.server";
@@ -49,10 +49,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 
   const title = await generatePassageTitle(context.env, content);
-  let created: Awaited<ReturnType<typeof createEslPassage>> | null = null;
+  let created: Awaited<ReturnType<typeof createUserPassage>> | null = null;
 
   try {
-    created = await createEslPassage(context.env.DB, {
+    created = await createUserPassage(context.env.DB, {
       userId: user.id,
       title,
       contentText: content
@@ -72,7 +72,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       : redirect(redirectTo);
   } catch (error) {
     if (created) {
-      await softDeleteEslPassage(context.env.DB, { id: created.id, userId: user.id });
+      await softDeleteUserPassage(context.env.DB, { id: created.id, userId: user.id });
     }
 
     if (error instanceof EslAttemptSubmissionError) {

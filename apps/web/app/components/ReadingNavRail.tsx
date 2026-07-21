@@ -8,8 +8,17 @@ type PassageSummary = {
   content_text: string;
 };
 
+type LibrarySummary = {
+  id: string;
+  title: string;
+  band: string | null;
+  topic: string | null;
+};
+
 type ReadingNavRailProps = {
   passages: PassageSummary[];
+  /** Graded global material. Read-only: there is no delete affordance for it. */
+  library: LibrarySummary[];
   activeId: string | null;
   user: NavUser;
 };
@@ -20,7 +29,7 @@ function getPassageTitle(title: string | null, contentText: string): string {
   return firstLine.slice(0, 60) || "Untitled";
 }
 
-export function ReadingNavRail({ passages, activeId, user }: ReadingNavRailProps) {
+export function ReadingNavRail({ passages, library, activeId, user }: ReadingNavRailProps) {
   const location = useLocation();
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
 
@@ -51,6 +60,7 @@ export function ReadingNavRail({ passages, activeId, user }: ReadingNavRailProps
       settingsTo="/reading/settings"
       user={user}
     >
+      <div className="nav-rail-section-label">Your passages</div>
       {passages.length === 0 ? (
         <div className="nav-rail-empty">No passages yet</div>
       ) : (
@@ -86,6 +96,27 @@ export function ReadingNavRail({ passages, activeId, user }: ReadingNavRailProps
           />
         ))
       )}
+
+      {library.length > 0 ? (
+        <>
+          <div className="nav-rail-section-label">Library</div>
+          {library.map((passage) => (
+            // Plain link, not NavRailItem: library material is global content and has
+            // no per-item menu, because a learner must not be able to delete it.
+            <div key={passage.id} className="nav-rail-item-shell">
+              <Link
+                to={`/reading/${passage.id}`}
+                className={`nav-rail-item${activeId === passage.id ? " is-active" : ""}`}
+              >
+                <div className="nav-rail-item-title">{passage.title}</div>
+                <div className="nav-rail-item-meta">
+                  {[passage.band, passage.topic].filter(Boolean).join(" · ")}
+                </div>
+              </Link>
+            </div>
+          ))}
+        </>
+      ) : null}
     </ToolNavRail>
   );
 }

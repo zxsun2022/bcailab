@@ -1,7 +1,9 @@
-# Dictation seed pipeline
+# Material seed pipeline
 
-Offline content pipeline for the Dictation v1 material library
-(design: `docs/dictation-v1-design.md` §3). Two phases, so text quality is
+Offline content pipeline for the shared material library. One graded passage serves
+both listening (per-sentence dictation audio) and reading-aloud practice.
+Design: `docs/material-layer-design.md`, and `docs/dictation-v1-design.md` §3 for the
+original two-phase generate/publish split. Two phases, so text quality is
 reviewable before spending TTS money.
 
 ## Workflow (owner decision, 2026-07-20)
@@ -29,14 +31,19 @@ full.
      `DICTATION_SENTENCE_*`), validating: 8–12 sentences, ≤110 chars each, no
      digits (numbers as words), no ambiguous proper nouns, CEFR-band-appropriate
      language.
-   - *Scripted:* `pnpm tsx scripts/dictation-seed/generate.ts --band B1 --count 5`
+   - *Scripted:* `pnpm tsx scripts/material-seed/generate.ts --band B1 --count 5`
      (Gemini, needs `GEMINI_API_KEY`; mirrors the `dictation_generate` routing entry).
 2. **Review** — the owner reads `out/*.json` by eye. Nothing publishes without this.
-3. **Publish** — `pnpm tsx scripts/dictation-seed/publish.ts --all` (or specific
+3. **Publish** — `pnpm tsx scripts/material-seed/publish.ts --all` (or specific
    files). Per passage: Chirp3 en-US TTS per sentence (voice gender alternates by
    uuid parity), upload to R2 `dictation/{passageId}/{idx}.mp3`, insert D1 rows.
    Needs `GOOGLE_TTS_SERVICE_ACCOUNT_JSON` (env or root `.dev.vars`) and a
    logged-in wrangler.
+4. **Tag** — `pnpm tsx scripts/material-seed/tag.ts`. Derives difficulty metrics and
+   feature tags from passage text and writes `passages` / `passage_tags`.
+   **Re-run this whenever the tag vocabulary changes** — it is deterministic and
+   replaces a passage's tags wholesale, so re-tagging the whole library is the
+   intended workflow rather than a migration. No TTS cost, no LLM call.
 
 ## Properties
 

@@ -20,14 +20,27 @@ rail. The shell is public, so `ToolNavRail` accepts a null user and renders a si
 
 ## Content Model
 
-Passages are **global app content, not user data** — no `user_id` on `dictation_passages` or
-`dictation_sentences`. One row serves every learner, which is what lets the library accumulate
-per-passage accuracy statistics for future difficulty calibration (see the Dictation v2 roadmap
-entry).
+Passages live in the shared material layer (`passages` / `passage_sentences`), not in
+dictation-specific tables — see `docs/material-layer-design.md`. Library content is marked by
+`user_id IS NULL`; one row serves every learner and can also be practised aloud in Reading.
 
-The library is seeded offline by `scripts/dictation-seed/` (generate → human review → publish);
-there is no admin UI and no runtime generation. See that directory's README for the workflow and
-the review policy. Initial library: 20 passages, 5 each at A2/B1/B2/C1, 211 sentences.
+Dictation only ever serves **library** material, for signed-in and anonymous learners alike,
+so its lookups go through `getLibraryPassageById` rather than the ownership-aware
+`getPassageForUser`. Dictation on user-supplied text remains out of scope.
+
+Because a passage row is shared, it accumulates per-passage accuracy statistics in
+`passage_stats` for future difficulty calibration (see the Dictation v2 roadmap entry).
+Anonymous attempts count toward those statistics: the row carries no identity, and it is a
+fact about the passage rather than the learner.
+
+The library is seeded offline by `scripts/material-seed/` (generate → human review → publish →
+tag); there is no admin UI and no runtime generation. See that directory's README for the
+workflow and the review policy. Initial library: 20 passages, 5 each at A2/B1/B2/C1,
+211 sentences.
+
+`tag.ts` derives difficulty metrics and feature tags from passage text **deterministically** —
+by code, never by a model — so tagging is reproducible, free to recompute, and cannot drift
+between batches. Re-running it after a vocabulary change is the intended workflow.
 
 ## Audio
 

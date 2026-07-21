@@ -43,7 +43,7 @@ coverage/
 .context/
 
 # Dictation seed audio cache (publish.ts re-synthesizes on demand; JSON stays committed)
-scripts/dictation-seed/out/audio/
+scripts/material-seed/out/audio/
 
 # Misc
 *.local

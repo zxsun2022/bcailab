@@ -9,11 +9,11 @@ import {
 import { Badge, Card } from "@bcailab/ui";
 import {
   deleteEslReadingEvaluationsByAttemptIds,
-  getEslPassageById,
+  getPassageForUser,
   getEslReadingAttemptById,
   getLatestEslReadingEvaluationByAttemptId,
   listEslReadingAttemptsByPassage,
-  softDeleteEslPassage,
+  softDeleteUserPassage,
   softDeleteEslReadingAttempt,
   softDeleteEslReadingAttemptsByPassage
 } from "@bcailab/db";
@@ -66,8 +66,10 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   const passageId = params.id;
   if (!passageId) throw new Response("Not found", { status: 404 });
 
-  const passage = await getEslPassageById(context.env.DB, passageId, { includeDeleted: true });
-  if (!passage || passage.user_id !== user.id || passage.deleted_at) {
+  // Library passages and the caller's own are both reachable; anything else 404s.
+  // The predicate lives in getPassageForUser so it is spelled once, not per route.
+  const passage = await getPassageForUser(context.env.DB, { id: passageId, userId: user.id });
+  if (!passage) {
     throw new Response("Not found", { status: 404 });
   }
 
@@ -121,7 +123,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
   const fallbackReferenceKey = buildReferenceFallbackR2Key(user.id, passage.id);
   const hasFallbackReference =
-    passage.reference_tts_status !== "completed" || !passage.reference_tts_r2_key
+    passage.reference_audio_status !== "completed" || !passage.reference_audio_r2_key
       ? Boolean(await context.env.R2.head(fallbackReferenceKey).catch(() => null))
       : false;
 
@@ -131,15 +133,15 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     attempts: attemptsWithEval,
     referenceAudio: {
       status:
-        passage.reference_tts_status === "completed" ||
-        passage.reference_tts_status === "pending" ||
-        passage.reference_tts_status === "failed"
-          ? passage.reference_tts_status
+        passage.reference_audio_status === "completed" ||
+        passage.reference_audio_status === "pending" ||
+        passage.reference_audio_status === "failed"
+          ? passage.reference_audio_status
           : hasFallbackReference
             ? "completed"
             : null,
       audioUrl:
-        (passage.reference_tts_status === "completed" && passage.reference_tts_r2_key) ||
+        (passage.reference_audio_status === "completed" && passage.reference_audio_r2_key) ||
         hasFallbackReference
           ? `/esl/passage-audio/${passage.id}`
           : null
@@ -167,8 +169,10 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   const passageId = params.id;
   if (!passageId) throw new Response("Not found", { status: 404 });
 
-  const passage = await getEslPassageById(context.env.DB, passageId, { includeDeleted: true });
-  if (!passage || passage.user_id !== user.id || passage.deleted_at) {
+  // Library passages and the caller's own are both reachable; anything else 404s.
+  // The predicate lives in getPassageForUser so it is spelled once, not per route.
+  const passage = await getPassageForUser(context.env.DB, { id: passageId, userId: user.id });
+  if (!passage) {
     throw new Response("Not found", { status: 404 });
   }
 
@@ -203,8 +207,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     try {
       await deleteAttemptArtifacts(context, { userId: user.id, attempts });
-      if (passage.reference_tts_r2_key) {
-        await context.env.R2.delete(passage.reference_tts_r2_key).catch(() => undefined);
+      if (passage.reference_audio_r2_key) {
+        await context.env.R2.delete(passage.reference_audio_r2_key).catch(() => undefined);
       }
       await context.env.R2
         .delete(buildReferenceFallbackR2Key(user.id, passage.id))
@@ -213,7 +217,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         passageId: passage.id,
         userId: user.id
       });
-      await softDeleteEslPassage(context.env.DB, { id: passage.id, userId: user.id });
+      await softDeleteUserPassage(context.env.DB, { id: passage.id, userId: user.id });
       return redirect("/reading");
     } catch {
       return json<ActionData>(

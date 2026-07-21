@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
-import { getDictationSentenceById } from "@bcailab/db";
+import { getLibraryPassageSentenceById } from "@bcailab/db";
 
 /**
  * Public per-sentence MP3 stream.
@@ -18,8 +18,10 @@ export const loader = async ({ context, params }: LoaderFunctionArgs) => {
     throw new Response("Not found", { status: 404 });
   }
 
-  const sentence = await getDictationSentenceById(context.env.DB, sentenceId);
-  if (!sentence) {
+  const sentence = await getLibraryPassageSentenceById(context.env.DB, sentenceId);
+  // `r2_key` is nullable in the unified schema: a sentence row can exist before its
+  // audio is synthesized. There is nothing to stream until it does.
+  if (!sentence?.r2_key) {
     throw new Response("Not found", { status: 404 });
   }
 

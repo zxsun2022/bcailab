@@ -1,5 +1,5 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
-import { getEslPassageById } from "@bcailab/db";
+import { getPassageForUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { buildReferenceFallbackR2Key } from "~/utils/esl-passage-reference.server";
 
@@ -10,15 +10,22 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     throw new Response("Not found", { status: 404 });
   }
 
-  const passage = await getEslPassageById(context.env.DB, id);
-  if (!passage || passage.user_id !== user.id) {
+  const passage = await getPassageForUser(context.env.DB, { id, userId: user.id });
+  if (!passage) {
     throw new Response("Not found", { status: 404 });
   }
 
+  // The legacy fallback key is owner-scoped, so it only makes sense for the caller's
+  // own passages. Library reference audio always has an explicit stored key.
   const r2Key =
-    passage.reference_tts_status === "completed" && passage.reference_tts_r2_key
-      ? passage.reference_tts_r2_key
-      : buildReferenceFallbackR2Key(user.id, passage.id);
+    passage.reference_audio_status === "completed" && passage.reference_audio_r2_key
+      ? passage.reference_audio_r2_key
+      : passage.user_id === user.id
+        ? buildReferenceFallbackR2Key(user.id, passage.id)
+        : null;
+  if (!r2Key) {
+    throw new Response("Not found", { status: 404 });
+  }
   const object = await context.env.R2.get(r2Key);
   if (!object) {
     throw new Response("Not found", { status: 404 });

@@ -11,13 +11,18 @@ Product direction (agreed 2026-07): bcailab is a studio; **English Studio** is t
 product (an AI English coach: read, write, listen, translate). Translate is the free,
 no-account acquisition funnel into it.
 
-## Now (current iteration — started 2026-07-20, confirmed by owner)
+## Now (current iteration — scoped 2026-07-21, confirmed by owner)
 
-- [x] Extend "try before sign-in" to Reading/Writing — done 2026-07-21, see Done.
-- [x] Dictation v1 — done 2026-07-21, see Done.
+- [x] Material layer unification — done 2026-07-21, see Done.
 
 **Iteration complete.** The next iteration has not been scoped — see Next/Later, and
-confirm scope with the owner before starting.
+confirm scope with the owner before starting. The obvious follow-on is the matching
+service (learner → passage), which this layer was built to feed.
+
+Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
+
+- [x] Extend "try before sign-in" to Reading/Writing
+- [x] Dictation v1
 
 ## Next
 
@@ -68,6 +73,18 @@ confirm scope with the owner before starting.
 
 ## Done
 
+- 2026-07-21 — Material layer unified: dictation and reading now share one graded passage
+  store (`passages` / `passage_sentences` / `passage_tags` / `passage_stats`), so a single
+  passage can be taken as dictation *and* read aloud. Adds a deterministic tagger — tags
+  derived from text by code, never guessed by a model, so they are reproducible and can be
+  recomputed over the whole library when the vocabulary changes — plus per-passage
+  empirical difficulty accumulated from every scored attempt including anonymous ones.
+  Reading gains a graded library alongside the learner's own texts, with authorization
+  collapsed into one predicate. Migration 0012 moves all 20 library and 14 user passages
+  with ids preserved and deletes nothing. Excludes the matching service by design.
+  Known gap: whole-passage reference audio for library passages was not built (design
+  §9.1) — do it with the next library expansion so TTS is paid once.
+  Docs: `docs/material-layer-design.md`.
 - 2026-07-21 — Try-before-sign-in extended to Reading and Writing: `/reading/trial`
   (fixed sample passage, record once, real evaluation) and `/writing/trial` (one coach
   feedback round), both public and both persisting **nothing** — no attempt or article
@@ -83,7 +100,7 @@ confirm scope with the owner before starting.
   deterministic diff scoring (`dictation-diff.ts`, British/American spellings equivalent,
   flooding guard), signed-in attempt history with background LLM error-pattern feedback,
   and anonymous access via the new generic `feature_usage` quota table. Content is seeded
-  offline by `scripts/dictation-seed/` (generate → owner review → publish); there is no
+  offline by `scripts/material-seed/` (generate → owner review → publish); there is no
   runtime generation. Two decisions during implementation: scoring runs server-side rather
   than client-side so the reference text never reaches the browser, and quotas were raised
   well above the design's original numbers because a v1 session consumes no LLM tokens.

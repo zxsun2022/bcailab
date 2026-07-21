@@ -7,8 +7,9 @@ import {
   getLatestEslReadingEvaluationByAttemptId,
   incrementEslLearnerProfileCounters,
   listEslReadingAttemptsByPassage,
+  recordPassageAttemptStat,
   updateEslReadingAttemptEvaluationStatus,
-  type EslPassage
+  type Passage
 } from "@bcailab/db";
 import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
 import {
@@ -135,7 +136,7 @@ const runReadingAttemptEvaluation = async (
   input: {
     userId: string;
     attemptId: string;
-    passage: EslPassage;
+    passage: Passage;
     mode: EslReadingMode;
     outputLanguage: ReadingOutputLanguage;
     durationMs: number | null;
@@ -220,6 +221,14 @@ const runReadingAttemptEvaluation = async (
       userId: input.userId,
       practiceSeconds
     });
+
+    // Empirical difficulty for the material layer. Normalized to 0..1 so reading and
+    // dictation scores are comparable; a no-op for user-created passages.
+    await recordPassageAttemptStat(context.env.DB, {
+      passageId: input.passage.id,
+      mode: "reading",
+      accuracy: Math.min(1, Math.max(0, evaluation.output.scores.overall / 100))
+    });
   } catch {
     const activeAttempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
       includeDeleted: true
@@ -240,7 +249,7 @@ const scheduleReadingAttemptEvaluation = async (
   input: {
     userId: string;
     attemptId: string;
-    passage: EslPassage;
+    passage: Passage;
     mode: EslReadingMode;
     outputLanguage: ReadingOutputLanguage;
     durationMs: number | null;
@@ -261,7 +270,7 @@ export const createAndScheduleEslReadingAttempt = async (
   context: AppLoadContext,
   input: {
     userId: string;
-    passage: EslPassage;
+    passage: Passage;
     submission: ParsedEslAttemptSubmission;
   }
 ): Promise<{ attemptId: string }> => {
@@ -326,7 +335,7 @@ export const retryEslReadingAttemptEvaluation = async (
   input: {
     userId: string;
     attemptId: string;
-    passage: EslPassage;
+    passage: Passage;
     outputLanguage: ReadingOutputLanguage;
   }
 ) => {
