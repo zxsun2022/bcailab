@@ -17,8 +17,15 @@ const products: Product[] = [
     kicker: "Flagship product",
     title: "English Studio",
     description:
-      "One workspace for deliberate English practice. Recite passages with AI evaluation, revise essays with a writing coach, generate speech audio for shadowing, and translate with an LLM — all under one account with shared progress.",
-    modules: ["Reading & Recitation", "Writing Coach", "Translate", "Speech", "Dictionary (soon)"]
+      "One workspace for deliberate English practice. Take dictation sentence by sentence, recite passages with AI evaluation, revise essays with a writing coach, generate speech audio for shadowing, and translate with an LLM — all under one account with shared progress.",
+    modules: [
+      "Dictation",
+      "Reading & Recitation",
+      "Writing Coach",
+      "Translate",
+      "Speech",
+      "Dictionary (soon)"
+    ]
   },
   {
     href: "/posts",
