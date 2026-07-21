@@ -25,6 +25,12 @@ interface Module {
   planned?: boolean;
   /** Public modules are usable without signing in. */
   public?: boolean;
+  /**
+   * Anonymous-trial entry point. Signed-out users are sent here instead of the
+   * login popup; the trial page enforces its own daily quota and shows the
+   * sign-in CTA once that is spent (design Appendix A).
+   */
+  trialSlug?: string;
 }
 
 const modules: Module[] = [
@@ -34,7 +40,8 @@ const modules: Module[] = [
     description: "Read aloud or recite passages, get AI evaluation on every attempt.",
     detail:
       "Save passages, record attempts, and receive structured feedback on pronunciation, fluency, and completeness — with a progress dashboard across attempts.",
-    tags: ["Speaking", "Evaluation", "Progress"]
+    tags: ["Speaking", "Evaluation", "Free to try"],
+    trialSlug: "reading/trial"
   },
   {
     slug: "writing",
@@ -42,7 +49,8 @@ const modules: Module[] = [
     description: "Draft, get structured feedback, revise, and track rounds.",
     detail:
       "Choose a coach persona, submit a draft, and work through revision rounds with scored feedback that remembers where you left off.",
-    tags: ["Writing", "Feedback", "Revision"]
+    tags: ["Writing", "Feedback", "Free to try"],
+    trialSlug: "writing/trial"
   },
   {
     slug: "translate",
@@ -83,12 +91,20 @@ const modules: Module[] = [
 export default function EnglishLanding() {
   const { user } = useOutletContext<{ user: User | null }>();
 
+  /**
+   * Signed-out users go to a module's trial path when it has one, and to the login
+   * popup otherwise. Signed-in users always go to the real tool, so `moduleHref`
+   * and this handler must agree on that split.
+   */
+  const moduleHref = (mod: Module): string =>
+    !user && mod.trialSlug ? `/${mod.trialSlug}` : `/${mod.slug}`;
+
   const handleModuleClick = (event: React.MouseEvent, mod: Module) => {
     if (mod.planned) {
       event.preventDefault();
       return;
     }
-    if (!user && !mod.public) {
+    if (!user && !mod.public && !mod.trialSlug) {
       event.preventDefault();
       openLoginPopup();
     }
@@ -128,7 +144,7 @@ export default function EnglishLanding() {
           {modules.map((mod) => (
             <Link
               key={mod.slug}
-              to={`/${mod.slug}`}
+              to={moduleHref(mod)}
               className={`landing-module${mod.planned ? " is-planned" : ""}`}
               onClick={(e) => handleModuleClick(e, mod)}
             >

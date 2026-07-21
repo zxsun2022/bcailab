@@ -7901,3 +7901,127 @@ select.input:focus {
   color: var(--text-muted);
   line-height: 1.6;
 }
+
+/* ==========================================================================
+   ANONYMOUS TRIALS (/reading/trial, /writing/trial)
+   ========================================================================== */
+
+.trial-page {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--container-padding) var(--space-3xl);
+}
+
+.trial-header {
+  margin-bottom: var(--space-xl);
+}
+
+.trial-eyebrow {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--copper);
+}
+
+.trial-title {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-sm);
+  color: var(--text);
+}
+
+.trial-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 56ch;
+}
+
+/* --- Reading trial passage --- */
+
+.trial-passage {
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  margin-bottom: var(--space-lg);
+}
+
+.trial-passage-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-md);
+  color: var(--text);
+}
+
+.trial-passage-text {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.9;
+  color: var(--text);
+}
+
+/* --- Shared trial affordances --- */
+
+.trial-remaining {
+  display: inline-block;
+  margin-top: var(--space-md);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.trial-cta {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--copper);
+  border-radius: 6px;
+  background: var(--bg-alt);
+}
+
+.trial-cta-text {
+  margin: 0 0 var(--space-md);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.trial-gate {
+  padding: var(--space-3xl) 0;
+  text-align: center;
+}
+
+.trial-gate-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-md);
+  color: var(--text);
+}
+
+.trial-gate-body {
+  margin: 0 auto var(--space-lg);
+  max-width: 48ch;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.trial-back {
+  display: block;
+  margin-top: var(--space-lg);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.trial-back:hover { color: var(--accent); }
+
+@media (max-width: 720px) {
+  .trial-title { font-size: 1.75rem; }
+  .trial-passage-text { font-size: 1.0625rem; }
+}

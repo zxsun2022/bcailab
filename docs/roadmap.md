@@ -13,9 +13,11 @@ no-account acquisition funnel into it.
 
 ## Now (current iteration — started 2026-07-20, confirmed by owner)
 
-- [ ] Extend "try before sign-in" to Reading/Writing: one full sample evaluation for
-      anonymous users (reuses the quota infrastructure from the previous iteration).
+- [x] Extend "try before sign-in" to Reading/Writing — done 2026-07-21, see Done.
 - [x] Dictation v1 — done 2026-07-21, see Done.
+
+**Iteration complete.** The next iteration has not been scoped — see Next/Later, and
+confirm scope with the owner before starting.
 
 ## Next
 
@@ -66,6 +68,15 @@ no-account acquisition funnel into it.
 
 ## Done
 
+- 2026-07-21 — Try-before-sign-in extended to Reading and Writing: `/reading/trial`
+  (fixed sample passage, record once, real evaluation) and `/writing/trial` (one coach
+  feedback round), both public and both persisting **nothing** — no attempt or article
+  rows, and the reading trial never writes the audio to R2 at all, passing the bytes
+  straight to the evaluator instead of using a `trial/` prefix plus cleanup. 5/day per
+  anonymous visitor via the `feature_usage` quota table built for Dictation v1. The
+  `/english` Reading and Writing cards now route signed-out visitors into the trials
+  instead of opening the login popup; the popup appears from inside the trial once the
+  quota is spent. Docs: `docs/tools/esl.md`, `docs/tools/writing.md`.
 - 2026-07-21 — Dictation v1 shipped: pre-generated global material library (20 passages,
   5 each at CEFR A2–C1; 211 per-sentence Chirp3 MP3s in R2 under a public `dictation/`
   prefix), `/dictation` library + session workspace with replay and speed control,
