@@ -57,9 +57,18 @@ export const ensureAnonId = (
   };
 };
 
-const todayUtc = (): string => new Date().toISOString().slice(0, 10);
+export const todayUtc = (): string => new Date().toISOString().slice(0, 10);
 
-const subjectsFor = (input: { userId: string | null; anonId: string; ip: string }): string[] =>
+/**
+ * Quota subject scheme, shared with `feature-quota.server.ts`. Signed-in users are
+ * counted once by user id; anonymous users are counted against both their cookie and
+ * their IP so clearing cookies does not reset the daily quota.
+ */
+export const subjectsFor = (input: {
+  userId: string | null;
+  anonId: string;
+  ip: string;
+}): string[] =>
   input.userId ? [`user:${input.userId}`] : [`anon:${input.anonId}`, `ip:${input.ip}`];
 
 export type TranslateQuotaStatus = {
