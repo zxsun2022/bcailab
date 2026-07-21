@@ -604,6 +604,21 @@ export default function DictationSession() {
 
         {summary.attemptId ? <FeedbackPanel attemptId={summary.attemptId} /> : null}
 
+        {/* One passage, two modes. The handoff belongs here rather than in a browse UI:
+            having just transcribed the text, the learner already knows the words, which
+            is exactly when reading it aloud is the natural next step. */}
+        {authed ? (
+          <div className="mode-handoff">
+            <p className="mode-handoff-text">
+              You know the words now. Read the same passage aloud and get feedback on your
+              pronunciation and rhythm.
+            </p>
+            <Link to={`/reading/${passage.id}`} className="dictation-primary">
+              Read it aloud
+            </Link>
+          </div>
+        ) : null}
+
         {!authed ? (
           <div className="dictation-cta">
             <p className="dictation-cta-text">

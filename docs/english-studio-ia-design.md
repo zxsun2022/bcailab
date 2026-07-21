@@ -1,6 +1,7 @@
 # English Studio — Information Architecture
 
-Status: **draft, revised 2026-07-21 after owner review. Nothing implemented.**
+Status: **the independent work in §2's left column shipped 2026-07-21.**
+The deferred right column still waits on the learner model.
 The first draft proposed a browse-first structure centred on a shared material library.
 The owner pushed back — learners navigate by *function* ("I want listening practice"), not
 by material — and that reframing holds up, for a sharper reason than first stated: see §2.
@@ -52,12 +53,12 @@ recommender.
 is designed.** So this doc now splits into work that is independent of it and work that is
 not:
 
-| Independent — can proceed now | Depends on the learner model — defer |
+| Independent — shipped 2026-07-21 | Depends on the learner model — defer |
 |---|---|
-| Discarded-practice fix (§6) | Whether a shared library surface exists at all |
-| Cross-module navigation (§5) | Whether `/english` becomes a workspace home |
-| Dictation's shell: catalogue index, drop the ill-fitting rail | What the "what should I practise now" surface is |
-| Cross-mode handoff between dictation and reading (§3.1) | Where matching output lives |
+| ✅ Discarded-practice fix (§6) | Whether a shared library surface exists at all |
+| ✅ Cross-module navigation (§5) | Whether `/english` becomes a workspace home |
+| ✅ Dictation's shell, and Reading's index becoming a catalogue | What the "what should I practise now" surface is |
+| ✅ Cross-mode handoff between dictation and reading (§3.1) | Where matching output lives |
 
 Everything in the left column is repairing something already broken and is needed whatever
 the eventual IA turns out to be. Everything in the right column resolves itself once the

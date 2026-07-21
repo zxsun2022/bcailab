@@ -71,6 +71,32 @@ than once.
 once reports 0. The UI tracks total listens and subtracts one on submit — that way the
 field means the same thing whether playback started by click or by advancing.
 
+## Progress and resume
+
+An attempt row exists from the **first checked sentence**, not only on completion, so
+stopping partway keeps the work. Reopening a passage restores the answers already given
+and returns the learner to where they stopped; finishing sets `status = 'completed'`,
+which is what makes the next visit start fresh rather than resuming a finished passage.
+
+Partial attempts are deliberately excluded from `passage_stats`: a running score over the
+sentences checked so far is not comparable with a finished attempt's, so counting it would
+distort measured difficulty. For the same reason the rail shows an unfinished attempt as
+`3/11 · resume` rather than a percentage.
+
+Anonymous practice remains session-only.
+
+## Shell and cross-mode handoff
+
+`/dictation` is a catalogue and keeps the nav rail. `/dictation/:passageId` drops it:
+while a learner is listening and typing, a column of other passages competes for attention
+rather than providing context.
+
+After finishing, the summary offers the same passage as **reading practice**. The learner
+knows the words at that point, which is when reading it aloud is the natural next step —
+a real pedagogical sequence rather than a cross-sell. Reading offers the reverse handoff
+for any library passage with sentence audio, which is what determines whether a passage
+can be dictated at all.
+
 ## Quotas
 
 Defined in `apps/web/app/utils/feature-quota.server.ts` under feature `dictation`; counters live

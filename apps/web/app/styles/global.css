@@ -8206,3 +8206,30 @@ select.input:focus {
   margin-top: var(--space-md);
   text-decoration: none;
 }
+
+/* --- One passage, two modes: the handoff between dictation and reading --- */
+
+.mode-handoff {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--copper);
+  border-radius: 6px;
+  background: var(--bg-alt);
+}
+
+.mode-handoff-text {
+  margin: 0 0 var(--space-md);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.mode-handoff-inline {
+  display: inline-block;
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.mode-handoff-inline:hover { text-decoration: underline; }

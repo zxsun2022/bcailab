@@ -8,8 +8,9 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Page | Route | Key behaviour |
 |------|-------|---------------|
 | ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
-| Reading layout | `/reading` | Layout route with left sidebar (passage list). |
-| Reading index | `/reading` (index) | Create a new passage and submit the first attempt in one page. |
+| Reading layout | `/reading` | Layout route with left sidebar (own passages + library). |
+| Reading catalogue | `/reading` (index) | Your passages, then the graded library by band. |
+| New passage | `/reading/new` | Paste your own text and submit the first attempt in one page. |
 | Reading progress | `/reading/progress` | Progress dashboard inside the center canvas with score trends, averages, and recent notes. |
 | Reading settings | `/reading/settings` | Reading-specific settings page inside the center canvas. |
 | Reading practice | `/reading/:id` | Desktop workspace shell: center stage switches between new-attempt composer and attempt detail; right rail is history/navigation only. |
@@ -17,6 +18,17 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
 | Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
 | Anonymous trial | `/reading/trial` | **Public.** One-shot evaluation on a fixed sample passage, nothing persisted — see below. |
+
+## Routes note (2026-07-21)
+
+`/reading` used to *be* the new-passage composer. Creating moved to `/reading/new` and the
+index is now a catalogue: the learner's own passages first, then the graded library by
+band. Each library card states whether the passage also supports dictation, derived from
+whether it has sentence audio.
+
+Library passages carry a link into dictation for the same text — see
+`docs/tools/dictation.md` for why the handoff lives on the practice screens rather than in
+a browse surface.
 
 ## Material Library
 

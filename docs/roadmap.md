@@ -15,7 +15,7 @@ no-account acquisition funnel into it.
 
 - [x] Material layer unification — done 2026-07-21, see Done.
 
-- [ ] English Studio repairs (scoped 2026-07-21, owner confirmed) — the work in
+- [x] English Studio repairs — done 2026-07-21, see Done. Was: the work in
       `docs/english-studio-ia-design.md` that does **not** depend on the learner model:
       persist partial dictation practice (today an unfinished passage is silently
       discarded, which is why production has zero dictation attempts), cross-module
@@ -101,6 +101,15 @@ they are not forgotten — none are urgent):
   happens through `scripts/material-seed/` and raw SQL).
 
 ## Done
+
+- 2026-07-21 — English Studio repairs: partial dictation practice is persisted and
+  resumable (an unfinished passage used to be discarded silently, which is why production
+  had zero dictation attempts); module navigation stays inside the product, with the rail
+  logo going to `/english` and the tool name doubling as a module switcher; `/reading`
+  became a catalogue with creation moved to `/reading/new`, and dictation sessions dropped
+  the competing rail; and each practice mode offers the same passage in the other mode at
+  the point where that is the natural next step. Migration 0013. Deliberately excludes
+  browse IA, which waits on the learner model — `docs/english-studio-ia-design.md` §2.
 
 - 2026-07-21 — Material layer unified: dictation and reading now share one graded passage
   store (`passages` / `passage_sentences` / `passage_tags` / `passage_stats`), so a single

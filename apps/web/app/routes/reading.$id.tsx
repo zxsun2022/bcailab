@@ -128,6 +128,9 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       : false;
 
   return json({
+    // Only library passages with per-sentence audio can be dictated; a learner's own
+    // text has none, so the handoff is offered from the data rather than assumed.
+    canDictate: passage.user_id === null && passage.has_sentence_audio === 1,
     passage,
     composeView,
     attempts: attemptsWithEval,
@@ -300,7 +303,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 };
 
 export default function EslReadingPracticePage() {
-  const { passage, composeView, attempts, referenceAudio, selected } =
+  const { passage, canDictate, composeView, attempts, referenceAudio, selected } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
   const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
@@ -405,6 +408,14 @@ export default function EslReadingPracticePage() {
                   <h1>{displayTitle}</h1>
                   {headingSubtitle ? (
                     <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
+                  ) : null}
+                  {/* One passage, two modes. Offered here rather than in a browse UI:
+                      the learner is already looking at this text, which is when
+                      checking how much of it they catch by ear is the natural step. */}
+                  {canDictate ? (
+                    <Link to={`/dictation/${passage.id}`} className="mode-handoff-inline">
+                      Check how much you catch by ear · Dictation
+                    </Link>
                   ) : null}
                 </div>
                 {composeView ? (
