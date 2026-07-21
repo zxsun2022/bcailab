@@ -1894,3 +1894,19 @@ export async function getPassageStats(
     };
   });
 }
+
+/**
+ * A single published library passage. Dictation uses this rather than
+ * `getPassageForUser`: dictation only ever serves global material, for signed-in and
+ * anonymous learners alike, so ownership never enters the question.
+ */
+export async function getLibraryPassageById(db: Db, id: string): Promise<Passage | null> {
+  const row = await db
+    .prepare(
+      `SELECT ${PASSAGE_COLS} FROM passages
+       WHERE id = ? AND user_id IS NULL AND deleted_at IS NULL AND status = 'published'`
+    )
+    .bind(id)
+    .first();
+  return row ? mapPassage(row as Record<string, unknown>) : null;
+}

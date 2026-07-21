@@ -4,8 +4,8 @@ import { json } from "@remix-run/cloudflare";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import {
   createDictationAttempt,
-  getDictationPassageById,
-  listDictationSentences
+  getLibraryPassageById,
+  listPassageSentences
 } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
 import {
@@ -28,14 +28,14 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   const passageId = params.passageId;
   if (!passageId) throw new Response("Not found", { status: 404 });
 
-  const passage = await getDictationPassageById(context.env.DB, passageId);
+  const passage = await getLibraryPassageById(context.env.DB, passageId);
   if (!passage) throw new Response("Not found", { status: 404 });
 
   const user = await getOptionalUser(request, context);
   const subject = resolveQuotaSubject(request, user?.id ?? null);
   const quota = await getFeatureQuotaStatus(context.env.DB, "dictation", subject);
 
-  const sentences = await listDictationSentences(context.env.DB, passageId);
+  const sentences = await listPassageSentences(context.env.DB, passageId);
 
   return json(
     {
@@ -81,7 +81,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   const passageId = params.passageId;
   if (!passageId) throw new Response("Not found", { status: 404 });
 
-  const passage = await getDictationPassageById(context.env.DB, passageId);
+  const passage = await getLibraryPassageById(context.env.DB, passageId);
   if (!passage) throw new Response("Not found", { status: 404 });
 
   const user = await getOptionalUser(request, context);
@@ -90,7 +90,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "");
-  const sentences = await listDictationSentences(context.env.DB, passageId);
+  const sentences = await listPassageSentences(context.env.DB, passageId);
 
   if (intent === "check") {
     const idx = Number(formData.get("idx"));
@@ -169,7 +169,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       await scheduleDictationFeedback(context, {
         attemptId: attempt.id,
         userId: user.id,
-        band: passage.band,
+        // Library passages are always banded; the column is nullable only because
+        // user-supplied passages share the table and are left untagged (design §5.4).
+        band: passage.band ?? "B1",
         results
       });
     }

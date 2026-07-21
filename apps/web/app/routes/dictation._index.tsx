@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
-import { listDictationAttemptsByUser, listDictationPassages } from "@bcailab/db";
+import { listDictationAttemptsByUser, listLibraryPassages } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
 
 export const meta: MetaFunction = () => [
@@ -27,7 +27,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await getOptionalUser(request, context);
 
   const [passages, attempts] = await Promise.all([
-    listDictationPassages(context.env.DB),
+    listLibraryPassages(context.env.DB, { requireSentenceAudio: true }),
     user ? listDictationAttemptsByUser(context.env.DB, { userId: user.id, limit: 200 }) : []
   ]);
 
