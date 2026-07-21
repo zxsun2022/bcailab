@@ -8093,3 +8093,17 @@ select.input:focus {
   .trial-title { font-size: 1.75rem; }
   .trial-passage-text { font-size: 1.0625rem; }
 }
+
+/* Section heading inside a tool nav rail, separating grouped item lists. */
+.nav-rail-section-label {
+  padding: var(--space-md) 10px var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-section-label {
+  display: none;
+}

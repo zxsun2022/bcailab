@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import {
-  getEslPassageById,
+  getPassageForUser,
   getEslReadingAttemptById,
   getLatestEslReadingEvaluationByAttemptId
 } from "@bcailab/db";
@@ -19,14 +19,14 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     throw new Response("Not found", { status: 404 });
   }
 
-  const passage = await getEslPassageById(context.env.DB, passageId, { includeDeleted: true });
+  const passage = await getPassageForUser(context.env.DB, { id: passageId, userId: user.id });
   if (!passage || passage.user_id !== user.id || passage.deleted_at) {
     throw new Response("Not found", { status: 404 });
   }
 
   const fallbackReferenceKey = buildReferenceFallbackR2Key(user.id, passage.id);
   const hasFallbackReference =
-    passage.reference_tts_status !== "completed" || !passage.reference_tts_r2_key
+    passage.reference_audio_status !== "completed" || !passage.reference_audio_r2_key
       ? Boolean(await context.env.R2.head(fallbackReferenceKey).catch(() => null))
       : false;
 
@@ -55,15 +55,15 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
   return json({
     referenceStatus:
-      passage.reference_tts_status === "completed" ||
-      passage.reference_tts_status === "pending" ||
-      passage.reference_tts_status === "failed"
-        ? passage.reference_tts_status
+      passage.reference_audio_status === "completed" ||
+      passage.reference_audio_status === "pending" ||
+      passage.reference_audio_status === "failed"
+        ? passage.reference_audio_status
         : hasFallbackReference
           ? "completed"
           : null,
     hasReferenceAudio:
-      (passage.reference_tts_status === "completed" && Boolean(passage.reference_tts_r2_key)) ||
+      (passage.reference_audio_status === "completed" && Boolean(passage.reference_audio_r2_key)) ||
       hasFallbackReference,
     selected:
       ownsAttempt && effective

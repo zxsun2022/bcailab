@@ -9,7 +9,7 @@ import {
   listEslReadingAttemptsByPassage,
   recordPassageAttemptStat,
   updateEslReadingAttemptEvaluationStatus,
-  type EslPassage
+  type Passage
 } from "@bcailab/db";
 import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
 import {
@@ -136,7 +136,7 @@ const runReadingAttemptEvaluation = async (
   input: {
     userId: string;
     attemptId: string;
-    passage: EslPassage;
+    passage: Passage;
     mode: EslReadingMode;
     outputLanguage: ReadingOutputLanguage;
     durationMs: number | null;
@@ -249,7 +249,7 @@ const scheduleReadingAttemptEvaluation = async (
   input: {
     userId: string;
     attemptId: string;
-    passage: EslPassage;
+    passage: Passage;
     mode: EslReadingMode;
     outputLanguage: ReadingOutputLanguage;
     durationMs: number | null;
@@ -270,7 +270,7 @@ export const createAndScheduleEslReadingAttempt = async (
   context: AppLoadContext,
   input: {
     userId: string;
-    passage: EslPassage;
+    passage: Passage;
     submission: ParsedEslAttemptSubmission;
   }
 ): Promise<{ attemptId: string }> => {
@@ -335,7 +335,7 @@ export const retryEslReadingAttemptEvaluation = async (
   input: {
     userId: string;
     attemptId: string;
-    passage: EslPassage;
+    passage: Passage;
     outputLanguage: ReadingOutputLanguage;
   }
 ) => {

@@ -1,10 +1,10 @@
 import type { AppLoadContext } from "@remix-run/cloudflare";
 import {
-  getEslPassageById,
-  markEslPassageReferenceTtsCompleted,
-  markEslPassageReferenceTtsFailed,
-  markEslPassageReferenceTtsPending,
-  type EslPassage
+  getOwnedPassage,
+  markPassageReferenceAudioCompleted,
+  markPassageReferenceAudioFailed,
+  markPassageReferenceAudioPending,
+  type Passage
 } from "@bcailab/db";
 import {
   getVoicesByLanguage,
@@ -24,11 +24,12 @@ export const buildReferenceFallbackR2Key = (userId: string, passageId: string): 
 const loadActivePassage = async (
   context: AppLoadContext,
   input: { passageId: string; userId: string }
-): Promise<EslPassage | null> => {
-  const passage = await getEslPassageById(context.env.DB, input.passageId, {
-    includeDeleted: true
+): Promise<Passage | null> => {
+  const passage = await getOwnedPassage(context.env.DB, {
+    id: input.passageId,
+    userId: input.userId
   });
-  if (!passage || passage.user_id !== input.userId || passage.deleted_at) return null;
+  if (!passage || passage.deleted_at) return null;
   return passage;
 };
 
@@ -63,10 +64,10 @@ const runPassageReferenceSynthesis = async (
 ) => {
   let passage = await loadActivePassage(context, input);
   if (!passage) return;
-  if (passage.reference_tts_status === "completed" && passage.reference_tts_r2_key) return;
+  if (passage.reference_audio_status === "completed" && passage.reference_audio_r2_key) return;
 
-  const r2Key = input.persistStatus && passage.reference_tts_r2_key
-    ? passage.reference_tts_r2_key
+  const r2Key = input.persistStatus && passage.reference_audio_r2_key
+    ? passage.reference_audio_r2_key
     : buildReferenceFallbackR2Key(input.userId, input.passageId);
   const existing = await context.env.R2.head(r2Key).catch(() => null);
   if (existing) return;
@@ -105,7 +106,7 @@ const runPassageReferenceSynthesis = async (
     return;
   }
 
-  const saved = await markEslPassageReferenceTtsCompleted(context.env.DB, {
+  const saved = await markPassageReferenceAudioCompleted(context.env.DB, {
     id: input.passageId,
     userId: input.userId,
     voiceName: voice.name,
@@ -119,13 +120,13 @@ const runPassageReferenceSynthesis = async (
 
 export const schedulePassageReferenceSynthesis = async (
   context: AppLoadContext,
-  input: { userId: string; passage: EslPassage }
+  input: { userId: string; passage: Passage }
 ): Promise<boolean> => {
-  if (input.passage.reference_tts_status === "completed" && input.passage.reference_tts_r2_key) {
+  if (input.passage.reference_audio_status === "completed" && input.passage.reference_audio_r2_key) {
     return true;
   }
 
-  const supported = await markEslPassageReferenceTtsPending(context.env.DB, {
+  const supported = await markPassageReferenceAudioPending(context.env.DB, {
     id: input.passage.id,
     userId: input.userId
   });
@@ -136,7 +137,7 @@ export const schedulePassageReferenceSynthesis = async (
     persistStatus: supported
   }).catch(async () => {
     if (supported) {
-      await markEslPassageReferenceTtsFailed(context.env.DB, {
+      await markPassageReferenceAudioFailed(context.env.DB, {
         id: input.passage.id,
         userId: input.userId
       }).catch(() => undefined);

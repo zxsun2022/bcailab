@@ -1601,7 +1601,8 @@ export type Passage = {
   mean_sentence_words: number;
   rare_word_ratio: number;
   has_sentence_audio: number;
-  reference_audio_status: string | null;
+  /** Mirrors the old esl_passages status union so callers can switch on it. */
+  reference_audio_status: "pending" | "completed" | "failed" | null;
   reference_audio_r2_key: string | null;
   reference_audio_bytes: number | null;
   reference_voice_name: string | null;
@@ -1645,7 +1646,7 @@ const mapPassage = (row: Record<string, unknown>): Passage => ({
   mean_sentence_words: Number(row.mean_sentence_words ?? 0),
   rare_word_ratio: Number(row.rare_word_ratio ?? 0),
   has_sentence_audio: Number(row.has_sentence_audio ?? 0),
-  reference_audio_status: str(row.reference_audio_status),
+  reference_audio_status: str(row.reference_audio_status) as Passage["reference_audio_status"],
   reference_audio_r2_key: str(row.reference_audio_r2_key),
   reference_audio_bytes:
     row.reference_audio_bytes === null || row.reference_audio_bytes === undefined
@@ -1921,6 +1922,76 @@ export async function getLibraryPassageById(db: Db, id: string): Promise<Passage
        WHERE id = ? AND user_id IS NULL AND deleted_at IS NULL AND status = 'published'`
     )
     .bind(id)
+    .first();
+  return row ? mapPassage(row as Record<string, unknown>) : null;
+}
+
+/* ---------- reference audio (whole-passage, for reading practice) ---------- */
+
+/**
+ * Reference-audio state transitions. Scoped to the owner: library passages get their
+ * reference audio from the offline seed pipeline, not from this runtime path, so an
+ * unowned passage should never reach these.
+ *
+ * Each returns whether a row actually changed. `false` means the passage no longer
+ * exists or is not the caller's — it was deleted while a background synthesis task was
+ * in flight — which the caller uses to clean up the orphaned audio it just uploaded.
+ */
+export async function markPassageReferenceAudioPending(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE passages SET reference_audio_status = 'pending', reference_audio_r2_key = NULL,
+         reference_audio_bytes = NULL, updated_at = datetime('now')
+       WHERE id = ? AND user_id = ?`
+    )
+    .bind(input.id, input.userId)
+    .run();
+  return Number(result.meta?.changes ?? 0) > 0;
+}
+
+export async function markPassageReferenceAudioCompleted(
+  db: Db,
+  input: { id: string; userId: string; voiceName: string; r2Key: string; audioBytes: number }
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE passages SET reference_audio_status = 'completed', reference_voice_name = ?,
+         reference_audio_r2_key = ?, reference_audio_bytes = ?,
+         reference_audio_created_at = datetime('now'), updated_at = datetime('now')
+       WHERE id = ? AND user_id = ?`
+    )
+    .bind(input.voiceName, input.r2Key, input.audioBytes, input.id, input.userId)
+    .run();
+  return Number(result.meta?.changes ?? 0) > 0;
+}
+
+export async function markPassageReferenceAudioFailed(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE passages SET reference_audio_status = 'failed', reference_voice_name = NULL,
+         reference_audio_r2_key = NULL, reference_audio_bytes = NULL,
+         updated_at = datetime('now')
+       WHERE id = ? AND user_id = ?`
+    )
+    .bind(input.id, input.userId)
+    .run();
+  return Number(result.meta?.changes ?? 0) > 0;
+}
+
+/** Owner-scoped lookup, including soft-deleted rows, for background TTS tasks. */
+export async function getOwnedPassage(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<Passage | null> {
+  const row = await db
+    .prepare(`SELECT ${PASSAGE_COLS} FROM passages WHERE id = ? AND user_id = ?`)
+    .bind(input.id, input.userId)
     .first();
   return row ? mapPassage(row as Record<string, unknown>) : null;
 }

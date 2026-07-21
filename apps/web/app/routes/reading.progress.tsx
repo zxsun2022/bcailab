@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
-import { listCompletedEslReadingAttemptsByUser, listEslPassagesByUser } from "@bcailab/db";
+import { listCompletedEslReadingAttemptsByUser, listPassagesByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { getDisplayEslPassageTitle, parseEslReadingEvaluationOutput } from "~/utils/esl-reading";
 
@@ -39,7 +39,7 @@ type RecentPassage = {
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   const [passages, attempts] = await Promise.all([
-    listEslPassagesByUser(context.env.DB, user.id),
+    listPassagesByUser(context.env.DB, user.id),
     listCompletedEslReadingAttemptsByUser(context.env.DB, user.id)
   ]);
 
