@@ -6,6 +6,10 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 - **Remix app** (`apps/web`): Landing page, auth flows, tool UIs.
 - **Shared packages** (`packages/*`): UI primitives, auth helpers, D1 access helpers.
 - **D1**: Primary relational store for users, sessions, and tool data.
+- **Material layer**: Dictation and Reading share one graded passage store (`passages`,
+  `passage_sentences`, `passage_tags`, `passage_stats`), so a single passage can drive both
+  listening and reading-aloud practice. `user_id IS NULL` marks global library content.
+  See docs/material-layer-design.md.
 - **R2**: Binary storage for generated tool assets (Speech MP3 + ESL reading attempt/reference audio).
   These are private user data served behind auth. The one exception is the `dictation/` prefix:
   global app content (pre-generated per-sentence MP3s), served publicly with immutable caching —

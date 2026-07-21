@@ -18,16 +18,42 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
 | Anonymous trial | `/reading/trial` | **Public.** One-shot evaluation on a fixed sample passage, nothing persisted — see below. |
 
+## Material Library
+
+Reading reads from the shared material layer (`passages`), not from reading-specific
+tables — see `docs/material-layer-design.md`. The nav rail has two sections:
+
+- **Your passages** — text the learner pasted in. Deletable, never tagged or banded
+  (design §5.4), and never matched, since the learner chose it.
+- **Library** — graded global material, `user_id IS NULL`, shared with Dictation. A
+  passage can therefore be taken as dictation *and* read aloud. Read-only: there is no
+  per-item menu, and delete requires ownership at the query level.
+
+**Authorization is one predicate**, `getPassageForUser`: a passage is readable when it is
+library content **or** owned by the caller. Every read path goes through that helper
+rather than re-spelling the rule, because getting it wrong exposes one learner's passage
+to another. Mutation is stricter — `softDeleteUserPassage` requires ownership, so library
+material cannot be deleted by a learner who can see it.
+
+The library is **signed-in only** (owner decision 2026-07-21); anonymous visitors get the
+trial below rather than a browsable catalogue.
+
+Completed evaluations record into `passage_stats` for library passages, which is how the
+material layer accumulates measured difficulty. User passages are excluded — a passage only
+one person practises cannot be calibrated.
+
 ## Anonymous Trial
 
 `/reading/trial` lets a signed-out visitor record one attempt and get a real evaluation
 before creating an account. It escapes the `/reading` layout (which calls `requireUser`)
 via the `reading_.trial.tsx` route-name prefix.
 
-- **Fixed sample passage.** One global passage defined as a constant in
-  `apps/web/app/utils/reading-trial.ts` — not an `esl_passages` row, since the trial
-  creates no passage and no attempt. The page renders that constant and the action passes
-  the same constant to the evaluator, so the scored text always matches what was shown.
+- **Fixed sample passage, taken from the library.** `getTrialPassage` returns the row
+  flagged `is_trial`, falling back to the oldest B1 library passage — a flag rather than a
+  hardcoded id, so the choice changes with one UPDATE instead of a deploy, and a fallback
+  because a freshly-seeded database has nothing flagged. The page renders that row and the
+  action passes the same row's text to the evaluator, so the scored text always matches
+  what was shown.
 - **Nothing is persisted, including the audio.** The signed-in flow writes the recording to
   R2 and creates an attempt row *before* evaluating. The trial passes the audio bytes
   straight to `evaluateEslReadingAttempt` and lets them fall out of scope — there is no

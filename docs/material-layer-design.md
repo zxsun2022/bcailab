@@ -1,6 +1,7 @@
 # Material Layer — Technical Design
 
-Status: **approved** (owner confirmed 2026-07-21). Not yet implemented.
+Status: **implemented** 2026-07-21, except the reference-audio gap recorded in §9.1.
+Original design approved by the owner the same day.
 Scope source: `docs/roadmap.md` → Now iteration (scoped 2026-07-21).
 Intended reader: the AI agent (or human) implementing this. Follow this doc; where it
 delegates a decision, it says so. §13 records the decisions the owner made on review.
@@ -293,18 +294,35 @@ route, and it deserves a test that asserts a third user's passage is not reachab
 
 ## 9. Seed pipeline
 
-`scripts/dictation-seed/` becomes `scripts/material-seed/` and gains:
-
-- whole-passage reference audio synthesis (for reading), alongside per-sentence clips
-- a tagging step that writes `passage_tags`
-- a `retag` command that re-runs the tagger over the existing library without touching audio
-
-R2 layout moves from `dictation/{passageId}/{idx}.mp3` to `material/{passageId}/sentences/{idx}.mp3`
-plus `material/{passageId}/reference.mp3`. **Existing objects keep their old keys** — the
-key is stored per row, so old and new coexist; only new material uses the new layout.
+`scripts/dictation-seed/` becomes `scripts/material-seed/` and gains `tag.ts`, which
+recomputes metrics and `passage_tags` for every library passage. It is deterministic and
+replaces a passage's tags wholesale, so re-running it after a vocabulary change is the
+intended workflow rather than a migration. It imports the app's tagger directly instead
+of keeping a copy, which is why `passage-tags.ts` and `dictation-diff.ts` avoid the `~`
+alias.
 
 Generation stays manual per the 2026-07-20 workflow decision, with LLM cross-check and
 human spot-check once the library grows (`scripts/material-seed/README.md`).
+
+### 9.1 Known gap: whole-passage reference audio (owner accepted 2026-07-21)
+
+This section originally also called for synthesizing whole-passage reference audio for
+library passages, so a learner could hear a model reading before recording. **That was
+not built.**
+
+Reference audio is an optional aid — reading practice and its evaluation do not depend
+on it — and building it now would mean a second round of TTS spend across the library,
+which conflicts with the decision to ship the plumbing against the existing 20 passages
+and expand separately (§13.3). Library passages therefore currently have per-sentence
+audio but no whole-passage reference audio, and `reference_audio_*` stays null for them.
+User-created passages are unaffected: they still get reference audio lazily at runtime
+through `esl-passage-reference.server.ts`.
+
+Do this together with the next library expansion, so the TTS cost is paid once.
+
+The planned R2 relayout (`material/{passageId}/…` replacing `dictation/{passageId}/…`)
+is deferred with it — there is no new audio to place, and the key is stored per row, so
+old and new layouts can coexist whenever it does happen.
 
 ## 10. Forward compatibility
 
@@ -319,16 +337,20 @@ human spot-check once the library grows (`scripts/material-seed/README.md`).
 
 ## 11. Implementation order
 
-1. Migration 0012 + `@bcailab/db` helpers for the four tables.
-2. `passage-tags.ts` (pure) + vitest — the tagger and vocabulary, done before anything
-   depends on it.
-3. Data migration of the 20 dictation passages + tagger run; dictation queries repointed.
-   Dictation must be fully working again before moving on.
-4. `passage_stats` write path from dictation completion and reading evaluation.
-5. Reading: library browsing, library passage practice, authorization predicate + test.
-6. Reading trial reads a library row; delete the constant.
-7. Seed script rename and reference-audio synthesis; `retag` command.
-8. Docs sync (§12) + roadmap Done, same PR.
+All steps below shipped 2026-07-21 unless noted.
+
+1. ✅ Migration 0012 + `@bcailab/db` helpers for the four tables.
+2. ✅ `passage-tags.ts` (pure) + vitest — the tagger and vocabulary, done before anything
+   depends on it. Vocabulary deviated from §5.3: see the `final_s` note there.
+3. ✅ Data migration of the 20 dictation passages + tagger run; dictation queries
+   repointed. Dictation verified working before moving on.
+4. ✅ `passage_stats` write path from dictation completion, reading evaluation, and the
+   reading trial.
+5. ✅ Reading: library browsing, library passage practice, authorization predicate + test.
+6. ✅ Reading trial reads a library row; constant deleted.
+7. ⚠️ Seed script renamed and `tag.ts` added. **Reference-audio synthesis not built —
+   see §9.1.**
+8. ✅ Docs sync (§12) + roadmap Done, same PR.
 
 ## 12. Documentation sync
 
