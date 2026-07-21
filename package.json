@@ -7,7 +7,9 @@
     "build": "pnpm --filter web build",
     "typecheck": "pnpm --filter web typecheck",
     "lint": "pnpm --filter web lint",
-    "context": "./scripts/context-pack.sh"
+    "context": "./scripts/context-pack.sh",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260203.0",
@@ -15,6 +17,7 @@
     "@types/react-dom": "18.3.7",
     "tsx": "^4.23.1",
     "typescript": "5.9.3",
+    "vitest": "^2.1.9",
     "wrangler": "4.62.0"
   },
   "pnpm": {

@@ -14,6 +14,13 @@ This repository is intentionally structured for multi-agent collaboration across
 - `docs/` - Architecture and operational docs
 - `ai/` - Agent prompts, conventions, and research notes
 
+## Tests
+- `pnpm test` (vitest, config at repo root). Scope is deliberately narrow: **pure,
+  deterministic logic whose bugs are silent** — scoring, parsing, normalization.
+- Route loaders/actions and `*.server.ts` modules need D1/R2 bindings; verify those
+  against the running dev server instead of mocking the platform.
+- Tests live next to their module as `*.test.ts` under `apps/web/app/`.
+
 ## Conventions
 - Prefer small, focused commits and clear diffs.
 - Keep public interfaces typed and documented.

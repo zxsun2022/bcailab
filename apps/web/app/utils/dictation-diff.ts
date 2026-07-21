@@ -46,13 +46,17 @@ export const normalizeText = (input: string): string =>
     .replace(/[‐-―]/g, "-")
     .replace(/[^a-z0-9'\-\s]/g, " ")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    // Only *intra-word* apostrophes and hyphens survive. An em dash between words
+    // became a bare "-" above; strip those edges so a standalone dash is not a token.
+    .split(" ")
+    .map((token) => token.replace(/^['-]+/, "").replace(/['-]+$/, ""))
+    .filter((token) => token.length > 0)
+    .join(" ");
 
 export const tokenize = (input: string): string[] =>
   normalizeText(input)
     .split(" ")
-    // Strip edge apostrophes/hyphens left behind by quoting or dashes ("'hello'", "well--").
-    .map((token) => token.replace(/^['-]+/, "").replace(/['-]+$/, ""))
     .filter((token) => token.length > 0);
 
 /**

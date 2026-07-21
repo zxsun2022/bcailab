@@ -305,7 +305,9 @@ export default function DictationSession() {
 
   const [current, setCurrent] = React.useState(0);
   const [answers, setAnswers] = React.useState<string[]>(() => sentences.map(() => ""));
-  const [replays, setReplays] = React.useState<number[]>(() => sentences.map(() => 0));
+  // Total listens per sentence. `replays` in the stored result is this minus the first
+  // listen, so the field means what its name says regardless of how playback started.
+  const [playCounts, setPlayCounts] = React.useState<number[]>(() => sentences.map(() => 0));
   const [checked, setChecked] = React.useState<Record<number, { accuracy: number; ops: DiffOp[]; reference: string }>>({});
   const [summary, setSummary] = React.useState<{
     accuracy: number;
@@ -323,28 +325,52 @@ export default function DictationSession() {
         : "You've used today's free dictation practice. Sign in to keep going — it's free."
   );
 
+  const [audioState, setAudioState] = React.useState<"idle" | "loading" | "playing">("idle");
+  const [progress, setProgress] = React.useState(0);
+
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
+  // Landing on the page must not blast audio at the user; playback is theirs to start.
+  // Once they have, advancing to the next sentence autoplays to keep the rhythm going.
+  const startedRef = React.useRef(false);
 
   const total = sentences.length;
   const isLast = current === total - 1;
   const currentSentence = sentences[current];
   const currentChecked = checked[current];
+  const currentPlays = playCounts[current] ?? 0;
 
   // Apply the speed toggle to whichever clip is loaded.
   React.useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = speed;
   }, [speed, current]);
 
-  // Autoplay on advance, and put the cursor in the input.
-  React.useEffect(() => {
+  const play = React.useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
+    startedRef.current = true;
+    audio.currentTime = 0;
     audio.playbackRate = speed;
-    audio.play().catch(() => {
-      // Autoplay can be blocked before any user gesture; the replay button covers it.
+    setProgress(0);
+    void audio.play().catch(() => {
+      // Autoplay policy or a decode error: fall back to idle so the button stays usable.
+      setAudioState("idle");
     });
+    setPlayCounts((prev) => {
+      const nextCounts = [...prev];
+      nextCounts[current] = (nextCounts[current] ?? 0) + 1;
+      return nextCounts;
+    });
+  }, [current, speed]);
+
+  // On advance: reset playback state, autoplay only if the session is already underway,
+  // and put the cursor in the input either way.
+  React.useEffect(() => {
+    setAudioState("idle");
+    setProgress(0);
+    if (startedRef.current) play();
     inputRef.current?.focus();
+    // `play` is intentionally excluded — including it would re-fire on every speed change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current]);
 
@@ -369,19 +395,6 @@ export default function DictationSession() {
 
   const busy = fetcher.state !== "idle";
 
-  const replay = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.playbackRate = speed;
-    audio.play().catch(() => {});
-    setReplays((prev) => {
-      const next = [...prev];
-      next[current] = (next[current] ?? 0) + 1;
-      return next;
-    });
-  };
-
   const check = () => {
     fetcher.submit(
       { _intent: "check", idx: String(current), text: answers[current] ?? "" },
@@ -395,7 +408,8 @@ export default function DictationSession() {
         {
           _intent: "complete",
           answers: JSON.stringify(answers),
-          replays: JSON.stringify(replays)
+          // Replays are listens beyond the first, so a sentence heard once reports 0.
+          replays: JSON.stringify(playCounts.map((count) => Math.max(0, count - 1)))
         },
         { method: "post" }
       );
@@ -490,13 +504,44 @@ export default function DictationSession() {
           src={`/dictation/audio/${currentSentence.id}`}
           preload="auto"
           className="dictation-audio"
+          onWaiting={() => setAudioState("loading")}
+          onPlaying={() => setAudioState("playing")}
+          onPause={() => setAudioState("idle")}
+          onEnded={() => {
+            setAudioState("idle");
+            setProgress(1);
+          }}
+          onTimeUpdate={(event) => {
+            const el = event.currentTarget;
+            if (el.duration > 0) setProgress(el.currentTime / el.duration);
+          }}
+          onError={() => setAudioState("idle")}
         />
       ) : null}
 
       <div className="dictation-controls">
-        <button type="button" className="dictation-primary" onClick={replay}>
-          ▶ Replay
+        <button
+          type="button"
+          className={`dictation-play${audioState === "playing" ? " is-playing" : ""}`}
+          onClick={play}
+          aria-label={currentPlays === 0 ? "Play sentence" : "Play sentence again"}
+        >
+          <span className="dictation-play-icon" aria-hidden="true" />
+          <span className="dictation-play-label">
+            {audioState === "loading"
+              ? "Loading…"
+              : audioState === "playing"
+                ? "Playing…"
+                : currentPlays === 0
+                  ? "Play"
+                  : "Replay"}
+          </span>
+          <span
+            className="dictation-play-progress"
+            style={{ transform: `scaleX(${audioState === "idle" && progress === 0 ? 0 : progress})` }}
+          />
         </button>
+
         <div className="dictation-speed" role="group" aria-label="Playback speed">
           {[0.75, 1].map((rate) => (
             <button
@@ -509,6 +554,12 @@ export default function DictationSession() {
             </button>
           ))}
         </div>
+
+        {currentPlays > 1 ? (
+          <span className="dictation-play-count">
+            {currentPlays} listens
+          </span>
+        ) : null}
       </div>
 
       <textarea

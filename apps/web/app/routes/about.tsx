@@ -17,30 +17,64 @@ export default function About() {
         </p>
       </section>
       <section>
-        <h2>Current tools</h2>
+        <h2>English Studio</h2>
         <p>
-          <strong>Writing Coach</strong>: an iterative writing workflow where you choose a coach,
-          submit a draft, receive structured feedback, revise, and track progress across rounds.
+          The lab&rsquo;s flagship product is an AI English coach that covers listening, speaking,
+          writing, and translation in one workspace. The modules share an account and are gradually
+          coming to share a learner profile, so practice in one place informs the others.
+        </p>
+        <p>
+          <strong>Dictation</strong>: listen to a graded passage sentence by sentence, type what you
+          hear, and get instant scoring on every sentence. Passages run from CEFR A2 to C1, with
+          unlimited replays and a slower playback option.
         </p>
         <p>
           <strong>Reading / Recitation</strong>: practice reading passages aloud or from memory,
           store attempts, and get AI-supported evaluation on pronunciation, fluency, and clarity.
         </p>
         <p>
+          <strong>Writing Coach</strong>: an iterative writing workflow where you choose a coach,
+          submit a draft, receive structured feedback, revise, and track progress across rounds.
+        </p>
+        <p>
+          <strong>Translate</strong>: LLM translation between English, Chinese, and other languages,
+          with source-language detection and a two-pane layout.
+        </p>
+        <p>
           <strong>Speech</strong>: turn text into natural MP3 audio with Google Cloud TTS voices,
           keep a private generation history, and play or download results on demand.
         </p>
+      </section>
+      <section>
+        <h2>Other tools</h2>
         <p>
           <strong>Posts</strong>: write in Markdown, publish quickly, and share a clean public URL
           without unnecessary formatting overhead.
         </p>
       </section>
       <section>
+        <h2>Try before signing up</h2>
+        <p>
+          Translate and Dictation work without an account, within a daily limit. Reading and Writing
+          each offer a full sample evaluation to anonymous visitors — you record or write once and
+          get the same feedback a signed-in user would, without anything being stored.
+        </p>
+        <p>
+          Signing in is what turns a one-off try into practice that accumulates: saved work, attempt
+          history, and progress you can look back on.
+        </p>
+      </section>
+      <section>
         <h2>How the platform works</h2>
         <p>
-          Access is handled through Google sign-in. Once signed in, you can move between workspaces
-          without logging in again. Shared infrastructure on Cloudflare handles app delivery, data
-          storage, and private asset storage so each tool can stay focused on its own job.
+          You can sign in with Google or with a one-time code sent to your email. Once signed in, you
+          can move between workspaces without logging in again. Shared infrastructure on Cloudflare
+          handles app delivery, data storage, and asset storage so each tool can stay focused on its
+          own job.
+        </p>
+        <p>
+          Practice recordings and drafts are private to your account. Translation text is never
+          stored at all, and anonymous trials are evaluated and discarded rather than saved.
         </p>
       </section>
       <section>
