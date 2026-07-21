@@ -14,6 +14,10 @@ import {
   resolveQuotaSubject
 } from "~/utils/feature-quota.server";
 import { scorePassage, scoreSentence, storableOps, type DiffOp } from "~/utils/dictation-diff";
+import {
+  scheduleDictationFeedback,
+  type DictationFeedback
+} from "~/utils/dictation-feedback.server";
 import { openLoginPopup } from "~/utils/login-popup";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -160,6 +164,14 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         sentenceResults: JSON.stringify(results)
       });
       attemptId = attempt.id;
+      // Background: fills feedback_json, which the summary panel polls for.
+      // Deliberately not awaited — feedback failure must not fail the attempt.
+      await scheduleDictationFeedback(context, {
+        attemptId: attempt.id,
+        userId: user.id,
+        band: passage.band,
+        results
+      });
     }
 
     return json<ActionData>(
@@ -209,6 +221,82 @@ function DiffTokens({ ops }: { ops: DiffOp[] }) {
   );
 }
 
+/* ---------- feedback panel ---------- */
+
+type FeedbackStatus = { ready: boolean; feedback: DictationFeedback | null };
+
+const FEEDBACK_POLL_MS = 2000;
+const FEEDBACK_POLL_LIMIT = 15; // ~30s, then stop and leave the panel out.
+
+/**
+ * Polls the attempt-status route until the background LLM task fills
+ * `feedback_json`. Renders nothing at all if feedback never arrives — a failed
+ * feedback call is not an error the learner needs to see (design §8).
+ */
+function FeedbackPanel({ attemptId }: { attemptId: string }) {
+  const [feedback, setFeedback] = React.useState<DictationFeedback | null>(null);
+  const [givenUp, setGivenUp] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    let tries = 0;
+
+    const poll = async () => {
+      if (cancelled) return;
+      tries += 1;
+      try {
+        const response = await fetch(`/dictation/attempt/${attemptId}/status`);
+        if (response.ok) {
+          const data = (await response.json()) as FeedbackStatus;
+          if (data.ready && data.feedback) {
+            if (!cancelled) setFeedback(data.feedback);
+            return;
+          }
+        }
+      } catch {
+        // Network hiccup — fall through and retry until the limit.
+      }
+      if (tries >= FEEDBACK_POLL_LIMIT) {
+        if (!cancelled) setGivenUp(true);
+        return;
+      }
+      if (!cancelled) setTimeout(poll, FEEDBACK_POLL_MS);
+    };
+
+    void poll();
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptId]);
+
+  if (givenUp && !feedback) return null;
+
+  if (!feedback) {
+    return (
+      <div className="dictation-feedback-panel is-pending">
+        <p className="dictation-feedback-panel-title">Looking for patterns in your errors…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dictation-feedback-panel">
+      <p className="dictation-feedback-panel-title">What to work on</p>
+      <ul className="dictation-pattern-list">
+        {feedback.patterns.map((pattern, index) => (
+          <li key={index} className="dictation-pattern">
+            <p className="dictation-pattern-name">{pattern.pattern}</p>
+            {pattern.evidence ? (
+              <p className="dictation-pattern-evidence">{pattern.evidence}</p>
+            ) : null}
+            <p className="dictation-pattern-tip">{pattern.tip}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /* ---------- page ---------- */
 
 export default function DictationSession() {
@@ -219,7 +307,11 @@ export default function DictationSession() {
   const [answers, setAnswers] = React.useState<string[]>(() => sentences.map(() => ""));
   const [replays, setReplays] = React.useState<number[]>(() => sentences.map(() => 0));
   const [checked, setChecked] = React.useState<Record<number, { accuracy: number; ops: DiffOp[]; reference: string }>>({});
-  const [summary, setSummary] = React.useState<{ accuracy: number; results: SentenceResult[] } | null>(null);
+  const [summary, setSummary] = React.useState<{
+    accuracy: number;
+    results: SentenceResult[];
+    attemptId: string | null;
+  } | null>(null);
   const [speed, setSpeed] = React.useState(1);
   // Anonymous visitors who are already out of quota see the gate before starting;
   // the action returns the same gate if the limit is hit between load and first check.
@@ -271,7 +363,7 @@ export default function DictationSession() {
       }));
     }
     if ("intent" in data && data.intent === "complete") {
-      setSummary({ accuracy: data.accuracy, results: data.results });
+      setSummary({ accuracy: data.accuracy, results: data.results, attemptId: data.attemptId });
     }
   }, [fetcher.data]);
 
@@ -358,6 +450,8 @@ export default function DictationSession() {
             </li>
           ))}
         </ol>
+
+        {summary.attemptId ? <FeedbackPanel attemptId={summary.attemptId} /> : null}
 
         {!authed ? (
           <div className="dictation-cta">

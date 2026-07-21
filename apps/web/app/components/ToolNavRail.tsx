@@ -195,6 +195,12 @@ export function ToolNavRail({
               />
               <span className="nav-rail-user-name">{displayName}</span>
             </NavLink>
+          ) : user ? (
+            /* Signed in, but this tool has no settings page — identity only. */
+            <div className="nav-rail-user-btn is-static">
+              <img className="nav-rail-avatar" src={avatarSrc} alt="" />
+              <span className="nav-rail-user-name">{displayName}</span>
+            </div>
           ) : (
             <button
               type="button"

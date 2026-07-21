@@ -6791,6 +6791,16 @@ select.input:focus {
   color: var(--text);
 }
 
+/* Identity-only variant: signed in on a tool with no settings page. */
+.nav-rail-user-btn.is-static {
+  cursor: default;
+}
+
+.nav-rail-user-btn.is-static:hover {
+  background: transparent;
+  color: var(--text-muted);
+}
+
 .nav-rail-user-btn.is-active {
   background: rgba(196, 149, 106, 0.1);
   color: var(--copper);
@@ -7834,4 +7844,60 @@ select.input:focus {
    breakpoint on .nav-rail-mobile-toggle), so headings no longer need to clear it. */
 @media (min-width: 1024px) {
   .dictation-canvas { --mobile-nav-offset: 0px; }
+}
+
+/* --- Dictation: LLM error-pattern feedback --- */
+
+.dictation-feedback-panel {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--copper);
+  border-radius: 6px;
+  background: var(--bg-alt);
+}
+
+.dictation-feedback-panel.is-pending {
+  border-left-color: var(--border);
+  color: var(--text-faint);
+}
+
+.dictation-feedback-panel-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.dictation-pattern-list {
+  list-style: none;
+  margin: var(--space-md) 0 0;
+  padding: 0;
+}
+
+.dictation-pattern + .dictation-pattern {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.dictation-pattern-name {
+  margin: 0 0 var(--space-xs);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.dictation-pattern-evidence {
+  margin: 0 0 var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--accent);
+}
+
+.dictation-pattern-tip {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
 }
