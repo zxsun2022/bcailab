@@ -1601,6 +1601,7 @@ export type Passage = {
   mean_sentence_words: number;
   rare_word_ratio: number;
   has_sentence_audio: number;
+  is_trial: number;
   /** Mirrors the old esl_passages status union so callers can switch on it. */
   reference_audio_status: "pending" | "completed" | "failed" | null;
   reference_audio_r2_key: string | null;
@@ -1626,7 +1627,7 @@ export type PassageSentence = {
 export type PassageTag = { tag: string; count: number };
 
 const PASSAGE_COLS = `id, user_id, title, content_text, band, topic, word_count,
-  sentence_count, mean_sentence_words, rare_word_ratio, has_sentence_audio,
+  sentence_count, mean_sentence_words, rare_word_ratio, has_sentence_audio, is_trial,
   reference_audio_status, reference_audio_r2_key, reference_audio_bytes,
   reference_voice_name, reference_audio_created_at, status, source,
   created_at, updated_at, deleted_at`;
@@ -1646,6 +1647,7 @@ const mapPassage = (row: Record<string, unknown>): Passage => ({
   mean_sentence_words: Number(row.mean_sentence_words ?? 0),
   rare_word_ratio: Number(row.rare_word_ratio ?? 0),
   has_sentence_audio: Number(row.has_sentence_audio ?? 0),
+  is_trial: Number(row.is_trial ?? 0),
   reference_audio_status: str(row.reference_audio_status) as Passage["reference_audio_status"],
   reference_audio_r2_key: str(row.reference_audio_r2_key),
   reference_audio_bytes:
@@ -1992,6 +1994,28 @@ export async function getOwnedPassage(
   const row = await db
     .prepare(`SELECT ${PASSAGE_COLS} FROM passages WHERE id = ? AND user_id = ?`)
     .bind(input.id, input.userId)
+    .first();
+  return row ? mapPassage(row as Record<string, unknown>) : null;
+}
+
+/**
+ * The library passage anonymous visitors practise in the reading trial.
+ *
+ * `is_trial` is an override, not a requirement: the migration flags a row where content
+ * already exists, but a freshly-seeded database has none, so this falls back to the
+ * oldest B1 passage and then to the oldest library passage. Robust in every environment,
+ * and changing the choice in production is a one-row UPDATE rather than a deploy.
+ */
+export async function getTrialPassage(db: Db): Promise<Passage | null> {
+  const row = await db
+    .prepare(
+      `SELECT ${PASSAGE_COLS} FROM passages
+        WHERE user_id IS NULL AND deleted_at IS NULL AND status = 'published'
+        ORDER BY is_trial DESC,
+                 CASE band WHEN 'B1' THEN 0 ELSE 1 END ASC,
+                 created_at ASC, id ASC
+        LIMIT 1`
+    )
     .first();
   return row ? mapPassage(row as Record<string, unknown>) : null;
 }

@@ -2,6 +2,7 @@ import * as React from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
+import { getTrialPassage, recordPassageAttemptStat } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
 import {
   getFeatureQuotaStatus,
@@ -14,10 +15,6 @@ import {
 } from "~/utils/esl-reading-attempt.server";
 import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
 import type { EslReadingEvaluationOutput } from "~/utils/esl-reading";
-import {
-  READING_TRIAL_PASSAGE_TEXT,
-  READING_TRIAL_PASSAGE_TITLE
-} from "~/utils/reading-trial";
 import { EslAttemptComposer } from "~/components/EslAttemptComposer";
 import { EslEvaluation } from "~/components/EslEvaluation";
 import { openLoginPopup } from "~/utils/login-popup";
@@ -55,11 +52,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const subject = resolveQuotaSubject(request, null);
   const quota = await getFeatureQuotaStatus(context.env.DB, "reading_trial", subject);
 
+  // The trial sample now comes from the shared library rather than a code constant,
+  // so a visitor practises the same graded material a signed-in learner would.
+  const passage = await getTrialPassage(context.env.DB);
+  if (!passage) throw new Response("Not found", { status: 404 });
+
   return json(
     {
       allowed: quota.allowed,
       remainingToday: quota.remainingToday,
-      passage: { title: READING_TRIAL_PASSAGE_TITLE, text: READING_TRIAL_PASSAGE_TEXT }
+      passage: { id: passage.id, title: passage.title, text: passage.content_text }
     },
     subject.setCookie ? { headers: { "Set-Cookie": subject.setCookie } } : undefined
   );
@@ -87,13 +89,16 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     );
   }
 
+  const passage = await getTrialPassage(context.env.DB);
+  if (!passage) throw new Response("Not found", { status: 404 });
+
   try {
     const formData = await request.formData();
     const submission = await parseEslAttemptSubmission(formData);
 
     const evaluation = await evaluateEslReadingAttempt({
       env: context.env,
-      passageText: READING_TRIAL_PASSAGE_TEXT,
+      passageText: passage.content_text,
       mode: submission.mode,
       outputLanguage: submission.outputLanguage,
       audioBytes: new Uint8Array(submission.audioBuffer),
@@ -102,6 +107,15 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       history: [],
       // v1 trials never read or write the learner profile.
       learnerProfile: null
+    });
+
+    // A trial attempt is still a real attempt on this passage, so it feeds the
+    // material layer's difficulty statistics — same rule as anonymous dictation.
+    // The row carries no identity.
+    await recordPassageAttemptStat(context.env.DB, {
+      passageId: passage.id,
+      mode: "reading",
+      accuracy: Math.min(1, Math.max(0, evaluation.output.scores.overall / 100))
     });
 
     // Charged only after a successful evaluation, so a provider failure is free.
@@ -145,8 +159,9 @@ export default function ReadingTrialPage() {
         <div className="trial-gate">
           <h1 className="trial-gate-title">You've used today's free reading feedback</h1>
           <p className="trial-gate-body">
-            Sign in to keep practicing — it's free, and you can add your own passages, keep
-            every attempt, and watch your scores move over time.
+            Sign in to keep practicing — it's free. You get the full graded library, twenty
+            passages from CEFR A2 to C1, plus your own texts, every attempt kept, and scores
+            you can watch move over time.
           </p>
           <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
             Sign in — it's free
@@ -176,8 +191,9 @@ export default function ReadingTrialPage() {
 
           <div className="trial-cta">
             <p className="trial-cta-text">
-              This attempt isn't saved. Sign in to practice with your own passages, keep every
-              recording, and track your scores over time.
+              This attempt isn't saved. Sign in to unlock the full graded library — twenty
+              passages from CEFR A2 to C1 — add your own texts, keep every recording, and
+              track your scores over time.
             </p>
             <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
               Sign in to save this

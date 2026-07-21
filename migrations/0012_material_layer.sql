@@ -30,6 +30,10 @@ CREATE TABLE passages (
   reference_audio_created_at TEXT,
   status TEXT NOT NULL DEFAULT 'published', -- 'draft'|'published'
   source TEXT NOT NULL DEFAULT 'library',   -- 'library'|'user'
+  -- Marks the single passage anonymous visitors practise in the reading trial.
+  -- A column rather than a hardcoded id so the choice can change with one UPDATE
+  -- instead of a deploy.
+  is_trial INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   deleted_at TEXT
@@ -179,3 +183,15 @@ CREATE INDEX esl_attempts_user_deleted_idx
   ON esl_reading_attempts(user_id, deleted_at);
 CREATE INDEX esl_evaluations_attempt_idx
   ON esl_reading_evaluations(attempt_id);
+
+-- ---------- pick the anonymous reading trial passage ----------
+-- One B1 library passage: easy enough that a first-time visitor succeeds, hard enough
+-- that the evaluation has something to say. Deterministic (oldest B1) so local,
+-- preview, and production all choose the same row. Replaces the hardcoded passage
+-- constant the trial route used to carry.
+UPDATE passages SET is_trial = 1
+ WHERE id = (
+   SELECT id FROM passages
+    WHERE user_id IS NULL AND band = 'B1' AND deleted_at IS NULL
+    ORDER BY created_at ASC, id ASC LIMIT 1
+ );

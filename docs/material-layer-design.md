@@ -304,7 +304,7 @@ plus `material/{passageId}/reference.mp3`. **Existing objects keep their old key
 key is stored per row, so old and new coexist; only new material uses the new layout.
 
 Generation stays manual per the 2026-07-20 workflow decision, with LLM cross-check and
-human spot-check once the library grows (`scripts/dictation-seed/README.md`).
+human spot-check once the library grows (`scripts/material-seed/README.md`).
 
 ## 10. Forward compatibility
 
