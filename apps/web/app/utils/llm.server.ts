@@ -20,7 +20,9 @@ export type LlmTask =
   | "translate_anonymous"
   | "reading_eval"
   | "writing_feedback"
-  | "title_generation";
+  | "title_generation"
+  | "dictation_generate"
+  | "dictation_feedback";
 
 type TaskConfig = {
   model: string;
@@ -33,7 +35,12 @@ const TASK_MODELS: Record<LlmTask, TaskConfig> = {
   translate_anonymous: { model: LITE_MODEL },
   reading_eval: { model: DEFAULT_MODEL, envModelOverride: true },
   writing_feedback: { model: DEFAULT_MODEL, envModelOverride: true },
-  title_generation: { model: LITE_MODEL }
+  title_generation: { model: LITE_MODEL },
+  // Dictation v1 generates material offline (scripts/dictation-seed/), which cannot
+  // import app code. This entry documents the routing decision and is the control
+  // point for when v2 moves generation into the runtime.
+  dictation_generate: { model: DEFAULT_MODEL },
+  dictation_feedback: { model: DEFAULT_MODEL, envModelOverride: true }
 };
 
 export const resolveModelForTask = (env: Env, task: LlmTask): string => {
