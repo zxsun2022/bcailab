@@ -1,9 +1,9 @@
 # Material Layer — Technical Design
 
-Status: **draft for owner review, not yet approved.**
+Status: **approved** (owner confirmed 2026-07-21). Not yet implemented.
 Scope source: `docs/roadmap.md` → Now iteration (scoped 2026-07-21).
 Intended reader: the AI agent (or human) implementing this. Follow this doc; where it
-delegates a decision, it says so. §13 lists the questions that still need the owner.
+delegates a decision, it says so. §13 records the decisions the owner made on review.
 
 ## 1. Why now
 
@@ -38,9 +38,12 @@ progress center all read from it.
 - Per-passage empirical statistics so the library's difficulty labels can be corrected by
   real learner data (§6).
 - Migration of the 20 existing dictation passages (§7).
-- Reading gains a graded global library: signed-in users can practice library passages,
-  not only their own. The anonymous reading trial stops using a hardcoded constant and
-  reads a library row instead.
+- Reading gains a graded global library for **signed-in users**: they can practice library
+  passages, not only their own. The anonymous trial stays pinned to one fixed passage
+  (owner, 2026-07-21) — it reads a library row instead of the hardcoded constant, but the
+  library is not browsable while signed out. The trial page gains one line of copy naming
+  what the library holds, so a visitor knows what signing in unlocks without us building a
+  browsable catalogue for them.
 - Seed pipeline produces both per-sentence audio (dictation) and whole-passage reference
   audio (reading) for global passages.
 
@@ -200,7 +203,16 @@ This vocabulary is **deliberately small and extensible**: `passage_tags` is key/
 adding a tag later means re-running the tagger, not migrating a schema. That is the main
 reason for a tag table rather than columns on `passages`.
 
-### 5.4 Re-runnability is a requirement
+### 5.4 User-supplied text stays untagged
+
+When a user pastes their own passage we do **not** spend an LLM call to band or tag it
+(owner, 2026-07-21). Their material is never matched — they chose it — so the tags would
+only serve the learner model, and that model does not exist yet. Revisit when the
+assessment system is complete enough to fold user practice into the same context as
+library practice; until then `band` and `passage_tags` are simply absent for
+`source='user'` rows, and every consumer must tolerate that.
+
+### 5.5 Re-runnability is a requirement
 
 The tagger must be a pure module (`apps/web/app/utils/passage-tags.ts`, no server or DOM
 deps) with vitest coverage, and there must be a script that re-tags the entire library.
@@ -221,33 +233,47 @@ accumulating when matching arrives.
 Write path: dictation's completion action and the reading evaluation both increment. Both
 already run at a point where the score is known.
 
-## 7. Migration
+## 7. Migration — one phase, nothing deleted
 
-**Phase 1 (this iteration): global content only.**
+An earlier draft split this into two phases and deferred user-owned `esl_passages`,
+on the assumption that repointing its foreign key was risky. **That was wrong on both
+counts and the owner approved the corrected plan (2026-07-21).**
 
-- Create the new tables.
-- Copy `dictation_passages` → `passages` (`user_id NULL`, `source='library'`) and
-  `dictation_sentences` → `passage_sentences`, preserving ids so existing R2 keys and any
-  bookmarked URLs keep working.
-- Run the tagger over all 20 passages.
-- Point dictation's queries at the new tables. Drop the old tables in a later migration,
-  not this one — keep a rollback path for one release.
-- Reading reads library passages from `passages WHERE user_id IS NULL`.
+Why deferring was wrong: it does not avoid work, it *creates* work, and puts it in the
+one security-sensitive place. With a single table, reading's authorization is one
+predicate — `user_id IS NULL OR user_id = ?`. With two tables, every read has to branch on
+which table the passage lives in and apply a different rule per branch. That is more code
+and more ways to leak another user's passage, not fewer.
 
-**Phase 2 (deferred, deliberately): user passages.**
+Why the risk was overstated: only `esl_reading_attempts` references `esl_passages`, and
+D1 supports the create-new-table-and-copy path (verified against production schema
+2026-07-21). No `PRAGMA foreign_keys` toggle and no in-place `ALTER` is needed, which is
+what would have been awkward inside a D1 migration.
 
-`esl_passages` has three attempt/evaluation tables and reference-TTS columns hanging off
-it. Migrating it means rewriting foreign keys on live data for 14 passages and 39
-attempts — real risk for no user-visible gain, because **user passages are never matched**
-(the user chose them; there is nothing to match).
+**The plan:**
 
-The value of unification is in the *global* corpus, and phase 1 captures all of it. Phase 2
-becomes worthwhile only if user passages need tagging or library-style browsing. Leave
-`esl_passages` alone until then, and record it as a known duplication rather than pretending
-it is finished.
+1. Create `passages`, `passage_sentences`, `passage_tags`, `passage_stats`.
+2. Copy `dictation_passages` → `passages` (`user_id NULL`, `source='library'`) and
+   `dictation_sentences` → `passage_sentences`. **Preserve ids** so existing R2 keys and
+   any bookmarked URLs keep working.
+3. Copy `esl_passages` → `passages` (`user_id` set, `source='user'`, `band NULL`),
+   mapping the `reference_tts_*` columns onto the new `reference_audio_*` columns.
+   Preserve ids.
+4. Rebuild `esl_reading_attempts` with its foreign key pointing at `passages(id)`.
+   Because passage ids are preserved, the attempt rows copy across unchanged.
+5. Run the tagger over the library passages (user passages stay untagged — §5.5).
+6. Repoint all dictation and reading queries at the new tables.
+7. Leave `dictation_passages`, `dictation_sentences`, and `esl_passages` in place as a
+   rollback path. Drop them in a **later** migration, once a release has proven the new
+   path in production.
+
+**Nothing is deleted.** Production holds practice history belonging to more than one
+account — including a second person's reading attempt — and that history is also the only
+data the future progress center will have to draw a growth curve from. Deleting it would
+not have simplified this migration in any case (owner confirmed 2026-07-21).
 
 The anonymous reading trial's hardcoded passage constant (`reading-trial.ts`) is replaced
-by a library row flagged for trial use — a small cleanup that phase 1 makes possible.
+by a library row flagged for trial use — a small cleanup this migration makes possible.
 
 ## 8. Routes & UI
 
@@ -258,10 +284,12 @@ by a library row flagged for trial use — a small cleanup that phase 1 makes po
 | `/reading/:id` | Must accept a library passage id, not only a user-owned one. |
 | `/reading/trial` | Reads a library row instead of the code constant. |
 
-Reading's passage list currently assumes ownership (`listEslPassagesByUser`). The loader
-needs to merge two sources and the practice page must authorize both cases: *owned by me*
-**or** *global library*. Getting that predicate wrong leaks another user's passage — it is
-the one security-sensitive change in this iteration and deserves a test.
+Reading's passage list currently assumes ownership (`listEslPassagesByUser`). Because
+§7 puts everything in one table, the authorization rule is a single predicate —
+`user_id IS NULL OR user_id = ?` — applied in one place. **Getting it wrong leaks another
+user's passage.** It is the one security-sensitive change in this iteration: it belongs in
+a `@bcailab/db` helper that every caller goes through rather than being re-spelled per
+route, and it deserves a test that asserts a third user's passage is not reachable.
 
 ## 9. Seed pipeline
 
@@ -313,21 +341,19 @@ human spot-check once the library grows (`scripts/dictation-seed/README.md`).
 - `docs/infra-cloudflare.md` / `docs/workflow.md`: expect `Docs impact: none` (no new env
   vars); confirm at implementation time.
 
-## 13. Open questions for the owner
+## 13. Decisions on review (owner, 2026-07-21)
 
-These change the shape of the work and are not mine to decide:
-
-1. **Reading library scope.** Should library passages appear for *anonymous* reading
-   visitors too (turning the reading trial into "pick any library passage, get one
-   evaluation"), or stay signed-in only with the trial pinned to one passage? The former
-   is a better funnel; the latter is less work and keeps the trial predictable.
-2. **Band on user passages.** When a user pastes their own text, do we spend an LLM call
-   to band and tag it — so their material also feeds the learner model — or leave it
-   untagged? Untagged is cheaper and is what §4 assumes; tagging makes the learner model
-   see all practice, not just library practice.
-3. **Library size target for this iteration.** Do we grow the corpus during this work, or
-   ship the plumbing with the existing 20 and expand separately? Recommendation: ship
-   plumbing first, expand as its own task — mixing a schema migration with a content push
-   makes both harder to verify.
-4. **Phase 2 timing.** Confirm that leaving `esl_passages` in place (§7) is acceptable as
-   a known, documented duplication.
+1. **Reading library is signed-in only.** The anonymous trial stays pinned to one fixed
+   passage rather than becoming "pick any library passage". The trial page names what the
+   library holds in a line of copy, so a visitor understands what signing in unlocks
+   without us building a browsable catalogue for signed-out traffic (§2, §8).
+2. **User-supplied text stays untagged.** No LLM banding or tagging for `source='user'`
+   rows. Revisit once the assessment system can fold user practice into the same context
+   as library practice (§5.4).
+3. **Do not grow the library in this iteration.** Ship the plumbing against the existing
+   20 passages; expanding the corpus is a separate task, so a schema migration and a
+   content push are never being verified at the same time.
+4. **Migrate everything in one phase; delete nothing** (§7). This reverses the earlier
+   two-phase draft. Production practice history spans more than one account and is the
+   only historical data the future progress center can draw on, and deleting it would not
+   have simplified the migration anyway.

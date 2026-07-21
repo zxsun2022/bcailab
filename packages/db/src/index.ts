@@ -1585,3 +1585,312 @@ export async function setDictationAttemptFeedback(
     .bind(input.feedbackJson, input.id, input.userId)
     .run();
 }
+
+/* ---------- material layer (unified passages) ---------- */
+
+export type Passage = {
+  id: string;
+  /** NULL for global library content. */
+  user_id: string | null;
+  title: string;
+  content_text: string;
+  band: string | null;
+  topic: string | null;
+  word_count: number;
+  sentence_count: number;
+  mean_sentence_words: number;
+  rare_word_ratio: number;
+  has_sentence_audio: number;
+  reference_audio_status: string | null;
+  reference_audio_r2_key: string | null;
+  reference_audio_bytes: number | null;
+  reference_voice_name: string | null;
+  reference_audio_created_at: string | null;
+  status: string;
+  source: string;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+export type PassageSentence = {
+  id: string;
+  passage_id: string;
+  idx: number;
+  text: string;
+  r2_key: string | null;
+  audio_bytes: number | null;
+};
+
+export type PassageTag = { tag: string; count: number };
+
+const PASSAGE_COLS = `id, user_id, title, content_text, band, topic, word_count,
+  sentence_count, mean_sentence_words, rare_word_ratio, has_sentence_audio,
+  reference_audio_status, reference_audio_r2_key, reference_audio_bytes,
+  reference_voice_name, reference_audio_created_at, status, source,
+  created_at, updated_at, deleted_at`;
+
+const str = (value: unknown): string | null =>
+  value === null || value === undefined ? null : String(value);
+
+const mapPassage = (row: Record<string, unknown>): Passage => ({
+  id: String(row.id),
+  user_id: str(row.user_id),
+  title: String(row.title),
+  content_text: String(row.content_text),
+  band: str(row.band),
+  topic: str(row.topic),
+  word_count: Number(row.word_count ?? 0),
+  sentence_count: Number(row.sentence_count ?? 0),
+  mean_sentence_words: Number(row.mean_sentence_words ?? 0),
+  rare_word_ratio: Number(row.rare_word_ratio ?? 0),
+  has_sentence_audio: Number(row.has_sentence_audio ?? 0),
+  reference_audio_status: str(row.reference_audio_status),
+  reference_audio_r2_key: str(row.reference_audio_r2_key),
+  reference_audio_bytes:
+    row.reference_audio_bytes === null || row.reference_audio_bytes === undefined
+      ? null
+      : Number(row.reference_audio_bytes),
+  reference_voice_name: str(row.reference_voice_name),
+  reference_audio_created_at: str(row.reference_audio_created_at),
+  status: String(row.status),
+  source: String(row.source),
+  created_at: String(row.created_at),
+  updated_at: String(row.updated_at),
+  deleted_at: str(row.deleted_at)
+});
+
+const mapPassageSentence = (row: Record<string, unknown>): PassageSentence => ({
+  id: String(row.id),
+  passage_id: String(row.passage_id),
+  idx: Number(row.idx ?? 0),
+  text: String(row.text),
+  r2_key: str(row.r2_key),
+  audio_bytes:
+    row.audio_bytes === null || row.audio_bytes === undefined ? null : Number(row.audio_bytes)
+});
+
+/**
+ * **The authorization boundary for passages.** A passage is readable when it is global
+ * library content (`user_id IS NULL`) or owned by the caller. Every read path must go
+ * through this helper rather than re-spelling the predicate — getting it wrong exposes
+ * one user's passage to another.
+ *
+ * Pass `userId: null` for anonymous callers, who may only reach library content.
+ */
+export async function getPassageForUser(
+  db: Db,
+  input: { id: string; userId: string | null }
+): Promise<Passage | null> {
+  const row = await db
+    .prepare(
+      `SELECT ${PASSAGE_COLS} FROM passages
+       WHERE id = ? AND deleted_at IS NULL
+         AND (user_id IS NULL OR user_id = ?)`
+    )
+    .bind(input.id, input.userId)
+    .first();
+  return row ? mapPassage(row as Record<string, unknown>) : null;
+}
+
+/** Published global library passages, optionally filtered by band. */
+export async function listLibraryPassages(
+  db: Db,
+  options: { band?: string; requireSentenceAudio?: boolean } = {}
+): Promise<Passage[]> {
+  const where = ["user_id IS NULL", "deleted_at IS NULL", "status = 'published'"];
+  const binds: string[] = [];
+  if (options.band) {
+    where.push("band = ?");
+    binds.push(options.band);
+  }
+  if (options.requireSentenceAudio) where.push("has_sentence_audio = 1");
+  const result = await db
+    .prepare(
+      `SELECT ${PASSAGE_COLS} FROM passages WHERE ${where.join(" AND ")}
+       ORDER BY band ASC, created_at ASC`
+    )
+    .bind(...binds)
+    .all();
+  return (result.results ?? []).map((row) => mapPassage(row as Record<string, unknown>));
+}
+
+/** A user's own passages only — never library content. */
+export async function listPassagesByUser(db: Db, userId: string): Promise<Passage[]> {
+  const result = await db
+    .prepare(
+      `SELECT ${PASSAGE_COLS} FROM passages
+       WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC`
+    )
+    .bind(userId)
+    .all();
+  return (result.results ?? []).map((row) => mapPassage(row as Record<string, unknown>));
+}
+
+export async function listPassageSentences(
+  db: Db,
+  passageId: string
+): Promise<PassageSentence[]> {
+  const result = await db
+    .prepare(
+      "SELECT id, passage_id, idx, text, r2_key, audio_bytes FROM passage_sentences WHERE passage_id = ? ORDER BY idx ASC"
+    )
+    .bind(passageId)
+    .all();
+  return (result.results ?? []).map((row) => mapPassageSentence(row as Record<string, unknown>));
+}
+
+/**
+ * Sentence lookup for the public dictation audio route. Joins the passage so
+ * unpublished, deleted, or non-library material stops being served.
+ */
+export async function getLibraryPassageSentenceById(
+  db: Db,
+  id: string
+): Promise<PassageSentence | null> {
+  const row = await db
+    .prepare(
+      `SELECT s.id, s.passage_id, s.idx, s.text, s.r2_key, s.audio_bytes
+       FROM passage_sentences s
+       JOIN passages p ON p.id = s.passage_id
+       WHERE s.id = ? AND p.user_id IS NULL AND p.deleted_at IS NULL AND p.status = 'published'`
+    )
+    .bind(id)
+    .first();
+  return row ? mapPassageSentence(row as Record<string, unknown>) : null;
+}
+
+export async function createUserPassage(
+  db: Db,
+  input: { id?: string; userId: string; title: string; contentText: string }
+): Promise<Passage> {
+  const id = input.id ?? crypto.randomUUID();
+  await db
+    .prepare(
+      "INSERT INTO passages (id, user_id, title, content_text, source, status) VALUES (?, ?, ?, ?, 'user', 'published')"
+    )
+    .bind(id, input.userId, input.title, input.contentText)
+    .run();
+  const created = await getPassageForUser(db, { id, userId: input.userId });
+  if (!created) throw new Error("Failed to create passage.");
+  return created;
+}
+
+export async function softDeleteUserPassage(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE passages SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?"
+    )
+    .bind(input.id, input.userId)
+    .run();
+}
+
+/* ---------- tags ---------- */
+
+export async function getPassageTags(db: Db, passageId: string): Promise<PassageTag[]> {
+  const result = await db
+    .prepare("SELECT tag, count FROM passage_tags WHERE passage_id = ? ORDER BY count DESC")
+    .bind(passageId)
+    .all();
+  return (result.results ?? []).map((row) => ({
+    tag: String((row as Record<string, unknown>).tag),
+    count: Number((row as Record<string, unknown>).count ?? 0)
+  }));
+}
+
+/** Replaces a passage's tags wholesale — the tagger is re-runnable by design. */
+export async function replacePassageTags(
+  db: Db,
+  passageId: string,
+  tags: PassageTag[]
+): Promise<void> {
+  const statements = [
+    db.prepare("DELETE FROM passage_tags WHERE passage_id = ?").bind(passageId)
+  ];
+  const insert = db.prepare(
+    "INSERT INTO passage_tags (passage_id, tag, count) VALUES (?, ?, ?)"
+  );
+  for (const entry of tags) {
+    if (entry.count > 0) statements.push(insert.bind(passageId, entry.tag, entry.count));
+  }
+  await db.batch(statements);
+}
+
+/** Writes the derived difficulty metrics computed by the tagger. */
+export async function updatePassageMetrics(
+  db: Db,
+  input: {
+    id: string;
+    wordCount: number;
+    sentenceCount: number;
+    meanSentenceWords: number;
+    rareWordRatio: number;
+  }
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE passages SET word_count = ?, sentence_count = ?, mean_sentence_words = ?,
+         rare_word_ratio = ?, updated_at = datetime('now') WHERE id = ?`
+    )
+    .bind(
+      input.wordCount,
+      input.sentenceCount,
+      input.meanSentenceWords,
+      input.rareWordRatio,
+      input.id
+    )
+    .run();
+}
+
+/* ---------- empirical difficulty ---------- */
+
+export type PassageStats = {
+  passage_id: string;
+  mode: string;
+  attempt_count: number;
+  accuracy_sum: number;
+};
+
+/**
+ * Records one scored attempt against a passage. Accumulates only — deciding when a
+ * measured difficulty should override a declared band belongs to the matching service.
+ */
+export async function recordPassageAttemptStat(
+  db: Db,
+  input: { passageId: string; mode: "dictation" | "reading"; accuracy: number }
+): Promise<void> {
+  await db
+    .prepare(
+      `INSERT INTO passage_stats (passage_id, mode, attempt_count, accuracy_sum) VALUES (?, ?, 1, ?)
+       ON CONFLICT(passage_id, mode) DO UPDATE SET
+         attempt_count = attempt_count + 1,
+         accuracy_sum = accuracy_sum + excluded.accuracy_sum,
+         updated_at = datetime('now')`
+    )
+    .bind(input.passageId, input.mode, input.accuracy)
+    .run();
+}
+
+export async function getPassageStats(
+  db: Db,
+  passageId: string
+): Promise<PassageStats[]> {
+  const result = await db
+    .prepare(
+      "SELECT passage_id, mode, attempt_count, accuracy_sum FROM passage_stats WHERE passage_id = ?"
+    )
+    .bind(passageId)
+    .all();
+  return (result.results ?? []).map((row) => {
+    const record = row as Record<string, unknown>;
+    return {
+      passage_id: String(record.passage_id),
+      mode: String(record.mode),
+      attempt_count: Number(record.attempt_count ?? 0),
+      accuracy_sum: Number(record.accuracy_sum ?? 0)
+    };
+  });
+}
