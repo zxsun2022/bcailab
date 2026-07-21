@@ -7602,6 +7602,74 @@ select.input:focus {
   margin-bottom: var(--space-lg);
 }
 
+/* Play button: label reflects state, and a progress bar fills underneath. Landing on
+   the page never autoplays — the first listen is always the learner's choice. */
+.dictation-play {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 20px;
+  min-width: 132px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background var(--transition-fast);
+}
+
+.dictation-play:hover { background: var(--accent-hover); }
+
+.dictation-play-icon {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 10px;
+  border-color: transparent transparent transparent currentColor;
+}
+
+.dictation-play.is-playing .dictation-play-icon {
+  /* Playing: swap the triangle for an equalizer-ish bar that pulses. */
+  width: 10px;
+  height: 12px;
+  border: 0;
+  background: currentColor;
+  animation: dictation-pulse 0.9s ease-in-out infinite;
+}
+
+@keyframes dictation-pulse {
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  50% { opacity: 0.55; transform: scaleY(0.6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dictation-play.is-playing .dictation-play-icon { animation: none; }
+}
+
+.dictation-play-label { position: relative; }
+
+.dictation-play-progress {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.55);
+  transform-origin: left center;
+  transform: scaleX(0);
+  transition: transform 0.1s linear;
+}
+
+.dictation-play-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
 .dictation-primary {
   padding: 10px 20px;
   border: 1px solid var(--accent);

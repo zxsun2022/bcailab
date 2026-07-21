@@ -44,6 +44,20 @@ Range requests are not supported in v1 (clips are a few seconds); it stays on th
 engineering list. Playback speed is client-side `playbackRate` (0.75× / 1×), not a second
 synthesis.
 
+**Playback never starts on its own when the page loads.** Landing on a session is not
+consent to hear audio, and browser autoplay policy would make it inconsistent anyway
+(blocked before any user gesture, allowed after). The first listen is always a click.
+Once the learner has played something, advancing to the next sentence autoplays, which
+keeps the practice rhythm going without a click per sentence.
+
+The play button carries the state: `Play` → `Loading…` → `Playing…` → `Replay`, with a
+progress bar filling underneath and a listen count once a sentence has been heard more
+than once.
+
+`replays` in the stored result means listens **beyond the first**, so a sentence heard
+once reports 0. The UI tracks total listens and subtracts one on submit — that way the
+field means the same thing whether playback started by click or by advancing.
+
 ## Quotas
 
 Defined in `apps/web/app/utils/feature-quota.server.ts` under feature `dictation`; counters live
