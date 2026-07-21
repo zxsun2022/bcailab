@@ -15,9 +15,17 @@ no-account acquisition funnel into it.
 
 - [x] Material layer unification — done 2026-07-21, see Done.
 
-**Iteration complete.** The next iteration has not been scoped — see Next/Later, and
-confirm scope with the owner before starting. The obvious follow-on is the matching
-service (learner → passage), which this layer was built to feed.
+- [ ] English Studio repairs (scoped 2026-07-21, owner confirmed) — the work in
+      `docs/english-studio-ia-design.md` that does **not** depend on the learner model:
+      persist partial dictation practice (today an unfinished passage is silently
+      discarded, which is why production has zero dictation attempts), cross-module
+      navigation (the tool logo leaves the product entirely), dictation's shell and
+      Reading's index becoming catalogues, and a cross-mode handoff between dictation and
+      reading. Deliberately excludes browse IA — see that doc §2.
+
+Next iteration, not yet scoped: **shared learner model + unified progress centre**, which
+the material layer was built to feed and which most deferred IA questions depend on.
+Accumulated reasoning is in `docs/learner-model-notes.md` — read it before designing.
 
 Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
 
@@ -70,6 +78,19 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   query; audio Range request support; session cleanup cron; session secret rotation.
 - Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
   data to fall back on — noted 2026-07-20, not urgent.
+- Writing prompt bank — graded essay prompts so writing has a cold start as good as
+  reading's. Cheap (short text, no TTS) but expect less from it than the passage library:
+  the friction in writing is producing 250 words, not choosing a topic. Discussed
+  2026-07-21; see `docs/learner-model-notes.md` §5.
+- Onboarding: one-tap level self-selection, skippable, corrected silently from real
+  practice data. **Not** a placement test — dictation already is one. Discussed
+  2026-07-21; see `docs/learner-model-notes.md` §1.
+- vanbox stays a separate repository (decided 2026-07-21). It is Next.js + OpenNext on
+  Workers with Auth.js and its own accounts, so a monorepo would share almost nothing —
+  `packages/auth` is unusable, `packages/ui` would need porting, and the schemas are
+  disjoint — while adding two build systems and two deploy pipelines. The product-level
+  goal is met by a homepage product card linking out. Revisit only if one account should
+  span both products; that, not code reuse, is what would justify merging.
 
 ## Done
 
