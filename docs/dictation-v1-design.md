@@ -1,6 +1,9 @@
 # Dictation v1 — Technical Design
 
-Status: **approved design, not yet implemented** (owner confirmed scope 2026-07-20).
+Status: **in progress** (owner confirmed scope 2026-07-20). §11 steps 1–3 are done
+(migration 0011, `@bcailab/db` helpers, `feature-quota.server.ts`, `dictation-diff.ts`,
+seed scripts, and 20 published passages in production D1/R2); routes, quota wiring,
+LLM feedback, and doc sync remain.
 Scope source: `docs/roadmap.md` → Now iteration (started 2026-07-20).
 Intended reader: the AI agent (or human) implementing this feature. Follow this doc;
 where it delegates a decision, it says so explicitly.
@@ -19,8 +22,9 @@ LLM feedback on error patterns.
   per-sentence instant diff, end-of-passage summary.
 - Deterministic diff-based scoring (shared pure util, client + server).
 - Signed-in: attempts persisted; LLM error-pattern feedback.
-- Anonymous: one passage per day via the quota-infrastructure pattern; results are
-  session-only (nothing persisted); sign-in CTA on the summary screen.
+- Anonymous: daily passage quota via the quota-infrastructure pattern (30/day, see §9;
+  revised by owner 2026-07-20); results are session-only (nothing persisted); sign-in
+  CTA on the summary screen.
 
 **Non-goals (v1) — do not build these:**
 
@@ -56,6 +60,14 @@ from `apps/web/app/**` because of Remix path aliases; it duplicates a ~30-line G
 call and reimplements the service-account TTS auth, mirroring
 `apps/web/app/utils/google-tts.server.ts`). Reads `GEMINI_API_KEY` and
 `GOOGLE_TTS_SERVICE_ACCOUNT_JSON` from the environment (same values as `.dev.vars`).
+
+Workflow decision (owner, 2026-07-20): **static library batches are generated
+manually in a Claude Code session** (any capable LLM following the constraints in
+`generate.ts`), so the owner reviews every passage before publishing; `generate.ts`
+remains the scripted Gemini alternative. See `scripts/dictation-seed/README.md`.
+(v2 grows this library to several hundred passages — §10 — at which point per-passage
+human review gives way to LLM cross-checking plus human spot-checks; that scaling
+decision is still open.)
 
 Two-phase, so text quality is reviewable before spending TTS calls:
 
@@ -206,6 +218,11 @@ otherwise keep the module pure so tests can be added later.
   (delete = word the user missed; insert = extra word the user typed).
 - `accuracy = matches / referenceTokenCount` per sentence; passage accuracy is
   reference-token-weighted across sentences.
+- Flooding guard (owner, 2026-07-20): extra words (`insert` ops) cost nothing while the
+  user's token count stays under 2× the reference token count; beyond that each
+  overflow token cancels one match
+  (`overflow = max(0, userTokens − 2·referenceTokens)`,
+  `accuracy = max(0, matches − overflow) / referenceTokenCount`).
 
 Completion flow: the client POSTs `{ passageId, answers: string[] (one per sentence,
 raw user text), replays: number[] }` to the session route action. The server **recomputes**
@@ -244,9 +261,12 @@ Generalize the translate-quota pattern into `apps/web/app/utils/feature-quota.se
 `getClientIp`, and the `subjectsFor` subject scheme from `translate-quota.server.ts` —
 export/share them rather than copying).
 
-- Feature `dictation`: anonymous **1 passage/day** (counted against `anon:` and `ip:`
+- Feature `dictation`: anonymous **30 passages/day** (counted against `anon:` and `ip:`
   subjects, increment on session **start**, i.e. first sentence-check POST or an
-  explicit start action — not on page view); signed-in **30/day** invisible abuse cap.
+  explicit start action — not on page view); signed-in **100/day** invisible abuse cap.
+  (Revised by owner 2026-07-20 from 1/30: v1 sessions consume no LLM tokens — audio is
+  pre-generated and feedback is signed-in only — so the caps only bound scripted abuse.
+  Revisit if v2 changes the runtime cost profile.)
 - Quota exceeded (anonymous): the session page renders a friendly gate with the
   sign-in CTA, mirroring the translate quota banner.
 - Audio endpoints are not quota-gated (public content; the LLM/TTS spend already
@@ -254,15 +274,26 @@ export/share them rather than copying).
 
 ## 10. Forward-compatibility with Dictation v2 (do not build v2 now)
 
-v2 (roadmap Later) introduces a shared learner-model layer and a unified
-material-generation service. v1's only obligations to that future:
+v2 (roadmap Later) introduces a shared learner-model layer and, **revised 2026-07-20
+(owner confirmed)**, a material *matching* service rather than a runtime generation
+service: the library stays pre-generated and dimensionally tagged, and v2 retrieves
+from it. See the roadmap entry for the full rationale — in short, a fixed item bank
+can be empirically calibrated from real accuracy data, TTS cost amortizes across all
+users instead of recurring per session, retrieval is a D1 query rather than a
+multi-second round trip, and per-passage human review stays in the loop.
+
+v1's obligations to that future:
 
 1. `sentence_results` ops JSON (§7) is the stable observation format v2 aggregates —
    changing it later means migrating attempt rows, so keep it minimal and factual
-   (raw ops, no interpretations).
+   (raw ops, no interpretations). Deterministic diff data is also the *measurement*
+   input for level assessment; the LLM interprets patterns, it does not measure.
 2. Generation prompts/constraints live in the seed script as plain exported constants,
-   so v2 can lift them into the runtime service without archaeology.
+   so v2's library-expansion tooling can reuse them without archaeology.
 3. Do **not** read or write `esl_learner_profiles` from dictation code in v1.
+4. Passage/sentence rows carry no per-user data (§2), so the same row can serve many
+   learners and accumulate the accuracy statistics calibration depends on. v2 adds
+   tag columns/tables alongside them; do not add user scope to this content.
 
 ## 11. Implementation order
 
@@ -290,8 +321,9 @@ material-generation service. v1's only obligations to that future:
 Small extension; checklist-level guidance (implementer decides details within this):
 
 - **Quota**: features `reading_trial` / `writing_trial` in `feature_usage`, anonymous
-  1/day (anon + ip subjects), via the same `feature-quota.server.ts` from §9. Build §9's
-  util first if this item is picked up first.
+  5/day (anon + ip subjects; revised by owner 2026-07-20 from 1/day so a mis-click
+  doesn't burn the whole trial), via the same `feature-quota.server.ts` from §9. Build
+  §9's util first if this item is picked up first.
 - **Writing**: `writing._index.tsx` currently calls `requireUser`. Anonymous path:
   accept one essay submission, run the normal evaluation, render the result
   **ephemerally — persist nothing** (no D1 rows, no history). Banner on the result:

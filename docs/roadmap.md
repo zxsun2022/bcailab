@@ -45,12 +45,25 @@ no-account acquisition funnel into it.
 - Translate history for signed-in users — opt-in only (current privacy stance: translation
   text is never persisted). Most interesting framed as learning material: saved translations
   feeding vocabulary/dictionary and the learner profile, not a standalone log.
-- Dictation v2 — level-adaptive material generation (agreed 2026-07-20): elevate
+- Dictation v2 — level-adaptive material **matching** (revised 2026-07-20, owner
+  confirmed; supersedes the earlier "dynamic per-user generation" framing): elevate
   `learner_profile` into a shared learner-model layer (tools write observations, the
-  profile layer aggregates) and add a unified material-generation service on the
-  `llm.server.ts` routing table that consumes profile + task type. Dictation consumes it
-  first; Reading/Writing migrate to the same interface gradually (interface migration,
-  not a rewrite). Prerequisites: unified progress center (Next) + dictation v1.
+  profile layer aggregates), then **retrieve** from a large pre-generated, tagged
+  material library instead of generating per request. The LLM's job is assessing the
+  learner and interpreting error patterns, not producing material at request time.
+  Rationale: a fixed item bank can be empirically calibrated from real accuracy data
+  (every passage accumulates a sample; generated-once material never can), TTS cost is
+  paid once and amortized across all users rather than per session, and retrieval is a
+  D1 query rather than a multi-second generate-then-synthesize round trip. It also keeps
+  the owner's per-passage review in the loop. Work shifts from generation to (a) a
+  dimensional tag schema shared by library and learner profile, (b) a matching policy,
+  (c) growing the library from 20 to several hundred passages. Reading/Writing migrate
+  to the same interface gradually (interface migration, not a rewrite).
+  Prerequisites: unified progress center (Next) + dictation v1.
+- Dictation: bring-your-own-text — user pastes a passage and practices dictation on it.
+  Noted 2026-07-20 as the one place runtime generation/synthesis genuinely earns its
+  keep; it is user-initiated, distinct from adaptive difficulty, and should not be
+  conflated with v2 matching.
 - Decided 2026-07-16: Translate stays inside English Studio as its free funnel (not a
   standalone homepage product); revisit only if usage data shows a distinct audience.
 - Engineering quality: vitest for LLM-output parsers + ESLint; fix evaluation-history N+1
