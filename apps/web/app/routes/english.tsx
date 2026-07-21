@@ -54,6 +54,15 @@ const modules: Module[] = [
     public: true
   },
   {
+    slug: "dictation",
+    title: "Dictation",
+    description: "Listen sentence by sentence and type what you hear.",
+    detail:
+      "Graded passages from A2 to C1 with per-sentence audio, unlimited replays, and a speed toggle. Every sentence is scored instantly against the reference. Free to try without an account.",
+    tags: ["Listening", "Scoring", "Free to try"],
+    public: true
+  },
+  {
     slug: "speech",
     title: "Speech",
     description: "Turn any text into natural audio you can replay anywhere.",

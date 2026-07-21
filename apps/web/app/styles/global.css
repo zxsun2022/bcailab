@@ -7416,3 +7416,422 @@ select.input:focus {
     width: auto;
   }
 }
+
+/* ==========================================================================
+   DICTATION
+   ========================================================================== */
+
+.dictation-canvas {
+  width: 100%;
+  max-width: 780px;
+  margin: 0 auto;
+  padding-top: var(--space-xl);
+  --mobile-nav-offset: 44px; /* hamburger width (36) + gap (8) */
+}
+
+/* The mobile hamburger is fixed over the top-left, so the first heading in each
+   view indents past it. Cleared at desktop width in the media query below. */
+.dictation-library-header,
+.dictation-session-header,
+.dictation-gate-title,
+.dictation-summary-header {
+  padding-left: var(--mobile-nav-offset, 0);
+}
+
+/* --- Library --- */
+
+.dictation-library-header {
+  margin-bottom: var(--space-2xl);
+}
+
+.dictation-library-title {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-sm);
+  color: var(--text);
+}
+
+.dictation-library-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 56ch;
+}
+
+.dictation-band {
+  margin-bottom: var(--space-2xl);
+}
+
+.dictation-band-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-md);
+}
+
+.dictation-band-title {
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  margin: 0;
+  color: var(--accent);
+}
+
+.dictation-band-blurb {
+  font-size: 0.875rem;
+  color: var(--text-faint);
+}
+
+.dictation-passage-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+
+.dictation-passage-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  height: 100%;
+}
+
+.dictation-passage-card:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-card-hover);
+}
+
+.dictation-passage-title {
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.dictation-passage-meta {
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.dictation-passage-best,
+.dictation-passage-start {
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.dictation-passage-best { color: var(--accent); }
+.dictation-passage-start { color: var(--text-faint); }
+
+.dictation-empty {
+  color: var(--text-muted);
+}
+
+/* --- Session --- */
+
+.dictation-session-header {
+  margin-bottom: var(--space-xl);
+}
+
+.dictation-breadcrumb {
+  /* Block, not inline: the band label follows it and must start a new line. */
+  display: block;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  margin-bottom: var(--space-md);
+}
+
+.dictation-breadcrumb:hover { color: var(--accent); }
+
+.dictation-session-band,
+.dictation-summary-band {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: var(--space-xs);
+}
+
+.dictation-session-title,
+.dictation-summary-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-xs);
+  color: var(--text);
+}
+
+.dictation-progress {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.dictation-audio { display: none; }
+
+.dictation-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.dictation-primary {
+  padding: 10px 20px;
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dictation-primary:hover:not(:disabled) { background: var(--accent-hover); }
+.dictation-primary:disabled { opacity: 0.55; cursor: default; }
+
+.dictation-secondary {
+  display: inline-block;
+  margin-top: var(--space-lg);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.dictation-secondary:hover { color: var(--accent); }
+
+.dictation-speed {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dictation-speed-btn {
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.dictation-speed-btn.is-active {
+  background: var(--copper-dim);
+  color: var(--text);
+}
+
+.dictation-input {
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.dictation-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.dictation-input:disabled {
+  color: var(--text-muted);
+  background: var(--bg-alt);
+}
+
+/* --- Diff feedback --- */
+
+.dictation-feedback {
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+}
+
+.dictation-feedback-score {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--accent);
+}
+
+.dictation-diff {
+  margin: 0;
+  line-height: 2.1;
+  font-size: 1.0625rem;
+}
+
+.dictation-token {
+  display: inline-block;
+  margin-right: 0.4em;
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.dictation-token.is-match { color: var(--text); }
+
+.dictation-token.is-wrong {
+  background: rgba(181, 42, 28, 0.1);
+  color: var(--accent);
+}
+
+.dictation-token-got { text-decoration: line-through; }
+
+.dictation-token-ref {
+  margin-left: 0.35em;
+  font-weight: 600;
+}
+
+.dictation-token.is-missing {
+  background: rgba(181, 42, 28, 0.1);
+  color: var(--accent);
+  font-weight: 600;
+  border-bottom: 2px solid var(--accent);
+}
+
+.dictation-token.is-extra {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.dictation-reference {
+  margin: var(--space-md) 0 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.dictation-actions {
+  margin-top: var(--space-lg);
+}
+
+/* --- Summary --- */
+
+.dictation-summary-header {
+  text-align: center;
+  padding-bottom: var(--space-xl);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-xl);
+}
+
+.dictation-summary-score {
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 600;
+  margin: var(--space-md) 0 0;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.dictation-summary-label {
+  margin: var(--space-xs) 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.dictation-summary-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dictation-summary-item {
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dictation-summary-item-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.dictation-summary-item-idx { color: var(--text-faint); }
+.dictation-summary-item-score { color: var(--accent); }
+.dictation-summary-item-replays { color: var(--text-faint); }
+
+.dictation-summary-item-text {
+  margin: 0 0 var(--space-sm);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* --- Gate / CTA --- */
+
+.dictation-gate {
+  padding: var(--space-3xl) 0;
+  text-align: center;
+}
+
+.dictation-gate-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-md);
+  color: var(--text);
+}
+
+.dictation-gate-body {
+  margin: 0 0 var(--space-lg);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.dictation-cta {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-alt);
+  text-align: center;
+}
+
+.dictation-cta-text {
+  margin: 0 0 var(--space-md);
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .dictation-canvas { padding-top: var(--space-lg); }
+  .dictation-library-title { font-size: 1.875rem; }
+  .dictation-summary-score { font-size: 2.75rem; }
+  .dictation-passage-grid { grid-template-columns: 1fr; }
+}
+
+/* Desktop: the rail is persistent and the hamburger is hidden (see the 1024px
+   breakpoint on .nav-rail-mobile-toggle), so headings no longer need to clear it. */
+@media (min-width: 1024px) {
+  .dictation-canvas { --mobile-nav-offset: 0px; }
+}

@@ -65,9 +65,10 @@ Workflow decision (owner, 2026-07-20): **static library batches are generated
 manually in a Claude Code session** (any capable LLM following the constraints in
 `generate.ts`), so the owner reviews every passage before publishing; `generate.ts`
 remains the scripted Gemini alternative. See `scripts/dictation-seed/README.md`.
-(v2 grows this library to several hundred passages — §10 — at which point per-passage
-human review gives way to LLM cross-checking plus human spot-checks; that scaling
-decision is still open.)
+(v2 grows this library to several hundred passages — §10 — at which point review
+becomes LLM generation + independent LLM cross-check + human spot-check, with the
+mechanical constraints script-checked throughout; owner confirmed 2026-07-20. See
+`scripts/dictation-seed/README.md`.)
 
 Two-phase, so text quality is reviewable before spending TTS calls:
 

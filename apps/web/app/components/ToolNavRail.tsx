@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link, NavLink, useLocation } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
+import { openLoginPopup } from "~/utils/login-popup";
 
 export type NavUser = {
   name: string | null;
@@ -19,8 +20,10 @@ type ToolNavRailProps = {
   toolName: string;
   collapsedKey: string;
   pinnedActions: PinnedAction[];
-  settingsTo: string;
-  user: NavUser;
+  /** Omit for anonymous-friendly tools that have no settings page for signed-out users. */
+  settingsTo?: string;
+  /** `null` for anonymous visitors: the bottom slot becomes a sign-in button. */
+  user: NavUser | null;
   children?: React.ReactNode;
 };
 
@@ -101,8 +104,8 @@ export function ToolNavRail({
     setMobileOpen(false);
   }, [location.pathname]);
 
-  const avatarSrc = user.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
-  const displayName = user.name ?? user.email ?? "Account";
+  const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
+  const displayName = user?.name ?? user?.email ?? "Account";
 
   return (
     <>
@@ -178,19 +181,30 @@ export function ToolNavRail({
           </nav>
         ) : null}
 
-        {/* Pinned bottom: combined user + settings link */}
+        {/* Pinned bottom: user + settings when signed in, sign-in prompt when not */}
         <div className="nav-rail-pinned-bottom">
-          <NavLink
-            to={settingsTo}
-            className={({ isActive }) => `nav-rail-user-btn${isActive ? " is-active" : ""}`}
-          >
-            <img
-              className="nav-rail-avatar"
-              src={avatarSrc}
-              alt={displayName}
-            />
-            <span className="nav-rail-user-name">{displayName}</span>
-          </NavLink>
+          {user && settingsTo ? (
+            <NavLink
+              to={settingsTo}
+              className={({ isActive }) => `nav-rail-user-btn${isActive ? " is-active" : ""}`}
+            >
+              <img
+                className="nav-rail-avatar"
+                src={avatarSrc}
+                alt={displayName}
+              />
+              <span className="nav-rail-user-name">{displayName}</span>
+            </NavLink>
+          ) : (
+            <button
+              type="button"
+              className="nav-rail-user-btn"
+              onClick={() => openLoginPopup()}
+            >
+              <img className="nav-rail-avatar" src={avatarSrc} alt="" />
+              <span className="nav-rail-user-name">Sign in</span>
+            </button>
+          )}
         </div>
       </aside>
     </>

@@ -10,6 +10,14 @@
  *   pnpm tsx scripts/dictation-seed/publish.ts --all            # every out/*.json
  *   Add --local to target the local D1/R2 (plumbing test; TTS still runs for real).
  *
+ * Seeding the local dev server needs two overrides, because the vite dev server's
+ * Cloudflare proxy resolves bindings differently than a bare `wrangler --local`:
+ *   --persist-to <dir>    it persists under apps/web/.wrangler/state (its own cwd),
+ *                         while `wrangler --local` uses the repo root
+ *   --r2-bucket <name>    it binds R2 to preview_bucket_name from wrangler.toml
+ * So:
+ *   ... --all --local --persist-to apps/web/.wrangler/state --r2-bucket bcailab-assets-preview
+ *
  * Reads GOOGLE_TTS_SERVICE_ACCOUNT_JSON from the environment, falling back to the
  * repo-root .dev.vars (same value either way).
  *
@@ -33,7 +41,8 @@ const REPO_ROOT = path.resolve(SEED_DIR, "..", "..");
 const OUT_DIR = path.join(SEED_DIR, "out");
 const AUDIO_CACHE_DIR = path.join(OUT_DIR, "audio");
 
-const R2_BUCKET = "bcailab-assets";
+/** Overridable with --r2-bucket; the dev server binds the preview bucket instead. */
+let r2Bucket = "bcailab-assets";
 const D1_NAME = "bcailab-db";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -215,7 +224,13 @@ const wrangler = (args: string[]): string => {
   }
 };
 
-const d1Target = (local: boolean): string[] => (local ? ["--local"] : ["--remote"]);
+/** Set from --persist-to; only meaningful together with --local. */
+let persistTo: string | null = null;
+
+const localFlags = (): string[] =>
+  persistTo ? ["--local", "--persist-to", persistTo] : ["--local"];
+
+const d1Target = (local: boolean): string[] => (local ? localFlags() : ["--remote"]);
 
 const passageExistsInD1 = (passageId: string, local: boolean): boolean => {
   const output = wrangler([
@@ -265,9 +280,9 @@ const publishPassage = async (filePath: string, local: boolean): Promise<void> =
     }
     const r2Key = `dictation/${passage.id}/${idx}.mp3`;
     wrangler([
-      "r2", "object", "put", `${R2_BUCKET}/${r2Key}`,
+      "r2", "object", "put", `${r2Bucket}/${r2Key}`,
       "--file", mp3Path, "--content-type", "audio/mpeg",
-      ...(local ? ["--local"] : ["--remote"])
+      ...(local ? localFlags() : ["--remote"])
     ]);
     sentenceRows.push({ id: randomUUID(), idx, text, r2Key, bytes });
   }
@@ -294,7 +309,27 @@ const publishPassage = async (filePath: string, local: boolean): Promise<void> =
 const main = async () => {
   const argv = process.argv.slice(2);
   const local = argv.includes("--local");
-  const rest = argv.filter((arg) => arg !== "--local" && arg !== "--all");
+  const persistIndex = argv.indexOf("--persist-to");
+  if (persistIndex >= 0) {
+    const value = argv[persistIndex + 1];
+    if (!value) throw new Error("--persist-to needs a directory.");
+    persistTo = path.resolve(process.cwd(), value);
+  }
+  const bucketIndex = argv.indexOf("--r2-bucket");
+  if (bucketIndex >= 0) {
+    const value = argv[bucketIndex + 1];
+    if (!value) throw new Error("--r2-bucket needs a bucket name.");
+    r2Bucket = value;
+  }
+  const consumed = new Set([persistIndex + 1, bucketIndex + 1]);
+  const rest = argv.filter(
+    (arg, index) =>
+      arg !== "--local" &&
+      arg !== "--all" &&
+      arg !== "--persist-to" &&
+      arg !== "--r2-bucket" &&
+      !consumed.has(index)
+  );
   const files = argv.includes("--all")
     ? (await readdir(OUT_DIR))
         .filter((name) => name.endsWith(".json"))
