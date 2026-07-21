@@ -11,13 +11,21 @@ Product direction (agreed 2026-07): bcailab is a studio; **English Studio** is t
 product (an AI English coach: read, write, listen, translate). Translate is the free,
 no-account acquisition funnel into it.
 
-## Now (current iteration — started 2026-07-20, confirmed by owner)
+## Now (current iteration — scoped 2026-07-21, confirmed by owner)
 
-- [x] Extend "try before sign-in" to Reading/Writing — done 2026-07-21, see Done.
-- [x] Dictation v1 — done 2026-07-21, see Done.
+- [ ] Material layer unification — merge the dictation and reading corpora into one
+      graded, tagged passage store so a single passage can drive listening and
+      reading-aloud practice, and so difficulty can be corrected by real learner data.
+      Includes a deterministic tagger (the tag vocabulary is a contract with the future
+      learner model), per-passage empirical statistics, migration of the existing 20
+      passages, and a graded global library for Reading. Deliberately excludes the
+      matching service itself. Technical design: `docs/material-layer-design.md`
+      (§13 lists open questions for the owner).
 
-**Iteration complete.** The next iteration has not been scoped — see Next/Later, and
-confirm scope with the owner before starting.
+Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
+
+- [x] Extend "try before sign-in" to Reading/Writing
+- [x] Dictation v1
 
 ## Next
 
