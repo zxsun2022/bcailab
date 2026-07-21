@@ -7441,7 +7441,7 @@ select.input:focus {
 
 /* The mobile hamburger is fixed over the top-left, so the first heading in each
    view indents past it. Cleared at desktop width in the media query below. */
-.dictation-library-header,
+.passage-catalogue-header,
 .dictation-session-header,
 .dictation-gate-title,
 .dictation-summary-header {
@@ -7450,11 +7450,18 @@ select.input:focus {
 
 /* --- Library --- */
 
-.dictation-library-header {
+/* Shared by the Dictation and Reading catalogues, whose canvases have different
+   widths — constraining here keeps both reading at the same measure. */
+.passage-catalogue {
+  width: 100%;
+  max-width: 780px;
+}
+
+.passage-catalogue-header {
   margin-bottom: var(--space-2xl);
 }
 
-.dictation-library-title {
+.passage-catalogue-title {
   font-family: var(--font-display);
   font-size: 2.4rem;
   font-weight: 600;
@@ -7462,18 +7469,18 @@ select.input:focus {
   color: var(--text);
 }
 
-.dictation-library-subtitle {
+.passage-catalogue-subtitle {
   margin: 0;
   color: var(--text-muted);
   line-height: 1.6;
   max-width: 56ch;
 }
 
-.dictation-band {
+.passage-band {
   margin-bottom: var(--space-2xl);
 }
 
-.dictation-band-header {
+.passage-band-header {
   display: flex;
   align-items: baseline;
   gap: var(--space-md);
@@ -7482,7 +7489,7 @@ select.input:focus {
   margin-bottom: var(--space-md);
 }
 
-.dictation-band-title {
+.passage-band-title {
   font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 400;
@@ -7491,12 +7498,12 @@ select.input:focus {
   color: var(--accent);
 }
 
-.dictation-band-blurb {
+.passage-band-blurb {
   font-size: 0.875rem;
   color: var(--text-faint);
 }
 
-.dictation-passage-grid {
+.passage-card-grid {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -7505,7 +7512,7 @@ select.input:focus {
   gap: var(--space-md);
 }
 
-.dictation-passage-card {
+.passage-card {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
@@ -7518,24 +7525,24 @@ select.input:focus {
   height: 100%;
 }
 
-.dictation-passage-card:hover {
+.passage-card:hover {
   border-color: var(--border-hover);
   background: var(--bg-card-hover);
 }
 
-.dictation-passage-title {
+.passage-card-title {
   font-weight: 600;
   color: var(--text);
   line-height: 1.35;
 }
 
-.dictation-passage-meta {
+.passage-card-meta {
   font-size: 0.8125rem;
   color: var(--text-faint);
 }
 
-.dictation-passage-best,
-.dictation-passage-start {
+.passage-card-best,
+.passage-card-start {
   margin-top: auto;
   padding-top: var(--space-sm);
   font-family: var(--font-mono);
@@ -7543,10 +7550,10 @@ select.input:focus {
   letter-spacing: 0.04em;
 }
 
-.dictation-passage-best { color: var(--accent); }
-.dictation-passage-start { color: var(--text-faint); }
+.passage-card-best { color: var(--accent); }
+.passage-card-start { color: var(--text-faint); }
 
-.dictation-empty {
+.passage-catalogue-empty {
   color: var(--text-muted);
 }
 
@@ -7903,9 +7910,9 @@ select.input:focus {
 
 @media (max-width: 720px) {
   .dictation-canvas { padding-top: var(--space-lg); }
-  .dictation-library-title { font-size: 1.875rem; }
+  .passage-catalogue-title { font-size: 1.875rem; }
   .dictation-summary-score { font-size: 2.75rem; }
-  .dictation-passage-grid { grid-template-columns: 1fr; }
+  .passage-card-grid { grid-template-columns: 1fr; }
 }
 
 /* Desktop: the rail is persistent and the hamburger is hidden (see the 1024px
@@ -8187,3 +8194,15 @@ select.input:focus {
 }
 
 .tool-nav-rail.is-collapsed .nav-rail-module-switch { display: none; }
+
+/* Focused practice: no rail, so the canvas centres in the full width instead of
+   sitting beside an empty column. */
+.dictation-canvas.is-session {
+  max-width: 720px;
+}
+
+.reading-new-cta {
+  display: inline-block;
+  margin-top: var(--space-md);
+  text-decoration: none;
+}

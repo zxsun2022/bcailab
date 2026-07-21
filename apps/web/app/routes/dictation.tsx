@@ -50,11 +50,16 @@ export default function DictationLayout() {
   const location = useLocation();
   const isLibrary = location.pathname === "/dictation";
 
+  // Practice is focused: while a learner is listening and typing, a column of other
+  // passages competes for attention rather than providing context. The rail belongs to
+  // the catalogue, not the session.
   return (
     <div className="writing-shell">
-      <DictationNavRail history={history} user={user} isLibrary={isLibrary} />
+      {isLibrary ? (
+        <DictationNavRail history={history} user={user} isLibrary={isLibrary} />
+      ) : null}
       <div className="writing-main">
-        <div className="dictation-canvas">
+        <div className={`dictation-canvas${isLibrary ? "" : " is-session"}`}>
           <Outlet />
         </div>
       </div>
