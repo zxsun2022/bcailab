@@ -1857,6 +1857,18 @@ export type PassageStats = {
 /**
  * Records one scored attempt against a passage. Accumulates only — deciding when a
  * measured difficulty should override a declared band belongs to the matching service.
+ *
+ * **Library passages only.** The `WHERE EXISTS` guard makes this a no-op for
+ * user-created material: a passage only one person will ever practise cannot be
+ * calibrated, and counting it would dilute the meaning of the table. Keeping the rule
+ * in the statement rather than at the call sites means it cannot be forgotten by one
+ * of them.
+ *
+ * Anonymous attempts count. The row carries no identity — it is a fact about the
+ * passage, not the learner — and excluding them would throw away calibration data.
+ *
+ * `accuracy` is normalized 0..1 for every mode, so dictation and reading stay
+ * comparable.
  */
 export async function recordPassageAttemptStat(
   db: Db,
@@ -1864,13 +1876,15 @@ export async function recordPassageAttemptStat(
 ): Promise<void> {
   await db
     .prepare(
-      `INSERT INTO passage_stats (passage_id, mode, attempt_count, accuracy_sum) VALUES (?, ?, 1, ?)
+      `INSERT INTO passage_stats (passage_id, mode, attempt_count, accuracy_sum)
+       SELECT ?, ?, 1, ?
+        WHERE EXISTS (SELECT 1 FROM passages WHERE id = ? AND user_id IS NULL)
        ON CONFLICT(passage_id, mode) DO UPDATE SET
          attempt_count = attempt_count + 1,
          accuracy_sum = accuracy_sum + excluded.accuracy_sum,
          updated_at = datetime('now')`
     )
-    .bind(input.passageId, input.mode, input.accuracy)
+    .bind(input.passageId, input.mode, input.accuracy, input.passageId)
     .run();
 }
 

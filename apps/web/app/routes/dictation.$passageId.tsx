@@ -5,7 +5,8 @@ import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import {
   createDictationAttempt,
   getLibraryPassageById,
-  listPassageSentences
+  listPassageSentences,
+  recordPassageAttemptStat
 } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
 import {
@@ -154,6 +155,15 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       replays: Number(replays[sentence.idx] ?? 0),
       ops: storableOps(scored.sentences[position]!.ops)
     }));
+
+    // Empirical difficulty for the material layer, recorded before the signed-in
+    // branch: an anonymous attempt says just as much about how hard a passage is,
+    // and the row carries no identity.
+    await recordPassageAttemptStat(context.env.DB, {
+      passageId,
+      mode: "dictation",
+      accuracy: scored.accuracy
+    });
 
     let attemptId: string | null = null;
     if (user) {
