@@ -55,7 +55,8 @@ This repository is intentionally structured for multi-agent collaboration across
 - Routes that **require** authentication call `requireUser()` in their own loader; this redirects to `/?login=1` when unauthenticated.
 
 ## Unauthenticated Interaction
-- The homepage is a studio page: product cards link to landing pages. `/english` is public; clicking a module card there (or an auth-required product card like Posts on the homepage) when not signed in opens the Google OAuth popup directly (same popup used by the Header login button). It does **not** navigate to the tool page first. The popup helper lives in `apps/web/app/utils/login-popup.ts`.
+- The homepage is a studio page: product cards link to landing pages. `/english` is public; clicking an **auth-required** module card there (or an auth-required product card like Posts on the homepage) when not signed in opens the Google OAuth popup directly (same popup used by the Header login button). It does **not** navigate to the tool page first. The popup helper lives in `apps/web/app/utils/login-popup.ts`.
+- Modules marked `public: true` in `english.tsx` (currently Translate and Dictation) skip the popup and link straight into the tool, which handles anonymous users itself via daily quotas. These are the acquisition funnels — do not gate them behind the popup.
 - The OAuth flow is popup-based: `window.open("/auth/google", …)` → callback posts a message → parent reloads. There is no standalone login page.
 
 ## Delete / Destructive Actions

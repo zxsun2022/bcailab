@@ -6,7 +6,10 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 - **Remix app** (`apps/web`): Landing page, auth flows, tool UIs.
 - **Shared packages** (`packages/*`): UI primitives, auth helpers, D1 access helpers.
 - **D1**: Primary relational store for users, sessions, and tool data.
-- **R2**: Private binary storage for generated tool assets (Speech MP3 + ESL reading attempt/reference audio).
+- **R2**: Binary storage for generated tool assets (Speech MP3 + ESL reading attempt/reference audio).
+  These are private user data served behind auth. The one exception is the `dictation/` prefix:
+  global app content (pre-generated per-sentence MP3s), served publicly with immutable caching —
+  see docs/tools/dictation.md.
 
 ## Design System
 See [design-system.md](./design-system.md) for visual design guidelines including:
@@ -32,7 +35,7 @@ env var can point calls at Cloudflare AI Gateway without code changes.
 ## Routing
 - `/` studio homepage (lab intro, product cards linking to landing pages, principles, team info)
 - `/about` about page
-- `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Speech as modules of one product)
+- `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Dictation, Speech as modules of one product)
 - `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
 - `/login` sign-in popup page (Google OAuth or email OTP code)
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
@@ -42,6 +45,10 @@ env var can point calls at Cloudflare AI Gateway without code changes.
 - `/posts/:id/edit` compatibility redirect to `/posts?editing=:id`
 - `/speech` speech tool (generate + history panel on one page)
 - `/speech/audio/:id` authenticated speech audio stream/download endpoint
+- `/dictation` dictation library (public; passages grouped by CEFR band — see docs/tools/dictation.md)
+- `/dictation/:passageId` dictation session (public, quota-gated; stepper + summary)
+- `/dictation/audio/:sentenceId` **public** per-sentence MP3 stream (global content, immutable cache)
+- `/dictation/attempt/:attemptId/status` authenticated feedback status polling endpoint
 - `/reading` ESL reading/recitation passage list + creation
 - `/reading/progress` ESL reading/recitation progress dashboard
 - `/reading/:id` ESL reading/recitation practice page

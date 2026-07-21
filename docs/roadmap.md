@@ -15,14 +15,7 @@ no-account acquisition funnel into it.
 
 - [ ] Extend "try before sign-in" to Reading/Writing: one full sample evaluation for
       anonymous users (reuses the quota infrastructure from the previous iteration).
-- [ ] Dictation v1 — fills the "listen" slot of the coach: pre-generated material library
-      (LLM-written short passages at fixed difficulty bands, e.g. CEFR A2–C1) with
-      per-sentence TTS reusing the Speech pipeline (Chirp3 → R2 + D1; per-sentence
-      synthesis, since Chirp3 provides no word timepoints); sentence-by-sentence playback
-      with replay + speed control; deterministic diff-based scoring (LLM only for
-      error-pattern feedback); anonymous "try one passage" via the existing quota
-      infrastructure. Technical design: `docs/dictation-v1-design.md` (its Appendix A
-      also holds the try-before-sign-in implementation checklist).
+- [x] Dictation v1 — done 2026-07-21, see Done.
 
 ## Next
 
@@ -73,6 +66,17 @@ no-account acquisition funnel into it.
 
 ## Done
 
+- 2026-07-21 — Dictation v1 shipped: pre-generated global material library (20 passages,
+  5 each at CEFR A2–C1; 211 per-sentence Chirp3 MP3s in R2 under a public `dictation/`
+  prefix), `/dictation` library + session workspace with replay and speed control,
+  deterministic diff scoring (`dictation-diff.ts`, British/American spellings equivalent,
+  flooding guard), signed-in attempt history with background LLM error-pattern feedback,
+  and anonymous access via the new generic `feature_usage` quota table. Content is seeded
+  offline by `scripts/dictation-seed/` (generate → owner review → publish); there is no
+  runtime generation. Two decisions during implementation: scoring runs server-side rather
+  than client-side so the reference text never reaches the browser, and quotas were raised
+  well above the design's original numbers because a v1 session consumes no LLM tokens.
+  Docs: `docs/tools/dictation.md`, design `docs/dictation-v1-design.md`.
 - 2026-07-20 — Iteration started 2026-07-15 completed: unified LLM call layer
   (`llm.server.ts` routing table, per-tier translate models, `GEMINI_BASE_URL` override);
   anonymous translate quotas (5,000 chars × 8/day anon; 20,000 chars × 200/day signed-in);
