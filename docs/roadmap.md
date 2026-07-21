@@ -85,12 +85,20 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
 - Onboarding: one-tap level self-selection, skippable, corrected silently from real
   practice data. **Not** a placement test — dictation already is one. Discussed
   2026-07-21; see `docs/learner-model-notes.md` §1.
-- vanbox stays a separate repository (decided 2026-07-21). It is Next.js + OpenNext on
-  Workers with Auth.js and its own accounts, so a monorepo would share almost nothing —
-  `packages/auth` is unusable, `packages/ui` would need porting, and the schemas are
-  disjoint — while adding two build systems and two deploy pipelines. The product-level
-  goal is met by a homepage product card linking out. Revisit only if one account should
-  span both products; that, not code reuse, is what would justify merging.
+- **vanmemo** (formerly vanbox) stays a permanently separate product — settled
+  2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
+  and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share
+  almost nothing while adding two build systems and two deploy pipelines. bcailab's only
+  tie to it is a product link from the homepage. This is no longer a decision awaiting a
+  trigger; treat it as closed.
+
+Under consideration by the owner, **not scoped, not prioritized** (recorded 2026-07-21 so
+they are not forgotten — none are urgent):
+
+- Homepage redesign.
+- Overall visual language pass across the studio.
+- An admin/back-office system (content management for the material library currently
+  happens through `scripts/material-seed/` and raw SQL).
 
 ## Done
 

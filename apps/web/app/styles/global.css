@@ -8107,3 +8107,83 @@ select.input:focus {
 .tool-nav-rail.is-collapsed .nav-rail-section-label {
   display: none;
 }
+
+/* --- Tool rail: English Studio module switcher --- */
+
+.nav-rail-module-switch {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.nav-rail-tool-name.is-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  max-width: 100%;
+}
+
+.nav-rail-tool-name.is-switch:hover {
+  background: var(--bg-alt);
+}
+
+.nav-rail-tool-caret {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 3.5px 0 3.5px;
+  border-color: currentColor transparent transparent transparent;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.nav-rail-module-menu {
+  padding: 6px 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+
+.nav-rail-module-menu-label {
+  padding: 4px 8px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.nav-rail-module-item {
+  display: block;
+  padding: 7px 8px;
+  border-radius: 4px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.nav-rail-module-item:hover {
+  background: var(--bg-alt);
+  color: var(--text);
+}
+
+.nav-rail-module-item.is-current {
+  color: var(--accent);
+}
+
+.nav-rail-module-item.is-out {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-module-switch { display: none; }
