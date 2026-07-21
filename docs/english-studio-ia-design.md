@@ -1,7 +1,10 @@
 # English Studio — Information Architecture
 
-Status: **draft for owner review, not approved, nothing implemented.**
-§7 lists the decisions needed before any of this is built.
+Status: **draft, revised 2026-07-21 after owner review. Nothing implemented.**
+The first draft proposed a browse-first structure centred on a shared material library.
+The owner pushed back — learners navigate by *function* ("I want listening practice"), not
+by material — and that reframing holds up, for a sharper reason than first stated: see §2.
+§8 lists what is left to decide.
 
 ## 1. What prompted this
 
@@ -33,13 +36,41 @@ separate apps.
 The root cause is that each tool was built as *a place you enter and stay in*. English
 Studio is a product whose modules share material and, soon, a learner model.
 
-## 2. Principles
+## 2. Why most of this should wait
+
+Once the shared learner model and matching service exist, the primary flow is neither
+function-first nor material-first browsing. It is **"open the app, the system says what to
+practise next."** Browsing becomes the escape hatch for when the learner disagrees with the
+recommendation.
+
+That makes detailed browse IA the wrong thing to design now: it risks building a secondary
+path as though it were the main surface. The first draft of this doc made exactly that
+mistake, treating "choose a passage" as the core act — true only in a world with no
+recommender.
+
+**The question "how do learners find material" has no stable answer until the learner model
+is designed.** So this doc now splits into work that is independent of it and work that is
+not:
+
+| Independent — can proceed now | Depends on the learner model — defer |
+|---|---|
+| Discarded-practice fix (§6) | Whether a shared library surface exists at all |
+| Cross-module navigation (§5) | Whether `/english` becomes a workspace home |
+| Dictation's shell: catalogue index, drop the ill-fitting rail | What the "what should I practise now" surface is |
+| Cross-mode handoff between dictation and reading (§3.1) | Where matching output lives |
+
+Everything in the left column is repairing something already broken and is needed whatever
+the eventual IA turns out to be. Everything in the right column resolves itself once the
+learner model has a shape.
+
+## 3. Principles
 
 1. **English Studio is the frame; modules live inside it.** Moving between modules should
    not require exiting to a landing page.
-2. **Browsing material is a surface, not a rail.** Hundreds of graded passages need
-   filters and a grid. A 260px chronological column cannot do that job, and will get worse
-   with every passage we add.
+2. **Whatever browsing exists is a surface, not a rail.** Hundreds of graded passages need
+   filters and a grid; a 260px chronological column cannot do that job and gets worse with
+   every passage added. This says how browsing should look *if* it is a significant path —
+   §2 argues it may not be, once recommendations exist.
 3. **Practice is focused.** While a learner is listening or recording, nothing should
    compete for attention. The rail is a distraction there, not context.
 4. **History is a destination, not a rail.** Progress pages already exist for Reading and
@@ -47,27 +78,58 @@ Studio is a product whose modules share material and, soon, a learner model.
 5. **Do not force one shell onto every module.** Writing and Translate have genuinely
    different content models (a prompt; no material at all) and should keep their shapes.
 
-## 3. Proposed structure
+### 3.1 One passage, two modes — as a handoff, not a combined page
+
+The material layer means a passage can be dictated *and* read aloud. The tempting
+expression is a single page hosting both. It should not be: the interaction models are too
+different — sentence-stepper plus typing versus continuous recording — and combining them
+needs a mode switcher that serves neither well.
+
+The value is real, but it pays off **at the transition**, not in a browser:
 
 ```
-/                         site home — studio, product cards            (unchanged)
-/english                  English Studio home — continue, modules, progress
-/english/library          shared material browse: filters, grid, progress per item
-/dictation/:passageId     focused dictation session
-/reading/:passageId       focused reading practice
-/reading/new              paste your own text                (moves off the /reading index)
-/english/progress         cross-module progress              (later; see §6)
-/writing, /translate, /speech      unchanged shells
+dictation summary → "You know the words now. Read it aloud?"  → reading
+reading summary   → "Check how much you caught by ear?"        → dictation
 ```
 
-**`/english` becomes a workspace home rather than a marketing page** for signed-in users:
-what to continue, the modules, a link to progress. Anonymous visitors keep the current
-landing content.
+That is also a genuine pedagogical sequence — listen, transcribe, then read aloud is
+shadowing preparation — and it is far more useful than hoping a learner notices in a
+catalogue that a passage supports both. It costs one link on each summary screen and
+requires no IA change at all.
 
-**`/english/library` is the material surface** shared by Dictation and Reading, which is
-what the unified `passages` table already is underneath. A passage row knows which modes it
-supports (`has_sentence_audio` for dictation; every passage can be read aloud), so the
-library shows both affordances on one card and the learner picks:
+Material-layer capability should surface where it helps the learner, which is at the moment
+of transition.
+
+## 4. Structure
+
+Routes that **proceed now**:
+
+```
+/dictation                catalogue index — already is one; drop the ill-fitting rail
+/dictation/:passageId     focused session — no competing rail
+/reading                  catalogue index (currently the composer)
+/reading/new              paste your own text — moves off the /reading index
+/reading/:passageId       focused practice — no competing rail
+```
+
+The change to Reading's index matters: today `/reading` *is* the new-passage composer, so
+"reading home" means "create". That was right when the learner's own text was the only
+material; it is wrong now that a graded library exists. Creating moves to `/reading/new`
+and the index becomes a catalogue.
+
+Routes that **wait for the learner model** (§2):
+
+```
+/english                  possibly a workspace home rather than a landing page
+/english/library          possibly a shared material surface across modes
+/english/progress         cross-module progress (roadmap Next)
+```
+
+The shared-library sketch from the first draft is kept below only as a record of what was
+considered — **it is not the plan**. If a browse surface turns out to be warranted after the
+learner model exists, a passage card would need to express both modes, since the `passages`
+row already knows which it supports (`has_sentence_audio` for dictation; anything can be
+read aloud):
 
 ```
 ┌──────────────────────────────────┐
@@ -78,17 +140,11 @@ library shows both affordances on one card and the learner picks:
 └──────────────────────────────────┘
 ```
 
-Filters: band, topic, mode, and practised/unpractised. A **mode filter** matters — a
-learner who thinks "I want listening practice" should not have to browse a mixed library
-and remember to pick the right button.
+Unchanged either way: `/writing`, `/translate`, `/speech`. Their content models genuinely
+differ — a prompt, no material at all, and user-generated audio respectively — and the
+history rail still fits what they do.
 
-**Your own texts** become a section or filter of the library rather than the primary axis,
-since they are now the secondary case.
-
-**Practice views lose the rail.** A back link to the library, the passage, the controls.
-Nothing else.
-
-## 4. Cross-module navigation
+## 5. Cross-module navigation — proceed now
 
 The concrete fix for §1c:
 
@@ -101,7 +157,7 @@ The concrete fix for §1c:
   The `handle.breadcrumb` convention already exists per route; it is simply not being used
   to express product membership.
 
-## 5. Fixing the discarded-practice problem
+## 6. Fixing the discarded-practice problem — proceed now, first
 
 Independent of the IA work and worth doing regardless, because it is why the product
 looked broken:
@@ -118,7 +174,7 @@ looked broken:
 Recommendation: persist per-sentence, and revisit passage length separately with real
 completion-rate data once attempts exist.
 
-## 6. What this does not cover
+## 7. What this does not cover
 
 - The **matching service** (learner → passage). This IA gives its output a home — "your
   next passage" belongs on `/english` — but the service itself is a separate iteration.
@@ -127,19 +183,16 @@ completion-rate data once attempts exist.
 - **Visual design.** This is structure and routing only: no colours, spacing, or component
   design.
 
-## 7. Decisions needed
+## 8. Decisions needed
 
-1. **Scope: unified library, or per-tool catalogues?** This doc proposes one
-   `/english/library` shared by Dictation and Reading, because that is what the data model
-   already is and it removes the "same material behind two doors" split. The cheaper
-   alternative is to leave each tool its own catalogue and only fix the rail and
-   navigation. Unified is more work now and more coherent later — and it is where the
-   matching service will want to live.
-2. **Does `/english` change for signed-in users?** Turning a landing page into a workspace
-   home is the piece most likely to affect acquisition; it can also be deferred, leaving
-   `/english` as-is and putting "continue" on the library.
-3. **Partial progress (§5): persist per-sentence, or shorten sessions?** Or both. This is
-   independent of the IA change and could ship first.
-4. **Staging.** Recommended: build `/english/library` alongside the existing tool
-   indexes, prove it, then redirect the tool indexes into it — so nothing breaks while the
-   new structure is validated. Confirm that is acceptable versus a single cutover.
+1. **Confirm the split in §2.** Proceed with the independent work now; revisit the shared
+   library, `/english` as workspace home, and the primary "what next" surface as part of
+   designing the learner model rather than ahead of it.
+2. **Partial progress (§6): persist per-sentence, or shorten sessions?** Recommendation:
+   persist per-sentence, and revisit passage length separately once real completion-rate
+   data exists — which it cannot today, precisely because nothing is saved.
+3. **Order of the independent work.** Recommendation: the discarded-practice fix first,
+   alone, since it is the only item actively losing learner work. Navigation and the
+   dictation shell can follow together.
+4. **Cross-mode handoff (§3.1)** — confirm the summary-screen link is the right expression
+   of "one passage, two modes", rather than a combined practice page.
