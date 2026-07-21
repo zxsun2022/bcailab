@@ -1,0 +1,18 @@
+{
+  "id": "f9834dda-3f48-4d3b-bf7a-afbd8c5d25aa",
+  "band": "C1",
+  "topic": "weather",
+  "title": "Forecasting Uncertainty",
+  "sentences": [
+    "Meteorologists have grown remarkably skilled, yet public trust in forecasts stays fragile.",
+    "A single missed prediction seems to outweigh, in most minds, a hundred accurate ones.",
+    "This asymmetry says as much about human psychology as about atmospheric science.",
+    "We remember the picnic ruined by sudden rain far more vividly than an ordinary sunny day.",
+    "Forecasters, meanwhile, operate within margins of uncertainty the public rarely appreciates.",
+    "Probability, after all, is a concept that resists our craving for definite answers.",
+    "When a forecast states a modest chance of rain, many people hear only certainty either way.",
+    "This gap between statistical nuance and everyday interpretation seems unlikely to close soon.",
+    "Perhaps what we truly want from a forecast is not accuracy but reassurance.",
+    "Understanding that distinction might do more for our patience than any technological advance."
+  ]
+}

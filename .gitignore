@@ -42,6 +42,9 @@ coverage/
 # Generated context packs (scripts/context-pack.sh) — regenerate, never commit
 .context/
 
+# Dictation seed audio cache (publish.ts re-synthesizes on demand; JSON stays committed)
+scripts/dictation-seed/out/audio/
+
 # Misc
 *.local
 .gstack/
