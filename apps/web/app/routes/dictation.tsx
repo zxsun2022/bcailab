@@ -37,6 +37,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       title: titleById.get(attempt.passage_id)?.title ?? "Passage",
       band: titleById.get(attempt.passage_id)?.band ?? "",
       accuracy: attempt.accuracy,
+      status: attempt.status,
+      sentencesDone: attempt.sentences_done,
+      sentenceCount: titleById.get(attempt.passage_id)?.sentence_count ?? 0,
       createdAt: attempt.created_at
     }))
   });

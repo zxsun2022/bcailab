@@ -3,10 +3,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remi
 import { json } from "@remix-run/cloudflare";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import {
-  createDictationAttempt,
+  completeDictationAttempt,
+  getInProgressDictationAttempt,
   getLibraryPassageById,
   listPassageSentences,
-  recordPassageAttemptStat
+  recordPassageAttemptStat,
+  saveDictationAttemptProgress
 } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
 import {
@@ -38,9 +40,35 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
   const sentences = await listPassageSentences(context.env.DB, passageId);
 
+  // Resume an unfinished attempt rather than making the learner redo checked sentences.
+  const inProgress = user
+    ? await getInProgressDictationAttempt(context.env.DB, { userId: user.id, passageId })
+    : null;
+  let resume: {
+    attemptId: string;
+    answers: Record<number, string>;
+    sentencesDone: number;
+  } | null = null;
+  if (inProgress) {
+    try {
+      const stored = JSON.parse(inProgress.sentence_results) as SentenceResult[];
+      const answers: Record<number, string> = {};
+      for (const entry of stored) answers[entry.idx] = entry.userText;
+      resume = {
+        attemptId: inProgress.id,
+        answers,
+        sentencesDone: inProgress.sentences_done
+      };
+    } catch {
+      // Unparseable stored results should not block practice; start fresh instead.
+      resume = null;
+    }
+  }
+
   return json(
     {
       authed: Boolean(user),
+      resume,
       quota: { allowed: quota.allowed, remainingToday: quota.remainingToday },
       passage: {
         id: passage.id,
@@ -66,7 +94,14 @@ type SentenceResult = {
 };
 
 type ActionData =
-  | { intent: "check"; idx: number; accuracy: number; ops: DiffOp[]; reference: string }
+  | {
+      intent: "check";
+      idx: number;
+      accuracy: number;
+      ops: DiffOp[];
+      reference: string;
+      attemptId: string | null;
+    }
   | { intent: "complete"; accuracy: number; results: SentenceResult[]; attemptId: string | null }
   | { ok: false; error: string; code?: "quota_exceeded" };
 
@@ -120,13 +155,56 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     }
 
     const diff = scoreSentence(sentence.text, userText);
+
+    // Persist as we go, so stopping partway keeps the work. Signed-in only: anonymous
+    // practice is session-only by design.
+    let attemptId: string | null = null;
+    if (user) {
+      const priorRaw = String(formData.get("progress") ?? "[]");
+      let prior: SentenceResult[] = [];
+      try {
+        prior = JSON.parse(priorRaw) as SentenceResult[];
+      } catch {
+        prior = [];
+      }
+      const merged = [
+        ...prior.filter((entry) => entry.idx !== idx),
+        {
+          idx,
+          userText,
+          accuracy: diff.accuracy,
+          replays: Number(formData.get("replays") ?? 0),
+          ops: storableOps(diff.ops)
+        }
+      ].sort((a, b) => a.idx - b.idx);
+
+      const checkedRefTokens = merged.reduce(
+        (sum, entry) => sum + (sentences.find((s) => s.idx === entry.idx)?.text.split(/\s+/).length ?? 0),
+        0
+      );
+      const runningAccuracy =
+        checkedRefTokens === 0
+          ? 0
+          : merged.reduce((sum, entry) => sum + entry.accuracy, 0) / merged.length;
+
+      attemptId = await saveDictationAttemptProgress(context.env.DB, {
+        attemptId: String(formData.get("attemptId") ?? "") || null,
+        userId: user.id,
+        passageId,
+        accuracy: runningAccuracy,
+        sentenceResults: JSON.stringify(merged),
+        sentencesDone: merged.length
+      });
+    }
+
     return json<ActionData>(
       {
         intent: "check",
         idx,
         accuracy: diff.accuracy,
         ops: diff.ops,
-        reference: sentence.text
+        reference: sentence.text,
+        attemptId
       },
       { headers: extraHeaders }
     );
@@ -167,17 +245,40 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     let attemptId: string | null = null;
     if (user) {
-      const attempt = await createDictationAttempt(context.env.DB, {
+      // Finalize the row the check path has been building, rather than inserting a
+      // second one. If the client lost its attempt id, fall back to whatever
+      // in-progress attempt exists for this passage.
+      const existing =
+        String(formData.get("attemptId") ?? "") ||
+        (await getInProgressDictationAttempt(context.env.DB, {
+          userId: user.id,
+          passageId
+        }))?.id ||
+        null;
+
+      attemptId =
+        existing ??
+        (await saveDictationAttemptProgress(context.env.DB, {
+          attemptId: null,
+          userId: user.id,
+          passageId,
+          accuracy: scored.accuracy,
+          sentenceResults: JSON.stringify(results),
+          sentencesDone: results.length
+        }));
+
+      await completeDictationAttempt(context.env.DB, {
+        attemptId,
         userId: user.id,
-        passageId,
         accuracy: scored.accuracy,
-        sentenceResults: JSON.stringify(results)
+        sentenceResults: JSON.stringify(results),
+        sentencesDone: results.length
       });
-      attemptId = attempt.id;
+
       // Background: fills feedback_json, which the summary panel polls for.
       // Deliberately not awaited — feedback failure must not fail the attempt.
       await scheduleDictationFeedback(context, {
-        attemptId: attempt.id,
+        attemptId,
         userId: user.id,
         // Library passages are always banded; the column is nullable only because
         // user-supplied passages share the table and are left untagged (design §5.4).
@@ -312,11 +413,17 @@ function FeedbackPanel({ attemptId }: { attemptId: string }) {
 /* ---------- page ---------- */
 
 export default function DictationSession() {
-  const { authed, quota, passage, sentences } = useLoaderData<typeof loader>();
+  const { authed, resume, quota, passage, sentences } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
 
-  const [current, setCurrent] = React.useState(0);
-  const [answers, setAnswers] = React.useState<string[]>(() => sentences.map(() => ""));
+  // Resume drops the learner back where they stopped instead of at sentence one.
+  const [current, setCurrent] = React.useState(() =>
+    resume ? Math.min(resume.sentencesDone, Math.max(0, sentences.length - 1)) : 0
+  );
+  const [answers, setAnswers] = React.useState<string[]>(() =>
+    sentences.map((sentence) => resume?.answers[sentence.idx] ?? "")
+  );
+  const [attemptId, setAttemptId] = React.useState<string | null>(resume?.attemptId ?? null);
   // Total listens per sentence. `replays` in the stored result is this minus the first
   // listen, so the field means what its name says regardless of how playback started.
   const [playCounts, setPlayCounts] = React.useState<number[]>(() => sentences.map(() => 0));
@@ -395,6 +502,7 @@ export default function DictationSession() {
       return;
     }
     if ("intent" in data && data.intent === "check") {
+      if (data.attemptId) setAttemptId(data.attemptId);
       setChecked((prev) => ({
         ...prev,
         [data.idx]: { accuracy: data.accuracy, ops: data.ops, reference: data.reference }
@@ -408,8 +516,24 @@ export default function DictationSession() {
   const busy = fetcher.state !== "idle";
 
   const check = () => {
+    // `progress` carries what has been checked so far so the server can merge rather
+    // than re-score the whole passage on every sentence.
+    const progress = Object.entries(checked).map(([idx, entry]) => ({
+      idx: Number(idx),
+      userText: answers[Number(idx)] ?? "",
+      accuracy: entry.accuracy,
+      replays: Math.max(0, (playCounts[Number(idx)] ?? 0) - 1),
+      ops: entry.ops.filter((op) => op.op !== "match")
+    }));
     fetcher.submit(
-      { _intent: "check", idx: String(current), text: answers[current] ?? "" },
+      {
+        _intent: "check",
+        idx: String(current),
+        text: answers[current] ?? "",
+        replays: String(Math.max(0, (playCounts[current] ?? 0) - 1)),
+        attemptId: attemptId ?? "",
+        progress: JSON.stringify(progress)
+      },
       { method: "post" }
     );
   };
@@ -419,6 +543,7 @@ export default function DictationSession() {
       fetcher.submit(
         {
           _intent: "complete",
+          attemptId: attemptId ?? "",
           answers: JSON.stringify(answers),
           // Replays are listens beyond the first, so a sentence heard once reports 0.
           replays: JSON.stringify(playCounts.map((count) => Math.max(0, count - 1)))
