@@ -61,10 +61,10 @@ export default function DictationLibrary() {
   const { authed, bands } = useLoaderData<typeof loader>();
 
   return (
-    <div className="dictation-library">
-      <header className="dictation-library-header">
-        <h1 className="dictation-library-title">Dictation</h1>
-        <p className="dictation-library-subtitle">
+    <div className="passage-catalogue">
+      <header className="passage-catalogue-header">
+        <h1 className="passage-catalogue-title">Dictation</h1>
+        <p className="passage-catalogue-subtitle">
           Listen to a passage sentence by sentence and type what you hear. You get instant
           feedback on every sentence.
           {!authed ? " No account needed to start." : null}
@@ -72,28 +72,28 @@ export default function DictationLibrary() {
       </header>
 
       {bands.length === 0 ? (
-        <p className="dictation-empty">No passages are available yet.</p>
+        <p className="passage-catalogue-empty">No passages are available yet.</p>
       ) : (
         bands.map((group) => (
-          <section key={group.band} className="dictation-band">
-            <div className="dictation-band-header">
-              <h2 className="dictation-band-title">{group.band}</h2>
-              <span className="dictation-band-blurb">{group.blurb}</span>
+          <section key={group.band} className="passage-band">
+            <div className="passage-band-header">
+              <h2 className="passage-band-title">{group.band}</h2>
+              <span className="passage-band-blurb">{group.blurb}</span>
             </div>
-            <ul className="dictation-passage-grid">
+            <ul className="passage-card-grid">
               {group.passages.map((passage) => (
                 <li key={passage.id}>
-                  <Link to={`/dictation/${passage.id}`} className="dictation-passage-card">
-                    <span className="dictation-passage-title">{passage.title}</span>
-                    <span className="dictation-passage-meta">
+                  <Link to={`/dictation/${passage.id}`} className="passage-card">
+                    <span className="passage-card-title">{passage.title}</span>
+                    <span className="passage-card-meta">
                       {passage.topic} · {passage.sentenceCount} sentences
                     </span>
                     {passage.bestAccuracy !== null ? (
-                      <span className="dictation-passage-best">
+                      <span className="passage-card-best">
                         Best {Math.round(passage.bestAccuracy * 100)}%
                       </span>
                     ) : (
-                      <span className="dictation-passage-start">Start</span>
+                      <span className="passage-card-start">Start</span>
                     )}
                   </Link>
                 </li>

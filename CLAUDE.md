@@ -10,6 +10,10 @@ Codex, etc.) continue each other's work through shared docs, not chat history.
 2. **`docs/roadmap.md`** — the single source of truth for *what* to work on:
    current iteration (Now), upcoming (Next/Later), and history (Done).
 3. **`docs/architecture.md`** — system overview and route map.
+4. **`docs/learner-model-notes.md`** — accumulated product reasoning for the next
+   iteration (level assessment, build order, calibration hazards). Read before designing
+   anything that touches the learner profile; it exists so those judgements are not
+   re-derived from scratch.
 
 **Maintenance duties (all AI tools):**
 

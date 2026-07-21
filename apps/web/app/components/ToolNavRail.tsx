@@ -9,6 +9,21 @@ export type NavUser = {
   avatar_url: string | null;
 };
 
+/**
+ * The English Studio modules, in the order they appear in the switcher.
+ *
+ * Every tool that uses this rail is an English Studio module, which is why the rail can
+ * own this list and why its logo goes to `/english` rather than the site root: a learner
+ * inside a module should move between modules without leaving the product.
+ */
+export const ENGLISH_STUDIO_MODULES = [
+  { name: "Dictation", to: "/dictation" },
+  { name: "Reading", to: "/reading" },
+  { name: "Writing", to: "/writing" },
+  { name: "Translate", to: "/translate" },
+  { name: "Speech", to: "/speech" }
+] as const;
+
 export type PinnedAction = {
   icon: React.ReactNode;
   label: string;
@@ -89,6 +104,7 @@ export function ToolNavRail({
     try { return localStorage.getItem(collapsedKey) === "true"; } catch { return false; }
   });
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [moduleMenuOpen, setModuleMenuOpen] = React.useState(false);
   // Apply stored theme preference on tool pages (no site header rendered here)
   useThemePreference();
 
@@ -102,7 +118,19 @@ export function ToolNavRail({
 
   React.useEffect(() => {
     setMobileOpen(false);
+    setModuleMenuOpen(false);
   }, [location.pathname]);
+
+  React.useEffect(() => {
+    if (!moduleMenuOpen) return;
+    const close = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".nav-rail-module-switch")) return;
+      setModuleMenuOpen(false);
+    };
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
+  }, [moduleMenuOpen]);
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? "Account";
@@ -138,7 +166,7 @@ export function ToolNavRail({
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
-          <Link to="/" className="nav-rail-logo" aria-label="Back to home">
+          <Link to="/english" className="nav-rail-logo" aria-label="Back to English Studio">
             <img
               src="/brand/logo-64.png"
               srcSet="/brand/logo-64.png 1x, /brand/logo-128.png 2x"
@@ -146,7 +174,21 @@ export function ToolNavRail({
               className="nav-rail-logo-img"
             />
           </Link>
-          <span className="nav-rail-tool-name">{toolName}</span>
+
+          {/* The tool name doubles as the module switcher, so moving between modules is
+              one click rather than a trip out to the landing page. */}
+          <div className="nav-rail-module-switch">
+            <button
+              type="button"
+              className="nav-rail-tool-name is-switch"
+              aria-haspopup="menu"
+              aria-expanded={moduleMenuOpen}
+              onClick={() => setModuleMenuOpen((open) => !open)}
+            >
+              {toolName}
+              <span className="nav-rail-tool-caret" aria-hidden="true" />
+            </button>
+          </div>
           <button
             type="button"
             className="nav-rail-toggle"
@@ -156,6 +198,28 @@ export function ToolNavRail({
             {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
           </button>
         </div>
+
+        {/* Module switcher, expanded. Rendered in the rail's own flow rather than as a
+            floating menu: the header and the rail are both overflow:hidden for the
+            collapse behaviour, which would clip an absolutely positioned dropdown. */}
+        {moduleMenuOpen ? (
+          <div className="nav-rail-module-menu" role="menu">
+            <div className="nav-rail-module-menu-label">English Studio</div>
+            {ENGLISH_STUDIO_MODULES.map((entry) => (
+              <Link
+                key={entry.to}
+                to={entry.to}
+                role="menuitem"
+                className={`nav-rail-module-item${entry.name === toolName ? " is-current" : ""}`}
+              >
+                {entry.name}
+              </Link>
+            ))}
+            <Link to="/" role="menuitem" className="nav-rail-module-item is-out">
+              All bcailab products
+            </Link>
+          </div>
+        ) : null}
 
         {/* Pinned top */}
         <div className="nav-rail-pinned-top">

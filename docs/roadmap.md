@@ -15,9 +15,17 @@ no-account acquisition funnel into it.
 
 - [x] Material layer unification — done 2026-07-21, see Done.
 
-**Iteration complete.** The next iteration has not been scoped — see Next/Later, and
-confirm scope with the owner before starting. The obvious follow-on is the matching
-service (learner → passage), which this layer was built to feed.
+- [x] English Studio repairs — done 2026-07-21, see Done. Was: the work in
+      `docs/english-studio-ia-design.md` that does **not** depend on the learner model:
+      persist partial dictation practice (today an unfinished passage is silently
+      discarded, which is why production has zero dictation attempts), cross-module
+      navigation (the tool logo leaves the product entirely), dictation's shell and
+      Reading's index becoming catalogues, and a cross-mode handoff between dictation and
+      reading. Deliberately excludes browse IA — see that doc §2.
+
+Next iteration, not yet scoped: **shared learner model + unified progress centre**, which
+the material layer was built to feed and which most deferred IA questions depend on.
+Accumulated reasoning is in `docs/learner-model-notes.md` — read it before designing.
 
 Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
 
@@ -70,8 +78,38 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   query; audio Range request support; session cleanup cron; session secret rotation.
 - Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
   data to fall back on — noted 2026-07-20, not urgent.
+- Writing prompt bank — graded essay prompts so writing has a cold start as good as
+  reading's. Cheap (short text, no TTS) but expect less from it than the passage library:
+  the friction in writing is producing 250 words, not choosing a topic. Discussed
+  2026-07-21; see `docs/learner-model-notes.md` §5.
+- Onboarding: one-tap level self-selection, skippable, corrected silently from real
+  practice data. **Not** a placement test — dictation already is one. Discussed
+  2026-07-21; see `docs/learner-model-notes.md` §1.
+- **vanmemo** (formerly vanbox) stays a permanently separate product — settled
+  2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
+  and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share
+  almost nothing while adding two build systems and two deploy pipelines. bcailab's only
+  tie to it is a product link from the homepage. This is no longer a decision awaiting a
+  trigger; treat it as closed.
+
+Under consideration by the owner, **not scoped, not prioritized** (recorded 2026-07-21 so
+they are not forgotten — none are urgent):
+
+- Homepage redesign.
+- Overall visual language pass across the studio.
+- An admin/back-office system (content management for the material library currently
+  happens through `scripts/material-seed/` and raw SQL).
 
 ## Done
+
+- 2026-07-21 — English Studio repairs: partial dictation practice is persisted and
+  resumable (an unfinished passage used to be discarded silently, which is why production
+  had zero dictation attempts); module navigation stays inside the product, with the rail
+  logo going to `/english` and the tool name doubling as a module switcher; `/reading`
+  became a catalogue with creation moved to `/reading/new`, and dictation sessions dropped
+  the competing rail; and each practice mode offers the same passage in the other mode at
+  the point where that is the natural next step. Migration 0013. Deliberately excludes
+  browse IA, which waits on the learner model — `docs/english-studio-ia-design.md` §2.
 
 - 2026-07-21 — Material layer unified: dictation and reading now share one graded passage
   store (`passages` / `passage_sentences` / `passage_tags` / `passage_stats`), so a single

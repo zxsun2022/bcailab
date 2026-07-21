@@ -1421,6 +1421,9 @@ export type DictationAttempt = {
   accuracy: number;
   sentence_results: string;
   feedback_json: string | null;
+  /** 'in_progress' while the learner is still working through the passage. */
+  status: string;
+  sentences_done: number;
   created_at: string;
   deleted_at: string | null;
 };
@@ -1457,6 +1460,8 @@ const mapDictationAttempt = (row: Record<string, unknown>): DictationAttempt => 
   sentence_results: String(row.sentence_results),
   feedback_json:
     row.feedback_json === null || row.feedback_json === undefined ? null : String(row.feedback_json),
+  status: String(row.status ?? "completed"),
+  sentences_done: Number(row.sentences_done ?? 0),
   created_at: String(row.created_at),
   deleted_at: row.deleted_at === null || row.deleted_at === undefined ? null : String(row.deleted_at)
 });
@@ -1555,7 +1560,7 @@ export async function getDictationAttemptById(
 ): Promise<DictationAttempt | null> {
   const row = await db
     .prepare(
-      "SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, created_at, deleted_at FROM dictation_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+      "SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, status, sentences_done, created_at, deleted_at FROM dictation_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
     )
     .bind(input.id, input.userId)
     .first();
@@ -1568,7 +1573,7 @@ export async function listDictationAttemptsByUser(
 ): Promise<DictationAttempt[]> {
   const result = await db
     .prepare(
-      "SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, created_at, deleted_at FROM dictation_attempts WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ?"
+      "SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, status, sentences_done, created_at, deleted_at FROM dictation_attempts WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC LIMIT ?"
     )
     .bind(input.userId, input.limit ?? 50)
     .all();
@@ -2018,4 +2023,105 @@ export async function getTrialPassage(db: Db): Promise<Passage | null> {
     )
     .first();
   return row ? mapPassage(row as Record<string, unknown>) : null;
+}
+
+/* ---------- dictation progress (resume) ---------- */
+
+/**
+ * The learner's unfinished attempt at a passage, if any.
+ *
+ * An attempt row exists from the first checked sentence, so practice is never lost when a
+ * learner stops partway. Finishing sets `status = 'completed'`, which is what makes the
+ * next visit start fresh rather than resuming a passage already done.
+ */
+export async function getInProgressDictationAttempt(
+  db: Db,
+  input: { userId: string; passageId: string }
+): Promise<DictationAttempt | null> {
+  const row = await db
+    .prepare(
+      `SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, status,
+              sentences_done, created_at, deleted_at
+         FROM dictation_attempts
+        WHERE user_id = ? AND passage_id = ? AND status = 'in_progress' AND deleted_at IS NULL
+        ORDER BY created_at DESC LIMIT 1`
+    )
+    .bind(input.userId, input.passageId)
+    .first();
+  return row ? mapDictationAttempt(row as Record<string, unknown>) : null;
+}
+
+/**
+ * Creates or updates the in-progress attempt after a sentence is checked.
+ *
+ * `accuracy` here is the running score over checked sentences only, so it is not
+ * comparable with a finished attempt's — which is why partial attempts are excluded from
+ * `passage_stats` until they complete.
+ */
+export async function saveDictationAttemptProgress(
+  db: Db,
+  input: {
+    attemptId: string | null;
+    userId: string;
+    passageId: string;
+    accuracy: number;
+    sentenceResults: string;
+    sentencesDone: number;
+  }
+): Promise<string> {
+  if (input.attemptId) {
+    await db
+      .prepare(
+        `UPDATE dictation_attempts
+            SET accuracy = ?, sentence_results = ?, sentences_done = ?
+          WHERE id = ? AND user_id = ? AND status = 'in_progress'`
+      )
+      .bind(
+        input.accuracy,
+        input.sentenceResults,
+        input.sentencesDone,
+        input.attemptId,
+        input.userId
+      )
+      .run();
+    return input.attemptId;
+  }
+
+  const id = crypto.randomUUID();
+  await db
+    .prepare(
+      `INSERT INTO dictation_attempts
+         (id, user_id, passage_id, accuracy, sentence_results, status, sentences_done)
+       VALUES (?, ?, ?, ?, ?, 'in_progress', ?)`
+    )
+    .bind(id, input.userId, input.passageId, input.accuracy, input.sentenceResults, input.sentencesDone)
+    .run();
+  return id;
+}
+
+/** Finalizes an in-progress attempt with the authoritative whole-passage score. */
+export async function completeDictationAttempt(
+  db: Db,
+  input: {
+    attemptId: string;
+    userId: string;
+    accuracy: number;
+    sentenceResults: string;
+    sentencesDone: number;
+  }
+): Promise<void> {
+  await db
+    .prepare(
+      `UPDATE dictation_attempts
+          SET accuracy = ?, sentence_results = ?, sentences_done = ?, status = 'completed'
+        WHERE id = ? AND user_id = ?`
+    )
+    .bind(
+      input.accuracy,
+      input.sentenceResults,
+      input.sentencesDone,
+      input.attemptId,
+      input.userId
+    )
+    .run();
 }

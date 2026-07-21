@@ -55,7 +55,8 @@ env var can point calls at Cloudflare AI Gateway without code changes.
 - `/dictation/attempt/:attemptId/status` authenticated feedback status polling endpoint
 - `/reading/trial` **public** anonymous reading trial (fixed sample passage; nothing persisted — see docs/tools/esl.md)
 - `/writing/trial` **public** anonymous writing trial (one feedback round; nothing persisted — see docs/tools/writing.md)
-- `/reading` ESL reading/recitation passage list + creation
+- `/reading` reading catalogue: the learner's own passages plus the graded library
+- `/reading/new` create a passage from your own text
 - `/reading/progress` ESL reading/recitation progress dashboard
 - `/reading/:id` ESL reading/recitation practice page
 - `/reading/:id/status` authenticated ESL reading status polling endpoint

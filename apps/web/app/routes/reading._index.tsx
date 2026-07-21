@@ -1,173 +1,126 @@
-import type { ActionFunctionArgs } from "@remix-run/cloudflare";
-import { json, redirect } from "@remix-run/cloudflare";
-import { Card, Textarea } from "@bcailab/ui";
-import { createUserPassage, softDeleteUserPassage } from "@bcailab/db";
-import { EslAttemptComposer, EslModeToggle } from "~/components/EslAttemptComposer";
-import { EslReadingHistoryRail } from "~/components/EslReadingHistoryRail";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
+import { json } from "@remix-run/cloudflare";
+import { Link, useLoaderData } from "@remix-run/react";
+import { listLibraryPassages, listPassagesByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
-import {
-  createAndScheduleEslReadingAttempt,
-  EslAttemptSubmissionError,
-  parseEslAttemptSubmission
-} from "~/utils/esl-reading-attempt.server";
-import { schedulePassageReferenceSynthesis } from "~/utils/esl-passage-reference.server";
-import { generatePassageTitle } from "~/utils/esl-reading-eval.server";
-import { MAX_ESL_PASSAGE_CHARS, normalizeEslPassageText, type EslReadingMode } from "~/utils/esl-reading";
-import * as React from "react";
 
-type ActionData = { error?: string; redirectTo?: string };
-const HISTORY_RAIL_COLLAPSED_KEY = "reading-history-rail-collapsed";
+/**
+ * Reading catalogue.
+ *
+ * This route used to *be* the new-passage composer, so "reading home" meant "create".
+ * That was right when a learner's own text was the only material; it is wrong now that a
+ * graded library exists, so creating moved to `/reading/new` and the index shows what
+ * there is to practise.
+ */
 
-export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const user = await requireUser(request, context);
-  const formData = await request.formData();
-  const intent = String(formData.get("_intent") ?? "submitAttempt");
-  const transport = String(formData.get("_transport") ?? "document");
-  if (intent !== "submitAttempt") {
-    return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
-  }
+export const meta: MetaFunction = () => [{ title: "Reading · bcailab" }];
 
-  const content = normalizeEslPassageText(String(formData.get("content") ?? "")).trim();
-  if (!content) {
-    return json<ActionData>({ error: "Passage cannot be empty." }, { status: 400 });
-  }
-  if (content.length > MAX_ESL_PASSAGE_CHARS) {
-    return json<ActionData>(
-      { error: `Passage exceeds ${MAX_ESL_PASSAGE_CHARS.toLocaleString()} characters.` },
-      { status: 400 }
-    );
-  }
+const BAND_ORDER = ["A2", "B1", "B2", "C1"] as const;
 
-  let submission;
-  try {
-    submission = await parseEslAttemptSubmission(formData);
-  } catch (error) {
-    if (error instanceof EslAttemptSubmissionError) {
-      return json<ActionData>({ error: error.message }, { status: error.status });
-    }
-    return json<ActionData>({ error: "Failed to submit. Please retry." }, { status: 500 });
-  }
-
-  const title = await generatePassageTitle(context.env, content);
-  let created: Awaited<ReturnType<typeof createUserPassage>> | null = null;
-
-  try {
-    created = await createUserPassage(context.env.DB, {
-      userId: user.id,
-      title,
-      contentText: content
-    });
-    const { attemptId } = await createAndScheduleEslReadingAttempt(context, {
-      userId: user.id,
-      passage: created,
-      submission
-    });
-    await schedulePassageReferenceSynthesis(context, {
-      userId: user.id,
-      passage: created
-    });
-    const redirectTo = `/reading/${created.id}?attempt=${attemptId}`;
-    return transport === "fetcher"
-      ? json({ redirectTo })
-      : redirect(redirectTo);
-  } catch (error) {
-    if (created) {
-      await softDeleteUserPassage(context.env.DB, { id: created.id, userId: user.id });
-    }
-
-    if (error instanceof EslAttemptSubmissionError) {
-      return json<ActionData>({ error: error.message }, { status: error.status });
-    }
-    return json<ActionData>({ error: "Failed to submit. Please retry." }, { status: 500 });
-  }
+const BAND_BLURB: Record<string, string> = {
+  A2: "Short everyday sentences, simple tenses.",
+  B1: "Everyday narrative with common connectors.",
+  B2: "Varied tenses, opinion and contrast.",
+  C1: "Complex sentences and nuanced vocabulary."
 };
 
-export default function EslReadingIndexPage() {
-  const [content, setContent] = React.useState("");
-  const [mode, setMode] = React.useState<EslReadingMode>("reading");
-  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(() => {
-    try {
-      const stored = localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY);
-      return stored === null ? true : stored === "true";
-    } catch {
-      return true;
-    }
-  });
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const user = await requireUser(request, context);
 
-  const handleHistoryRailToggle = React.useCallback(() => {
-    setHistoryRailCollapsed((current) => {
-      const next = !current;
-      try { localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next)); } catch {}
-      return next;
-    });
-  }, []);
+  const [library, own] = await Promise.all([
+    listLibraryPassages(context.env.DB),
+    listPassagesByUser(context.env.DB, user.id)
+  ]);
+
+  const bands = BAND_ORDER.map((band) => ({
+    band,
+    blurb: BAND_BLURB[band] ?? "",
+    passages: library
+      .filter((passage) => passage.band === band)
+      .map((passage) => ({
+        id: passage.id,
+        title: passage.title,
+        topic: passage.topic,
+        wordCount: passage.word_count,
+        hasSentenceAudio: passage.has_sentence_audio === 1
+      }))
+  })).filter((group) => group.passages.length > 0);
+
+  return json({
+    bands,
+    own: own.map((passage) => ({
+      id: passage.id,
+      title: passage.title,
+      wordCount: passage.word_count
+    }))
+  });
+};
+
+export default function ReadingCatalogue() {
+  const { bands, own } = useLoaderData<typeof loader>();
 
   return (
-    <div className={`esl-practice-layout reading-workspace${historyRailCollapsed ? " is-history-collapsed" : ""}`}>
-      <div className="reading-center-stage">
-        <div className="reading-content-column">
-          <div className="esl-center-panel">
-            <div className="esl-welcome">
-              <h2>New Passage</h2>
-              <EslModeToggle mode={mode} onModeChange={setMode} />
-            </div>
+    <div className="passage-catalogue">
+      <header className="passage-catalogue-header">
+        <h1 className="passage-catalogue-title">Reading</h1>
+        <p className="passage-catalogue-subtitle">
+          Read a passage aloud and get feedback on pronunciation, fluency, rhythm, and
+          clarity. Practise graded material or bring your own text.
+        </p>
+        <Link to="/reading/new" className="dictation-primary reading-new-cta">
+          Add your own passage
+        </Link>
+      </header>
 
-            <EslAttemptComposer
-              action="?index"
-              submitLabel="Submit"
-              canSubmit={Boolean(content.trim())}
-              mode={mode}
-              onModeChange={setMode}
-            >
-              {({ hideText, recorder }) => (
-                <Card className="tool-card-stack esl-compose-card esl-compose-draft-card">
-                  <div className={`esl-compose-editor${hideText ? " is-masked" : ""}`}>
-                    <Textarea
-                      name="content"
-                      rows={18}
-                      className={`esl-compose-textarea${hideText ? " is-masked" : ""}`}
-                      placeholder="Paste an English passage here. Record and submit the first attempt to create the first history entry automatically."
-                      value={content}
-                      readOnly={hideText}
-                      onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
-                        setContent(event.currentTarget.value)
-                      }
-                    />
-                    {hideText ? (
-                      <div className="esl-compose-mask" aria-hidden="true">
-                        <div className="esl-compose-mask-chip">Recite Mode</div>
-                        <div className="esl-compose-mask-copy">
-                          Text hidden for recitation mode. Switch back to Read if you want to review or edit the passage.
-                        </div>
-                      </div>
-                    ) : null}
-                    <div
-                      className={`esl-compose-count ${
-                        content.length > 0 ? "is-visible" : ""
-                      } ${content.length > MAX_ESL_PASSAGE_CHARS ? "is-over-limit" : ""}`}
-                    >
-                      <span className="textarea-count">
-                        {content.length.toLocaleString()} / {MAX_ESL_PASSAGE_CHARS.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {recorder}
-                </Card>
-              )}
-            </EslAttemptComposer>
+      {own.length > 0 ? (
+        <section className="passage-band">
+          <div className="passage-band-header">
+            <h2 className="passage-band-title">Yours</h2>
+            <span className="passage-band-blurb">Passages you added.</span>
           </div>
-        </div>
-      </div>
+          <ul className="passage-card-grid">
+            {own.map((passage) => (
+              <li key={passage.id}>
+                <Link to={`/reading/${passage.id}`} className="passage-card">
+                  <span className="passage-card-title">{passage.title}</span>
+                  <span className="passage-card-meta">
+                    {passage.wordCount > 0 ? `${passage.wordCount} words` : "Your text"}
+                  </span>
+                  <span className="passage-card-start">Practise</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
-      <div className="reading-detail-rail">
-        <EslReadingHistoryRail
-          attempts={[]}
-          disableNewAttempt
-          collapsed={historyRailCollapsed}
-          onToggle={handleHistoryRailToggle}
-        />
-      </div>
+      {bands.map((group) => (
+        <section key={group.band} className="passage-band">
+          <div className="passage-band-header">
+            <h2 className="passage-band-title">{group.band}</h2>
+            <span className="passage-band-blurb">{group.blurb}</span>
+          </div>
+          <ul className="passage-card-grid">
+            {group.passages.map((passage) => (
+              <li key={passage.id}>
+                <Link to={`/reading/${passage.id}`} className="passage-card">
+                  <span className="passage-card-title">{passage.title}</span>
+                  <span className="passage-card-meta">
+                    {[passage.topic, passage.wordCount > 0 ? `${passage.wordCount} words` : null]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                  <span className="passage-card-start">
+                    {/* Sentence audio is what makes a passage dictatable, so the
+                        catalogue can honestly say which ones offer both modes. */}
+                    {passage.hasSentenceAudio ? "Read aloud · also dictation" : "Read aloud"}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
     </div>
   );
 }

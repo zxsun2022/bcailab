@@ -7,6 +7,9 @@ type HistoryItem = {
   title: string;
   band: string;
   accuracy: number;
+  status: string;
+  sentencesDone: number;
+  sentenceCount: number;
   createdAt: string;
 };
 
@@ -52,7 +55,11 @@ export function DictationNavRail({ history, user, isLibrary }: DictationNavRailP
             <Link to={`/dictation/${item.passageId}`} className="nav-rail-item">
               <div className="nav-rail-item-title">{item.title}</div>
               <div className="nav-rail-item-meta">
-                {item.band} · {formatAccuracy(item.accuracy)}
+                {/* An unfinished attempt's accuracy covers only the sentences checked so
+                    far, so showing it as a score would misrepresent it. */}
+                {item.status === "in_progress"
+                  ? `${item.band} · ${item.sentencesDone}/${item.sentenceCount} · resume`
+                  : `${item.band} · ${formatAccuracy(item.accuracy)}`}
               </div>
             </Link>
           </div>
