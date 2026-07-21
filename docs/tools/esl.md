@@ -16,6 +16,33 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Reading status resource | `/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
 | Passage reference audio stream | `/esl/passage-audio/:id` | Auth required. Owner-only playback endpoint for the auto-generated reference TTS. |
+| Anonymous trial | `/reading/trial` | **Public.** One-shot evaluation on a fixed sample passage, nothing persisted — see below. |
+
+## Anonymous Trial
+
+`/reading/trial` lets a signed-out visitor record one attempt and get a real evaluation
+before creating an account. It escapes the `/reading` layout (which calls `requireUser`)
+via the `reading_.trial.tsx` route-name prefix.
+
+- **Fixed sample passage.** One global passage defined as a constant in
+  `apps/web/app/utils/reading-trial.ts` — not an `esl_passages` row, since the trial
+  creates no passage and no attempt. The page renders that constant and the action passes
+  the same constant to the evaluator, so the scored text always matches what was shown.
+- **Nothing is persisted, including the audio.** The signed-in flow writes the recording to
+  R2 and creates an attempt row *before* evaluating. The trial passes the audio bytes
+  straight to `evaluateEslReadingAttempt` and lets them fall out of scope — there is no
+  `trial/` R2 prefix to clean up and no deletion task that could fail and leave a recording
+  behind. No attempt row, no evaluation row, and the learner profile is never read or
+  written. The only write is the daily quota counter.
+- **Evaluation runs inline**, not in a `waitUntil` background task, because there is no
+  attempt row to poll — the result comes back in the action response and is rendered by the
+  shared `EslEvaluation` component (extracted from `reading.$id.tsx` for this purpose).
+- **Quota**: feature `reading_trial` in `feature_usage`, 5/day for anonymous visitors,
+  counted against both the `bcailab_anon` cookie and the client IP. Charged only after a
+  successful evaluation. Exceeding it renders a sign-in gate.
+- **Signed-in users are redirected** to `/reading`; they have the real tool.
+- Entry is the `/english` Reading module card, which points signed-out visitors here
+  instead of opening the login popup.
 
 ## Reading / Recitation (v2)
 

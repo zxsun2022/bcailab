@@ -12,6 +12,12 @@ type EslAttemptComposerProps = {
   canSubmit?: boolean;
   mode?: EslReadingMode;
   onModeChange?: (mode: EslReadingMode) => void;
+  /**
+   * Called with the action's payload when it returns a result instead of a
+   * `redirectTo`. The anonymous trial uses this to render an evaluation inline,
+   * since it has no attempt page to navigate to.
+   */
+  onResult?: (data: unknown) => void;
   children: (args: {
     mode: EslReadingMode;
     hideText: boolean;
@@ -54,7 +60,15 @@ const extensionFromMimeType = (mimeType: string): string => {
 };
 
 export function EslAttemptComposer(props: EslAttemptComposerProps) {
-  const { action, submitLabel, canSubmit = true, mode: controlledMode, onModeChange, children } = props;
+  const {
+    action,
+    submitLabel,
+    canSubmit = true,
+    mode: controlledMode,
+    onModeChange,
+    onResult,
+    children
+  } = props;
   const fetcher = useFetcher<SubmitResult>();
   const navigate = useNavigate();
   const [outputLanguage] = useReadingOutputLanguage();
@@ -102,14 +116,22 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   }, [recordedAudioUrl, stopMediaStream, stopTimer]);
 
   React.useEffect(() => {
-    const redirectTo = fetcher.data?.redirectTo;
-    if (!redirectTo) return;
+    if (!fetcher.data) return;
+    const redirectTo = fetcher.data.redirectTo;
+    if (!redirectTo) {
+      // No navigation target: hand the payload to the caller to render in place.
+      onResult?.(fetcher.data);
+      return;
+    }
     const timeoutId = window.setTimeout(() => {
       React.startTransition(() => {
         navigate(redirectTo);
       });
     }, 0);
     return () => window.clearTimeout(timeoutId);
+    // `onResult` is intentionally excluded: callers pass inline closures, and
+    // re-firing on every render would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data, navigate]);
 
   const startRecording = React.useCallback(async () => {

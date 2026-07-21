@@ -20,6 +20,27 @@ AI-powered iterative writing coach. Users submit a piece of writing, receive str
 | Writing settings | `/writing/settings` | Writing-specific settings page opened inside the center canvas. |
 | Article detail | `/writing/:id` | Fixed article context + draft body + feedback aside with round navigation. |
 | Status resource | `/writing/:id/status` | Auth required. JSON endpoint for feedback status polling. |
+| Anonymous trial | `/writing/trial` | **Public.** One-shot feedback with nothing persisted — see below. |
+
+## Anonymous Trial
+
+`/writing/trial` lets a signed-out visitor get one round of real coach feedback before
+creating an account. It escapes the `/writing` layout (which calls `requireUser`) via the
+`writing_.trial.tsx` route-name prefix, so it renders standalone under the site header.
+
+- **Nothing is persisted.** No `writing_articles` row, no `writing_revisions` row, no
+  history. The essay is evaluated by the same `evaluateWriting` call the real tool uses,
+  and the feedback is rendered straight from the action's JSON response. The only write is
+  the daily quota counter.
+- **No revision rounds.** The trial is always round 1 with no previous-round context —
+  iterating across rounds is precisely what signing in buys.
+- **Quota**: feature `writing_trial` in `feature_usage`, 5/day for anonymous visitors,
+  counted against both the `bcailab_anon` cookie and the client IP. Charged only after a
+  successful evaluation, so a provider failure costs the visitor nothing. Exceeding it
+  renders a sign-in gate.
+- **Signed-in users are redirected** to `/writing`; they have the real tool.
+- Entry is the `/english` Writing module card, which points signed-out visitors here
+  instead of opening the login popup.
 
 ## Layout
 

@@ -49,6 +49,8 @@ env var can point calls at Cloudflare AI Gateway without code changes.
 - `/dictation/:passageId` dictation session (public, quota-gated; stepper + summary)
 - `/dictation/audio/:sentenceId` **public** per-sentence MP3 stream (global content, immutable cache)
 - `/dictation/attempt/:attemptId/status` authenticated feedback status polling endpoint
+- `/reading/trial` **public** anonymous reading trial (fixed sample passage; nothing persisted — see docs/tools/esl.md)
+- `/writing/trial` **public** anonymous writing trial (one feedback round; nothing persisted — see docs/tools/writing.md)
 - `/reading` ESL reading/recitation passage list + creation
 - `/reading/progress` ESL reading/recitation progress dashboard
 - `/reading/:id` ESL reading/recitation practice page
