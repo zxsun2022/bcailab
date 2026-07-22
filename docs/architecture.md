@@ -32,6 +32,12 @@ All model calls go through `apps/web/app/utils/llm.server.ts`, which owns the ta
 routing table (e.g. anonymous translation uses a cheaper model). The optional `GEMINI_BASE_URL`
 env var can point calls at Cloudflare AI Gateway without code changes.
 
+Model tiers (2026-07-21): most tasks use `gemini-2.5-flash` (pinned explicitly rather than the
+`gemini-flash-latest` alias, which now tracks the pricier 3.6 Flash); the cheap tier
+(`translate_anonymous`, `title_generation`) uses `gemini-2.5-flash-lite`; and the quality-critical
+evaluation tasks (`reading_eval`, `writing_feedback`) opt into `gemini-3.6-flash`. `GEMINI_MODEL`
+still overrides tasks flagged `envModelOverride`.
+
 ## Key Flows
 - Sign-in happens in a popup at `/login`: Google OAuth, or an email one-time code (for users
   who cannot reach Google). Email is the primary identity; a Google login with a matching
