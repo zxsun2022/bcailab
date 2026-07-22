@@ -176,9 +176,16 @@ export default function EnglishLanding() {
         <h2 className="landing-note-title">One account, shared progress</h2>
         <p>
           Every module uses the same Google sign-in and the same design language.
-          Reading and writing keep per-module progress dashboards, and history stays
-          private to your account.
+          Your practice feeds one shared learner profile — dictation and reading both
+          contribute — and history stays private to your account.
         </p>
+        {user ? (
+          <p style={{ marginTop: "0.75rem" }}>
+            <Link to="/english/progress" className="home-tool-arrow-link">
+              View your progress &rarr;
+            </Link>
+          </p>
+        ) : null}
       </section>
     </div>
   );

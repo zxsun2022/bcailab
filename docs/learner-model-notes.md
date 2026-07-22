@@ -1,6 +1,10 @@
 # Learner Model — Working Notes
 
-Status: **notes, not a design.** Captured 2026-07-21 from owner discussion so the reasoning
+Status: **superseded by `docs/learner-model-design.md`** (approved & implemented 2026-07-21).
+Kept as the historical reasoning behind that design; the five open questions in §6 are now
+answered there. Read the design doc for what was built.
+
+Captured 2026-07-21 from owner discussion so the reasoning
 survives; the actual design doc gets written when this iteration is scoped.
 
 These are the judgements the next iteration should start from rather than re-derive. Where

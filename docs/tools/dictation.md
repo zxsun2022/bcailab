@@ -85,6 +85,16 @@ distort measured difficulty. For the same reason the rail shows an unfinished at
 
 Anonymous practice remains session-only.
 
+## Learner model
+
+On completion, a signed-in attempt also feeds the shared learner model: its diff ops are
+attributed to the `passage_tags` vocabulary (reusing the tagger's own per-word predicates, so
+"a word carries tag T" means one thing everywhere) and written to `learner_tag_observations`
+as `deterministic` signal — dictation is the precise instrument. These aggregate into the
+`/english/progress` profile and drive the measured CEFR estimate. Attribution and aggregation
+fail soft: the attempt is already committed, so a learner-model failure never fails practice.
+See `docs/learner-model-design.md`.
+
 ## Shell and cross-mode handoff
 
 `/dictation` is a catalogue and keeps the nav rail. `/dictation/:passageId` drops it:

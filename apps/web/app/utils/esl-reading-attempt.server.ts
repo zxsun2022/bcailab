@@ -5,13 +5,17 @@ import {
   getEslLearnerProfile,
   getEslReadingAttemptById,
   getLatestEslReadingEvaluationByAttemptId,
+  getPassageTags,
   incrementEslLearnerProfileCounters,
+  insertLearnerTagObservations,
   listEslReadingAttemptsByPassage,
   recordPassageAttemptStat,
   updateEslReadingAttemptEvaluationStatus,
   type Passage
 } from "@bcailab/db";
 import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
+import { attributeReadingErrors } from "~/utils/learner-model";
+import { scheduleLearnerModelRecompute } from "~/utils/learner-model.server";
 import {
   isSupportedEslAudioMime,
   isSupportedReadingMode,
@@ -229,6 +233,31 @@ const runReadingAttemptEvaluation = async (
       mode: "reading",
       accuracy: Math.min(1, Math.max(0, evaluation.output.scores.overall / 100))
     });
+
+    // Learner model: attribute the evaluation's highlights to the tag vocabulary. Marked
+    // source='llm' and down-weighted in aggregation (design §5.2). User passages carry no
+    // tags, so this is empty for them and writes nothing. Fails soft.
+    try {
+      const passageTags = await getPassageTags(context.env.DB, input.passage.id);
+      const tallies = attributeReadingErrors(passageTags, evaluation.output.highlights ?? []);
+      if (tallies.size > 0) {
+        await insertLearnerTagObservations(context.env.DB, {
+          userId: input.userId,
+          mode: "reading",
+          passageId: input.passage.id,
+          attemptId: input.attemptId,
+          source: "llm",
+          tallies: [...tallies].map(([tag, tally]) => ({
+            tag,
+            exposure: tally.exposure,
+            hits: tally.hits
+          }))
+        });
+      }
+      await scheduleLearnerModelRecompute(context, input.userId);
+    } catch (error) {
+      console.error("learner-model reading observation failed:", error);
+    }
   } catch {
     const activeAttempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
       includeDeleted: true
