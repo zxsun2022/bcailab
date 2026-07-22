@@ -21,6 +21,7 @@ import {
   scheduleDictationFeedback,
   type DictationFeedback
 } from "~/utils/dictation-feedback.server";
+import { recordDictationObservations } from "~/utils/learner-model.server";
 import { openLoginPopup } from "~/utils/login-popup";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -284,6 +285,18 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         // user-supplied passages share the table and are left untagged (design §5.4).
         band: passage.band ?? "B1",
         results
+      });
+
+      // Learner model: attribute this attempt's errors to the tag vocabulary and record
+      // the observations (learner-model design §5.1). Signed-in only; fails soft.
+      await recordDictationObservations(context, {
+        userId: user.id,
+        passageId,
+        attemptId,
+        sentences: sentences.map((sentence, position) => ({
+          reference: sentence.text,
+          ops: results[position]!.ops
+        }))
       });
     }
 

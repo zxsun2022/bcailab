@@ -10,6 +10,12 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
   `passage_sentences`, `passage_tags`, `passage_stats`), so a single passage can drive both
   listening and reading-aloud practice. `user_id IS NULL` marks global library content.
   See docs/material-layer-design.md.
+- **Learner model**: Every scored attempt writes deterministic per-tag observations
+  (`learner_tag_observations`, keyed on the `passage_tags` vocabulary) which aggregate into a
+  shared profile (`esl_learner_profiles`, generalised beyond reading: per-tag mastery + a CEFR
+  estimate). Dictation is the precise signal (deterministic diff ops); reading is a
+  down-weighted LLM-judged one. A background pass names patterns for the learner; it never
+  decides them. Surfaced at `/english/progress`. See docs/learner-model-design.md.
 - **R2**: Binary storage for generated tool assets (Speech MP3 + ESL reading attempt/reference audio).
   These are private user data served behind auth. The one exception is the `dictation/` prefix:
   global app content (pre-generated per-sentence MP3s), served publicly with immutable caching —
@@ -40,6 +46,7 @@ env var can point calls at Cloudflare AI Gateway without code changes.
 - `/` studio homepage (lab intro, product cards linking to landing pages, principles, team info)
 - `/about` about page
 - `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Dictation, Speech as modules of one product)
+- `/english/progress` unified learner progress centre (authenticated; one growth view across dictation and reading, reading the shared learner profile — see docs/learner-model-design.md)
 - `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
 - `/login` sign-in popup page (Google OAuth or email OTP code)
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints

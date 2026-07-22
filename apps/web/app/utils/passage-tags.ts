@@ -199,6 +199,40 @@ export type PassageAnalysis = {
   tags: PassageTagCount[];
 };
 
+/** The word-level tags. Sentence-level tags (`long_sentence`, `question`, `linking`) are
+ *  not attributable to a single token and are excluded here. */
+export const WORD_LEVEL_TAGS = [
+  "contraction",
+  "weak_form",
+  "article",
+  "final_s",
+  "past_ed",
+  "homophone",
+  "number_words",
+  "th_sound",
+  "consonant_cluster"
+] as const satisfies readonly PassageTagName[];
+
+/**
+ * The word-level tags a single token carries. Shared by the material tagger below and by
+ * dictation error attribution (`learner-model.ts`), so "a word carries tag T" has exactly
+ * one definition — the reason the learner model can attribute a missed word to the same
+ * tags the material was tagged with, with no second copy to drift.
+ */
+export const wordTags = (word: string): PassageTagName[] => {
+  const tags: PassageTagName[] = [];
+  if (isContraction(word)) tags.push("contraction");
+  if (WEAK_FORMS.has(word)) tags.push("weak_form");
+  if (ARTICLES.has(word)) tags.push("article");
+  if (isFinalS(word)) tags.push("final_s");
+  if (isPastEd(word)) tags.push("past_ed");
+  if (HOMOPHONES.has(word)) tags.push("homophone");
+  if (NUMBER_WORDS.has(word)) tags.push("number_words");
+  if (word.includes("th")) tags.push("th_sound");
+  if (hasConsonantCluster(word)) tags.push("consonant_cluster");
+  return tags;
+};
+
 export const analyzePassage = (text: string): PassageAnalysis => {
   const sentences = splitSentences(text);
   const words = tokenize(text);
@@ -208,15 +242,7 @@ export const analyzePassage = (text: string): PassageAnalysis => {
   const bump = (tag: PassageTagName, by = 1) => counts.set(tag, (counts.get(tag) ?? 0) + by);
 
   for (const word of words) {
-    if (isContraction(word)) bump("contraction");
-    if (WEAK_FORMS.has(word)) bump("weak_form");
-    if (ARTICLES.has(word)) bump("article");
-    if (isFinalS(word)) bump("final_s");
-    if (isPastEd(word)) bump("past_ed");
-    if (HOMOPHONES.has(word)) bump("homophone");
-    if (NUMBER_WORDS.has(word)) bump("number_words");
-    if (word.includes("th")) bump("th_sound");
-    if (hasConsonantCluster(word)) bump("consonant_cluster");
+    for (const tag of wordTags(word)) bump(tag);
   }
 
   // Sentence-level features.

@@ -23,9 +23,12 @@ no-account acquisition funnel into it.
       Reading's index becoming catalogues, and a cross-mode handoff between dictation and
       reading. Deliberately excludes browse IA — see that doc §2.
 
-Next iteration, not yet scoped: **shared learner model + unified progress centre**, which
-the material layer was built to feed and which most deferred IA questions depend on.
-Accumulated reasoning is in `docs/learner-model-notes.md` — read it before designing.
+- [x] Shared learner model + unified progress centre — done 2026-07-21, see Done.
+
+The learner model's **matching** service (learner → passage) is still open — it is the
+Dictation v2 work in Later. This iteration produced its learner-side inputs and stopped.
+Accumulated reasoning is in `docs/learner-model-notes.md`; the design (with its open
+questions now answered) is `docs/learner-model-design.md`.
 
 Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
 
@@ -102,6 +105,19 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-21 — Shared learner model + unified progress centre: every scored attempt now
+  writes deterministic per-tag observations (`learner_tag_observations`, keyed on the
+  `passage_tags` vocabulary) that aggregate into a shared profile — `esl_learner_profiles`
+  generalised beyond reading with per-tag mastery (`tag_mastery_json`) and a measured CEFR
+  estimate. Dictation attributes errors deterministically by reusing the tagger's own
+  per-word predicates (one definition, no drift); reading contributes a down-weighted
+  LLM-judged signal from evaluation highlights. A throttled background pass names the
+  patterns for the learner (the write path `esl_learner_profiles` was designed for and never
+  had) and never decides them. Level self-selection is stored and a confident dictation
+  measurement overrides it gradually and visibly. New `/english/progress` growth surface;
+  per-tool dashboards stay as drill-downs. Migration 0014. Excludes the matching service by
+  design (still Dictation v2 in Later), onboarding UI, and a writing→tag write path.
+  Design: `docs/learner-model-design.md`.
 - 2026-07-21 — English Studio repairs: partial dictation practice is persisted and
   resumable (an unfinished passage used to be discarded silently, which is why production
   had zero dictation attempts); module navigation stays inside the product, with the rail

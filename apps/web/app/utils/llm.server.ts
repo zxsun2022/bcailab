@@ -22,7 +22,8 @@ export type LlmTask =
   | "writing_feedback"
   | "title_generation"
   | "dictation_generate"
-  | "dictation_feedback";
+  | "dictation_feedback"
+  | "learner_profile_naming";
 
 type TaskConfig = {
   model: string;
@@ -40,7 +41,10 @@ const TASK_MODELS: Record<LlmTask, TaskConfig> = {
   // import app code. This entry documents the routing decision and is the control
   // point for when v2 moves generation into the runtime.
   dictation_generate: { model: DEFAULT_MODEL },
-  dictation_feedback: { model: DEFAULT_MODEL, envModelOverride: true }
+  dictation_feedback: { model: DEFAULT_MODEL, envModelOverride: true },
+  // Names the deterministic tag-mastery aggregate for the learner; interpretation only,
+  // never deciding whether a weakness exists (learner-model design §6.4).
+  learner_profile_naming: { model: DEFAULT_MODEL, envModelOverride: true }
 };
 
 export const resolveModelForTask = (env: Env, task: LlmTask): string => {

@@ -147,10 +147,19 @@ via the `reading_.trial.tsx` route-name prefix.
 - Prompt constrains each highlight to the smallest relevant span, requires `text_quote`, and tells the model to name the exact target word or phrase inside `note_zh`.
 
 ### Learner Profile
-- Table: `esl_learner_profiles` (one per user)
-- Tracks: persistent_issues, strengths, CEFR estimate, total practice seconds, total attempts
-- Counters incremented after each evaluation
-- Profile data included in evaluation prompt for cross-passage continuity
+- Table: `esl_learner_profiles` (one per user) — now the **shared** English-Studio learner
+  profile, generalised beyond reading (migration 0014). See `docs/learner-model-design.md`.
+- Tracks: persistent_issues, strengths, CEFR estimate, total practice seconds, total attempts,
+  plus per-tag mastery (`tag_mastery_json`) and level self-selection
+  (`cefr_declared` / `cefr_measured`).
+- Counters incremented after each evaluation.
+- Profile data included in evaluation prompt for cross-passage continuity. The
+  persistent_issues/strengths fields, previously read-but-never-written, are now filled by the
+  learner model's background naming pass.
+- Reading also writes tag observations after each evaluation: the evaluation's highlights are
+  mapped to the prosodic/phonetic subset of `passage_tags` and recorded as **`llm`-sourced**
+  (down-weighted) signal in `learner_tag_observations`. User-supplied passages carry no tags,
+  so reading on them writes no observations. Fails soft — never blocks an evaluation.
 
 ### Right Panel Behaviour
 - History rail always shows `New Attempt` at the top.
@@ -177,15 +186,19 @@ via the `reading_.trial.tsx` route-name prefix.
   - `esl_reading_attempts` (includes `duration_ms`, `evaluation_status`)
   - `esl_reading_evaluations`
   - `esl_learner_profiles`
+  - `learner_tag_observations` (written on evaluation; see Learner Profile above)
 - R2 key pattern:
   - `esl/reading/{userId}/{yyyy}/{mm}/{attemptId}.{ext}`
   - `esl/reference/{userId}/{passageId}.mp3`
 
-### Provisioned for Future ESL Modules
+### Dormant (superseded)
 - `esl_learning_items`
 - `esl_item_observations`
 
-These are created in migration `0003_esl.sql` but not yet surfaced in current Reading UI workflows.
+Created in migration `0003_esl.sql` and never wired up. The shared learner model deliberately
+did **not** revive them: they key on a vocabulary that competes with `passage_tags`, so the
+learner model uses `learner_tag_observations` instead. To be dropped in a later cleanup
+migration (learner-model design §4.1).
 
 ## Configuration
 - `GEMINI_API_KEY` (required for Gemini path)
