@@ -37,9 +37,30 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
 
 ## Next
 
+- **Grader variance spike** (do first — cheap, gates the reading-grader work below). Call the
+  reading evaluator ~5× on the *same* (audio, passage) with identical params and record the
+  stddev of each score dimension + the CEFR-guess agreement rate, over one short and one long
+  recording. Output to `docs/spikes/`. The learner model currently **down-weights** reading
+  observations on the *assumption* that LLM-judged reading is noisy (learner-model-notes §1) —
+  this turns that assumption into a measured number and decides whether the split below is
+  worth it. A half-day script, no product code. Confirmed 2026-07-21.
+- **Reading grader — deterministic split** (depends on the variance spike). Reading evaluation
+  is today a single Gemini call producing scores + CEFR + highlights + drills at once. If the
+  spike shows the scores are noisy, split it the way dictation already is: a deterministic
+  measurement layer (ASR transcription → word-level diff for accuracy/dropped words; pauses and
+  rate from timestamps; optionally a calibrated pronunciation API for phoneme scores) feeding a
+  coach layer where the LLM only interprets. Payoff: reading becomes a real measuring
+  instrument, so the learner model no longer has to discount its observations. Confirmed
+  2026-07-21; see the v1 diagnosis Phase 2.
+- **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
+  attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
+  surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
+  it from the evaluation. Confirmed 2026-07-21.
 - Unified feedback-language setting (currently duplicated per tool in localStorage).
-- Unified progress center: make `learner_profile` a user-visible growth curve across
-  reading and writing.
+- Fold **writing** into the unified progress centre. `/english/progress` shipped 2026-07-21
+  across dictation + reading; writing contributes only counters so far because it has no tag
+  vocabulary (writing material is a prompt, not a passage). Revisit when a writing vocabulary
+  exists.
 - Feedback wait experience: streaming or narrative loading instead of a spinner
   (the "magic moment" should not hide behind a spinner).
 - Replace native `confirm()` dialogs with branded confirmation UI.
@@ -50,6 +71,14 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   signed-in limit to ~100k chars.
 - Faster first-token: evaluate Groq (or similar) for the translate task via the
   `llm.server.ts` routing table; adopt Cloudflare AI Gateway for cost/usage observability.
+- **Model routing hot-config** (owner-raised 2026-07-21). As the task→model table grows
+  (already three tiers after routing evaluation tasks to 3.6 Flash; multi-provider later),
+  changing routing shouldn't need a deploy. The cheap intermediate — **not** an admin system —
+  is to move `TASK_MODELS` from a code constant into D1/KV read at runtime, with the code
+  default as fallback, so routing changes by SQL/`wrangler` alone. Pair with AI Gateway (above)
+  for the per-task cost/latency data that tells you *which* task to re-route. An admin UI over
+  that table comes only if a non-engineer ever needs to change it. Trigger: a 2nd provider, or
+  the first time a routing change is wanted between deploys.
 - Chinese UI (at least Translate + landing pages) — decided to defer, 2026-07-15.
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
@@ -86,8 +115,10 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   the friction in writing is producing 250 words, not choosing a topic. Discussed
   2026-07-21; see `docs/learner-model-notes.md` §5.
 - Onboarding: one-tap level self-selection, skippable, corrected silently from real
-  practice data. **Not** a placement test — dictation already is one. Discussed
-  2026-07-21; see `docs/learner-model-notes.md` §1.
+  practice data. **Not** a placement test — dictation already is one. The storage and the
+  silent-override rule shipped with the learner model (`cefr_declared` / `cefr_measured`,
+  design §8); only the picker UI is left. Discussed 2026-07-21; see
+  `docs/learner-model-notes.md` §1 and `docs/learner-model-design.md` §8.
 - **vanmemo** (formerly vanbox) stays a permanently separate product — settled
   2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
   and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share
@@ -100,8 +131,11 @@ they are not forgotten — none are urgent):
 
 - Homepage redesign.
 - Overall visual language pass across the studio.
-- An admin/back-office system (content management for the material library currently
-  happens through `scripts/material-seed/` and raw SQL).
+- An admin/back-office system for **content** (material-library management currently happens
+  through `scripts/material-seed/` and raw SQL). Deferred while there are no real users and no
+  non-engineer operator — a back-office UI is pure liability until then. Note this is a
+  *separate* need from model routing hot-config (see the Later item), which does **not** require
+  an admin system and has an earlier trigger. Owner view 2026-07-21.
 
 ## Done
 
