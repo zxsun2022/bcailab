@@ -12,8 +12,15 @@ import type { Env } from "~/types/env";
  */
 
 const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-const DEFAULT_MODEL = "gemini-flash-latest";
+// Pinned explicitly rather than the `gemini-flash-latest` floating alias: that alias tracks
+// the latest workhorse Flash, which is now the pricier 3.6 Flash ($1.50/$7.50 per 1M vs
+// 2.5 Flash's ~$0.30/$2.50). Pinning keeps the cost-sensitive tasks (translate funnel, etc.)
+// on the cheaper model instead of drifting up silently. `GEMINI_MODEL` still overrides.
+const DEFAULT_MODEL = "gemini-2.5-flash";
 const LITE_MODEL = "gemini-2.5-flash-lite";
+// The quality-critical evaluation tasks — where the model output *is* the product — opt into
+// the newer 3.6 Flash. Owner decision 2026-07-21: 3.6 only for evaluation, not blanket.
+const EVAL_MODEL = "gemini-3.6-flash";
 
 export type LlmTask =
   | "translate"
@@ -34,8 +41,8 @@ type TaskConfig = {
 const TASK_MODELS: Record<LlmTask, TaskConfig> = {
   translate: { model: DEFAULT_MODEL, envModelOverride: true },
   translate_anonymous: { model: LITE_MODEL },
-  reading_eval: { model: DEFAULT_MODEL, envModelOverride: true },
-  writing_feedback: { model: DEFAULT_MODEL, envModelOverride: true },
+  reading_eval: { model: EVAL_MODEL, envModelOverride: true },
+  writing_feedback: { model: EVAL_MODEL, envModelOverride: true },
   title_generation: { model: LITE_MODEL },
   // Dictation v1 generates material offline (scripts/dictation-seed/), which cannot
   // import app code. This entry documents the routing decision and is the control

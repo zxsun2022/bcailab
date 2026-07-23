@@ -191,14 +191,12 @@ via the `reading_.trial.tsx` route-name prefix.
   - `esl/reading/{userId}/{yyyy}/{mm}/{attemptId}.{ext}`
   - `esl/reference/{userId}/{passageId}.mp3`
 
-### Dormant (superseded)
-- `esl_learning_items`
-- `esl_item_observations`
+### Removed
 
-Created in migration `0003_esl.sql` and never wired up. The shared learner model deliberately
-did **not** revive them: they key on a vocabulary that competes with `passage_tags`, so the
-learner model uses `learner_tag_observations` instead. To be dropped in a later cleanup
-migration (learner-model design §4.1).
+`esl_learning_items` and `esl_item_observations` were created in `0003_esl.sql` for a
+reading-v2 vision that never shipped and were never wired up. The shared learner model uses
+`learner_tag_observations` (keyed on `passage_tags`) instead, and migration
+`0015_drop_dormant_esl_tables.sql` drops them. They held no data.
 
 ## Configuration
 - `GEMINI_API_KEY` (required for Gemini path)

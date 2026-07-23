@@ -37,9 +37,15 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
 
 ## Next
 
+- **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
+  attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
+  surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
+  it from the evaluation. Confirmed 2026-07-21.
 - Unified feedback-language setting (currently duplicated per tool in localStorage).
-- Unified progress center: make `learner_profile` a user-visible growth curve across
-  reading and writing.
+- Fold **writing** into the unified progress centre. `/english/progress` shipped 2026-07-21
+  across dictation + reading; writing contributes only counters so far because it has no tag
+  vocabulary (writing material is a prompt, not a passage). Revisit when a writing vocabulary
+  exists.
 - Feedback wait experience: streaming or narrative loading instead of a spinner
   (the "magic moment" should not hide behind a spinner).
 - Replace native `confirm()` dialogs with branded confirmation UI.
@@ -50,6 +56,22 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   signed-in limit to ~100k chars.
 - Faster first-token: evaluate Groq (or similar) for the translate task via the
   `llm.server.ts` routing table; adopt Cloudflare AI Gateway for cost/usage observability.
+- **Model routing hot-config** (owner-raised 2026-07-21). As the task→model table grows
+  (already three tiers after routing evaluation tasks to 3.6 Flash; multi-provider later),
+  changing routing shouldn't need a deploy. The cheap intermediate — **not** an admin system —
+  is to move `TASK_MODELS` from a code constant into D1/KV read at runtime, with the code
+  default as fallback, so routing changes by SQL/`wrangler` alone. Pair with AI Gateway (above)
+  for the per-task cost/latency data that tells you *which* task to re-route. An admin UI over
+  that table comes only if a non-engineer ever needs to change it. Trigger: a 2nd provider, or
+  the first time a routing change is wanted between deploys.
+- **Reading grader — deterministic split** (not triggered by current evidence; revisit if the
+  trigger below reproduces). The grader variance spike (see Done, 2026-07-23) found the
+  single-call reading evaluator repeatable on 2 of 3 samples (stddev well under the 4-point
+  threshold) and borderline-but-under on the third (a jargon-dense sentence). That does not
+  justify the deterministic-measurement rebuild (ASR diff + calibrated pronunciation API) the
+  v1 diagnosis proposed — the evaluator looks trustworthy enough as-is for most material.
+  **Trigger to revisit:** a further spike run on more jargon-dense/unfamiliar-register material
+  reproduces variance that actually crosses the threshold; until then this stays parked.
 - Chinese UI (at least Translate + landing pages) — decided to defer, 2026-07-15.
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
@@ -86,8 +108,10 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   the friction in writing is producing 250 words, not choosing a topic. Discussed
   2026-07-21; see `docs/learner-model-notes.md` §5.
 - Onboarding: one-tap level self-selection, skippable, corrected silently from real
-  practice data. **Not** a placement test — dictation already is one. Discussed
-  2026-07-21; see `docs/learner-model-notes.md` §1.
+  practice data. **Not** a placement test — dictation already is one. The storage and the
+  silent-override rule shipped with the learner model (`cefr_declared` / `cefr_measured`,
+  design §8); only the picker UI is left. Discussed 2026-07-21; see
+  `docs/learner-model-notes.md` §1 and `docs/learner-model-design.md` §8.
 - **vanmemo** (formerly vanbox) stays a permanently separate product — settled
   2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
   and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share
@@ -100,11 +124,27 @@ they are not forgotten — none are urgent):
 
 - Homepage redesign.
 - Overall visual language pass across the studio.
-- An admin/back-office system (content management for the material library currently
-  happens through `scripts/material-seed/` and raw SQL).
+- An admin/back-office system for **content** (material-library management currently happens
+  through `scripts/material-seed/` and raw SQL). Deferred while there are no real users and no
+  non-engineer operator — a back-office UI is pure liability until then. Note this is a
+  *separate* need from model routing hot-config (see the Later item), which does **not** require
+  an admin system and has an earlier trigger. Owner view 2026-07-21.
 
 ## Done
 
+- 2026-07-23 — Grader variance spike: `scripts/grader-variance.ts` calls the reading evaluator
+  5× against the same (audio, passage) pair and reports per-dimension stddev + CEFR-guess
+  agreement. Three real recordings tested (`docs/spikes/grader-variance-*-20260723.md`): a
+  ~80-word plain passage (overall stddev 0.00, 100% CEFR agreement), a ~30-word jargon-dense
+  sentence (stddev 2.79, one CEFR flip, 80% agreement), and a ~30-word plain sentence matched in
+  length to rule out length as the driver (stddev 1.20, 100% agreement) — ruling out sentence
+  length and pointing instead at vocabulary/register density as the likely source of what
+  variance exists. All three stayed under the roadmap's 4-point threshold. Conclusion: the
+  single-call reading grader is repeatable enough on most material that the deterministic-split
+  rebuild is not currently justified — see the downgraded item in Later with its re-trigger
+  condition. This turns the learner model's reading-observation down-weight
+  (learner-model-design §5.2) from an untested assumption into a data-backed one, though
+  further samples on jargon-dense material would sharpen it.
 - 2026-07-21 — Shared learner model + unified progress centre: every scored attempt now
   writes deterministic per-tag observations (`learner_tag_observations`, keyed on the
   `passage_tags` vocabulary) that aggregate into a shared profile — `esl_learner_profiles`
