@@ -9,6 +9,7 @@ interface Product {
   description: string;
   modules: string[];
   requiresAuth?: boolean;
+  external?: boolean;
 }
 
 const products: Product[] = [
@@ -35,6 +36,15 @@ const products: Product[] = [
       "A quiet publishing tool. Write in Markdown, publish in one step, and share a clean public URL without formatting overhead.",
     modules: ["Markdown", "Publish"],
     requiresAuth: true
+  },
+  {
+    href: "https://vanmemo.com",
+    kicker: "Separate product",
+    title: "VanMemo",
+    description:
+      "A calm home for fleeting thoughts. Capture an idea the moment it shows up — no folder to pick, no title to invent — then find it again later through tags, search, and pins. Private by default, exportable as Markdown, with revision history so nothing is ever lost.",
+    modules: ["Quick capture", "Tags", "Search", "Markdown export"],
+    external: true
   }
 ];
 
@@ -95,28 +105,46 @@ export default function Index() {
           <span className="home-tools-count">{products.length}</span>
         </div>
         <div className="home-product-list">
-          {products.map((product) => (
-            <Link
-              key={product.href}
-              to={product.href}
-              className="home-product"
-              onClick={(e) => handleProductClick(e, product)}
-            >
-              <div className="home-product-kicker">{product.kicker}</div>
-              <div className="home-product-head">
-                <h2 className="home-product-title">{product.title}</h2>
-                <span className="home-tool-arrow">&rarr;</span>
-              </div>
-              <p className="home-product-desc">{product.description}</p>
-              <div className="home-tool-tags">
-                {product.modules.map((mod) => (
-                  <span key={mod} className="home-tool-tag">
-                    {mod}
-                  </span>
-                ))}
-              </div>
-            </Link>
-          ))}
+          {products.map((product) => {
+            const body = (
+              <>
+                <div className="home-product-kicker">{product.kicker}</div>
+                <div className="home-product-head">
+                  <h2 className="home-product-title">{product.title}</h2>
+                  <span className="home-tool-arrow">&rarr;</span>
+                </div>
+                <p className="home-product-desc">{product.description}</p>
+                <div className="home-tool-tags">
+                  {product.modules.map((mod) => (
+                    <span key={mod} className="home-tool-tag">
+                      {mod}
+                    </span>
+                  ))}
+                </div>
+              </>
+            );
+
+            return product.external ? (
+              <a
+                key={product.href}
+                href={product.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="home-product"
+              >
+                {body}
+              </a>
+            ) : (
+              <Link
+                key={product.href}
+                to={product.href}
+                className="home-product"
+                onClick={(e) => handleProductClick(e, product)}
+              >
+                {body}
+              </Link>
+            );
+          })}
         </div>
       </section>
 
