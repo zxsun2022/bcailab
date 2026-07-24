@@ -116,8 +116,9 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
   and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share
   almost nothing while adding two build systems and two deploy pipelines. bcailab's only
-  tie to it is a product link from the homepage. This is no longer a decision awaiting a
-  trigger; treat it as closed.
+  tie to it is a product link from the homepage — shipped 2026-07-23 as the third card in
+  the homepage Products list (external link to vanmemo.com). This is no longer a decision
+  awaiting a trigger; treat it as closed.
 
 Under consideration by the owner, **not scoped, not prioritized** (recorded 2026-07-21 so
 they are not forgotten — none are urgent):
