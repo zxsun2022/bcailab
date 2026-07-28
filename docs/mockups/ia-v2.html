@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>English Studio IA v2 — 结构原型 rev3</title>
+<style>
+  /* 中性占位色。色彩分离(--accent 与 --red 目前同色)尚未进行,此处不做配色决策。 */
+  :root{
+    --ink:#1a1a1a; --ink-2:#555; --ink-3:#8a8a8a; --ink-4:#b0b0b0;
+    --line:#e0ddd8; --line-2:#efece7;
+    --bg:#faf8f5; --surface:#fff; --ph:#7a7a7a; --note:#0a66c2;
+    --radius:6px;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+    --serif:'Iowan Old Style','Palatino Linotype',Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+
+  .ctrl{position:sticky;top:0;z-index:50;background:#26241f;color:#e8e4dd;
+    padding:10px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;
+    font-size:13px;border-bottom:1px solid #000}
+  .ctrl-group{display:flex;gap:6px;align-items:center}
+  .ctrl-label{color:#9a958c;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  .ctrl button{background:#3a372f;color:#e8e4dd;border:1px solid #4d4941;
+    padding:5px 11px;border-radius:4px;cursor:pointer;font-size:12.5px;font-family:inherit}
+  .ctrl button:hover{background:#4a463d}
+  .ctrl button.on{background:#e8e4dd;color:#26241f;border-color:#e8e4dd;font-weight:600}
+  .ctrl .spacer{flex:1}
+  .disclaimer{background:#fffbe8;border-bottom:1px solid #e8dfc0;color:#6b5d2f;
+    padding:7px 16px;font-size:12.5px}
+  .revnote{background:#eef4ff;border-bottom:1px solid #cfe0ff;color:#234;
+    padding:7px 16px;font-size:12.5px}
+
+  .anno{display:none}
+  body.show-anno .anno{display:block}
+  .anno-inline{color:var(--note);font-size:11.5px;font-family:var(--mono);
+    border-left:2px solid var(--note);padding-left:8px;margin:8px 0 0}
+
+  .app{display:flex;min-height:calc(100vh - 110px)}
+
+  /* ── 通用静态侧栏 ── */
+  .rail{width:196px;flex:none;background:var(--surface);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;font-size:13.5px}
+  .rail-top{padding:14px 12px 10px;border-bottom:1px solid var(--line-2)}
+  .rail-brand{display:flex;align-items:center;gap:8px}
+  .rail-logo{width:20px;height:20px;border-radius:5px;background:var(--ink-4)}
+  .rail-brand span{font-size:12.5px;color:var(--ink-3)}
+  .rail-nav{padding:10px 8px;flex:1}
+  .rail-group{font-size:10px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-4);padding:10px 8px 4px}
+  .rail-nav a{display:flex;justify-content:space-between;align-items:center;
+    padding:6px 8px;color:var(--ink);text-decoration:none;border-radius:4px}
+  .rail-nav a:hover{background:var(--line-2)}
+  .rail-nav a.cur{background:var(--line-2);font-weight:600}
+  .rail-nav a.home{font-weight:600}
+  .rail-nav a .free{font-size:10px;color:var(--ink-4);font-family:var(--mono)}
+  .rail-sep{height:1px;background:var(--line-2);margin:9px 8px}
+  .rail-act a{display:block;padding:6px 8px;color:var(--ink-2);text-decoration:none;
+    border-radius:4px;font-size:13px}
+  .rail-act a:hover{background:var(--line-2)}
+  .rail-bottom{padding:10px 12px;border-top:1px solid var(--line-2);
+    display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+  .avatar{width:22px;height:22px;border-radius:50%;background:var(--line)}
+
+  .main{flex:1;overflow-x:hidden}
+  .page{max-width:900px;margin:0 auto;padding:32px 26px 90px}
+  h1.page-title{font-family:var(--serif);font-size:28px;margin:0 0 4px;font-weight:500}
+  .page-sub{color:var(--ink-2);margin:0 0 26px;font-size:14.5px}
+
+  /* ── 动作区 ── */
+  .act-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-3);margin:0 0 7px}
+  .act-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:14px;align-items:start}
+  @media(max-width:820px){.act-grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:16px 18px}
+  .card.primary{border-color:var(--ink-4);border-width:1.5px}
+  .card-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+    color:var(--ink-3);margin-bottom:6px}
+  .card-title{font-family:var(--serif);font-size:19px;margin:0 0 4px;font-weight:500}
+  .card-meta{color:var(--ink-2);font-size:13.5px;margin:0 0 10px}
+  .why{border-left:2px solid var(--line);padding-left:10px;margin:0 0 13px;
+    color:var(--ink-2);font-size:12.5px}
+  .why b{font-weight:600;color:var(--ink)}
+  .btn-row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .btn{border:1px solid var(--ph);background:var(--ph);color:#fff;padding:7px 15px;
+    border-radius:var(--radius);font:inherit;font-size:13.5px;cursor:pointer;
+    text-decoration:none;display:inline-block}
+  .btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line)}
+  .btn.link{background:none;border:none;color:var(--ink-2);text-decoration:underline;padding:7px 2px}
+
+  .split{border:none;border-top:1px solid var(--line);margin:30px 0 6px}
+  .zone-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;
+    color:var(--ink-3);margin:0 0 14px}
+
+  /* ── dashboard 网格 ── */
+  .dash{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:820px){.dash{grid-template-columns:1fr}}
+  .panel{background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--radius);padding:14px 16px}
+  .panel.w2{grid-column:span 2}
+  .panel.w3{grid-column:span 3}
+  @media(max-width:820px){.panel.w2,.panel.w3{grid-column:span 1}}
+  .panel-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+  .panel-t{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+  .panel-a{font-size:12px;color:var(--ink-3);text-decoration:none}
+  .panel-a:hover{color:var(--ink)}
+  .big{font-family:var(--serif);font-size:30px;line-height:1.1}
+  .big-sub{color:var(--ink-3);font-size:12.5px;margin-top:3px}
+
+  /* 标签独立一行、进度条占满宽 —— 在窄容器(w2 面板再分两列)里也不会被压扁 */
+  .bar-row{margin-bottom:11px}
+  .bar-head{display:flex;justify-content:space-between;align-items:baseline;
+    gap:8px;margin-bottom:4px;font-size:12.5px}
+  .bar-label{color:var(--ink-2)}
+  .bar-track{height:5px;background:var(--line-2);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;background:var(--ink-4)}
+  .bar-val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+  .cols2{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+  @media(max-width:700px){.cols2{grid-template-columns:1fr}}
+
+  .cov{display:flex;gap:5px;margin-bottom:8px}
+  .cov-b{flex:1;text-align:center;padding:5px 0;border:1px solid var(--line);
+    border-radius:4px;font-size:11.5px;font-family:var(--mono);color:var(--ink-4)}
+  .cov-b.on{border-color:var(--ink-4);color:var(--ink);background:var(--line-2);font-weight:600}
+
+  .rlist{font-size:13px}
+  .rrow{display:flex;justify-content:space-between;gap:10px;padding:6px 0;
+    border-bottom:1px solid var(--line-2)}
+  .rrow:last-child{border-bottom:none}
+  .rrow .m{color:var(--ink-3);font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+
+  /* ── 素材页 ── */
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .chip{border:1px solid var(--line);background:var(--surface);border-radius:14px;
+    padding:4px 12px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+  .chip.on{border-color:var(--ink-4);background:var(--line-2);color:var(--ink);font-weight:600}
+  .fsearch{flex:1;min-width:150px;border:1px solid var(--line);border-radius:var(--radius);
+    padding:6px 11px;font:inherit;font-size:13px;background:var(--surface)}
+
+  .band{margin-bottom:12px;border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--surface);overflow:hidden}
+  .band.open{border-color:var(--ink-4)}
+  .band-h{display:flex;align-items:center;gap:10px;padding:11px 15px;cursor:pointer}
+  .band-h:hover{background:var(--line-2)}
+  .band-n{font-family:var(--serif);font-size:15px;font-weight:600;min-width:26px}
+  .band-b{color:var(--ink-3);font-size:12.5px;flex:1}
+  .band-c{color:var(--ink-4);font-size:12px;font-family:var(--mono)}
+  .band-you{font-size:10.5px;font-family:var(--mono);color:var(--ph);
+    border:1px solid var(--line);border-radius:3px;padding:1px 6px}
+  .band-body{padding:4px 15px 15px;border-top:1px solid var(--line-2)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:9px;margin-top:11px}
+  .pcard{background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+    padding:11px 13px;text-decoration:none;color:var(--ink);display:block}
+  .pcard:hover{border-color:var(--ink-4)}
+  .pcard-t{font-weight:600;font-size:13.5px;margin-bottom:3px}
+  .pcard-m{color:var(--ink-3);font-size:12px;margin-bottom:7px}
+  .pcard-s{font-size:11.5px;font-family:var(--mono)}
+  .s-new{color:var(--ink-4)} .s-prog{color:var(--ph)} .s-done{color:var(--ink-2)}
+  .more{text-align:center;padding:9px;color:var(--ink-3);font-size:12.5px;
+    border-top:1px solid var(--line-2);margin-top:11px}
+
+  .own{border-top:1px solid var(--line);margin-top:28px;padding-top:18px}
+  .own-n{font-family:var(--serif);font-size:15px;font-weight:600}
+  .hide{display:none}
+</style>
+</head>
+<body class="show-anno">
+
+<div class="ctrl">
+  <strong>IA v2 rev3</strong>
+  <div class="ctrl-group">
+    <span class="ctrl-label">Home</span>
+    <button data-v="cold">冷启动</button>
+    <button data-v="partial" class="on">有未完成</button>
+    <button data-v="active">活跃</button>
+  </div>
+  <div class="ctrl-group">
+    <span class="ctrl-label">工具</span>
+    <button data-v="reading">Reading</button>
+    <button data-v="writing">Writing</button>
+  </div>
+  <div class="spacer"></div>
+  <button id="anno" class="on">批注 ON</button>
+</div>
+
+<div class="disclaimer"><strong>只看结构,不看配色。</strong>中性占位色,无真实数据。</div>
+<div class="revnote">
+  <strong>rev3 —— 基于两个假设:</strong>① 素材量 ×100(每级充足)② writing 也有平台题库。
+  改动:Home 变成<strong>分区网格 dashboard</strong>(动作在上,数据在下,非竖向流);
+  素材库加<strong>筛选</strong>(100x 时必需);Writing 与 Reading <strong>同构</strong>;
+  band 耗尽降级为边缘情况。
+</div>
+
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top">
+      <div class="rail-brand"><div class="rail-logo"></div><span>bcailab</span></div>
+    </div>
+    <nav class="rail-nav">
+      <a href="#" class="home" id="navHome">English Studio</a>
+      <div class="rail-group">Practice</div>
+      <a href="#" id="navDic">Dictation</a>
+      <a href="#" id="navRead">Reading</a>
+      <a href="#" id="navWrite">Writing</a>
+      <div class="rail-group">Tools</div>
+      <a href="#">Translate <span class="free">免费</span></a>
+      <a href="#">Speech</a>
+      <div id="toolActs" class="hide">
+        <div class="rail-sep"></div>
+        <div class="rail-act" id="toolActsBody"></div>
+      </div>
+      <p class="anno anno-inline" style="margin:12px 8px 0">
+        静态列表,无下拉。<br><br>
+        工具动作随工具变:Reading =「+ 添加文本」,
+        Writing =「+ 自定题目」。<br><br>
+        <strong>假设 2 之后三个工具同构</strong>,
+        但 writing 只有<strong>素材</strong>对称,
+        <strong>测量不对称</strong> —— 它没有 tag 词表,
+        不进能力画像。
+      </p>
+    </nav>
+    <div class="rail-bottom"><div class="avatar"></div><span>Simon</span></div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ══════ HOME ══════ -->
+    <div class="page" id="pHome">
+      <h1 class="page-title">English Studio</h1>
+      <p class="page-sub" id="homeSub">继续上次,或开始下一步。</p>
+
+      <!-- 冷启动 -->
+      <div id="secCold" class="hide">
+        <div class="card primary" style="margin-bottom:14px">
+          <div class="card-kicker">开始</div>
+          <h2 class="card-title">先测出你的水平</h2>
+          <p class="card-meta">做一篇听写 —— 约 3 分钟,同时就是一次等级测评。</p>
+          <div class="btn-row">
+            <a href="#" class="btn">开始听写</a>
+            <button class="btn link">或者自己选等级</button>
+          </div>
+        </div>
+        <p class="anno anno-inline">
+          §4.3 冷启动是承重墙。听写被选中是因为它是<strong>唯一可靠的测量仪</strong>
+          (确定性评分 + 素材带 CEFR),不是因为学习只能从听写开始 —— 所以它是推荐不是关卡。
+          规则:level 为 null 时<strong>绝不</strong>显示成 B1。
+          冷启动下 dashboard 区不渲染(无数据),避免满屏「暂无」。
+        </p>
+      </div>
+
+      <!-- 动作区 -->
+      <div id="zoneAct">
+        <p class="act-label">现在做什么</p>
+        <div class="act-grid" id="actGrid"></div>
+        <p class="anno anno-inline" id="actAnno"></p>
+      </div>
+
+      <hr class="split" id="theSplit">
+
+      <!-- dashboard 区 -->
+      <div id="zoneDash">
+        <p class="zone-label">你的状态</p>
+        <div class="dash">
+
+          <div class="panel">
+            <div class="panel-h"><span class="panel-t">等级</span></div>
+            <div class="big">B1</div>
+            <div class="big-sub">测得 · 置信度 70%</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><span class="panel-t">练习量</span></div>
+            <div class="big">12<span style="font-size:16px;color:var(--ink-3)"> 次</span></div>
+            <div class="big-sub">累计 30 分钟</div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><span class="panel-t">覆盖度</span></div>
+            <div class="cov">
+              <span class="cov-b">A2</span><span class="cov-b on">B1</span>
+              <span class="cov-b on">B2</span><span class="cov-b">C1</span>
+            </div>
+            <div class="big-sub">练过 2 / 4 个等级</div>
+          </div>
+
+          <div class="panel w2">
+            <div class="panel-h"><span class="panel-t">能力画像</span>
+              <a href="#" class="panel-a">全部 12 项 →</a></div>
+            <div class="cols2">
+              <div>
+                <div class="bar-row">
+                  <div class="bar-head"><span class="bar-label">词尾 -s</span><span class="bar-val">42 ↓</span></div>
+                  <div class="bar-track"><div class="bar-fill" style="width:42%"></div></div></div>
+                <div class="bar-row">
+                  <div class="bar-head"><span class="bar-label">弱读</span><span class="bar-val">55 ↑</span></div>
+                  <div class="bar-track"><div class="bar-fill" style="width:55%"></div></div></div>
+                <div class="bar-row">
+                  <div class="bar-head"><span class="bar-label">过去式 -ed</span><span class="bar-val">71</span></div>
+                  <div class="bar-track"><div class="bar-fill" style="width:71%"></div></div></div>
+              </div>
+              <div>
+                <div class="bar-row">
+                  <div class="bar-head"><span class="bar-label">th 音</span><span class="bar-val">88 ↑</span></div>
+                  <div class="bar-track"><div class="bar-fill" style="width:88%"></div></div></div>
+                <div class="bar-row">
+                  <div class="bar-head"><span class="bar-label">冠词</span><span class="bar-val">93</span></div>
+                  <div class="bar-track"><div class="bar-fill" style="width:93%"></div></div></div>
+                <div class="bar-row">
+                  <div class="bar-head"><span class="bar-label">连读</span><span class="bar-val">64</span></div>
+                  <div class="bar-track"><div class="bar-fill" style="width:64%"></div></div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-h"><span class="panel-t">最近</span>
+              <a href="#" class="panel-a">全部 →</a></div>
+            <div class="rlist">
+              <div class="rrow"><span>A Normal Day</span><span class="m">4/11</span></div>
+              <div class="rrow"><span>Sussex Ave</span><span class="m">78</span></div>
+              <div class="rrow"><span>City Life</span><span class="m">86%</span></div>
+            </div>
+          </div>
+
+          <div class="panel w3">
+            <div class="panel-h"><span class="panel-t">准确率趋势</span>
+              <span class="panel-a">近 12 次</span></div>
+            <svg viewBox="0 0 600 90" preserveAspectRatio="none"
+                 style="width:100%;height:78px;display:block">
+              <line x1="0" y1="22" x2="600" y2="22" stroke="#efece7"/>
+              <line x1="0" y1="45" x2="600" y2="45" stroke="#efece7"/>
+              <line x1="0" y1="68" x2="600" y2="68" stroke="#efece7"/>
+              <polyline fill="none" stroke="#b0b0b0" stroke-width="2"
+                points="10,70 60,64 110,66 160,55 210,58 260,48 310,44 360,46 410,38 460,34 510,36 560,26"/>
+              <g fill="#8a8a8a">
+                <circle cx="10" cy="70" r="2.5"/><circle cx="110" cy="66" r="2.5"/>
+                <circle cx="210" cy="58" r="2.5"/><circle cx="310" cy="44" r="2.5"/>
+                <circle cx="410" cy="38" r="2.5"/><circle cx="560" cy="26" r="2.5"/>
+              </g>
+            </svg>
+          </div>
+
+        </div>
+        <p class="anno anno-inline">
+          <strong>Home 就是 dashboard,但是分区网格,不是竖向信息流。</strong>
+          动作区占首屏顶部(action-first 说的是顺序与视觉权重,不是「数据不能同页」),
+          数据在下方以面板铺开 —— 三类东西不再混在一列里。<br>
+          这样也不再有「详情页」指向何处的问题:rev2 那个 <code>详情→</code>
+          会把我们正在修的<strong>孤儿进度页问题重演一遍</strong>。<br>
+          <strong>覆盖度面板</strong>专治那个反馈回路 bug:置信度取决于练过几个 band,
+          只练本级会把估计器饿死。把覆盖度画出来,「试试 B2」才是可理解的,而不是没来由的打扰。<br>
+          注意:writing 有了题库后仍<strong>不进能力画像</strong> —— 它没有 tag 词表。
+        </p>
+      </div>
+    </div>
+
+    <!-- ══════ READING ══════ -->
+    <div class="page hide" id="pReading">
+      <h1 class="page-title">Reading</h1>
+      <p class="page-sub">朗读一段文字,获得发音、流利度、节奏与清晰度的反馈。</p>
+
+      <div class="filters">
+        <input class="fsearch" placeholder="搜索素材…">
+        <span class="chip on">全部</span>
+        <span class="chip">未练</span>
+        <span class="chip">进行中</span>
+        <span class="chip">已完成</span>
+        <span class="chip">主题 ▾</span>
+        <span class="chip">长度 ▾</span>
+      </div>
+      <p class="anno anno-inline" style="margin-top:-6px;margin-bottom:16px">
+        <strong>假设 1 带来的唯一结构性新增:筛选。</strong>
+        500 篇/band 的平铺网格是无法用的。<br>
+        但注意这<strong>不推翻</strong>「不做 facets」——那说的是
+        <em>自有文本与平台素材不合并成一个筛选面</em>(provenance 是能力边界);
+        <em>平台素材库内部</em>的筛选在 100x 时是必需的。两个不同的问题。<br>
+        20 篇时不要建这个 —— 它是随内容量增长而加的能力。
+      </p>
+
+      <div class="band open">
+        <div class="band-h"><span class="band-n">B1</span>
+          <span class="band-b">日常叙述,常见连接词</span>
+          <span class="band-you">你的等级</span><span class="band-c">487 篇</span></div>
+        <div class="band-body">
+          <div class="grid">
+            <a href="#" class="pcard"><div class="pcard-t">A Normal Day</div>
+              <div class="pcard-m">daily routines · 11 句</div>
+              <div class="pcard-s s-prog">进行中 · 4/11</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">Weekend Plans</div>
+              <div class="pcard-m">leisure · 9 句</div>
+              <div class="pcard-s s-new">未开始</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">City Life</div>
+              <div class="pcard-m">travel · 10 句</div>
+              <div class="pcard-s s-done">最佳 86%</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">At the Market</div>
+              <div class="pcard-m">food · 8 句</div>
+              <div class="pcard-s s-done">最佳 74%</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">The New Job</div>
+              <div class="pcard-m">work · 10 句</div>
+              <div class="pcard-s s-new">未开始</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">Rainy Morning</div>
+              <div class="pcard-m">weather · 9 句</div>
+              <div class="pcard-s s-new">未开始</div></a>
+          </div>
+          <div class="more">显示更多(共 487 篇)</div>
+        </div>
+      </div>
+
+      <div class="band"><div class="band-h"><span class="band-n">A2</span>
+        <span class="band-b">简短日常句,简单时态</span><span class="band-c">502 篇</span></div>
+        <div class="band-body hide"><div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">My Morning</div>
+            <div class="pcard-m">daily routines · 8 句</div>
+            <div class="pcard-s s-new">未开始</div></a>
+        </div></div></div>
+
+      <div class="band"><div class="band-h"><span class="band-n">B2</span>
+        <span class="band-b">时态多样,观点与转折</span><span class="band-c">495 篇</span></div>
+        <div class="band-body hide"><div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">Remote Work</div>
+            <div class="pcard-m">work · 12 句</div>
+            <div class="pcard-s s-new">未开始</div></a>
+        </div></div></div>
+
+      <div class="band"><div class="band-h"><span class="band-n">C1</span>
+        <span class="band-b">复杂句式,细微词汇</span><span class="band-c">468 篇</span></div>
+        <div class="band-body hide"><div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">Urban Design</div>
+            <div class="pcard-m">architecture · 12 句</div>
+            <div class="pcard-s s-new">未开始</div></a>
+        </div></div></div>
+
+      <p class="anno anno-inline">
+        <strong>全展示 + 折叠,永不锁定。</strong>你的 band 默认展开排最前。<br>
+        反对锁定:① 等级估计本身不确定,用不确定的估计锁人是敌意设计;
+        ② 学习者有正当理由要简单素材(练流利)和难素材(拉伸);
+        ③ 锁定是游戏化 app 的留存/付费机制,配套海量库+订阅 —— 我们没有订阅模型。<br>
+        <strong>更硬的理由:</strong>只练本级会把等级估计器饿死(置信度取决于练过几个 band),
+        推荐器需要定期探邻近 band,UI 就不能让别的 band 显得禁止入内。
+      </p>
+
+      <div class="own">
+        <div style="margin-bottom:4px"><span class="own-n">你的文本</span>
+          <span class="band-b" style="margin-left:8px">自己粘贴的内容</span></div>
+        <div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">Product spec draft</div>
+            <div class="pcard-m">142 词</div>
+            <div class="pcard-s s-done">最佳 81%</div></a>
+          <a href="#" class="pcard"><div class="pcard-t">Interview answer</div>
+            <div class="pcard-m">96 词</div>
+            <div class="pcard-s s-new">未开始</div></a>
+        </div>
+        <p class="anno anno-inline">
+          「+ 添加文本」常驻侧栏,与列表位置解耦 —— 素材涨到几百篇时,
+          页面底部的入口等于不存在。这里只留列表。
+        </p>
+      </div>
+    </div>
+
+    <!-- ══════ WRITING ══════ -->
+    <div class="page hide" id="pWriting">
+      <h1 class="page-title">Writing</h1>
+      <p class="page-sub">选一个题目开始写,或者写你自己的题目。教练会分轮次给反馈。</p>
+
+      <div class="filters">
+        <input class="fsearch" placeholder="搜索题目…">
+        <span class="chip on">全部</span>
+        <span class="chip">未写</span>
+        <span class="chip">草稿</span>
+        <span class="chip">已完成</span>
+        <span class="chip">类型 ▾</span>
+      </div>
+
+      <div class="band open">
+        <div class="band-h"><span class="band-n">B1</span>
+          <span class="band-b">日常话题,叙述与说明</span>
+          <span class="band-you">你的等级</span><span class="band-c">312 题</span></div>
+        <div class="band-body">
+          <div class="grid">
+            <a href="#" class="pcard"><div class="pcard-t">描述你理想中的一天</div>
+              <div class="pcard-m">叙述 · 约 150 词</div>
+              <div class="pcard-s s-prog">草稿 · 第 2 轮</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">写一封投诉信</div>
+              <div class="pcard-m">应用文 · 约 180 词</div>
+              <div class="pcard-s s-new">未开始</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">你最难忘的一次旅行</div>
+              <div class="pcard-m">叙述 · 约 200 词</div>
+              <div class="pcard-s s-done">已完成 · 3 轮</div></a>
+            <a href="#" class="pcard"><div class="pcard-t">介绍你的家乡</div>
+              <div class="pcard-m">说明 · 约 150 词</div>
+              <div class="pcard-s s-new">未开始</div></a>
+          </div>
+          <div class="more">显示更多(共 312 题)</div>
+        </div>
+      </div>
+
+      <div class="band"><div class="band-h"><span class="band-n">A2</span>
+        <span class="band-b">简单话题,基础句式</span><span class="band-c">280 题</span></div>
+        <div class="band-body hide"><div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">我的一天</div>
+            <div class="pcard-m">叙述 · 约 100 词</div>
+            <div class="pcard-s s-new">未开始</div></a>
+        </div></div></div>
+
+      <div class="band"><div class="band-h"><span class="band-n">B2</span>
+        <span class="band-b">观点论述,对比与权衡</span><span class="band-c">305 题</span></div>
+        <div class="band-body hide"><div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">远程办公利大于弊吗</div>
+            <div class="pcard-m">议论 · 约 250 词</div>
+            <div class="pcard-s s-new">未开始</div></a>
+        </div></div></div>
+
+      <div class="own">
+        <div style="margin-bottom:4px"><span class="own-n">你的题目</span>
+          <span class="band-b" style="margin-left:8px">自己拟的题</span></div>
+        <div class="grid">
+          <a href="#" class="pcard"><div class="pcard-t">Product launch retro</div>
+            <div class="pcard-m">自定 · 320 词</div>
+            <div class="pcard-s s-done">已完成 · 2 轮</div></a>
+        </div>
+        <p class="anno anno-inline">
+          <strong>假设 2:writing 与 reading 同构</strong> —— 平台题库(按 CEFR 分级) + 用户自定题目。
+          架构上纯赚:同一个「平台素材 + 自定义」模式实例化三次,一套组件。<br>
+          但<strong>只有素材对称,测量不对称</strong>:写作题目没有 tag 词表,
+          不贡献能力画像,只能像 reading 那样给一个 LLM 判的等级信号。
+          Home 的能力画像面板不能假装 writing 在贡献。
+        </p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  var state='partial';
+  var $=function(id){return document.getElementById(id)};
+
+  var CONT='<div><p class="act-label" style="margin-bottom:7px">继续</p>'
+    +'<div class="card primary"><div class="card-kicker">未完成</div>'
+    +'<h2 class="card-title">A Normal Day</h2>'
+    +'<p class="card-meta">听写 · 已完成 4 / 11 句</p>'
+    +'<div class="btn-row"><a href="#" class="btn">继续</a></div></div></div>';
+
+  var NEXT='<div><p class="act-label" style="margin-bottom:7px">下一步</p>'
+    +'<div class="card"><div class="card-kicker">推荐</div>'
+    +'<h2 class="card-title">Weekend Plans</h2>'
+    +'<p class="card-meta">B1 · 日常英语 · 约 3 分钟</p>'
+    +'<p class="why">这篇里 <b>词尾 -s</b> 出现得比较密 —— 那是你目前最弱的一项。</p>'
+    +'<div class="btn-row"><a href="#" class="btn">开始</a>'
+    +'<a href="#" class="btn ghost">更简单</a>'
+    +'<a href="#" class="btn ghost">挑战一下</a>'
+    +'<a href="#" class="btn ghost">换个主题</a></div></div></div>';
+
+  var ANNO_ACT='<strong>动作区在首屏顶部</strong>,只有这里的东西是可执行的。'
+    +'「为什么」折进推荐卡 —— 进度数据的职责是让推荐<strong>可信</strong>,不是自己当门面。<br>'
+    +'措辞诚实:matching 上线前只说「适合你当前等级 + 一项已测得的弱项」,'
+    +'<strong>不能说</strong>「为你定制」—— 目前没有任何东西按 tag 排序。<br>'
+    +'<strong>素材 ×100 后推荐从锦上添花变成必需品</strong>:'
+    +'500 篇/band 时用户根本无法靠浏览决定练什么。这解掉了「20 篇时做 dashboard 为时过早」的风险。';
+
+  var ACTS={reading:'<a href="#">+ 添加文本</a><a href="#">Reading 进度</a>',
+            writing:'<a href="#">+ 自定题目</a><a href="#">Writing 进度</a>',
+            home:''};
+
+  function show(n,on){ n.classList.toggle('hide',!on) }
+
+  function render(){
+    var isRead=state==='reading', isWrite=state==='writing';
+    var isTool=isRead||isWrite, cold=state==='cold';
+
+    show($('pHome'),!isTool); show($('pReading'),isRead); show($('pWriting'),isWrite);
+    $('navHome').classList.toggle('cur',!isTool);
+    $('navRead').classList.toggle('cur',isRead);
+    $('navWrite').classList.toggle('cur',isWrite);
+    show($('toolActs'),isTool);
+    $('toolActsBody').innerHTML=isRead?ACTS.reading:(isWrite?ACTS.writing:ACTS.home);
+    if(isTool) return;
+
+    show($('secCold'),cold);
+    show($('zoneAct'),!cold); show($('zoneDash'),!cold); show($('theSplit'),!cold);
+    $('homeSub').textContent=cold?'欢迎 —— 先用 3 分钟找到你的起点。':'继续上次,或开始下一步。';
+    $('actGrid').innerHTML=(state==='partial'?CONT:'')+NEXT;
+    $('actAnno').innerHTML=ANNO_ACT;
+  }
+
+  document.querySelectorAll('.ctrl button[data-v]').forEach(function(b){
+    b.addEventListener('click',function(){
+      state=b.dataset.v;
+      document.querySelectorAll('.ctrl button[data-v]').forEach(function(x){
+        x.classList.toggle('on',x===b)});
+      render(); window.scrollTo(0,0);
+    });
+  });
+
+  $('anno').addEventListener('click',function(){
+    var on=document.body.classList.toggle('show-anno');
+    this.classList.toggle('on',on);
+    this.textContent=on?'批注 ON':'批注 OFF';
+  });
+
+  document.querySelectorAll('.band-h').forEach(function(h){
+    h.addEventListener('click',function(){
+      var band=h.parentElement, body=band.querySelector('.band-body');
+      body.classList.toggle('hide');
+      band.classList.toggle('open',!body.classList.contains('hide'));
+    });
+  });
+
+  document.querySelectorAll('.chip').forEach(function(c){
+    c.addEventListener('click',function(){
+      var row=c.parentElement;
+      if(c.textContent.indexOf('▾')>=0) return;
+      row.querySelectorAll('.chip').forEach(function(x){
+        if(x.textContent.indexOf('▾')<0) x.classList.remove('on')});
+      c.classList.add('on');
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
