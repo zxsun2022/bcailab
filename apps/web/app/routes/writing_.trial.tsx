@@ -161,6 +161,11 @@ export default function WritingTrialPage() {
   return (
     <div className="trial-page">
       <header className="trial-header">
+        {/* The studio rail now routes anonymous visitors here from inside other modules,
+            so the trial needs a way back before the quota runs out — not only on the gate. */}
+        <Link to="/english" className="trial-studio-back">
+          &larr; English Studio
+        </Link>
         <p className="trial-eyebrow">Free trial · no account needed</p>
         <h1 className="trial-title">Writing Coach</h1>
         <p className="trial-subtitle">

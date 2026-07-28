@@ -56,7 +56,7 @@ export default function DictationLayout() {
   return (
     <div className="writing-shell">
       {isLibrary ? (
-        <DictationNavRail history={history} user={user} isLibrary={isLibrary} />
+        <DictationNavRail history={history} user={user} />
       ) : null}
       <div className="writing-main">
         <div className={`dictation-canvas${isLibrary ? "" : " is-session"}`}>

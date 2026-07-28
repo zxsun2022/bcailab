@@ -8010,6 +8010,20 @@ select.input:focus {
   margin-bottom: var(--space-xl);
 }
 
+/* Matches .translate-studio-back — the trial pages and Translate are the two
+   anonymous surfaces that need the same way back into the studio. */
+.trial-studio-back {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.trial-studio-back:hover {
+  color: var(--accent);
+}
+
 .trial-eyebrow {
   margin: 0 0 var(--space-sm);
   font-family: var(--font-mono);
