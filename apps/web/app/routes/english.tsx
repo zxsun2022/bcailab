@@ -1,6 +1,8 @@
-import type { MetaFunction } from "@remix-run/cloudflare";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
+import { json, redirect } from "@remix-run/cloudflare";
 import { Link, useOutletContext } from "@remix-run/react";
 import type { User } from "@bcailab/db";
+import { getOptionalUser } from "~/utils/auth.server";
 import { openLoginPopup } from "~/utils/login-popup";
 import {
   ENGLISH_MODULES,
@@ -10,6 +12,18 @@ import {
 
 export const handle = {
   breadcrumb: { label: "english", href: "/english" }
+};
+
+/**
+ * `/english` keeps its single, memorable URL but has one job per audience: signed-out
+ * visitors get the public landing page (SEO, module cards, trial routing), signed-in
+ * learners are sent to the Home. A redirect rather than one dual-purpose route, so
+ * marketing concerns and the app surface stay separable — see the IA v2 design §4.1.
+ */
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
+  const user = await getOptionalUser(request, context);
+  if (user) throw redirect("/english/home");
+  return json({});
 };
 
 export const meta: MetaFunction = () => [

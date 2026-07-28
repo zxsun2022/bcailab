@@ -30,7 +30,7 @@ rather than fronting it. Three independently shippable, independently revertible
       trial routing, so an anonymous visitor picking Reading from the switcher gets a login
       bounce where the landing page would have sent them to `/reading/trial`. No page redesign.
 
-- [ ] **Phase 2 — Coach Home.** `english_.home.tsx` (escaped layout); `/english` redirects
+- [x] **Phase 2 — Coach Home.** *(completed 2026-07-28)* `english_.home.tsx` (escaped layout); `/english` redirects
       signed-in users to it and stays the public landing for everyone else. Action zone
       (Continue + **one** recommendation with directional alternatives — easier / challenge /
       different topic, never a slot-machine refresh) over a status grid (level, volume,

@@ -165,16 +165,19 @@ export function ToolNavRail({
         </div>
 
         <nav className="nav-rail-studio-nav" aria-label="English Studio">
-          <NavLink
-            to="/english"
-            end
-            className={({ isActive }) =>
-              `nav-rail-studio-item${isActive ? " is-current" : ""}`
-            }
+          {/* Signed-in learners go straight to the Home; `/english` would only redirect
+              them there. Signed-out visitors get the public landing page. */}
+          <Link
+            to={user ? "/english/home" : "/english"}
+            className={`nav-rail-studio-item${
+              location.pathname === "/english" || location.pathname === "/english/home"
+                ? " is-current"
+                : ""
+            }`}
           >
             <span className="nav-rail-module-mark" aria-hidden="true">H</span>
             <span className="nav-rail-label">English Studio</span>
-          </NavLink>
+          </Link>
           {(["practice", "utility"] as const).map((group) => (
             <EnglishModuleGroupLinks
               key={group}
@@ -183,6 +186,19 @@ export function ToolNavRail({
               pathname={location.pathname}
             />
           ))}
+          {/* Progress is a destination in its own right, not a per-tool afterthought
+              (IA v2 design §3.6) — so it is reachable from anywhere in the studio. */}
+          {user ? (
+            <Link
+              to="/english/progress"
+              className={`nav-rail-studio-item${
+                location.pathname === "/english/progress" ? " is-current" : ""
+              }`}
+            >
+              <span className="nav-rail-module-mark" aria-hidden="true">P</span>
+              <span className="nav-rail-label">Progress</span>
+            </Link>
+          ) : null}
         </nav>
 
         {/* Pinned top */}

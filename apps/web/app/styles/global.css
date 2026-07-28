@@ -8274,3 +8274,341 @@ select.input:focus {
 }
 
 .mode-handoff-inline:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   English Studio Home (IA v2 §3.3–3.5)
+   Action zone on top, status grid below — a zoned layout rather than one
+   vertical feed, so "do this now" never sits at the same weight as "here is
+   some data". Depth lives on /english/progress; these panels only summarise.
+   ========================================================================== */
+
+.studio-canvas {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg) 80px;
+}
+
+.home-header {
+  margin-bottom: var(--space-xl);
+}
+
+.home-title {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.home-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.home-degraded {
+  margin: 0 0 var(--space-lg);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- action zone ---------- */
+
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.home-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px 20px;
+}
+
+.home-card.is-primary {
+  border-color: var(--border-hover);
+}
+
+.home-card-kicker {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-card-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.home-card-meta {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.home-card-why {
+  margin: 0 0 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.home-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* ---------- cold start ---------- */
+
+.home-cold {
+  max-width: 560px;
+}
+
+.home-level-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.home-level-picker-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.home-level-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.home-level-chip:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  background: var(--bg-card);
+}
+
+.home-level-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- the break between doing and knowing ---------- */
+
+.home-split {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-xl) 0 var(--space-lg);
+}
+
+.home-status-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-md);
+}
+
+.home-status-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-status-more,
+.home-panel-more {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.home-status-more:hover,
+a.home-panel-more:hover {
+  color: var(--accent);
+}
+
+/* ---------- status grid ---------- */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.home-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+
+.home-panel.is-wide {
+  grid-column: span 2;
+}
+
+.home-panel.is-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-panel.is-wide,
+  .home-panel.is-full {
+    grid-column: span 1;
+  }
+}
+
+.home-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.home-panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-panel-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.home-panel-note {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* Coverage: bands practised. Rendered because CEFR confidence depends on band
+   spread, so nudging a learner sideways has to look purposeful, not random. */
+.home-coverage {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.home-coverage-band {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+}
+
+.home-coverage-band.is-on {
+  border-color: var(--border-hover);
+  background: var(--bg-alt);
+  color: var(--text);
+}
+
+/* ---------- ability bars ---------- */
+
+.home-bar-row {
+  margin-bottom: 10px;
+}
+
+.home-bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.home-bar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: 4px;
+  font-size: 0.8125rem;
+}
+
+.home-bar-label {
+  color: var(--text-muted);
+}
+
+.home-bar-value {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.home-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+
+.home-bar-fill {
+  height: 100%;
+  background: var(--copper);
+}
+
+/* ---------- recent ---------- */
+
+.home-recent {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-recent-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.home-recent-row:last-child {
+  border-bottom: none;
+}
+
+.home-recent-row:hover .home-recent-title {
+  color: var(--accent);
+}
+
+.home-recent-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.home-trend-svg {
+  display: block;
+  width: 100%;
+  height: 70px;
+}
