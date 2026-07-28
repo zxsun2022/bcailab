@@ -23,7 +23,7 @@ that answers *continue this / do this next*, with progress data supporting the r
 rather than fronting it. Three independently shippable, independently revertible phases —
 **do not do this as one change**:
 
-- [ ] **Phase 1 — Navigation truth.** Shared module registry (`english-modules.ts`) consumed by
+- [x] **Phase 1 — Navigation truth.** *(completed 2026-07-28)* Shared module registry (`english-modules.ts`) consumed by
       landing, rail, and Home; static rail (no dropdown) with a Home entry and practice/utility
       grouping; per-tool actions in the rail; Translate gains a way back into the studio.
       This also **fixes a real bug**: the switcher's drifted copy of the module list bypasses

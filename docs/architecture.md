@@ -51,7 +51,12 @@ still overrides tasks flagged `envModelOverride`.
 ## Routing
 - `/` studio homepage (lab intro, product cards linking to landing pages, principles, team info)
 - `/about` about page
-- `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Dictation, Speech as modules of one product)
+- `/english` English Studio product landing page (public; presents modules from the shared
+  `apps/web/app/english-modules.ts` registry)
+- English Studio tool rails use the same registry as the landing page. Their static
+  Practice/Tools navigation resolves anonymous access by module: public tools open
+  directly, Reading/Writing open their trial routes, and auth-only tools open the login
+  popup. Translate links back to `/english`.
 - `/english/progress` unified learner progress centre (authenticated; one growth view across dictation and reading, reading the shared learner profile — see docs/learner-model-design.md)
 - `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
 - `/login` sign-in popup page (Google OAuth or email OTP code)

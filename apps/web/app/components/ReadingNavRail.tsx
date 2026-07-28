@@ -48,8 +48,8 @@ export function ReadingNavRail({ passages, library, activeId, user }: ReadingNav
   }, []);
 
   const pinnedActions = [
-    { icon: <IconNew />, label: "New Passage", to: "/reading/new" },
-    { icon: <IconProgress />, label: "Progress", to: "/reading/progress" },
+    { icon: <IconNew />, label: "Add text", to: "/reading/new" },
+    { icon: <IconProgress />, label: "Reading progress", to: "/reading/progress" },
   ];
 
   return (

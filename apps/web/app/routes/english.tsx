@@ -2,6 +2,11 @@ import type { MetaFunction } from "@remix-run/cloudflare";
 import { Link, useOutletContext } from "@remix-run/react";
 import type { User } from "@bcailab/db";
 import { openLoginPopup } from "~/utils/login-popup";
+import {
+  ENGLISH_MODULES,
+  resolveEnglishModuleDestination,
+  type EnglishModule
+} from "~/english-modules";
 
 export const handle = {
   breadcrumb: { label: "english", href: "/english" }
@@ -16,95 +21,15 @@ export const meta: MetaFunction = () => [
   }
 ];
 
-interface Module {
-  slug: string;
-  title: string;
-  description: string;
-  detail: string;
-  tags: string[];
-  planned?: boolean;
-  /** Public modules are usable without signing in. */
-  public?: boolean;
-  /**
-   * Anonymous-trial entry point. Signed-out users are sent here instead of the
-   * login popup; the trial page enforces its own daily quota and shows the
-   * sign-in CTA once that is spent (design Appendix A).
-   */
-  trialSlug?: string;
-}
-
-const modules: Module[] = [
-  {
-    slug: "reading",
-    title: "Reading & Recitation",
-    description: "Read aloud or recite passages, get AI evaluation on every attempt.",
-    detail:
-      "Save passages, record attempts, and receive structured feedback on pronunciation, fluency, and completeness — with a progress dashboard across attempts.",
-    tags: ["Speaking", "Evaluation", "Free to try"],
-    trialSlug: "reading/trial"
-  },
-  {
-    slug: "writing",
-    title: "Writing Coach",
-    description: "Draft, get structured feedback, revise, and track rounds.",
-    detail:
-      "Choose a coach persona, submit a draft, and work through revision rounds with scored feedback that remembers where you left off.",
-    tags: ["Writing", "Feedback", "Free to try"],
-    trialSlug: "writing/trial"
-  },
-  {
-    slug: "translate",
-    title: "Translate",
-    description: "DeepL-style translation between English, Chinese, and more.",
-    detail:
-      "Two-pane translation driven by an LLM: auto-detect the source language, keep formatting intact, and swap directions in one click. Free to try without an account.",
-    tags: ["Translation", "LLM", "Free to try"],
-    public: true
-  },
-  {
-    slug: "dictation",
-    title: "Dictation",
-    description: "Listen sentence by sentence and type what you hear.",
-    detail:
-      "Graded passages from A2 to C1 with per-sentence audio, unlimited replays, and a speed toggle. Every sentence is scored instantly against the reference. Free to try without an account.",
-    tags: ["Listening", "Scoring", "Free to try"],
-    public: true
-  },
-  {
-    slug: "speech",
-    title: "Speech",
-    description: "Turn any text into natural audio you can replay anywhere.",
-    detail:
-      "Generate MP3 audio with natural voices, keep a private history, and use it as listening or shadowing material.",
-    tags: ["TTS", "Listening"]
-  },
-  {
-    slug: "esl/dictionary",
-    title: "AI Dictionary",
-    description: "Word and phrase explanation with bilingual support.",
-    detail: "Planned: contextual explanations that connect back to your reading and writing practice.",
-    tags: ["Vocabulary"],
-    planned: true
-  }
-];
-
 export default function EnglishLanding() {
   const { user } = useOutletContext<{ user: User | null }>();
 
-  /**
-   * Signed-out users go to a module's trial path when it has one, and to the login
-   * popup otherwise. Signed-in users always go to the real tool, so `moduleHref`
-   * and this handler must agree on that split.
-   */
-  const moduleHref = (mod: Module): string =>
-    !user && mod.trialSlug ? `/${mod.trialSlug}` : `/${mod.slug}`;
-
-  const handleModuleClick = (event: React.MouseEvent, mod: Module) => {
-    if (mod.planned) {
+  const handleModuleClick = (event: React.MouseEvent, mod: EnglishModule) => {
+    if (mod.status === "planned") {
       event.preventDefault();
       return;
     }
-    if (!user && !mod.public && !mod.trialSlug) {
+    if (resolveEnglishModuleDestination(mod, Boolean(user)).requiresLogin) {
       event.preventDefault();
       openLoginPopup();
     }
@@ -138,37 +63,40 @@ export default function EnglishLanding() {
       <section className="landing-modules">
         <div className="home-tools-header">
           <span className="home-tools-label">Modules</span>
-          <span className="home-tools-count">{modules.length}</span>
+          <span className="home-tools-count">{ENGLISH_MODULES.length}</span>
         </div>
         <div className="landing-module-list">
-          {modules.map((mod) => (
-            <Link
-              key={mod.slug}
-              to={moduleHref(mod)}
-              className={`landing-module${mod.planned ? " is-planned" : ""}`}
-              onClick={(e) => handleModuleClick(e, mod)}
-            >
-              <div className="landing-module-main">
-                <div className="landing-module-head">
-                  <h2 className="landing-module-title">{mod.title}</h2>
-                  {mod.planned ? (
-                    <span className="home-tool-badge">Soon</span>
-                  ) : (
-                    <span className="home-tool-arrow">&rarr;</span>
-                  )}
+          {ENGLISH_MODULES.map((mod) => {
+            const destination = resolveEnglishModuleDestination(mod, Boolean(user));
+            return (
+              <Link
+                key={mod.id}
+                to={destination.href}
+                className={`landing-module${mod.status === "planned" ? " is-planned" : ""}`}
+                onClick={(e) => handleModuleClick(e, mod)}
+              >
+                <div className="landing-module-main">
+                  <div className="landing-module-head">
+                    <h2 className="landing-module-title">{mod.label}</h2>
+                    {mod.status === "planned" ? (
+                      <span className="home-tool-badge">Soon</span>
+                    ) : (
+                      <span className="home-tool-arrow">&rarr;</span>
+                    )}
+                  </div>
+                  <p className="landing-module-desc">{mod.description}</p>
+                  <p className="landing-module-detail">{mod.detail}</p>
+                  <div className="home-tool-tags">
+                    {mod.tags.map((tag) => (
+                      <span key={tag} className="home-tool-tag">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <p className="landing-module-desc">{mod.description}</p>
-                <p className="landing-module-detail">{mod.detail}</p>
-                <div className="home-tool-tags">
-                  {mod.tags.map((tag) => (
-                    <span key={tag} className="home-tool-tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </section>
 

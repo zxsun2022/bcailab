@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
+import { Link, useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
 import { getOptionalUser } from "~/utils/auth.server";
 import { translateText } from "~/utils/translate.server";
 import {
@@ -204,6 +204,9 @@ export default function TranslatePage() {
   return (
     <div className="translate-page">
       <div className="translate-head">
+        <Link to="/english" className="translate-studio-back">
+          &larr; English Studio
+        </Link>
         <h1 className="translate-title">Translate</h1>
         <p className="translate-sub">LLM-powered translation. Natural phrasing, formatting preserved.</p>
       </div>
