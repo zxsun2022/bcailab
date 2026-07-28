@@ -11,29 +11,57 @@ Product direction (agreed 2026-07): bcailab is a studio; **English Studio** is t
 product (an AI English coach: read, write, listen, translate). Translate is the free,
 no-account acquisition funnel into it.
 
-## Now (current iteration — scoped 2026-07-21, confirmed by owner)
+## Now (current iteration — IA v2 / Coach Home, scoped 2026-07-27, confirmed by owner)
 
-- [x] Material layer unification — done 2026-07-21, see Done.
+**Read `docs/english-studio-ia-v2-design.md` before starting — it is the specification, and
+this entry is only the index into it.** It went through two external review rounds and three
+prototype revisions; the prototype (`docs/mockups/ia-v2.html`, neutral colours, no data) shows
+the intended structure, and `docs/mockups/ia-v2-brief.md` is the historical review brief.
 
-- [x] English Studio repairs — done 2026-07-21, see Done. Was: the work in
-      `docs/english-studio-ia-design.md` that does **not** depend on the learner model:
-      persist partial dictation practice (today an unfinished passage is silently
-      discarded, which is why production has zero dictation attempts), cross-module
-      navigation (the tool logo leaves the product entirely), dictation's shell and
-      Reading's index becoming catalogues, and a cross-mode handoff between dictation and
-      reading. Deliberately excludes browse IA — see that doc §2.
+English Studio moves from **tool-first** (a menu of five peer apps) to **coach-first**: a Home
+that answers *continue this / do this next*, with progress data supporting the recommendation
+rather than fronting it. Three independently shippable, independently revertible phases —
+**do not do this as one change**:
 
-- [x] Shared learner model + unified progress centre — done 2026-07-21, see Done.
+- [ ] **Phase 1 — Navigation truth.** Shared module registry (`english-modules.ts`) consumed by
+      landing, rail, and Home; static rail (no dropdown) with a Home entry and practice/utility
+      grouping; per-tool actions in the rail; Translate gains a way back into the studio.
+      This also **fixes a real bug**: the switcher's drifted copy of the module list bypasses
+      trial routing, so an anonymous visitor picking Reading from the switcher gets a login
+      bounce where the landing page would have sent them to `/reading/trial`. No page redesign.
 
-The learner model's **matching** service (learner → passage) is still open — it is the
-Dictation v2 work in Later. This iteration produced its learner-side inputs and stopped.
-Accumulated reasoning is in `docs/learner-model-notes.md`; the design (with its open
-questions now answered) is `docs/learner-model-design.md`.
+- [ ] **Phase 2 — Coach Home.** `english_.home.tsx` (escaped layout); `/english` redirects
+      signed-in users to it and stays the public landing for everyone else. Action zone
+      (Continue + **one** recommendation with directional alternatives — easier / challenge /
+      different topic, never a slot-machine refresh) over a status grid (level, volume,
+      coverage, ability snapshot, trend, recent). Cold start = a single dictation CTA **plus
+      the one-tap level picker** (moved out of Later — the cold start depends on it; the data
+      layer already exists unused). `selectStarterPractice()` as a pure, unit-tested function
+      returning a **list of actions with reasons** even while its length is 1, so matching and
+      the later planning layer inherit the same seam. `/english/progress` is **kept** as the
+      first-class detail page, linked from the Home panels and the rail — not redirected away.
+      Bounded queries; degrade to a module launcher on any personalisation failure, never blank.
 
-Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
+- [ ] **Phase 3 — Reading surface.** Remove the rail's passage list (which also removes a
+      duplicated DB query); library as the main axis grouped by band with card states
+      (`New` / `In progress 4/11` / `Best 86%`); learner's band open and marked, others folded
+      and **never locked**; own texts a visible secondary section with the add action in the
+      rail. Topic/state filters and search wait for the first library expansion.
 
-- [x] Extend "try before sign-in" to Reading/Writing
-- [x] Dictation v1
+Constraints an implementer must not quietly break (rationale in the design doc):
+
+- **Never render a `null` level as "B1".** The starter policy may use B1 internally; the UI
+  must not claim a level the system has not established.
+- **Never lock material by band.** Beyond it being hostile on an uncertain estimate, CEFR
+  confidence depends on band *spread* — practising one band caps it at exactly the override
+  threshold, so a recommender that never explores starves its own estimator.
+- **Writing reuses the list skeleton, not the semantics.** Writing cards speak prompt type,
+  length, draft round, feedback state — never accuracy or mastery it does not have, and
+  writing stays out of the ability panels until it has a real vocabulary.
+- **No recommendation service, repository layer, or feed framework** in this iteration.
+
+Still open after this iteration: the **matching** service (Dictation v2, Later) and the
+session/planning layer, both of which attach at Phase 2's recommendation seam.
 
 ## Next
 
@@ -41,11 +69,23 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
   it from the evaluation. Confirmed 2026-07-21.
+- **Semantic colour separation** (owner-raised 2026-07-23). Today `--accent: #b52a1c` and
+  `--red: #b52a1c` are **the same colour in light mode**, and `--accent` (87 usages) covers both
+  primary CTAs and `.form-error` — so a form error and a primary button are indistinguishable by
+  colour. There is no semantic colour layer at all (no `--error` / `--success` / `--warning`).
+  Fold in a related defect: `.dash-trend.is-up` references `var(--sage, …)` but `--sage` is never
+  defined, silently relying on the fallback. Sequenced **before** the item below, because that one
+  adds new coloured UI and you should not add coloured elements before deciding what colours mean.
+- **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
+  is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
+  `access: public | trial | auth` field is what makes free entry consistent — so this item is the
+  presentation half, and it follows the colour work.
 - Unified feedback-language setting (currently duplicated per tool in localStorage).
-- Fold **writing** into the unified progress centre. `/english/progress` shipped 2026-07-21
-  across dictation + reading; writing contributes only counters so far because it has no tag
-  vocabulary (writing material is a prompt, not a passage). Revisit when a writing vocabulary
-  exists.
+- Fold **writing** into the ability profile. Writing currently contributes only counters and
+  Continue/Recent entries, because it has no tag vocabulary — a prompt is not a passage. The
+  mechanism is settled (IA v2 design §6.3): a new vocabulary plus a writer emitting into the same
+  `learner_tag_observations` table, surfaced on `/english/progress` rather than crowding the Home
+  snapshot. Blocked on that vocabulary, not on schema.
 - Feedback wait experience: streaming or narrative loading instead of a spinner
   (the "magic moment" should not hide behind a spinner).
 - Replace native `confirm()` dialogs with branded confirmation UI.
@@ -90,9 +130,15 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   D1 query rather than a multi-second generate-then-synthesize round trip. It also keeps
   the owner's per-passage review in the loop. Work shifts from generation to (a) a
   dimensional tag schema shared by library and learner profile, (b) a matching policy,
-  (c) growing the library from 20 to several hundred passages. Reading/Writing migrate
-  to the same interface gradually (interface migration, not a rewrite).
-  Prerequisites: unified progress center (Next) + dictation v1.
+  (c) growing the library from 20 to several hundred passages (now its own raised item above).
+  Reading/Writing migrate to the same interface gradually (interface migration, not a rewrite).
+  Prerequisites: shared learner model (done 2026-07-21) + dictation v1 (done).
+  **Where it attaches (2026-07-27):** IA v2 Phase 2 builds `selectStarterPractice()` — a pure
+  function returning a list of recommended actions with reasons. Matching replaces that function
+  and inherits its callers; the Home renders whatever the seam returns, so no IA change is needed.
+  The **session / goal-first layer** (compose "today's practice" rather than return single items)
+  is the tenant after matching, on the same seam — recorded 2026-07-27 from the second IA review
+  as the eventual framing, deliberately not built now.
 - Dictation: bring-your-own-text — user pastes a passage and practices dictation on it.
   Noted 2026-07-20 as the one place runtime generation/synthesis genuinely earns its
   keep; it is user-initiated, distinct from adaptive difficulty, and should not be
@@ -103,15 +149,28 @@ Done in the iteration started 2026-07-20 (both shipped 2026-07-21, see Done):
   query; audio Range request support; session cleanup cron; session secret rotation.
 - Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
   data to fall back on — noted 2026-07-20, not urgent.
-- Writing prompt bank — graded essay prompts so writing has a cold start as good as
-  reading's. Cheap (short text, no TTS) but expect less from it than the passage library:
-  the friction in writing is producing 250 words, not choosing a topic. Discussed
-  2026-07-21; see `docs/learner-model-notes.md` §5.
-- Onboarding: one-tap level self-selection, skippable, corrected silently from real
-  practice data. **Not** a placement test — dictation already is one. The storage and the
-  silent-override rule shipped with the learner model (`cefr_declared` / `cefr_measured`,
-  design §8); only the picker UI is left. Discussed 2026-07-21; see
-  `docs/learner-model-notes.md` §1 and `docs/learner-model-design.md` §8.
+- **Library expansion — raised 2026-07-27**, and no longer only a Dictation v2 sub-task. The IA
+  v2 design assumes material grows ~100× (roughly 500 per band): at today's 5 per band a
+  motivated learner exhausts their level in two sittings, and the Coach Home makes that thinness
+  *visible* in a way the current catalogue does not. Expansion is cheap now that material is
+  LLM-generated, so this is mostly a content-and-review push, not engineering. Two consequences
+  when it lands: Reading's topic/state filters become necessary (IA v2 Phase 3 defers them to
+  exactly this trigger), and the whole-passage reference audio gap from the material layer
+  (design §9.1) should be closed in the same batch so TTS is paid once.
+- **Writing prompt bank — raised 2026-07-27** from "nice cold-start fix" to structural. With a
+  graded prompt bank, all three practice tools share one shape (platform material + user's own),
+  which is what lets the IA v2 list skeleton be instantiated three times instead of special-cased.
+  Note it gives writing *material*, not *measurement*: prompts have no tag vocabulary, so writing
+  still contributes nothing to the ability profile until the Next item above lands. Originally
+  discussed 2026-07-21, `docs/learner-model-notes.md` §5.
+- **Promote LLM judgment to a formal measurement signal** (owner direction 2026-07-27). The
+  grader variance spikes (Done, 2026-07-23) showed LLM scoring repeatable enough to be more than
+  a down-weighted hint. The architecture already anticipates this: `learner_tag_observations.source`
+  distinguishes `deterministic` from `llm`, and the weighting lives in one constant
+  (`SOURCE_WEIGHT` in `learner-model.ts`), so promotion is **a weight change with a documented
+  evidence trail, not a migration** (IA v2 design §6.2). Do it on evidence — more variance runs
+  across registers and speakers — not on vibes. New signal sources (a speaking evaluator, say)
+  join the same way: one enum value, one weight.
 - **vanmemo** (formerly vanbox) stays a permanently separate product — settled
   2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
   and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share

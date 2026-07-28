@@ -1,512 +1,341 @@
-# English Studio — IA v2: the Coach Home
+# English Studio — IA v2: Coach Home (final)
 
-Status: **final design, ready to implement.** Written 2026-07-23. Direction approved by the
-owner after external review; the review's `DONE_WITH_CONCERNS` items are resolved below.
-Supersedes the deferred half of `docs/english-studio-ia-design.md` (v1).
+Status: **final specification, approved direction — ready to implement** once the owner
+signs off on this text. Written 2026-07-27 after two external review rounds and three
+prototype revisions. Supersedes the deferred half of `docs/english-studio-ia-design.md` (v1)
+and all earlier drafts of this file.
 
-Intended reader: the AI agent (or human) implementing this. Where this doc delegates a
-decision, it says so.
+Companion artifacts (keep in sync only in spirit — this doc is the authority):
+- `docs/mockups/ia-v2.html` — interactive structural prototype (rev3, neutral colours,
+  no real data). Shows Home (cold / partial / active), Reading, Writing.
+- `docs/mockups/ia-v2-brief.md` — the self-contained brief the second review round read.
+  Historical; its §7 open questions are resolved here.
 
-**What changed from the first proposal:** the proposal was *dashboard-first* (progress data as
-the top surface). External review argued for **action-first**, and was right — see §2. It also
-found four factual errors in the proposal, corrected in §1 and listed in §0.1.
+Intended reader: the AI agent (or human) implementing this. Where a decision is delegated,
+this doc says so explicitly.
 
 ---
 
-## 0. Summary
+## 0. North star (owner, 2026-07-27)
 
-The IA moves from **tool-first** (a menu of five peer apps) to **coach-first**: a Home that
-answers *continue this / do this next*, with progress data supporting the recommendation rather
-than fronting it. Tools become executors one tier below.
+The product is an AI English coach. Its non-commoditisable assets are the **evaluation
+function** and the **learner-state loop**; material, TTS, and editors are replaceable. The
+long-term shape, stated by the owner and adopted here as the frame every decision below
+serves:
+
+- **LLM-generated material at scale** — the library grows ~100× cheaply, every level richly
+  stocked, for every practice mode (including a writing prompt bank).
+- **LLM as a legitimate measurement signal** — grader variance spikes (2026-07-23, three
+  recordings, stddev ≤ 3.5 on a 0–100 scale) showed LLM scoring is repeatable enough that
+  it may graduate from "down-weighted hint" to formal signal. The architecture must make
+  that a **configuration change, not a schema change** (§6.2).
+- **An accumulated learner context**: multi-dimensional ability (listening / speaking /
+  reading / writing, each with finer dimensions such as fluency), visible to the learner.
+- **The system proposes the highest-leverage next step** (maximum expected improvement),
+  delivers feedback, and closes the loop.
+- **Modules cooperate rather than sit side by side**, and **new training modes and new
+  ability dimensions must be addable without structural rewrites** (§6).
+
+The IA's job is to make this loop the visible spine of the product, and to leave clean
+seams where the future layers (matching, planning/session composition, new modes) attach.
+
+## 1. Current state — facts (verified in code)
+
+### 1.1 Modules
+
+| Module | What it does | Material model | Anonymous |
+|---|---|---|---|
+| Dictation | Sentence-by-sentence listening + typing; **deterministic** word-diff scoring | library only | yes (quota) |
+| Reading | Read aloud; LLM-judged evaluation | library **+ user-pasted text** | trial |
+| Writing | Coach feedback across revision rounds | **user text only; no library** | trial |
+| Translate | Free acquisition funnel | none | yes |
+| Speech | TTS utility | user-generated | no |
+
+No real users yet. Library: 20 passages (5 per band A2–C1) + ~14 user passages.
+
+### 1.2 The learner model (shipped 2026-07-21)
+
+- `learner_tag_observations`: append-only, per (attempt, tag) exposure/hits, keyed on the
+  12-tag `passage_tags` vocabulary; `source: deterministic | llm`.
+- `esl_learner_profiles`: `tag_mastery_json` (mastery/exposure/trend per tag),
+  `cefr_declared` / `cefr_measured` / `cefr_measured_confidence`, resolved `cefr_estimate`.
+- Aggregation is throttled (every ~3 attempts, background). LLM only *names* patterns.
+- `SOURCE_WEIGHT` (deterministic 1.0 vs llm 0.4) is a **module constant** in
+  `learner-model.ts` — the future "LLM graduates to formal signal" is one number.
+- The one-tap level picker's data layer exists unused: `cefr_declared` column +
+  `setLearnerDeclaredLevel` helper, **no callers**; `resolveCefr` returns `null` (not B1)
+  when nothing is known.
+
+### 1.3 The four structural defects this design fixes
+
+1. **Custom material outranks library material, twice**: `reading._index.tsx` renders
+   "Yours" above the graded bands, and `ReadingNavRail` lists "Your passages" above
+   "Library" — with the parent layout and index **each querying the same data**.
+2. **The unified progress centre is orphaned**: `/english/progress` is reachable only from
+   the marketing landing; per-tool rails point at per-tool dashboards.
+3. **The module switcher is a drifted copy with a real bug**: `ToolNavRail` maintains a
+   simplified module list that bypasses the landing page's trial routing — an anonymous
+   user picking Reading from the switcher hits `requireUser` → login bounce, where the
+   landing would have sent them to `/reading/trial`. Translate has no switcher at all.
+4. **No tier expresses the learner loop** — only tools.
+
+### 1.4 A cross-module feedback bug found during this design
+
+CEFR confidence = volume × band-spread; **practising only one band caps confidence at
+0.5**, which is exactly the override threshold. A recommender that only serves same-band
+material therefore **starves the estimator** and the measured level can never take over.
+Consequence for this design: the recommendation policy must periodically explore adjacent
+bands (§4.3), the UI must never make other bands look off-limits (§5.2), and coverage must
+be visible so exploration reads as purposeful (§3.3).
+
+## 2. Settled decisions
+
+Carried from prior iterations (do not relitigate):
+
+1. Matching (learner → material ranking) is deferred; this design leaves a replaceable seam.
+2. Deterministic layer measures; the LLM interprets — *amended by §6.2*: LLM measurement
+   may be promoted per-signal, by configuration, backed by variance data.
+3. Dictation is the placement instrument; no separate placement test.
+4. One passage, two modes = a handoff at the summary, not a combined page.
+5. Translate stays in English Studio as the free funnel.
+6. No admin/back-office system yet.
+7. Colour semantics are a separate track (today `--accent` and `--red` are the same hex;
+   primary CTAs and form errors are indistinguishable). The IA work makes **no** colour
+   decisions.
+
+Decided across the two review rounds of this design:
+
+8. **Action-first, not analytics-first** (round 1). The Home leads with "continue / do this
+   next"; progress data supports the recommendation's credibility.
+9. **Route**: `/english` stays the public marketing landing and **redirects signed-in users
+   to `/english/home`** (`english_.home.tsx`, escaped layout per repo convention).
+10. **Shared module registry** (`english-modules.ts`) consumed by landing, rail, and Home —
+    fixes §1.3(3) as a side effect of being the single source of truth.
+11. **Static rail, no dropdown** (owner). The rail lists no material, so the dropdown lost
+    its reason to exist. Home hosts no Explore section — the rail *is* explore.
+12. **Home = action zone + status grid** (owner, round 2 §7.1 refinement): a zoned grid,
+    not a vertical feed. Actions top; status panels below.
+13. **`/english/progress` is kept as the full detail page** (round 2, 7.1) — linked from
+    Home's status panels and the rail, **not** redirected away. Progress history is a
+    first-class destination that will grow (charts, per-dimension drill-downs); Home shows
+    the snapshot, the progress page holds the depth. Per-tool dashboards remain deeper
+    drill-downs for now.
+14. **One strong recommendation with meaningful alternatives** (round 2, 7.4): a single
+    primary card, whose secondary actions are **directional** — "easier", "challenge me",
+    "different topic" — not an equal-weight triple and not a slot-machine "next random".
+    (Directional alternatives also feed the estimator: "challenge me" is adjacent-band
+    exploration with learner consent — §1.4.)
+15. **Band remains the primary grouping; topic becomes a filter within band** as the
+    library grows (round 2, 7.3). Full-text search + state filters arrive with scale;
+    none of this is built at 20 passages.
+16. **Never lock material by level**; show all bands, fold non-current ones. Reasons: the
+    estimate is itself uncertain; learners legitimately want easier (fluency) and harder
+    (stretch) material; locking is a gamified-retention mechanic serving a subscription
+    model we don't have; and §1.4 makes exploration *necessary*.
+17. **Writing reuses the list skeleton, not the semantics** (round 2, 7.5). Writing cards
+    speak writing: prompt type, target length, draft round, feedback state — never
+    accuracy/mastery it doesn't have. Writing does not contribute to the ability profile
+    until it has a real vocabulary (future work, §6.3); the UI must not fake symmetry.
+18. **The one-tap level picker ships with the Home** (round 2, 7.6 — hard requirement):
+    cold start without it is a single forced path. Data layer exists; only UI is missing.
+19. **Session-first / goal-first is acknowledged as the eventual next framing** (round 2,
+    7.7): "what do I practise *today*" — a composed short session — is closer to a real
+    coach than any dashboard. It is **not built now**; it arrives with the matching/planning
+    layer and must attach at the recommendation seam without IA changes (§6.4).
+
+## 3. The design
+
+### 3.1 Tiering
 
 ```
-bcailab                          ← all products
- └─ English Studio Home           ← /english/home, THE signed-in top surface
-      ├─ 1. Continue              unfinished dictation / recent writing draft
-      ├─ 2. Next practice         ONE recommendation + a short honest reason
-      ├─ 3. Explore               the modules (subordinate; the escape hatch)
-      ├─ 4. Progress snapshot     CEFR · working on · strengths
-      └─ 5. Recent activity       a few records, not an archive
-           │
-           └─ Activities (one tier down)
-                Dictation · Reading · Writing      ← the graded practice loop
-                Translate · Speech                 ← adjacent tools, not on the loop
-                 └─ focused "what to practise" surface (prepared material foregrounded)
-                      └─ session (no competing rail)
+bcailab                            ← all products
+ └─ English Studio Home            ← /english/home, signed-in top surface
+      ├─ Action zone               Continue · Next (one primary + directional alts)
+      └─ Status grid               Level · Volume · Coverage · Ability snapshot
+      │                            · Trend · Recent   → links into /english/progress
+      ├─ /english/progress         full progress detail page (kept, first-class)
+      └─ Tools (one tier down, via the static rail)
+           Dictation · Reading · Writing      ← practice loop
+           Translate · Speech                 ← adjacent tools
+            └─ material surface (library as main axis)
+                 └─ session (no competing rail)
 ```
 
-### 0.1 Corrections to the earlier proposal
+### 3.2 The static rail (every page)
 
-Anyone who read the first draft should note these were **wrong**:
+- Entries from the shared registry: **English Studio** (→ Home) · Practice: Dictation,
+  Reading, Writing · Tools: Translate, Speech. Signed-out users are routed per the
+  registry's `access` field (`public` → straight in; `trial` → trial route; `auth` →
+  login popup) — this is the §1.3(3) bug fix.
+- Below a separator, **per-tool actions** when inside a tool: Reading → "+ Add text",
+  "Reading progress"; Writing → "+ New piece" (its "+" creates work, not material — until
+  the prompt bank exists), "Writing progress". Actions live in the rail so they stay
+  visible no matter how long the material list grows.
+- Translate keeps its two-pane shape but gains at least a link back to the studio.
 
-| Claim in the proposal | Reality |
+### 3.3 Home — action zone (top of viewport)
+
+- **Continue** (when unfinished work exists): resumable dictation, recent writing draft.
+  Highest priority — requires no intelligence and is unambiguously right.
+- **Next** — exactly one recommendation card, with the *why* folded inside
+  ("Dense in **word-final -s** — currently your weakest feature") and directional
+  alternatives per decision 14. Honest language until matching exists: "fits your current
+  level" — never "personalised for your weaknesses".
+- Backed by `selectStarterPractice()`: a pure, unit-tested function over bounded inputs
+  (profile row, resumable attempts, recent activity, published material). Fallback order
+  when same-band unpractised material runs out: same band other mode (the settled
+  dictation↔reading handoff) → adjacent band → weakest-scoring revisit. Includes periodic
+  adjacent-band exploration (§1.4). **No recommendation service, no repository layer, no
+  feed framework.**
+
+### 3.4 Home — status grid
+
+Panels, all reading existing data: **Level** (+ confidence, + basis sentence) · **Volume**
+(attempts, minutes) · **Coverage** (bands practised — makes exploration legible, §1.4) ·
+**Ability snapshot** (top tags by weakness/strength with trend arrows; "all 12 →" links to
+the progress page) · **Accuracy trend** (small chart) · **Recent** (bounded list).
+
+Rules: the grid renders **nothing** in the cold state (no "no data yet" wall);
+every panel that has more depth links into `/english/progress`; writing appears in
+Continue/Recent but **never** in ability panels (decision 17).
+
+### 3.5 Home — cold start
+
+`resolveCefr` returns `null` for a new user. The Home then shows a single strong CTA
+instead of the grid:
+
+> **Let's find your level.** One dictation passage — about 3 minutes, and it doubles as a
+> level check. [Start] [or pick your level yourself]
+
+The picker (decision 18) writes `cefr_declared` via the existing helper; skippable;
+starter policy may *use* B1 for `null` internally, but the UI never *claims* B1. Dictation
+is the CTA because it is the only calibrated instrument — a recommendation, not a gate;
+the rail leaves every module reachable.
+
+### 3.6 `/english/progress` — the detail page
+
+Kept and promoted (decision 13). Receives what Home's snapshot links to: full 12-tag
+mastery with history, accuracy trends per mode, practice history, CEFR history
+(declared vs measured over time). This page is where future ability dimensions land
+(§6.3) without crowding Home. `/reading/progress` and `/writing/progress` survive as
+tool-scoped drill-downs beneath it.
+
+### 3.7 Material surfaces
+
+**Reading (restructured now):**
+- The rail's passage list is removed (nav-only rail) — also removing the duplicated query.
+- Library is the main axis, grouped by band; learner's band open first and labelled
+  "your level"; other bands folded, never locked (decision 16).
+- Card state carries practice status: `New` / `In progress 4/11` / `Best 86%`. Completed
+  is card state, **not** a section.
+- **Your texts**: a clearly visible secondary section at the bottom — list only; the add
+  action lives in the rail. Not merged into the library's filter space: user text has no
+  band/tags, cannot be dictated, feeds no mastery — provenance is a **capability
+  boundary**, not a label.
+- Topic/state filters and search: build **when the library grows** (trigger: first
+  expansion batch, not calendar time). At 20 passages they are overbuild.
+
+**Dictation:** unchanged this iteration (its catalogue already leads with the library;
+whether its history rail stays is a per-tool call, not something Reading copies).
+
+**Writing:** unchanged until the prompt bank lands (roadmap item). When it does, it
+instantiates the same list skeleton with writing semantics (decision 17): prompt cards
+carry type/length; state carries draft round and feedback status.
+
+## 4. What round 2 explicitly resolved
+
+For traceability — reviewer point → disposition:
+
+| Point | Disposition |
 |---|---|
-| "Reading loses its rail, as dictation already did" | Dictation's catalogue **still has a rail** (`dictation.tsx:58`) — a *history* rail, hidden only in the session. Reading's is a *passage-listing* rail. Different content; "matching dictation" was never the right framing. |
-| Cold start defaults the learner to B1 | `resolveCefr` returns **`level: null`** when nothing is declared or measured (`learner-model.ts`). B1 exists only in prose. The picker UI does not exist. |
-| Reading's rail is "redundant" with the catalogue | It is also **literally duplicated DB work**: `reading.tsx` and `reading._index.tsx` each query own-passages + library. |
-| (not noticed at all) | The module switcher **bypasses the trial rules** for anonymous users — a real behavioural bug, §5. |
-
----
-
-## 1. Current state — facts
-
-### 1.1 Routes (relevant subset)
-
-```
-/                    studio homepage (all bcailab products; vanmemo card added 2026-07-23)
-/english             English Studio landing — PUBLIC marketing page, 5 module cards
-/english/progress    unified progress centre (auth) — shipped 2026-07-21, currently orphaned
-/dictation           catalogue, public; layout renders a HISTORY rail here
-/dictation/:id       session, public + quota-gated; rail hidden
-/reading             catalogue (auth) — own passages listed ABOVE graded library
-/reading/new         create from your own text
-/reading/:id         practice
-/reading/progress    reading-only dashboard
-/reading/trial       public anonymous trial (fixed passage)
-/writing             composer (auth)      /writing/:id  article + revision rail
-/writing/progress    writing-only dashboard
-/writing/trial       public anonymous trial
-/translate           two-pane tool (public) — does NOT use ToolNavRail, no switcher
-/speech              TTS utility
-```
-
-### 1.2 The four structural problems
-
-**(a) Custom material outranks prepared material, in two places.** `reading._index.tsx` renders
-"Yours" above the graded bands; `ReadingNavRail.tsx` lists "Your passages" above "Library".
-Reading has both a rail and a catalogue listing the same passages, each querying separately.
-
-**(b) The progress centre is orphaned.** `/english/progress` is reachable only from the
-marketing landing. It is in no switcher. Per-tool rails point at per-tool dashboards instead.
-
-**(c) The switcher is flat, incomplete, and wrong for anonymous users.**
-`ENGLISH_STUDIO_MODULES` in `ToolNavRail.tsx` is a five-item flat list with no home entry — and
-it is a *second, simplified copy* of the module list in `english.tsx`, which carries the real
-access metadata (`public`, `trialSlug`, `planned`). Consequence: an anonymous visitor on
-`/dictation` who picks "Reading" from the switcher hits `requireUser` and is bounced to
-`/?login=1`, whereas the landing page would have sent them to `/reading/trial`. **Same user,
-same module, two different behaviours.** Translate has no switcher at all, so it is a dead end.
-
-**(d) Nothing expresses the learner loop.** There is no tier at which "where am I / what next"
-is the subject. Tools own the product.
-
-### 1.3 Data available to a Home today
-
-All present and populated:
-
-| Data | Source | Enables |
-|---|---|---|
-| Resolved CEFR + basis | `esl_learner_profiles.cefr_estimate` / `cefr_declared` / `cefr_measured` / `cefr_measured_confidence` | Progress snapshot; level-fit selection |
-| Per-tag mastery + trend | `tag_mastery_json` (12-tag vocabulary) | "Working on" |
-| Named strengths/issues | `persistent_issues_json`, `strengths_json` | Progress snapshot |
-| **In-progress dictation** | `dictation_attempts.status='in_progress'`, `sentences_done` | **Continue** |
-| Writing drafts | `writing_articles` / revisions | **Continue** (writing) |
-| Recent attempts | `dictation_attempts`, `esl_reading_attempts` | Recent activity |
-| Material metadata | `passages.band/topic/word_count/has_sentence_audio/source/user_id` | Level-fit selection |
-| Per-passage difficulty | `passage_stats` | (recorded, not yet interpreted) |
-
-**Library size: 20 prepared passages, 5 per CEFR band (A2/B1/B2/C1)**, plus ~14 user passages.
-This drives §4.4.
-
----
-
-## 2. The spine: action-first, not analytics-first
-
-The proposal derived the loop as *where do I stand → what next → practise → see progress* and
-put "where you stand" first. **That ordering was wrong.** The corrected loop:
-
-> **Continue or start the right practice → immediate feedback → learner model updates →
-> check progress when you want to.**
-
-Users do not come to admire a learner model. The moat shows up as *the product knows where I
-was, its next step makes sense, it can say why in one line, and the feedback understands me* —
-**not as more charts.** Progress data's job is to make the recommendation credible, not to be
-the front page.
-
-This is why the surface is called **Home**, not Dashboard. The name decides what gets built:
-"dashboard" pulls toward analytics, "home" toward action.
-
-*Note on provenance:* the first proposal flagged that its author (who also built the learner
-model) might be biased toward a surface that displays it. External review independently reached
-the same diagnosis. A self-flagged bias, confirmed from outside, is treated here as settled.
-
-**The premise, stated falsifiably:** if learners mostly arrive knowing what they want and rarely
-want to be told, then a good tool menu beats a Coach Home. We have **no usage data** (§7.3).
-The mitigation is that this design is cheap and reversible.
-
----
-
-## 3. Settled decisions — do not relitigate
-
-From prior iterations:
-
-1. **Matching (learner → passage ranking) is deferred.** This design leaves a replaceable slot.
-2. **Deterministic layer measures; the LLM only interprets.**
-3. **Dictation is the placement instrument** — no separate placement test.
-4. **One passage, two modes = a handoff, not a combined page.**
-5. **Translate stays inside English Studio** as its free funnel.
-6. **Do not force one shell onto every module** (Writing/Translate/Speech differ genuinely).
-7. **No admin/back-office system** yet.
-
-Decided by this review round:
-
-8. **Action-first Home, not a dashboard** (§2).
-9. **Route: `/english` redirects signed-in users to `/english/home`** (§4.1).
-10. **No faceted material surface** (§6.1).
-11. **One-tap level picker is in scope** (§4.3).
-12. **Shared module registry** (§5) — a bug fix, not an abstraction.
-
----
-
-## 4. The Coach Home
-
-### 4.1 Route
-
-**`/english/home`**, a distinct route. `/english` stays the public marketing landing and
-**redirects signed-in users to `/english/home`**. `/english/progress` becomes a redirect to
-`/english/home` so no link breaks.
-
-Rejected: making `/english` dual-face. Concrete reason — `root.tsx:60-63` decides footer
-visibility by pathname, with `/english` in the list; a dual-face route would need another
-identity-based shell branch there, and would keep SEO/meta/footer/loading/error concerns
-entangled with an app surface. A redirect costs nothing and keeps both routes single-purpose.
-
-Remix file naming: use the escaped-layout form **`english_.home.tsx`**, so Home renders as its
-own page rather than nesting inside the `english.tsx` landing layout (repo convention,
-`AGENTS.md` → Routing Conventions).
-
-### 4.2 Sections, in order
-
-**1. Continue** — resumable work, highest priority because it needs no recommendation logic and
-is unambiguously the right next action.
-
-```
-Continue "A Normal Day"
-4 / 11 sentences completed
-[ Continue ]
-```
-
-Sources: in-progress dictation attempts; recent writing drafts. **Writing belongs here** even
-though it contributes no tag mastery — an unfinished draft is a real "continue," it just must
-not be dressed up as a learner-model recommendation.
-
-**2. Next practice** — **exactly one** recommendation, with a short honest reason.
-
-```
-A good next step at your current level
-B1 · Everyday English · about 3 minutes
-[ Start dictation ]        [ Browse all ]
-```
-
-One, not three: multiple equal-weight recommendations hand the decision back to the user, which
-defeats the point of recommending.
-
-**Language honesty:** until the matching service exists, we may say *"at your current level"*.
-We may **not** say "personalised for your weaknesses" — nothing yet ranks by tag profile.
-
-**3. Explore** — the modules, via the shared registry (§5). Deliberately subordinate: it is the
-escape hatch, and with a thin library the escape hatch matters. **Implementation risk:** this
-section must not become a second five-card menu that visually outweighs sections 1–2, or the
-page degrades into the old landing with a banner. Visual weight is a design-time concern, but
-the failure mode is named here because it would silently undo §2.
-
-**4. Progress snapshot** — CEFR + basis, working-on, strengths. This is the content of today's
-`/english/progress`, demoted from first place to supporting evidence.
-
-**5. Recent activity** — a short bounded list, not an archive.
-
-### 4.3 Cold start — a load-bearing part of the design
-
-A new signed-in learner has no level, no history, no observations, and `resolveCefr` returns
-`null`. A loop-shaped Home would be emptier than a tool menu — the proposal's weakest point.
-
-Two things resolve it, and **both are in scope**:
-
-1. **A single strong CTA.** Dictation is the placement instrument, needs no microphone, gives
-   deterministic feedback in ~3 minutes, and doubles as measurement:
-
-   ```
-   Let's find your level.
-   Try one dictation passage — 3 minutes, and it doubles as a level check.
-   [ Start ]                              [ or pick your level yourself ]
-   ```
-
-2. **The one-tap level picker ships with this work.** It was previously roadmap-Later, but the
-   cold start leans on it, and the data layer already exists and is unused: the `cefr_declared`
-   column and the `setLearnerDeclaredLevel` helper are written with **no callers**. Only the UI
-   is missing. Skippable; default B1 *as a starter policy input only*.
-
-**Explicit rule:** a `null` level must never be rendered as "B1" to the learner. The starter
-policy may treat `null` as B1 for material selection, but the Home must not claim a level the
-system has not established. Show the CTA instead.
-
-As attempts accumulate the Home fills in and the CTA recedes. **The Home's shape is a function
-of learner state** — a property of the loop framing, not a complication.
-
-### 4.4 Band exhaustion — not an edge case, a week-one certainty
-
-With **5 passages per band**, a motivated learner exhausts their band in two sittings. The
-Home's central promise ("here is your next practice") then fails **exactly when the learner is
-most engaged**. This needs a product answer, not just a fallback branch.
-
-**Answer: cross-mode reuse.** A passage already dictated is recommended as *reading aloud*.
-
-Three reasons this is the right answer and nearly free:
-1. It is already a settled decision (§3.4, the dictation↔reading handoff), needing no new call.
-2. It is pedagogically sound — listen → transcribe → read aloud is shadowing preparation.
-3. It makes 20 passages behave like 40, pushing the exhaustion point out by a factor of two.
-
-Starter-policy fallback order, when no unpractised same-band material remains:
-`same band, other mode` → `adjacent band, unpractised` → `revisit weakest-scoring passage`.
-
-**Consequence for the roadmap:** the Home makes the library's thinness *visible* in a way the
-current catalogue does not. The content push (20 → several hundred passages) should move up in
-priority as a result of shipping this.
-
-### 4.5 The replaceable recommendation boundary
-
-Keep the seam small and obvious. **Do not** build a recommendation service, repository layer, or
-generic feed framework now.
-
-```
-Home loader
-  ├─ profile      one learner-profile row
-  ├─ resumable    in-progress attempts / drafts        (bounded)
-  ├─ activity     recent records                       (bounded)
-  └─ materials    published library passages           (bounded)
-        │
-        ▼
-  selectStarterPractice()     ← pure, deterministic, unit-tested
-        │
-        ▼
-  Home view model
-
-  later: selectStarterPractice()  →  matching service
-```
-
-`selectStarterPractice()` is a pure function over already-fetched data — consistent with the
-repo's test policy (`AGENTS.md`: vitest covers pure deterministic logic; D1 loaders are verified
-against the dev server). Every query is bounded; no unbounded scans.
-
-**Degradation:** if a personalisation query fails, the Home falls back to the module launcher.
-It must never render blank. The learner model's own write paths already fail soft; the read path
-must too.
-
----
-
-## 5. Shared module registry — a bug fix
-
-Extract one pure-data module: `apps/web/app/utils/english-modules.ts`.
-
-```ts
-{
-  id, label, route,
-  trialRoute?,                                  // where signed-out users go, if any
-  access:  "public" | "trial" | "auth",
-  group:   "practice" | "utility",
-  status:  "active" | "planned"
-}
-```
-
-Both `english.tsx` (landing) and `ToolNavRail.tsx` (switcher) consume it, plus the Home's
-Explore section. This is **not** abstraction for its own sake: it repairs the §1.2(c) drift where
-the switcher's simplified copy silently bypasses trial routing for anonymous users.
-
-- `access: "public"` → link straight in (Dictation, Translate).
-- `access: "trial"` → signed-out users go to `trialRoute` (Reading, Writing).
-- `access: "auth"` → signed-out users get the login popup (Speech).
-
-`group` encodes the tiering: `practice` = the graded loop (Dictation, Reading, Writing);
-`utility` = adjacent tools (Translate, Speech). The Home reports on `practice` only.
-
-### 5.1 Switcher changes
-
-1. **Add a home entry** ("English Studio" → `/english/home`) so the loop is one click from
-   inside any tool. Today there is no way back to it.
-2. **Group by tier** rather than five equals, driven by `group`.
-3. **Give Translate a way back.** It keeps its two-pane, anonymous-first shape but gains at
-   least a link to English Studio so it is not a dead end. Whether it hosts the full switcher is
-   a visual-design call.
-4. **Per-tool "Progress" actions** point at the Home's snapshot. `/reading/progress` and
-   `/writing/progress` survive as **drill-downs**, consistent with the learner-model design's
-   §9.2 decision.
-
----
-
-## 6. Inside a tool
-
-- **Reading loses its passage-listing rail.** The catalogue is the surface; a grid scales to
-  hundreds of passages, a 260px chronological column does not. This also removes the duplicate
-  query (§0.1). Practice sessions stay focused (no competing rail) — already true for dictation
-  sessions.
-- **Prepared graded material is the main axis**, grouped by band, each card carrying the
-  learner's own state: `New` / `In progress` / `Best 82%`. **Completed material is card state,
-  not a separate section.**
-- **Own texts stay clearly visible but secondary** — a distinct lower section with `[Add text]`
-  plus recent items, not the first thing on the page.
-
-```
-Reading
-├─ Graded library            ← main axis; cards show New / In progress / Best score
-└─ Your texts                ← secondary, visible, not hidden
-     [ Add text ] + recent
-```
-
-Dictation's catalogue keeps its history rail for now; whether a catalogue keeps a navigation
-shell is a **separate decision per tool**, not something Reading should copy blindly.
-
-### 6.1 Why not a faceted material surface
-
-The proposal floated one surface with facets (state: new/in-progress/done × source:
-library/mine), arguing that provenance might be a meaningless technical distinction next to
-"what can I practise right now."
-
-**Rejected — provenance is a capability boundary, not a label:**
-
-| | Library passage | User-pasted text |
-|---|---|---|
-| CEFR band + tags | ✅ | ❌ (untagged by decision) |
-| Can be dictated | ✅ (has sentence audio) | ❌ |
-| Contributes tag mastery | ✅ | ❌ |
-| Can be recommended | ✅ | ❌ |
-
-A learner may not care about "who wrote it," but they will certainly notice that one kind cannot
-be dictated and does not move their profile. Meanwhile `completed` vs `new` genuinely *is* just
-state — which is why it belongs on the card, not in a taxonomy.
-
-Facets at a 20-passage library is the right abstraction at the wrong time.
-
-### 6.2 Writing is not forced into this shape
-
-Writing has no prepared library (the graded prompt bank remains roadmap-Later), so there is
-nothing to foreground above the learner's own work — their writing *is* the content. For
-writing, this iteration means only: drafts feed the Home's **Continue** and **Recent**, and
-history moves to the Home. The composer and per-article rail stay. Writing contributes **no tag
-mastery** and must not be presented as if it does.
-
----
-
-## 7. Risks
-
-1. **Explore becomes a second menu** (§4.2) — the most likely way this ships and quietly fails.
-2. **The Home is thin for the first week** — cold-start CTA (§4.3) is the answer and must be
-   executed well, or the Home is a worse front door than a tool menu.
-3. **Every premise is untested** — no users, no analytics. The design is reasoning from the
-   product's strategic position, not evidence. Mitigation: cheap, phased, reversible.
-4. **Demoting custom text is a real behaviour change** — Reading's original product *was* "paste
-   your own text." Low risk today (~14 user passages), but it should be deliberate.
-5. **Band exhaustion** (§4.4) — mitigated by cross-mode reuse, not eliminated.
-
----
-
-## 8. Implementation phases
-
-Three independently shippable, independently revertible phases. **Do not do this as one change.**
-
-### Phase 1 — Navigation truth
-- Extract `english-modules.ts`; both landing and switcher consume it.
-- Fix anonymous switcher trial/popup behaviour.
-- Add the English Studio home entry + tier grouping to the switcher.
-- Give Translate a link back to the studio.
-- **No page redesign yet.**
-
-### Phase 2 — Progressive Coach Home
-- New `english_.home.tsx`; `/english` redirects signed-in users to it.
-- Sections in order: Continue → Next → Explore → Progress → Recent.
-- Extract `selectStarterPractice()` as a pure, tested function.
-- One-tap level picker (wire up the existing unused `setLearnerDeclaredLevel`).
-- `/english/progress` → redirect.
-- Bounded queries; degrade to launcher on failure.
-
-### Phase 3 — Reading simplification
-- Remove the passage-listing rail; drop the duplicate query.
-- Graded library as main axis; own texts secondary but visible.
-- Completed/best score as card state.
-- No facets. `/reading/progress`, `/writing/progress` remain drill-downs.
-
----
-
-## 9. States and tests
-
-The Home must be correct in every state, not just the happy one:
-
-```
-/english
-├─ signed out → marketing landing → public / trial / popup routing all correct
-└─ signed in  → /english/home
-   ├─ cold       no profile, no history            → level CTA
-   ├─ partial    an unfinished dictation exists    → Continue wins
-   ├─ active     level + progress + recent activity
-   ├─ exhausted  current band fully practised      → cross-mode / adjacent-band fallback
-   ├─ stale      resumable passage now unpublished or deleted
-   └─ degraded   a personalisation query fails     → module launcher, never blank
-```
-
-`pnpm test` (pure logic) must cover at least:
-
-- `null` level (and that it is never rendered as "B1")
-- declared vs measured level precedence
-- resumable work outranks a fresh recommendation
-- same-band unpractised selection
-- exhausted-band fallback order (§4.4)
-- multiple in-progress attempts — which one wins
-- referenced passage deleted / unpublished
-- anonymous module resolution for all three `access` values
-
-Route loaders and real navigation are verified against the running dev server, per `AGENTS.md`.
-
----
-
-## 10. Out of scope
-
-- **The matching service.** This design leaves it a replaceable seam (§4.5) and must not
-  implement ranking.
-- **Visual design** — no colours, spacing, components, charts, streaks, or gamification.
-- **The writing prompt bank** (roadmap Later).
-- **Growing the material library** — a separate content task, whose priority this design raises
-  (§4.4).
-- **Translate's and Speech's internal shapes**, beyond Translate's link back.
-- **Semantic colour separation and the free-entry-point work** — see §10.1.
-
-### 10.1 Why the colour / free-entry work is a separate track
-
-The owner raised a second initiative: **(a) separate functional colours** (red reserved for CTA,
-errors given their own colour), then **(b) make free entry points explicit** (header + hero
-chip). The sequencing instinct is right, and the problem is real and verifiable:
-
-- `--accent: #b52a1c` and `--red: #b52a1c` are **the same colour in light mode**, and `--accent`
-  has 87 usages spanning primary CTAs *and* `.form-error`. **A form error and a primary button
-  are currently indistinguishable by colour.** There is no semantic colour layer at all — no
-  `--error` / `--success` / `--warning` token exists.
-- Related small defect worth folding into that work: `.dash-trend.is-up` references
-  `var(--sage, #6a9c78)`, but **`--sage` is not defined** — it silently relies on the fallback.
-
-**Decision: keep it out of IA v2, and keep the owner's ordering.** Reasons:
-
-1. This doc is structure and routing only; mixing a design-system change in makes both harder
-   to review, test, and revert. IA v2 is already three phases.
-2. The dependency runs the way the owner sequenced it: **(b) adds new coloured UI** (a "free"
-   chip, header entries), and you should not add coloured elements before deciding what colours
-   mean. Colour separation first is correct.
-3. **Half of (b) is already in IA v2 under another name.** The `access: public | trial | auth`
-   field in the shared registry (§5) *is* the data model that makes free entry points correct
-   and consistent — and it fixes the anonymous-switcher bug at the same time. So Phase 1 of this
-   design **unblocks** the free-entry work; the header/hero presentation then follows the colour
-   work.
-
-Recommended overall order: **IA Phase 1 (registry) → colour separation → free-entry surfacing →
-IA Phases 2–3**, or colour separation in parallel since it touches CSS rather than routing.
-Both should be their own roadmap items with their own brief.
-
----
-
-## 11. Documentation sync (at implementation time)
-
-- `docs/english-studio-ia-design.md` — mark its deferred half resolved here.
-- `docs/architecture.md` — `/english/home`; `/english` signed-in redirect; `/english/progress`
-  redirect; switcher tiering; the shared module registry.
-- `docs/roadmap.md` — scope this as an iteration (Now → Done per phase); raise the library
-  content push (§4.4); add the colour-separation and free-entry items (§10.1); move the level
-  picker out of Later into this scope.
-- `docs/learner-model-design.md` §9 — the progress centre now lives inside the Home.
-- `AGENTS.md` — no change expected; confirm at implementation time.
+| 7.1 Home overload | Resolved by **keeping `/english/progress`** as the depth destination; Home carries snapshot panels that link into it (decisions 12, 13) |
+| 7.2 Overbuild risk under the assumptions | Accepted as low: material expansion is cheap (LLM-generated); the structure is phased and each phase is independently useful |
+| 7.3 Band vs topic at scale | Band stays primary; topic is an in-band filter at scale (decision 15) |
+| 7.4 One recommendation at scale | One primary + directional alternatives (easier / challenge / different topic); no equal-weight triple, no slot machine (decision 14) |
+| 7.5 Writing symmetry is decorative | Agreed: skeleton reuse, writing-native semantics, no fake measurement; future contribution path noted (§6.3) |
+| 7.6 Cold start needs the picker | Picker is in scope, hard requirement (decision 18) |
+| 7.7 Third framing exists | Session-first acknowledged as the future layer on the same seam (decision 19, §6.4) |
+
+## 5. Risks that remain real
+
+1. **Cold-start thinness**: the model needs several attempts before panels mean anything.
+   Mitigated by the CTA + picker; not eliminated.
+2. **Everything is untested against real users.** The design is cheap, phased, reversible —
+   that is the mitigation, not proof.
+3. **Demoting user text is a real behaviour change** for Reading's original workflow
+   (~14 passages in production). Deliberate, owner-approved.
+4. **The "challenge me" affordance depends on copy quality**: adjacent-band exploration
+   must read as purposeful (coverage panel helps), or it feels like the product second-
+   guessing the learner.
+
+## 6. Extensibility contracts (the "no structural rewrite later" requirement)
+
+The owner's requirement: new training modes, new ability dimensions, more active
+assessment, and a future planning layer must arrive **without reshaping this IA**. Four
+contracts deliver that:
+
+### 6.1 Modules are data
+
+`english-modules.ts`: `{ id, label, route, trialRoute?, access: public|trial|auth,
+group: practice|utility, status: active|planned }`. Landing, rail, and Home consume it.
+**Adding a module = one entry + its routes.** Nothing else changes.
+
+### 6.2 Measurement sources are weighted configuration
+
+`learner_tag_observations.source` already distinguishes `deterministic` from `llm`;
+aggregation weights live in one place (`SOURCE_WEIGHT`). **Promoting LLM judgment to a
+formal signal — the owner's stated direction, supported by the variance spikes — is a
+weight change with a documented evidence trail, not a migration.** New sources (e.g. a
+speaking evaluator) add an enum value and a weight. The observation schema (append-only,
+re-derivable) stays fixed.
+
+### 6.3 The ability model grows by vocabulary, not by schema
+
+Today's 12 tags are the listening/reading vocabulary. A new skill (speaking fluency,
+writing accuracy…) = a new vocabulary + a writer that emits observations in the same
+table + panels on the **progress page** (not Home — Home shows only the snapshot).
+Writing joins the profile exactly this way when its vocabulary exists — that is the
+honest version of the symmetry the UI currently must not fake.
+
+### 6.4 One recommendation seam, three future tenants
+
+`selectStarterPractice()` (now) → matching service (ranked by tag profile) → planning /
+session layer (7.7: composed "today's session"). All three produce "next action(s) with
+reasons"; Home renders whatever the seam returns. The seam's output shape should therefore
+be a **list of recommended actions with reasons** from day one, even while its length is 1.
+
+## 7. Implementation plan
+
+Three phases, independently shippable and revertible. **Not one big change.**
+
+**Phase 1 — Navigation truth.** Registry; static rail with Home entry, groups, per-tool
+actions; anonymous routing fixed via `access`; Translate's way back. No page redesign.
+
+**Phase 2 — Coach Home.** `english_.home.tsx`; `/english` signed-in redirect; action zone
+(Continue + one recommendation with directional alternatives); status grid; cold-start CTA
++ level picker; `selectStarterPractice()` (pure, tested, list-shaped output, adjacent-band
+exploration); `/english/progress` kept and linked (its own enrichment can trail);
+bounded queries; degrade to a module launcher on any personalisation failure — never blank.
+
+**Phase 3 — Reading surface.** Rail passage list removed (dup query gone); band-grouped
+library with card states, folded bands, "your level" marker; own-texts secondary; add
+action in rail. Filters/search deferred to the first library expansion.
+
+States every phase must respect: signed-out (landing + correct per-module routing) /
+cold / partial / active / band-exhausted (fallback chain) / stale resumable target /
+degraded (query failure). Pure-logic tests via `pnpm test` for the starter policy
+(null level never rendered as B1; declared vs measured precedence; resume priority;
+fallback order; multiple in-progress; deleted/unpublished targets; anonymous access
+resolution for all three `access` values). Loaders verified against the dev server.
+
+## 8. Documentation sync (with implementation)
+
+- `docs/english-studio-ia-design.md` — mark the deferred half resolved here.
+- `docs/architecture.md` — `/english/home`, redirect behaviour, kept `/english/progress`,
+  rail/registry model.
+- `docs/roadmap.md` — scope as the next iteration (phases → Done as they ship); raise the
+  library content push; keep colour separation and free-entry surfacing as separate items;
+  move the level picker out of Later into this scope.
+- `docs/learner-model-design.md` — §9 note: progress centre = `/english/progress` detail
+  page + Home snapshot; §6.2 of this doc noted against `SOURCE_WEIGHT`.
+- `docs/mockups/ia-v2-brief.md` — add a line pointing here as the resolution.
