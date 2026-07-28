@@ -125,14 +125,18 @@ returns, so neither needs an IA change.
   query; audio Range request support; session cleanup cron; session secret rotation.
 - Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
   data to fall back on — noted 2026-07-20, not urgent.
-- **Library expansion — raised 2026-07-27**, and no longer only a Dictation v2 sub-task. The IA
-  v2 design assumes material grows ~100× (roughly 500 per band): at today's 5 per band a
-  motivated learner exhausts their level in two sittings, and the Coach Home makes that thinness
-  *visible* in a way the current catalogue does not. Expansion is cheap now that material is
-  LLM-generated, so this is mostly a content-and-review push, not engineering. Two consequences
-  when it lands: Reading's topic/state filters become necessary (IA v2 Phase 3 defers them to
-  exactly this trigger), and the whole-passage reference audio gap from the material layer
-  (design §9.1) should be closed in the same batch so TTS is paid once.
+- **Library expansion — first batch shipped 2026-07-28 (20 → 40 passages, ten per band); keep
+  going.** The IA v2 design assumes material eventually grows ~100× (roughly 500 per band),
+  because at five per band a motivated learner exhausted their level in two sittings and the
+  Coach Home made that thinness visible. Ten per band buys room, not resolution. Expansion is
+  mostly a content-and-review push rather than engineering: generate per band (parallel
+  sub-agents keep the register distinct), `intake.ts` to validate, owner review, `publish.ts`,
+  `tag.ts`. **Reference audio is now produced for every newly published passage** — the material
+  layer's §9.1 gap, closed in the same pass so TTS is paid once. The twenty passages published
+  *before* that change still lack a reference recording; backfilling them is optional and costs
+  a fresh TTS pass for those rows only. Reading's topic/state filters are still **not** needed:
+  the Phase 3 trigger was "the first expansion", but ten cards per band browse fine — revisit
+  when a band passes roughly thirty.
 - **Writing prompt bank — raised 2026-07-27** from "nice cold-start fix" to structural. With a
   graded prompt bank, all three practice tools share one shape (platform material + user's own),
   which is what lets the IA v2 list skeleton be instantiated three times instead of special-cased.
@@ -168,6 +172,22 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-28 — **Library expanded to forty passages, with reference audio.** Ten graded
+  passages per CEFR band instead of five, across five topics the library did not previously
+  cover (health, shopping, family, transport, hobbies), generated per band so the register
+  stays distinct. Fixed a blocking defect found on the way: `publish.ts` still wrote to the
+  legacy `dictation_passages` / `dictation_sentences` tables while the app has read from
+  `passages` since migration 0012 — anything published since that migration would have been
+  invisible to both Dictation and Reading, and the pipeline had not been run end to end since.
+  Closed the material layer's §9.1 reference-audio gap in the same pass, exactly as that doc
+  asked, so the TTS bill is paid once: every newly published passage now also gets a
+  whole-passage recording at `material/{id}/reference.mp3`. Added `intake.ts`, which the
+  documented manual path never had — it turns a hand-written batch into `out/*.json` and
+  enforces the constraints (digits are an error, not a warning: a learner cannot tell whether
+  to type "25" or "twenty-five"). One passage was edited before publishing rather than accepted
+  as generated, which is what the human review pass is for. Verified live: forty passages
+  render on production, per-sentence audio streams, and a reference object downloads from R2
+  at the recorded byte size.
 - 2026-07-28 — **English Studio IA v2 / Coach Home** (all three phases, PR #17). The studio
   moves from tool-first — a menu of five peer apps — to coach-first: `/english/home` is the
   signed-in top surface and answers *continue this / do this next*, with progress data

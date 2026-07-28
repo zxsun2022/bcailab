@@ -1,6 +1,7 @@
 # Material Layer — Technical Design
 
-Status: **implemented** 2026-07-21, except the reference-audio gap recorded in §9.1.
+Status: **implemented** 2026-07-21. The reference-audio gap recorded in §9.1 was closed
+2026-07-28 with the first library expansion.
 Original design approved by the owner the same day.
 Scope source: `docs/roadmap.md` → Now iteration (scoped 2026-07-21).
 Intended reader: the AI agent (or human) implementing this. Follow this doc; where it
@@ -304,11 +305,24 @@ alias.
 Generation stays manual per the 2026-07-20 workflow decision, with LLM cross-check and
 human spot-check once the library grows (`scripts/material-seed/README.md`).
 
-### 9.1 Known gap: whole-passage reference audio (owner accepted 2026-07-21)
+### 9.1 Whole-passage reference audio — **closed 2026-07-28**
+
+Resolved exactly as this section asked: with the first library expansion, so the TTS bill
+was paid once. `publish.ts` now synthesizes a whole-passage recording alongside the
+per-sentence audio and stores it at `material/{passageId}/reference.mp3`, filling
+`reference_audio_*` on the row. The R2 relayout mentioned below therefore *has* begun —
+reference audio uses the `material/` prefix while per-sentence audio stays under
+`dictation/`, which is fine because the key is stored per row.
+
+**Caveat:** the twenty passages published before that change still have per-sentence audio
+and no reference recording. Backfilling them is optional and costs a fresh TTS pass over
+those rows only.
+
+The original gap, for the record:
 
 This section originally also called for synthesizing whole-passage reference audio for
 library passages, so a learner could hear a model reading before recording. **That was
-not built.**
+not built** at material-layer time.
 
 Reference audio is an optional aid — reading practice and its evaluation do not depend
 on it — and building it now would mean a second round of TTS spend across the library,

@@ -235,7 +235,7 @@ const d1Target = (local: boolean): string[] => (local ? localFlags() : ["--remot
 const passageExistsInD1 = (passageId: string, local: boolean): boolean => {
   const output = wrangler([
     "d1", "execute", D1_NAME, ...d1Target(local), "--json",
-    "--command", `SELECT id FROM dictation_passages WHERE id = '${passageId}'`
+    "--command", `SELECT id FROM passages WHERE id = '${passageId}'`
   ]);
   const parsed = JSON.parse(output) as Array<{ results?: unknown[] }>;
   return (parsed[0]?.results?.length ?? 0) > 0;
@@ -287,14 +287,47 @@ const publishPassage = async (filePath: string, local: boolean): Promise<void> =
     sentenceRows.push({ id: randomUUID(), idx, text, r2Key, bytes });
   }
 
+  // Whole-passage reference audio: a learner can hear a model reading before recording.
+  // Closes the gap left open at material-layer time (design §9.1) — deferred then because
+  // it meant a second TTS pass over the library, which is exactly why it belongs *here*,
+  // in the same run that already pays for per-sentence audio.
+  const referenceText = passage.sentences.join(" ");
+  const referencePath = path.join(cacheDir, "reference.mp3");
+  let referenceBytes: number;
+  const cachedReference = await stat(referencePath).catch(() => null);
+  if (cachedReference && cachedReference.size > 0) {
+    referenceBytes = cachedReference.size;
+    console.log(`  reference: cached (${referenceBytes} bytes)`);
+  } else {
+    const audio = await synthesizeMp3(referenceText, voiceName);
+    await writeFile(referencePath, audio);
+    referenceBytes = audio.length;
+    console.log(`  reference: synthesized (${referenceBytes} bytes)`);
+  }
+  const referenceR2Key = `material/${passage.id}/reference.mp3`;
+  wrangler([
+    "r2", "object", "put", `${r2Bucket}/${referenceR2Key}`,
+    "--file", referencePath, "--content-type", "audio/mpeg",
+    ...(local ? localFlags() : ["--remote"])
+  ]);
+
+  const wordCount = referenceText.trim().split(/\s+/).filter(Boolean).length;
+
   const statements = [
-    `INSERT INTO dictation_passages (id, band, topic, title, voice_name, sentence_count) VALUES (${[
-      sqlQuote(passage.id), sqlQuote(passage.band), sqlQuote(passage.topic),
-      sqlQuote(passage.title), sqlQuote(voiceName), String(passage.sentences.length)
+    // The unified material table, not the legacy `dictation_passages` — the app has read
+    // from `passages` since migration 0012, so a row written to the old table would be
+    // invisible to both Dictation and Reading.
+    `INSERT INTO passages (id, user_id, title, content_text, band, topic, word_count, sentence_count, has_sentence_audio, reference_audio_status, reference_audio_r2_key, reference_audio_bytes, reference_voice_name, reference_audio_created_at, status, source) VALUES (${[
+      sqlQuote(passage.id), "NULL", sqlQuote(passage.title), sqlQuote(referenceText),
+      sqlQuote(passage.band), sqlQuote(passage.topic), String(wordCount),
+      String(passage.sentences.length), "1",
+      sqlQuote("completed"), sqlQuote(referenceR2Key), String(referenceBytes),
+      sqlQuote(voiceName), "datetime('now')",
+      sqlQuote("published"), sqlQuote("library")
     ].join(", ")});`,
     ...sentenceRows.map(
       (row) =>
-        `INSERT INTO dictation_sentences (id, passage_id, idx, text, r2_key, audio_bytes) VALUES (${[
+        `INSERT INTO passage_sentences (id, passage_id, idx, text, r2_key, audio_bytes) VALUES (${[
           sqlQuote(row.id), sqlQuote(passage.id), String(row.idx),
           sqlQuote(row.text), sqlQuote(row.r2Key), String(row.bytes)
         ].join(", ")});`

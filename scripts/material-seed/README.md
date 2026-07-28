@@ -30,16 +30,28 @@ full.
      following the constraints in `generate.ts` (`buildDictationPrompt`,
      `DICTATION_SENTENCE_*`), validating: 8–12 sentences, ≤110 chars each, no
      digits (numbers as words), no ambiguous proper nouns, CEFR-band-appropriate
-     language.
+     language. Parallel sub-agents, one per band, keep the register distinct.
    - *Scripted:* `pnpm tsx scripts/material-seed/generate.ts --band B1 --count 5`
      (Gemini, needs `GEMINI_API_KEY`; mirrors the `dictation_generate` routing entry).
-2. **Review** — the owner reads `out/*.json` by eye. Nothing publishes without this.
-3. **Publish** — `pnpm tsx scripts/material-seed/publish.ts --all` (or specific
+2. **Intake** (manual path only) — `pnpm tsx scripts/material-seed/intake.ts --band B1
+   --file batch.json [--dry-run]`. Takes the raw JSON array an AI session returns,
+   assigns uuids, and writes `out/<uuid>.json`. It **enforces** the constraints rather
+   than trusting them: sentence count, ≤110 chars, title shape, duplicate titles, and
+   digits — which `validatePassage` treats as a warning but which are disqualifying for
+   dictation, since the learner cannot tell whether to type "25" or "twenty-five".
+   Reuses `validatePassage` from generate.ts so the two paths cannot drift on what
+   counts as valid. Writes nothing to D1 or R2.
+3. **Review** — the owner reads `out/*.json` by eye. Nothing publishes without this.
+   Machine checks cover mechanics only; coherence is what the human pass is for (a
+   generated passage once had a character get a refund and then keep wearing the coat).
+4. **Publish** — `pnpm tsx scripts/material-seed/publish.ts --all` (or specific
    files). Per passage: Chirp3 en-US TTS per sentence (voice gender alternates by
-   uuid parity), upload to R2 `dictation/{passageId}/{idx}.mp3`, insert D1 rows.
+   uuid parity), upload to R2 `dictation/{passageId}/{idx}.mp3`, **plus one
+   whole-passage reference recording** at `material/{passageId}/reference.mp3`, then
+   insert D1 rows into `passages` / `passage_sentences`.
    Needs `GOOGLE_TTS_SERVICE_ACCOUNT_JSON` (env or root `.dev.vars`) and a
    logged-in wrangler.
-4. **Tag** — `pnpm tsx scripts/material-seed/tag.ts`. Derives difficulty metrics and
+5. **Tag** — `pnpm tsx scripts/material-seed/tag.ts`. Derives difficulty metrics and
    feature tags from passage text and writes `passages` / `passage_tags`.
    **Re-run this whenever the tag vocabulary changes** — it is deterministic and
    replaces a passage's tags wholesale, so re-tagging the whole library is the
@@ -56,4 +68,20 @@ full.
 
 ## Cost
 
-~800 chars/passage ≈ $0.02–0.03 of Chirp3 TTS; a 20-passage batch is under $1.
+~800 chars of sentences per passage, plus the same again for the whole-passage
+reference recording ≈ $0.04–0.06 of Chirp3 TTS per passage; a 20-passage batch is
+roughly $1–2.
+
+## History worth knowing
+
+- **The publish target moved.** Until 2026-07-28 `publish.ts` still inserted into the
+  legacy `dictation_passages` / `dictation_sentences` tables, even though the app has
+  read from `passages` since migration 0012. Anything published in that window would
+  have been invisible to both Dictation and Reading. Fixed when the library was first
+  expanded — which is also the first time the pipeline had been run end to end since
+  the material-layer migration.
+- **Reference audio landed with the same change.** It was deferred at material-layer
+  time (`docs/material-layer-design.md` §9.1) specifically so the TTS bill would be
+  paid once, together with the next expansion. Passages published *before* that batch
+  therefore still have per-sentence audio but no reference recording; backfilling them
+  is a separate, optional cost.

@@ -29,15 +29,6 @@ const products: Product[] = [
     ]
   },
   {
-    href: "/posts",
-    kicker: "Utility",
-    title: "Posts",
-    description:
-      "A quiet publishing tool. Write in Markdown, publish in one step, and share a clean public URL without formatting overhead.",
-    modules: ["Markdown", "Publish"],
-    requiresAuth: true
-  },
-  {
     href: "https://vanmemo.com",
     kicker: "Separate product",
     title: "VanMemo",
@@ -45,6 +36,15 @@ const products: Product[] = [
       "A calm home for fleeting thoughts. Capture an idea the moment it shows up — no folder to pick, no title to invent — then find it again later through tags, search, and pins. Private by default, exportable as Markdown, with revision history so nothing is ever lost.",
     modules: ["Quick capture", "Tags", "Search", "Markdown export"],
     external: true
+  },
+  {
+    href: "/posts",
+    kicker: "Utility",
+    title: "Posts",
+    description:
+      "A quiet publishing tool. Write in Markdown, publish in one step, and share a clean public URL without formatting overhead.",
+    modules: ["Markdown", "Publish"],
+    requiresAuth: true
   }
 ];
 

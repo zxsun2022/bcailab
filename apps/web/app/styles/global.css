@@ -1507,16 +1507,18 @@ select.input:focus {
 }
 
 .home-product-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
   gap: 14px;
 }
 
 .home-product {
-  display: block;
+  display: flex;
+  flex-direction: column;
   position: relative;
   overflow: hidden;
-  padding: 28px 32px;
+  padding: 28px 26px;
   border: 1px solid var(--border);
   background: var(--bg-card);
   color: inherit;
@@ -1569,16 +1571,21 @@ select.input:focus {
 
 .home-product-title {
   font-family: var(--font-display);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: 0.3px;
 }
 
 .home-product-desc {
-  max-width: 640px;
   color: var(--text-muted);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.7;
+}
+
+/* keep the tag row aligned along the bottom edge of every card */
+.home-product .home-tool-tags {
+  margin-top: auto;
+  padding-top: 18px;
 }
 
 .home-principle-grid {
@@ -1651,8 +1658,15 @@ select.input:focus {
   color: var(--accent-hover);
 }
 
+@media (max-width: 980px) {
+  .home-product-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
-  .home-principle-grid {
+  .home-principle-grid,
+  .home-product-list {
     grid-template-columns: 1fr;
   }
 
