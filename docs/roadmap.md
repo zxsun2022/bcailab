@@ -11,57 +11,25 @@ Product direction (agreed 2026-07): bcailab is a studio; **English Studio** is t
 product (an AI English coach: read, write, listen, translate). Translate is the free,
 no-account acquisition funnel into it.
 
-## Now (current iteration — IA v2 / Coach Home, scoped 2026-07-27, confirmed by owner)
+## Now (nothing scoped — awaiting the owner)
 
-**Read `docs/english-studio-ia-v2-design.md` before starting — it is the specification, and
-this entry is only the index into it.** It went through two external review rounds and three
-prototype revisions; the prototype (`docs/mockups/ia-v2.html`, neutral colours, no data) shows
-the intended structure, and `docs/mockups/ia-v2-brief.md` is the historical review brief.
+The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see Done). **The next
+iteration is not scoped.** Candidates sit in Next below; picking among them is the owner's
+call, not an implementer's.
 
-English Studio moves from **tool-first** (a menu of five peer apps) to **coach-first**: a Home
-that answers *continue this / do this next*, with progress data supporting the recommendation
-rather than fronting it. Three independently shippable, independently revertible phases —
-**do not do this as one change**:
+Two invariants established by that iteration outlive it and apply to anything touching the
+learner surfaces — the reasoning is in `docs/english-studio-ia-v2-design.md`:
 
-- [x] **Phase 1 — Navigation truth.** *(completed 2026-07-28)* Shared module registry (`english-modules.ts`) consumed by
-      landing, rail, and Home; static rail (no dropdown) with a Home entry and practice/utility
-      grouping; per-tool actions in the rail; Translate gains a way back into the studio.
-      This also **fixes a real bug**: the switcher's drifted copy of the module list bypasses
-      trial routing, so an anonymous visitor picking Reading from the switcher gets a login
-      bounce where the landing page would have sent them to `/reading/trial`. No page redesign.
+- **Never render a `null` level as "B1".** A policy may use B1 internally; the UI must not
+  claim a level the system has not established.
+- **Never lock material by band.** CEFR confidence is the product of practice volume and band
+  *spread*, so a recommender that never explores starves the estimator that decides the
+  learner's level. Fold other bands; do not gate them.
 
-- [x] **Phase 2 — Coach Home.** *(completed 2026-07-28)* `english_.home.tsx` (escaped layout); `/english` redirects
-      signed-in users to it and stays the public landing for everyone else. Action zone
-      (Continue + **one** recommendation with directional alternatives — easier / challenge /
-      different topic, never a slot-machine refresh) over a status grid (level, volume,
-      coverage, ability snapshot, trend, recent). Cold start = a single dictation CTA **plus
-      the one-tap level picker** (moved out of Later — the cold start depends on it; the data
-      layer already exists unused). `selectStarterPractice()` as a pure, unit-tested function
-      returning a **list of actions with reasons** even while its length is 1, so matching and
-      the later planning layer inherit the same seam. `/english/progress` is **kept** as the
-      first-class detail page, linked from the Home panels and the rail — not redirected away.
-      Bounded queries; degrade to a module launcher on any personalisation failure, never blank.
-
-- [x] **Phase 3 — Reading surface.** *(completed 2026-07-28)* Remove the rail's passage list (which also removes a
-      duplicated DB query); library as the main axis grouped by band with card states
-      (`New` / `In progress 4/11` / `Best 86%`); learner's band open and marked, others folded
-      and **never locked**; own texts a visible secondary section with the add action in the
-      rail. Topic/state filters and search wait for the first library expansion.
-
-Constraints an implementer must not quietly break (rationale in the design doc):
-
-- **Never render a `null` level as "B1".** The starter policy may use B1 internally; the UI
-  must not claim a level the system has not established.
-- **Never lock material by band.** Beyond it being hostile on an uncertain estimate, CEFR
-  confidence depends on band *spread* — practising one band caps it at exactly the override
-  threshold, so a recommender that never explores starves its own estimator.
-- **Writing reuses the list skeleton, not the semantics.** Writing cards speak prompt type,
-  length, draft round, feedback state — never accuracy or mastery it does not have, and
-  writing stays out of the ability panels until it has a real vocabulary.
-- **No recommendation service, repository layer, or feed framework** in this iteration.
-
-Still open after this iteration: the **matching** service (Dictation v2, Later) and the
-session/planning layer, both of which attach at Phase 2's recommendation seam.
+Also still open, and the natural successors at the seam Phase 2 left: the **matching** service
+(Dictation v2, in Later) and the session/planning layer. Both replace
+`selectStarterPractice()` and inherit its callers — the Home renders whatever that seam
+returns, so neither needs an IA change.
 
 ## Next
 
@@ -200,6 +168,27 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-28 — **English Studio IA v2 / Coach Home** (all three phases, PR #17). The studio
+  moves from tool-first — a menu of five peer apps — to coach-first: `/english/home` is the
+  signed-in top surface and answers *continue this / do this next*, with progress data
+  supporting the recommendation rather than fronting it. `/english` keeps its URL and its
+  marketing job for signed-out visitors and redirects signed-in ones, so the acquisition
+  surface and the app surface stay separable. A shared `english-modules.ts` registry now backs
+  the landing page, the rail and the Home, which fixed a real bug: the rail's drifted copy of
+  the module list bypassed trial routing, so an anonymous visitor picking Reading from it got a
+  login bounce where the landing page would have opened `/reading/trial`. The rail became
+  static navigation; Reading's catalogue became the material surface, grouped by band with
+  practice state on each card and the learner's own texts as a visible secondary section.
+  `/english/progress` was **kept** as the depth destination rather than folded into the Home —
+  folding it in would have recreated the orphaned-progress problem the iteration set out to fix.
+  `selectStarterPractice()` is the recommendation seam: pure, deterministic, 21 tests, ranking
+  nothing by tag profile, and returning a *list* of actions with reasons so matching and the
+  later planning layer inherit the shape. Two constraints are enforced by tests rather than
+  assumed — a null level is never rendered as B1, and alternatives are directional
+  (easier / challenge / different topic) rather than a slot-machine reshuffle. Design:
+  `docs/english-studio-ia-v2-design.md`; structural prototype: `docs/mockups/ia-v2.html`.
+  Deliberately excluded: the matching service, the session/planning layer, and any
+  recommendation service, repository layer or feed framework.
 - 2026-07-23 — Grader variance spike: `scripts/grader-variance.ts` calls the reading evaluator
   5× against the same (audio, passage) pair and reports per-dimension stddev + CEFR-guess
   agreement. Three real recordings tested (`docs/spikes/grader-variance-*-20260723.md`): a
