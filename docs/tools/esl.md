@@ -9,7 +9,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 |------|-------|---------------|
 | ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
 | Reading layout | `/reading` | Layout route with left sidebar (own passages + library). |
-| Reading catalogue | `/reading` (index) | Your passages, then the graded library by band. |
+| Reading catalogue | `/reading` (index) | The graded library by band (your band open and marked, others folded, none locked), practice state on each card, then your own texts as a secondary section. |
 | New passage | `/reading/new` | Paste your own text and submit the first attempt in one page. |
 | Reading progress | `/reading/progress` | Progress dashboard inside the center canvas with score trends, averages, and recent notes. |
 | Reading settings | `/reading/settings` | Reading-specific settings page inside the center canvas. |
@@ -33,13 +33,23 @@ a browse surface.
 ## Material Library
 
 Reading reads from the shared material layer (`passages`), not from reading-specific
-tables — see `docs/material-layer-design.md`. The nav rail has two sections:
+tables — see `docs/material-layer-design.md`. The catalogue has two parts (the nav rail
+lists neither: since IA v2 Phase 3 it carries actions only):
 
-- **Your passages** — text the learner pasted in. Deletable, never tagged or banded
-  (design §5.4), and never matched, since the learner chose it.
-- **Library** — graded global material, `user_id IS NULL`, shared with Dictation. A
-  passage can therefore be taken as dictation *and* read aloud. Read-only: there is no
-  per-item menu, and delete requires ownership at the query level.
+- **Library** — graded global material, `user_id IS NULL`, shared with Dictation, and the
+  catalogue's main axis. A passage can therefore be taken as dictation *and* read aloud.
+  Read-only: delete requires ownership at the query level. Grouped by band; the learner's
+  band opens and is marked, the rest fold. **Never locked by level** — the estimate is
+  itself uncertain, easier and harder material both have legitimate uses, and CEFR
+  confidence depends on band spread, so discouraging other bands would starve the estimator
+  (`docs/english-studio-ia-v2-design.md` §1.4).
+- **Your texts** — text the learner pasted in, a visible secondary section. Deletable
+  (the affordance lives on the card since the rail stopped listing passages), never tagged
+  or banded (material design §5.4), never matched since the learner chose it, and not
+  dictatable — which is why it is not merged into the library's space.
+
+Practice state is **card state**, not a separate "completed" section: `Not started`,
+`Evaluating…` while an attempt has no evaluation yet, or `Best <score>`.
 
 **Authorization is one predicate**, `getPassageForUser`: a passage is readable when it is
 library content **or** owned by the caller. Every read path goes through that helper

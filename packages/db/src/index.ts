@@ -1923,23 +1923,137 @@ export async function getPassageForUser(
 /** Published global library passages, optionally filtered by band. */
 export async function listLibraryPassages(
   db: Db,
-  options: { band?: string; requireSentenceAudio?: boolean } = {}
+  options: { band?: string; requireSentenceAudio?: boolean; limit?: number } = {}
 ): Promise<Passage[]> {
   const where = ["user_id IS NULL", "deleted_at IS NULL", "status = 'published'"];
-  const binds: string[] = [];
+  const binds: (string | number)[] = [];
   if (options.band) {
     where.push("band = ?");
     binds.push(options.band);
   }
   if (options.requireSentenceAudio) where.push("has_sentence_audio = 1");
+  // `limit` exists for callers that must stay bounded as the library grows (the Home's
+  // recommendation inputs). Catalogue pages deliberately omit it and page/filter instead.
+  const limitClause = options.limit ? " LIMIT ?" : "";
+  if (options.limit) binds.push(options.limit);
   const result = await db
     .prepare(
       `SELECT ${PASSAGE_COLS} FROM passages WHERE ${where.join(" AND ")}
-       ORDER BY band ASC, created_at ASC`
+       ORDER BY band ASC, created_at ASC${limitClause}`
     )
     .bind(...binds)
     .all();
   return (result.results ?? []).map((row) => mapPassage(row as Record<string, unknown>));
+}
+
+export type RecentReadingAttempt = {
+  id: string;
+  passage_id: string;
+  passage_title: string | null;
+  created_at: string;
+  /** 0..100 overall score from the latest evaluation, null while it is still pending. */
+  overall_score: number | null;
+};
+
+/**
+ * Recent reading attempts for the Home's activity strip.
+ *
+ * Bounded by `limit`, and joined against `passages` rather than the legacy `esl_passages`
+ * table that `listCompletedEslReadingAttemptsByUser` still uses — attempts have pointed at
+ * `passages` since the material layer migration, so the old join silently misses every
+ * attempt on library material.
+ */
+export async function listRecentReadingAttempts(
+  db: Db,
+  input: { userId: string; limit?: number }
+): Promise<RecentReadingAttempt[]> {
+  const result = await db
+    .prepare(
+      `SELECT a.id AS id, a.passage_id AS passage_id, a.created_at AS created_at,
+              p.title AS passage_title, e.output_json AS output_json
+         FROM esl_reading_attempts a
+         JOIN passages p ON p.id = a.passage_id
+         LEFT JOIN esl_reading_evaluations e
+           ON e.id = (
+             SELECT e2.id FROM esl_reading_evaluations e2
+              WHERE e2.attempt_id = a.id
+              ORDER BY e2.created_at DESC, e2.id DESC LIMIT 1
+           )
+        WHERE a.user_id = ? AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+        ORDER BY a.created_at DESC
+        LIMIT ?`
+    )
+    .bind(input.userId, input.limit ?? 20)
+    .all();
+  return (result.results ?? []).map((row) => {
+    const record = row as Record<string, unknown>;
+    let score: number | null = null;
+    if (record.output_json) {
+      try {
+        const parsed = JSON.parse(String(record.output_json)) as { scores?: { overall?: unknown } };
+        const overall = Number(parsed.scores?.overall);
+        if (Number.isFinite(overall)) score = overall;
+      } catch {
+        // A malformed evaluation must not take down the Home; it just has no score.
+      }
+    }
+    return {
+      id: String(record.id),
+      passage_id: String(record.passage_id),
+      passage_title: record.passage_title ? String(record.passage_title) : null,
+      created_at: String(record.created_at),
+      overall_score: score
+    };
+  });
+}
+
+export type ReadingPassageStat = {
+  passage_id: string;
+  attempts: number;
+  /** 0..100 best overall score, null while nothing has been evaluated yet. */
+  best_score: number | null;
+  /** Attempts still waiting on an evaluation. */
+  pending: number;
+};
+
+/**
+ * Per-passage reading practice state for one learner, so a catalogue can show what has
+ * been done without a query per card. Bounded by the learner's own attempts.
+ *
+ * The score lives inside the evaluation JSON, so this reads it with `json_extract` rather
+ * than pulling every row into the worker to parse.
+ */
+export async function listReadingPassageStatsByUser(
+  db: Db,
+  userId: string
+): Promise<ReadingPassageStat[]> {
+  const result = await db
+    .prepare(
+      `SELECT a.passage_id AS passage_id,
+              COUNT(a.id) AS attempts,
+              MAX(CAST(json_extract(e.output_json, '$.scores.overall') AS REAL)) AS best_score,
+              SUM(CASE WHEN e.id IS NULL THEN 1 ELSE 0 END) AS pending
+         FROM esl_reading_attempts a
+         LEFT JOIN esl_reading_evaluations e ON e.attempt_id = a.id
+        WHERE a.user_id = ? AND a.deleted_at IS NULL
+        GROUP BY a.passage_id`
+    )
+    .bind(userId)
+    .all();
+  return (result.results ?? []).map((row) => {
+    const record = row as Record<string, unknown>;
+    // Guard the null explicitly: an attempt with no evaluation yet yields SQL NULL here,
+    // and `Number(null)` is 0 — which would render as a real score of zero rather than
+    // "not evaluated".
+    const best =
+      record.best_score == null ? null : Number(record.best_score);
+    return {
+      passage_id: String(record.passage_id),
+      attempts: Number(record.attempts ?? 0),
+      best_score: best != null && Number.isFinite(best) ? best : null,
+      pending: Number(record.pending ?? 0)
+    };
+  });
 }
 
 /** A user's own passages only — never library content. */

@@ -23,14 +23,14 @@ that answers *continue this / do this next*, with progress data supporting the r
 rather than fronting it. Three independently shippable, independently revertible phases —
 **do not do this as one change**:
 
-- [ ] **Phase 1 — Navigation truth.** Shared module registry (`english-modules.ts`) consumed by
+- [x] **Phase 1 — Navigation truth.** *(completed 2026-07-28)* Shared module registry (`english-modules.ts`) consumed by
       landing, rail, and Home; static rail (no dropdown) with a Home entry and practice/utility
       grouping; per-tool actions in the rail; Translate gains a way back into the studio.
       This also **fixes a real bug**: the switcher's drifted copy of the module list bypasses
       trial routing, so an anonymous visitor picking Reading from the switcher gets a login
       bounce where the landing page would have sent them to `/reading/trial`. No page redesign.
 
-- [ ] **Phase 2 — Coach Home.** `english_.home.tsx` (escaped layout); `/english` redirects
+- [x] **Phase 2 — Coach Home.** *(completed 2026-07-28)* `english_.home.tsx` (escaped layout); `/english` redirects
       signed-in users to it and stays the public landing for everyone else. Action zone
       (Continue + **one** recommendation with directional alternatives — easier / challenge /
       different topic, never a slot-machine refresh) over a status grid (level, volume,
@@ -42,7 +42,7 @@ rather than fronting it. Three independently shippable, independently revertible
       first-class detail page, linked from the Home panels and the rail — not redirected away.
       Bounded queries; degrade to a module launcher on any personalisation failure, never blank.
 
-- [ ] **Phase 3 — Reading surface.** Remove the rail's passage list (which also removes a
+- [x] **Phase 3 — Reading surface.** *(completed 2026-07-28)* Remove the rail's passage list (which also removes a
       duplicated DB query); library as the main axis grouped by band with card states
       (`New` / `In progress 4/11` / `Best 86%`); learner's band open and marked, others folded
       and **never locked**; own texts a visible secondary section with the add action in the
@@ -65,6 +65,14 @@ session/planning layer, both of which attach at Phase 2's recommendation seam.
 
 ## Next
 
+- **Reading history silently drops library attempts** (found 2026-07-28 while building the
+  Coach Home). `listCompletedEslReadingAttemptsByUser` still joins the legacy `esl_passages`
+  table, but reading attempts have pointed at `passages` since the material-layer migration —
+  so an inner join on the old table matches only user-created passages and **every attempt on
+  library material vanishes** from `/reading/progress`. Not cosmetic: it under-reports practice
+  and skews the reading dashboard's averages. `listRecentReadingAttempts` (added for the Home)
+  shows the correct join; repoint the older helper and check the rest of the file for the same
+  stale join before assuming it is the only one.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop

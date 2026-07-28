@@ -34,8 +34,8 @@ export function WritingNavRail({ articles, activeId, user }: WritingNavRailProps
   }, []);
 
   const pinnedActions = [
-    { icon: <IconNew />, label: "New Article", to: "/writing" },
-    { icon: <IconProgress />, label: "Progress", to: "/writing/progress" },
+    { icon: <IconNew />, label: "New piece", to: "/writing" },
+    { icon: <IconProgress />, label: "Writing progress", to: "/writing/progress" },
   ];
 
   return (

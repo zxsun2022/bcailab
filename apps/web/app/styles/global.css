@@ -7495,16 +7495,56 @@ select.input:focus {
 }
 
 .passage-band {
-  margin-bottom: var(--space-2xl);
+  margin-bottom: var(--space-lg);
 }
 
+/* A band header is a fold control now: your level opens, the rest collapse. Folded,
+   never locked — see the catalogue route for why that distinction matters. */
 .passage-band-header {
   display: flex;
   align-items: baseline;
   gap: var(--space-md);
-  padding-bottom: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) 0;
+  border: none;
   border-bottom: 1px solid var(--border);
-  margin-bottom: var(--space-md);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.passage-band-header:hover {
+  border-bottom-color: var(--border-hover);
+}
+
+.passage-band-yours {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border: 1px solid var(--copper-dim);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+
+.passage-band-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.passage-band-caret {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--text-faint);
+  width: 1em;
+  text-align: center;
+}
+
+.passage-band-body {
+  padding-top: var(--space-md);
 }
 
 .passage-band-title {
@@ -7570,6 +7610,86 @@ select.input:focus {
 
 .passage-card-best { color: var(--accent); }
 .passage-card-start { color: var(--text-faint); }
+
+/* Practice state is card state, not a separate "completed" section. */
+.passage-card-state {
+  margin-top: auto;
+  padding-top: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+}
+
+.passage-card-state.is-new { color: var(--text-faint); }
+.passage-card-state.is-pending { color: var(--text-muted); }
+.passage-card-state.is-scored { color: var(--accent); }
+
+/* Own texts: visible and secondary. Separate from the library because they carry no band
+   or tags, cannot be dictated, and feed no mastery — a capability boundary, not a label. */
+.passage-own {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--border);
+}
+
+.passage-own-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.passage-own-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.passage-own-blurb {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.passage-own-item {
+  position: relative;
+}
+
+.passage-own-item form {
+  position: absolute;
+  top: var(--space-sm);
+  right: var(--space-sm);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.passage-own-item:hover form,
+.passage-own-item:focus-within form {
+  opacity: 1;
+}
+
+.passage-own-delete {
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--bg-card);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  padding: 2px 7px;
+  cursor: pointer;
+}
+
+.passage-own-delete:hover {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.passage-own-empty {
+  color: var(--text-faint);
+  font-size: 0.875rem;
+}
 
 .passage-catalogue-empty {
   color: var(--text-muted);
@@ -8010,6 +8130,20 @@ select.input:focus {
   margin-bottom: var(--space-xl);
 }
 
+/* Matches .translate-studio-back — the trial pages and Translate are the two
+   anonymous surfaces that need the same way back into the studio. */
+.trial-studio-back {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.trial-studio-back:hover {
+  color: var(--accent);
+}
+
 .trial-eyebrow {
   margin: 0 0 var(--space-sm);
   font-family: var(--font-mono);
@@ -8133,51 +8267,20 @@ select.input:focus {
   display: none;
 }
 
-/* --- Tool rail: English Studio module switcher --- */
+/* --- Tool rail: static English Studio navigation --- */
 
-.nav-rail-module-switch {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-}
-
-.nav-rail-tool-name.is-switch {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 6px;
-  margin-left: -6px;
-  border: 0;
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  max-width: 100%;
-}
-
-.nav-rail-tool-name.is-switch:hover {
-  background: var(--bg-alt);
-}
-
-.nav-rail-tool-caret {
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 4px 3.5px 0 3.5px;
-  border-color: currentColor transparent transparent transparent;
-  opacity: 0.5;
+.nav-rail-studio-nav {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
-.nav-rail-module-menu {
-  padding: 6px 8px 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-alt);
+.nav-rail-studio-group {
+  margin-top: 8px;
 }
 
-.nav-rail-module-menu-label {
-  padding: 4px 8px 6px;
+.nav-rail-studio-group-label {
+  padding: 4px 10px;
   font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: 0.1em;
@@ -8185,33 +8288,73 @@ select.input:focus {
   color: var(--text-faint);
 }
 
-.nav-rail-module-item {
-  display: block;
-  padding: 7px 8px;
-  border-radius: 4px;
+.nav-rail-studio-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: 5px;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.875rem;
 }
 
-.nav-rail-module-item:hover {
+.nav-rail-studio-item:hover {
   background: var(--bg-alt);
   color: var(--text);
 }
 
-.nav-rail-module-item.is-current {
+.nav-rail-studio-item.is-current {
+  color: var(--accent);
+  background: rgba(196, 149, 106, 0.1);
+}
+
+.nav-rail-module-mark {
+  display: none;
+  width: 20px;
+  height: 20px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-studio-nav {
+  padding: 8px 6px;
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-studio-group {
+  margin-top: 2px;
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-studio-group-label {
+  display: none;
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-studio-item {
+  justify-content: center;
+  padding: 7px;
+  gap: 0;
+}
+
+.tool-nav-rail.is-collapsed .nav-rail-module-mark {
+  display: flex;
+}
+
+.translate-studio-back {
+  display: inline-block;
+  margin-bottom: var(--space-sm);
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.translate-studio-back:hover {
   color: var(--accent);
 }
-
-.nav-rail-module-item.is-out {
-  margin-top: 4px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  font-size: 0.8125rem;
-  color: var(--text-faint);
-}
-
-.tool-nav-rail.is-collapsed .nav-rail-module-switch { display: none; }
 
 /* Focused practice: no rail, so the canvas centres in the full width instead of
    sitting beside an empty column. */
@@ -8251,3 +8394,341 @@ select.input:focus {
 }
 
 .mode-handoff-inline:hover { text-decoration: underline; }
+
+/* ==========================================================================
+   English Studio Home (IA v2 §3.3–3.5)
+   Action zone on top, status grid below — a zoned layout rather than one
+   vertical feed, so "do this now" never sits at the same weight as "here is
+   some data". Depth lives on /english/progress; these panels only summarise.
+   ========================================================================== */
+
+.studio-canvas {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg) 80px;
+}
+
+.home-header {
+  margin-bottom: var(--space-xl);
+}
+
+.home-title {
+  font-family: var(--font-display);
+  font-size: 1.9rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.home-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.home-degraded {
+  margin: 0 0 var(--space-lg);
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+/* ---------- action zone ---------- */
+
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-md);
+  align-items: start;
+}
+
+.home-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 18px 20px;
+}
+
+.home-card.is-primary {
+  border-color: var(--border-hover);
+}
+
+.home-card-kicker {
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-card-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.home-card-meta {
+  margin: 0 0 10px;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.home-card-why {
+  margin: 0 0 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.home-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+}
+
+/* ---------- cold start ---------- */
+
+.home-cold {
+  max-width: 560px;
+}
+
+.home-level-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+.home-level-picker-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.home-level-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.home-level-chip:hover:not(:disabled) {
+  border-color: var(--border-hover);
+  background: var(--bg-card);
+}
+
+.home-level-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- the break between doing and knowing ---------- */
+
+.home-split {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: var(--space-xl) 0 var(--space-lg);
+}
+
+.home-status-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-md);
+}
+
+.home-status-label {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-status-more,
+.home-panel-more {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.home-status-more:hover,
+a.home-panel-more:hover {
+  color: var(--accent);
+}
+
+/* ---------- status grid ---------- */
+
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.home-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px 16px;
+}
+
+.home-panel.is-wide {
+  grid-column: span 2;
+}
+
+.home-panel.is-full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .home-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-panel.is-wide,
+  .home-panel.is-full {
+    grid-column: span 1;
+  }
+}
+
+.home-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.home-panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.home-panel-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 1.1;
+  margin-top: 4px;
+}
+
+.home-panel-note {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* Coverage: bands practised. Rendered because CEFR confidence depends on band
+   spread, so nudging a learner sideways has to look purposeful, not random. */
+.home-coverage {
+  display: flex;
+  gap: 4px;
+  margin: 8px 0 0;
+}
+
+.home-coverage-band {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+}
+
+.home-coverage-band.is-on {
+  border-color: var(--border-hover);
+  background: var(--bg-alt);
+  color: var(--text);
+}
+
+/* ---------- ability bars ---------- */
+
+.home-bar-row {
+  margin-bottom: 10px;
+}
+
+.home-bar-row:last-child {
+  margin-bottom: 0;
+}
+
+.home-bar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: 4px;
+  font-size: 0.8125rem;
+}
+
+.home-bar-label {
+  color: var(--text-muted);
+}
+
+.home-bar-value {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.home-bar-track {
+  height: 5px;
+  border-radius: 3px;
+  background: var(--bg-alt);
+  overflow: hidden;
+}
+
+.home-bar-fill {
+  height: 100%;
+  background: var(--copper);
+}
+
+/* ---------- recent ---------- */
+
+.home-recent {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-recent-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.8125rem;
+}
+
+.home-recent-row:last-child {
+  border-bottom: none;
+}
+
+.home-recent-row:hover .home-recent-title {
+  color: var(--accent);
+}
+
+.home-recent-meta {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+.home-trend-svg {
+  display: block;
+  width: 100%;
+  height: 70px;
+}

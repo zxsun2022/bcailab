@@ -2,27 +2,18 @@ import * as React from "react";
 import { Link, NavLink, useLocation } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
+import {
+  ENGLISH_MODULES,
+  resolveEnglishModuleDestination,
+  type EnglishModule,
+  type EnglishModuleGroup
+} from "~/english-modules";
 
 export type NavUser = {
   name: string | null;
   email: string | null;
   avatar_url: string | null;
 };
-
-/**
- * The English Studio modules, in the order they appear in the switcher.
- *
- * Every tool that uses this rail is an English Studio module, which is why the rail can
- * own this list and why its logo goes to `/english` rather than the site root: a learner
- * inside a module should move between modules without leaving the product.
- */
-export const ENGLISH_STUDIO_MODULES = [
-  { name: "Dictation", to: "/dictation" },
-  { name: "Reading", to: "/reading" },
-  { name: "Writing", to: "/writing" },
-  { name: "Translate", to: "/translate" },
-  { name: "Speech", to: "/speech" }
-] as const;
 
 export type PinnedAction = {
   icon: React.ReactNode;
@@ -104,7 +95,6 @@ export function ToolNavRail({
     try { return localStorage.getItem(collapsedKey) === "true"; } catch { return false; }
   });
   const [mobileOpen, setMobileOpen] = React.useState(false);
-  const [moduleMenuOpen, setModuleMenuOpen] = React.useState(false);
   // Apply stored theme preference on tool pages (no site header rendered here)
   useThemePreference();
 
@@ -118,19 +108,7 @@ export function ToolNavRail({
 
   React.useEffect(() => {
     setMobileOpen(false);
-    setModuleMenuOpen(false);
   }, [location.pathname]);
-
-  React.useEffect(() => {
-    if (!moduleMenuOpen) return;
-    const close = (event: MouseEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (target?.closest(".nav-rail-module-switch")) return;
-      setModuleMenuOpen(false);
-    };
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
-  }, [moduleMenuOpen]);
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? "Account";
@@ -175,20 +153,7 @@ export function ToolNavRail({
             />
           </Link>
 
-          {/* The tool name doubles as the module switcher, so moving between modules is
-              one click rather than a trip out to the landing page. */}
-          <div className="nav-rail-module-switch">
-            <button
-              type="button"
-              className="nav-rail-tool-name is-switch"
-              aria-haspopup="menu"
-              aria-expanded={moduleMenuOpen}
-              onClick={() => setModuleMenuOpen((open) => !open)}
-            >
-              {toolName}
-              <span className="nav-rail-tool-caret" aria-hidden="true" />
-            </button>
-          </div>
+          <div className="nav-rail-tool-name">{toolName}</div>
           <button
             type="button"
             className="nav-rail-toggle"
@@ -199,27 +164,42 @@ export function ToolNavRail({
           </button>
         </div>
 
-        {/* Module switcher, expanded. Rendered in the rail's own flow rather than as a
-            floating menu: the header and the rail are both overflow:hidden for the
-            collapse behaviour, which would clip an absolutely positioned dropdown. */}
-        {moduleMenuOpen ? (
-          <div className="nav-rail-module-menu" role="menu">
-            <div className="nav-rail-module-menu-label">English Studio</div>
-            {ENGLISH_STUDIO_MODULES.map((entry) => (
-              <Link
-                key={entry.to}
-                to={entry.to}
-                role="menuitem"
-                className={`nav-rail-module-item${entry.name === toolName ? " is-current" : ""}`}
-              >
-                {entry.name}
-              </Link>
-            ))}
-            <Link to="/" role="menuitem" className="nav-rail-module-item is-out">
-              All bcailab products
+        <nav className="nav-rail-studio-nav" aria-label="English Studio">
+          {/* Signed-in learners go straight to the Home; `/english` would only redirect
+              them there. Signed-out visitors get the public landing page. */}
+          <Link
+            to={user ? "/english/home" : "/english"}
+            className={`nav-rail-studio-item${
+              location.pathname === "/english" || location.pathname === "/english/home"
+                ? " is-current"
+                : ""
+            }`}
+          >
+            <span className="nav-rail-module-mark" aria-hidden="true">H</span>
+            <span className="nav-rail-label">English Studio</span>
+          </Link>
+          {(["practice", "utility"] as const).map((group) => (
+            <EnglishModuleGroupLinks
+              key={group}
+              group={group}
+              signedIn={Boolean(user)}
+              pathname={location.pathname}
+            />
+          ))}
+          {/* Progress is a destination in its own right, not a per-tool afterthought
+              (IA v2 design §3.6) — so it is reachable from anywhere in the studio. */}
+          {user ? (
+            <Link
+              to="/english/progress"
+              className={`nav-rail-studio-item${
+                location.pathname === "/english/progress" ? " is-current" : ""
+              }`}
+            >
+              <span className="nav-rail-module-mark" aria-hidden="true">P</span>
+              <span className="nav-rail-label">Progress</span>
             </Link>
-          </div>
-        ) : null}
+          ) : null}
+        </nav>
 
         {/* Pinned top */}
         <div className="nav-rail-pinned-top">
@@ -278,6 +258,52 @@ export function ToolNavRail({
         </div>
       </aside>
     </>
+  );
+}
+
+function EnglishModuleGroupLinks({
+  group,
+  signedIn,
+  pathname
+}: {
+  group: EnglishModuleGroup;
+  signedIn: boolean;
+  pathname: string;
+}) {
+  const modules = ENGLISH_MODULES.filter(
+    (module) => module.status === "active" && module.group === group
+  );
+
+  const handleClick = (event: React.MouseEvent, module: EnglishModule) => {
+    if (resolveEnglishModuleDestination(module, signedIn).requiresLogin) {
+      event.preventDefault();
+      openLoginPopup();
+    }
+  };
+
+  return (
+    <div className="nav-rail-studio-group">
+      <div className="nav-rail-studio-group-label">
+        {group === "practice" ? "Practice" : "Tools"}
+      </div>
+      {modules.map((module) => {
+        const destination = resolveEnglishModuleDestination(module, signedIn);
+        const active = pathname === module.route || pathname.startsWith(`${module.route}/`);
+        return (
+          <Link
+            key={module.id}
+            to={destination.href}
+            className={`nav-rail-studio-item${active ? " is-current" : ""}`}
+            onClick={(event) => handleClick(event, module)}
+          >
+            <span className="nav-rail-module-mark" aria-hidden="true">
+              {module.label.slice(0, 1)}
+            </span>
+            <span className="nav-rail-label">{module.label}</span>
+          </Link>
+        );
+      })}
+    </div>
   );
 }
 

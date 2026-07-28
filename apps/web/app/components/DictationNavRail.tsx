@@ -1,5 +1,5 @@
 import { Link } from "@remix-run/react";
-import { ToolNavRail, IconNew, type NavUser } from "~/components/ToolNavRail";
+import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
 
 type HistoryItem = {
   id: string;
@@ -16,7 +16,6 @@ type HistoryItem = {
 type DictationNavRailProps = {
   history: HistoryItem[];
   user: NavUser | null;
-  isLibrary: boolean;
 };
 
 const formatAccuracy = (accuracy: number): string => `${Math.round(accuracy * 100)}%`;
@@ -28,21 +27,17 @@ const formatAccuracy = (accuracy: number): string => `${Math.round(accuracy * 10
  * nudge), signed in with no attempts, and signed in with history. Attempts are
  * read-only records, so unlike Speech/Writing the items have no per-item menu.
  */
-export function DictationNavRail({ history, user, isLibrary }: DictationNavRailProps) {
-  const pinnedActions = [
-    {
-      icon: <IconNew />,
-      label: "Library",
-      to: "/dictation",
-      active: isLibrary
-    }
-  ];
-
+export function DictationNavRail({ history, user }: DictationNavRailProps) {
+  // No pinned actions. Unlike Reading/Writing/Speech, dictation has nothing for the
+  // learner to create — bring-your-own-text is a later roadmap item — and no progress
+  // route of its own. A "Library" link here would carry the `+` create icon, duplicate
+  // the Practice > Dictation entry that is already marked current, and (because this
+  // rail only renders on `/dictation`) always point at the page you are on.
   return (
     <ToolNavRail
       toolName="Dictation"
       collapsedKey="dictation-nav-rail-collapsed"
-      pinnedActions={pinnedActions}
+      pinnedActions={[]}
       user={user}
     >
       {!user ? (

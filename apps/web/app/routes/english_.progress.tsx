@@ -3,10 +3,13 @@ import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
 import { getEslLearnerProfile } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
+import { StudioShell } from "~/components/StudioShell";
 import { resolveCefr, TAG_DESCRIPTIONS, type TagMastery } from "~/utils/learner-model";
 
 export const handle = {
-  breadcrumb: { label: "progress", href: "/english/progress" }
+  breadcrumb: { label: "progress", href: "/english/progress" },
+  hideHeader: true,
+  hideHeaderUserMenu: true
 };
 
 export const meta: MetaFunction = () => [{ title: "Progress · English Studio · bcailab" }];
@@ -52,6 +55,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   });
 
   return json({
+    user: { name: user.name, email: user.email, avatar_url: user.avatar_url },
     level: resolved.level,
     levelBasis: resolved.basis,
     totalAttempts: profile?.total_attempts ?? 0,
@@ -114,6 +118,7 @@ function TagMasteryList({ rows }: { rows: TagRow[] }) {
 
 export default function EnglishProgressPage() {
   const {
+    user,
     level,
     levelBasis,
     totalAttempts,
@@ -126,7 +131,7 @@ export default function EnglishProgressPage() {
   } = useLoaderData<typeof loader>();
 
   return (
-    <div className="writing-main-scroll">
+    <StudioShell user={user}>
       <div className="writing-dashboard">
         <div className="writing-dashboard-header">
           <h2>Progress</h2>
@@ -232,6 +237,6 @@ export default function EnglishProgressPage() {
           </>
         )}
       </div>
-    </div>
+    </StudioShell>
   );
 }

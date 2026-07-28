@@ -1,5 +1,9 @@
 # English Studio — Information Architecture
 
+> IA v2 Phase 1 resolved the deferred shared-navigation work on 2026-07-28.
+> `docs/english-studio-ia-v2-design.md` is authoritative for the remaining Coach Home
+> and Reading-surface phases.
+
 Status: **the independent work in §2's left column shipped 2026-07-21.**
 The deferred right column still waits on the learner model.
 The first draft proposed a browse-first structure centred on a shared material library.

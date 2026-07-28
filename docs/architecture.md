@@ -51,8 +51,24 @@ still overrides tasks flagged `envModelOverride`.
 ## Routing
 - `/` studio homepage (lab intro, product cards linking to landing pages, principles, team info)
 - `/about` about page
-- `/english` English Studio product landing page (public; presents Reading, Writing, Translate, Dictation, Speech as modules of one product)
-- `/english/progress` unified learner progress centre (authenticated; one growth view across dictation and reading, reading the shared learner profile — see docs/learner-model-design.md)
+- `/english` English Studio product landing page (public; presents modules from the shared
+  `apps/web/app/english-modules.ts` registry). **Signed-in visitors are redirected to
+  `/english/home`** — one memorable URL, one job per audience, so the marketing surface and
+  the app surface stay separable (see docs/english-studio-ia-v2-design.md §4.1)
+- `/english/home` English Studio Home (authenticated): the action-first top surface. Continue
+  / one recommendation with directional alternatives above a status grid (level, practice
+  volume, band coverage, ability snapshot, accuracy trend, recent). The recommendation comes
+  from `selectStarterPractice()` — a pure, tested function that is the seam matching will
+  replace. All queries are bounded and personalisation failure degrades to a module launcher
+  rather than a blank page
+- English Studio tool rails use the same registry as the landing page. Their static
+  Practice/Tools navigation resolves anonymous access by module: public tools open
+  directly, Reading/Writing open their trial routes, and auth-only tools open the login
+  popup. Translate links back to `/english`.
+- `/english/progress` learner progress detail page (authenticated; the depth behind the Home's
+  status snapshot, and where future ability dimensions land — reached from the Home panels and
+  the rail, deliberately **not** folded into the Home; see docs/learner-model-design.md and
+  docs/english-studio-ia-v2-design.md §3.6)
 - `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
 - `/login` sign-in popup page (Google OAuth or email OTP code)
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
@@ -68,7 +84,10 @@ still overrides tasks flagged `envModelOverride`.
 - `/dictation/attempt/:attemptId/status` authenticated feedback status polling endpoint
 - `/reading/trial` **public** anonymous reading trial (fixed sample passage; nothing persisted — see docs/tools/esl.md)
 - `/writing/trial` **public** anonymous writing trial (one feedback round; nothing persisted — see docs/tools/writing.md)
-- `/reading` reading catalogue: the learner's own passages plus the graded library
+- `/reading` reading catalogue: the graded library grouped by CEFR band (the learner's own
+  band opens and is marked; other bands fold but are **never locked**), with practice state
+  carried on each card, and the learner's own texts as a secondary section below. The rail is
+  navigation only — it no longer lists passages, which also removed a duplicated query
 - `/reading/new` create a passage from your own text
 - `/reading/progress` ESL reading/recitation progress dashboard
 - `/reading/:id` ESL reading/recitation practice page
