@@ -84,7 +84,10 @@ still overrides tasks flagged `envModelOverride`.
 - `/dictation/attempt/:attemptId/status` authenticated feedback status polling endpoint
 - `/reading/trial` **public** anonymous reading trial (fixed sample passage; nothing persisted — see docs/tools/esl.md)
 - `/writing/trial` **public** anonymous writing trial (one feedback round; nothing persisted — see docs/tools/writing.md)
-- `/reading` reading catalogue: the learner's own passages plus the graded library
+- `/reading` reading catalogue: the graded library grouped by CEFR band (the learner's own
+  band opens and is marked; other bands fold but are **never locked**), with practice state
+  carried on each card, and the learner's own texts as a secondary section below. The rail is
+  navigation only — it no longer lists passages, which also removed a duplicated query
 - `/reading/new` create a passage from your own text
 - `/reading/progress` ESL reading/recitation progress dashboard
 - `/reading/:id` ESL reading/recitation practice page

@@ -42,7 +42,7 @@ rather than fronting it. Three independently shippable, independently revertible
       first-class detail page, linked from the Home panels and the rail — not redirected away.
       Bounded queries; degrade to a module launcher on any personalisation failure, never blank.
 
-- [ ] **Phase 3 — Reading surface.** Remove the rail's passage list (which also removes a
+- [x] **Phase 3 — Reading surface.** *(completed 2026-07-28)* Remove the rail's passage list (which also removes a
       duplicated DB query); library as the main axis grouped by band with card states
       (`New` / `In progress 4/11` / `Best 86%`); learner's band open and marked, others folded
       and **never locked**; own texts a visible secondary section with the add action in the
