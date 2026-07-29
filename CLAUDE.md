@@ -21,4 +21,6 @@ Codex, etc.) continue each other's work through shared docs, not chat history.
   in the same commit/PR.
 - Follow the Documentation Sync Rule in `AGENTS.md`: external-behavior changes must
   update `docs/` in the same task.
+- Follow the Commit Discipline in `AGENTS.md`: implementation tasks that change files
+  should finish with a focused commit unless the user asks otherwise or the work is blocked.
 - Do not add or reprioritize roadmap items without the owner's confirmation.

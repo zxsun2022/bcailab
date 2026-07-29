@@ -39,6 +39,15 @@ This repository is intentionally structured for multi-agent collaboration across
 - **Never expand task scope on your own.** A bug fix is a bug fix; a feature request is that feature. Do not "clean up" surrounding code or add unrelated improvements unless explicitly asked.
 - **Assume first, ask only when critical.** If enough information exists to make a reasonable choice, proceed. Only pause to ask when missing information would materially change the approach.
 
+## Commit Discipline
+- Every implementation task that changes files should end with a git commit before the final response, unless the user explicitly asks not to commit or the work is incomplete/blocked.
+- Inspect `git status` before editing and treat pre-existing or concurrent changes as user-owned.
+- Review the final diff and run proportionate verification before committing.
+- Stage only files or hunks that belong to the current task. Never bundle unrelated changes unless the user explicitly asks.
+- Use a concise descriptive commit message. Report the commit hash.
+- Do not push, amend, rebase, or rewrite history unless explicitly asked.
+- Read-only tasks and tasks with no file changes do not create empty commits.
+
 ## Task Complexity Handling
 - **Trivial** (typo, single-line fix, obvious rename): execute immediately, no confirmation needed.
 - **Moderate** (new feature within an existing pattern, small refactor): proceed directly if the user's intent is clear — keywords like "实现", "执行", "加上", "改成" are sufficient signal.
