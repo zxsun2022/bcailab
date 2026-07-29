@@ -5,17 +5,17 @@ import { NavLink } from "@remix-run/react";
  */
 export function SpeechWorkspaceTabs() {
   return (
-    <nav className="speech-workspace-tabs" aria-label="Speech workspace">
+    <nav className="workspace-tabs" aria-label="Speech workspace">
       <NavLink
         to="/speech"
         end
-        className={({ isActive }) => `speech-workspace-tab${isActive ? " is-active" : ""}`}
+        className={({ isActive }) => `workspace-tab${isActive ? " is-active" : ""}`}
       >
         Generate
       </NavLink>
       <NavLink
         to="/speech/history"
-        className={({ isActive }) => `speech-workspace-tab${isActive ? " is-active" : ""}`}
+        className={({ isActive }) => `workspace-tab${isActive ? " is-active" : ""}`}
       >
         History
       </NavLink>

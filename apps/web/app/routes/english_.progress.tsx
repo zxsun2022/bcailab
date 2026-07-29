@@ -4,6 +4,7 @@ import { Link, useLoaderData } from "@remix-run/react";
 import { getEslLearnerProfile } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { StudioShell } from "~/components/StudioShell";
+import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
 import { resolveCefr, TAG_DESCRIPTIONS, type TagMastery } from "~/utils/learner-model";
 
 export const handle = {
@@ -140,6 +141,7 @@ export default function EnglishProgressPage() {
             reading contributes a lighter one.
           </p>
         </div>
+        <ProgressWorkspaceTabs />
 
         {!hasData ? (
           <div className="writing-dashboard-empty">

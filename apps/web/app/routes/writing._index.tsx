@@ -95,7 +95,8 @@ export default function WritingIndexPage() {
     <div className="writing-main-scroll">
       <div className="writing-index">
         <div className="writing-index-header">
-          <h2>New Writing Session</h2>
+          <h1>New piece</h1>
+          <p>Write with a coach and get structured feedback on your next revision.</p>
         </div>
 
         <fetcher.Form method="post" action="?index" className="writing-index-form">

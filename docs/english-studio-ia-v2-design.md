@@ -169,10 +169,9 @@ bcailab                            ← all products
   Reading, Writing · Tools: Translate, Speech. Signed-out users are routed per the
   registry's `access` field (`public` → straight in; `trial` → trial route; `auth` →
   login popup) — this is the §1.3(3) bug fix.
-- Below a separator, **per-tool actions** when inside a tool: Reading → "+ Add text",
-  "Reading progress"; Writing → "+ New piece" (its "+" creates work, not material — until
-  the prompt bank exists), "Writing progress". Actions live in the rail so they stay
-  visible no matter how long the material list grows.
+- The rail contains **destinations only**. Creation, history, settings specific to a task,
+  and per-tool progress links belong to that tool's main workspace. Reading exposes
+  "+ Add text" in its catalogue header; Writing opens directly on "New piece".
 - Translate keeps its two-pane shape inside the same shell; entering it must not remove
   the rail.
 - The rail has one collapse state shared across the product rather than one preference per
@@ -182,6 +181,9 @@ bcailab                            ← all products
   remains on catalogue/progress/history surfaces. `ToolNavRail` intentionally has no
   arbitrary-content/list slot, so this rule is enforced by its component API rather than
   relying on each tool to remember it.
+- `ToolNavRail` also has no pinned-action API. This enforces the stronger boundary that the
+  product rail answers "where can I go?", while the active workspace answers "what can I
+  do here?".
 - Speech follows the workspace pattern directly: `Generate / History` is local navigation
   above the Speech canvas, and `/speech/history` renders the generation list in the main
   content area. Neither tab nor any generation record appears in the product rail.
@@ -235,8 +237,11 @@ the rail leaves every module reachable.
 Kept and promoted (decision 13). Receives what Home's snapshot links to: full 12-tag
 mastery with history, accuracy trends per mode, practice history, CEFR history
 (declared vs measured over time). This page is where future ability dimensions land
-(§6.3) without crowding Home. `/reading/progress` and `/writing/progress` survive as
-tool-scoped drill-downs beneath it.
+(§6.3) without crowding Home. It is the **only Progress entry in the product rail**.
+`/reading/progress` and `/writing/progress` survive as tool-scoped drill-downs and stable
+deep links beneath it; their different measurements are not flattened into a fake combined
+score. All three surfaces share an in-workspace `Overview / Reading / Writing` view switcher,
+and every view keeps the product-level Progress item active in the rail.
 
 ### 3.7 Material surfaces
 
@@ -247,7 +252,7 @@ tool-scoped drill-downs beneath it.
 - Card state carries practice status: `New` / `In progress 4/11` / `Best 86%`. Completed
   is card state, **not** a section.
 - **Your texts**: a clearly visible secondary section at the bottom — list only; the add
-  action lives in the rail. Not merged into the library's filter space: user text has no
+  action lives in the catalogue header. Not merged into the library's filter space: user text has no
   band/tags, cannot be dictated, feeds no mastery — provenance is a **capability
   boundary**, not a label.
 - Topic/state filters and search: build **when the library grows** (trigger: first
@@ -256,7 +261,8 @@ tool-scoped drill-downs beneath it.
 **Dictation:** its catalogue already leads with the library. Attempt history is not shown
 in the global rail; resumable/completed state remains on catalogue and progress surfaces.
 
-**Writing:** unchanged until the prompt bank lands (roadmap item). When it does, it
+**Writing:** its root workspace is explicitly titled "New piece"; creation is not duplicated
+in the product rail. Otherwise unchanged until the prompt bank lands (roadmap item). When it does, it
 instantiates the same list skeleton with writing semantics (decision 17): prompt cards
 carry type/length; state carries draft round and feedback status.
 

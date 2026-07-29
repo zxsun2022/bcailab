@@ -5,11 +5,5 @@ import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
  * consistent cross-tool definition of a resumable session.
  */
 export function DictationNavRail({ user }: { user: NavUser | null }) {
-  return (
-    <ToolNavRail
-      toolName="Dictation"
-      pinnedActions={[]}
-      user={user}
-    />
-  );
+  return <ToolNavRail user={user} />;
 }

@@ -155,7 +155,12 @@ export default function ReadingCatalogue() {
   return (
     <div className="passage-catalogue">
       <header className="passage-catalogue-header">
-        <h1 className="passage-catalogue-title">Reading</h1>
+        <div className="passage-catalogue-heading-row">
+          <h1 className="passage-catalogue-title">Reading</h1>
+          <Link to="/reading/new" className="btn btn-primary btn-sm">
+            Add text
+          </Link>
+        </div>
         <p className="passage-catalogue-subtitle">
           Read a passage aloud and get feedback on pronunciation, fluency, rhythm, and
           clarity. Any level is open — practising a step above or below is useful, and it
@@ -200,9 +205,6 @@ export default function ReadingCatalogue() {
               so they do not feed your ability profile.
             </p>
           </div>
-          <Link to="/reading/new" className="btn btn-ghost btn-sm">
-            Add text
-          </Link>
         </div>
         {own.length === 0 ? (
           <p className="passage-own-empty">No texts of your own yet.</p>

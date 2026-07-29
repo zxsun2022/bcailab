@@ -172,6 +172,16 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-29 — **English Studio rail boundary and unified Progress entry.** Strengthened
+  the product navigation contract from "no history" to "destinations only": removed the
+  pinned-action API from the shared rail, so Reading and Writing can no longer add local
+  creation or progress controls beneath the tool list. `/english/progress` is now the one
+  visible Progress entry; `/reading/progress` and `/writing/progress` remain stable,
+  tool-scoped drill-down routes with their native metrics rather than being flattened into
+  a synthetic score. The three views share an `Overview / Reading / Writing` workspace
+  switcher while the rail continues to highlight product-level Progress. Reading's
+  "Add text" moved to its catalogue header; Writing's root workspace now identifies itself
+  as "New piece".
 - 2026-07-29 — **English Studio shell and navigation contract.** Standardised the learner
   surfaces around one collapsible product rail: stable `English Studio` identity, `Home`
   and product-level `Progress` first, then practice/tools, with tool-local actions in a

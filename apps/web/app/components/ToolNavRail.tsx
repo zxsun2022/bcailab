@@ -15,16 +15,7 @@ export type NavUser = {
   avatar_url: string | null;
 };
 
-export type PinnedAction = {
-  icon: React.ReactNode;
-  label: string;
-  to: string;
-  active?: boolean;
-};
-
 type ToolNavRailProps = {
-  toolName: string;
-  pinnedActions: PinnedAction[];
   /** Omit for anonymous-friendly tools that have no settings page for signed-out users. */
   settingsTo?: string;
   /** `null` for anonymous visitors: the bottom slot becomes a sign-in button. */
@@ -32,23 +23,6 @@ type ToolNavRailProps = {
 };
 
 /* ---------- shared icons ---------- */
-
-export function IconNew() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="nav-rail-icon">
-      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-export function IconProgress() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="nav-rail-icon">
-      <path d="M4 18L8 12L12 15L16 9L20 6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 21h16" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
 
 export function IconSettings() {
   return (
@@ -80,13 +54,16 @@ function IconChevronRight() {
 /* ---------- component ---------- */
 
 export function ToolNavRail({
-  toolName,
-  pinnedActions,
   settingsTo,
   user,
 }: ToolNavRailProps) {
   const location = useLocation();
   const collapsedKey = "english-studio-nav-rail-collapsed";
+  const isProgressView = [
+    "/english/progress",
+    "/reading/progress",
+    "/writing/progress"
+  ].includes(location.pathname);
 
   // The server cannot see localStorage. Start from the same state on server and client,
   // then restore the preference after hydration to avoid a chevron/class mismatch.
@@ -183,7 +160,7 @@ export function ToolNavRail({
             <Link
               to="/english/progress"
               className={`nav-rail-studio-item${
-                location.pathname === "/english/progress" ? " is-current" : ""
+                isProgressView ? " is-current" : ""
               }`}
             >
               <span className="nav-rail-module-mark" aria-hidden="true">P</span>
@@ -196,28 +173,10 @@ export function ToolNavRail({
               group={group}
               signedIn={Boolean(user)}
               pathname={location.pathname}
+              suppressActive={isProgressView}
             />
           ))}
         </nav>
-
-        {pinnedActions.length > 0 ? (
-          <div className="nav-rail-pinned-top">
-            <div className="nav-rail-context-label">{toolName}</div>
-            {pinnedActions.map((action) => (
-              <NavLink
-                key={action.to}
-                to={action.to}
-                end
-                className={({ isActive }) =>
-                  `nav-rail-action${(action.active ?? isActive) ? " is-active" : ""}`
-                }
-              >
-                {action.icon}
-                <span className="nav-rail-label">{action.label}</span>
-              </NavLink>
-            ))}
-          </div>
-        ) : null}
 
         {/* Pinned bottom: user + settings when signed in, sign-in prompt when not */}
         <div className="nav-rail-pinned-bottom">
@@ -258,11 +217,13 @@ export function ToolNavRail({
 function EnglishModuleGroupLinks({
   group,
   signedIn,
-  pathname
+  pathname,
+  suppressActive
 }: {
   group: EnglishModuleGroup;
   signedIn: boolean;
   pathname: string;
+  suppressActive: boolean;
 }) {
   const modules = ENGLISH_MODULES.filter(
     (module) => module.status === "active" && module.group === group
@@ -282,7 +243,8 @@ function EnglishModuleGroupLinks({
       </div>
       {modules.map((module) => {
         const destination = resolveEnglishModuleDestination(module, signedIn);
-        const active = pathname === module.route || pathname.startsWith(`${module.route}/`);
+        const active = !suppressActive &&
+          (pathname === module.route || pathname.startsWith(`${module.route}/`));
         return (
           <Link
             key={module.id}

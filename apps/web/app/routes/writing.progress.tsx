@@ -6,6 +6,7 @@ import { requireUser } from "~/utils/auth.server";
 import { getWritingAgentOrDefault, formatWritingAssessment } from "~/utils/writing-agents";
 import type { WritingFeedback, WritingAnnotation } from "~/utils/writing-eval.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
+import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/writing/progress" }
@@ -262,9 +263,10 @@ export default function WritingProgressPage() {
     <div className="writing-main-scroll">
       <div className="writing-dashboard">
         <div className="writing-dashboard-header">
-          <h2>Progress</h2>
+          <h2>Writing progress</h2>
           <p className="writing-dashboard-subtitle">Your writing history at a glance.</p>
         </div>
+        <ProgressWorkspaceTabs />
 
         {isEmpty ? (
           <div className="writing-dashboard-empty">

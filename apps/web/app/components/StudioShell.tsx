@@ -6,7 +6,7 @@ import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
  *
  * The rail is universal by design (`docs/english-studio-ia-v2-design.md` §3.2): because it
  * always lists every module, the Home's body carries no "explore" section of its own. These
- * pages have nothing to create, so the rail shows no pinned actions.
+ * Page and tool actions belong to their main workspace, never the product rail.
  */
 export function StudioShell({
   user,
@@ -19,11 +19,7 @@ export function StudioShell({
 }) {
   return (
     <div className="writing-shell">
-      <ToolNavRail
-        toolName="English Studio"
-        pinnedActions={[]}
-        user={user}
-      />
+      <ToolNavRail user={user} />
       <div className="writing-main">
         <div className={canvasClassName}>{children}</div>
       </div>

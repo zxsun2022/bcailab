@@ -4,6 +4,7 @@ import { Link, useLoaderData } from "@remix-run/react";
 import { listCompletedEslReadingAttemptsByUser, listPassagesByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { getDisplayEslPassageTitle, parseEslReadingEvaluationOutput } from "~/utils/esl-reading";
+import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/reading/progress" }
@@ -229,9 +230,10 @@ export default function ReadingProgressPage() {
     <div className="writing-main-scroll">
       <div className="writing-dashboard">
         <div className="writing-dashboard-header">
-          <h2>Progress</h2>
+          <h2>Reading progress</h2>
           <p className="writing-dashboard-subtitle">Your reading and recitation history at a glance.</p>
         </div>
+        <ProgressWorkspaceTabs />
 
         {isEmpty ? (
           <div className="writing-dashboard-empty">
