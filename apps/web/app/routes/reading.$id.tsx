@@ -400,8 +400,8 @@ export default function EslReadingPracticePage() {
         <div className="reading-content-column">
           <div className="esl-center-panel">
             <div className="esl-passage-header">
-              <Link to="/reading" className="posts-link esl-mobile-back">
-                &larr; Passages
+              <Link to="/reading" className="session-project-return">
+                Back to Reading
               </Link>
               <div className="esl-passage-heading-row">
                 <div className="esl-passage-heading-copy">
@@ -846,4 +846,3 @@ function AttemptDetail(props: {
     </div>
   );
 }
-

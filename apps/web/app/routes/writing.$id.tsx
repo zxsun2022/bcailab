@@ -633,6 +633,9 @@ function WritingArticlePageReady({
       <div className="writing-center-stage">
         <div className="writing-center-panel">
           <div className="writing-detail-header">
+            <Link to="/writing" className="session-project-return">
+              Back to Writing
+            </Link>
             <div className="writing-title-row">
               {editingTitle ? (
                 <input

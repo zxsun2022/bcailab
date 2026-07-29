@@ -24,13 +24,11 @@ export type PinnedAction = {
 
 type ToolNavRailProps = {
   toolName: string;
-  collapsedKey: string;
   pinnedActions: PinnedAction[];
   /** Omit for anonymous-friendly tools that have no settings page for signed-out users. */
   settingsTo?: string;
   /** `null` for anonymous visitors: the bottom slot becomes a sign-in button. */
   user: NavUser | null;
-  children?: React.ReactNode;
 };
 
 /* ---------- shared icons ---------- */
@@ -83,20 +81,23 @@ function IconChevronRight() {
 
 export function ToolNavRail({
   toolName,
-  collapsedKey,
   pinnedActions,
   settingsTo,
   user,
-  children,
 }: ToolNavRailProps) {
   const location = useLocation();
+  const collapsedKey = "english-studio-nav-rail-collapsed";
 
-  const [collapsed, setCollapsed] = React.useState(() => {
-    try { return localStorage.getItem(collapsedKey) === "true"; } catch { return false; }
-  });
+  // The server cannot see localStorage. Start from the same state on server and client,
+  // then restore the preference after hydration to avoid a chevron/class mismatch.
+  const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   // Apply stored theme preference on tool pages (no site header rendered here)
   useThemePreference();
+
+  React.useEffect(() => {
+    try { setCollapsed(localStorage.getItem(collapsedKey) === "true"); } catch {}
+  }, [collapsedKey]);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -131,7 +132,7 @@ export function ToolNavRail({
 
       <aside className={`tool-nav-rail${collapsed ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}>
 
-        {/* Tool header: logo + name + toggle */}
+        {/* Stable product identity. Tool/page context lives below and in the canvas. */}
         <div className="nav-rail-tool-header">
           {/* Mobile close button — shown only on mobile inside the open drawer */}
           <button
@@ -153,7 +154,7 @@ export function ToolNavRail({
             />
           </Link>
 
-          <div className="nav-rail-tool-name">{toolName}</div>
+          <div className="nav-rail-tool-name">English Studio</div>
           <button
             type="button"
             className="nav-rail-toggle"
@@ -176,18 +177,8 @@ export function ToolNavRail({
             }`}
           >
             <span className="nav-rail-module-mark" aria-hidden="true">H</span>
-            <span className="nav-rail-label">English Studio</span>
+            <span className="nav-rail-label">Home</span>
           </Link>
-          {(["practice", "utility"] as const).map((group) => (
-            <EnglishModuleGroupLinks
-              key={group}
-              group={group}
-              signedIn={Boolean(user)}
-              pathname={location.pathname}
-            />
-          ))}
-          {/* Progress is a destination in its own right, not a per-tool afterthought
-              (IA v2 design §3.6) — so it is reachable from anywhere in the studio. */}
           {user ? (
             <Link
               to="/english/progress"
@@ -199,30 +190,33 @@ export function ToolNavRail({
               <span className="nav-rail-label">Progress</span>
             </Link>
           ) : null}
+          {(["practice", "utility"] as const).map((group) => (
+            <EnglishModuleGroupLinks
+              key={group}
+              group={group}
+              signedIn={Boolean(user)}
+              pathname={location.pathname}
+            />
+          ))}
         </nav>
 
-        {/* Pinned top */}
-        <div className="nav-rail-pinned-top">
-          {pinnedActions.map((action) => (
-            <NavLink
-              key={action.to}
-              to={action.to}
-              end
-              className={({ isActive }) =>
-                `nav-rail-action${(action.active ?? isActive) ? " is-active" : ""}`
-              }
-            >
-              {action.icon}
-              <span className="nav-rail-label">{action.label}</span>
-            </NavLink>
-          ))}
-        </div>
-
-        {/* Scrollable list */}
-        {children ? (
-          <nav className="nav-rail-list">
-            {children}
-          </nav>
+        {pinnedActions.length > 0 ? (
+          <div className="nav-rail-pinned-top">
+            <div className="nav-rail-context-label">{toolName}</div>
+            {pinnedActions.map((action) => (
+              <NavLink
+                key={action.to}
+                to={action.to}
+                end
+                className={({ isActive }) =>
+                  `nav-rail-action${(action.active ?? isActive) ? " is-active" : ""}`
+                }
+              >
+                {action.icon}
+                <span className="nav-rail-label">{action.label}</span>
+              </NavLink>
+            ))}
+          </div>
         ) : null}
 
         {/* Pinned bottom: user + settings when signed in, sign-in prompt when not */}
@@ -303,54 +297,6 @@ function EnglishModuleGroupLinks({
           </Link>
         );
       })}
-    </div>
-  );
-}
-
-/* ---------- shared list item primitives ---------- */
-
-type NavRailItemProps = {
-  to: string;
-  isActive: boolean;
-  title: string;
-  meta?: React.ReactNode;
-  onMenuOpen: () => void;
-  menuOpen: boolean;
-  menuContent: React.ReactNode;
-};
-
-export function NavRailItem({
-  to,
-  isActive,
-  title,
-  meta,
-  onMenuOpen,
-  menuOpen,
-  menuContent,
-}: NavRailItemProps) {
-  return (
-    <div className={`nav-rail-item-shell${isActive ? " is-active" : ""}${menuOpen ? " is-menu-open" : ""}`}>
-      <Link to={to} className={`nav-rail-item${isActive ? " is-active" : ""}`}>
-        <div className="nav-rail-item-title">{title}</div>
-        {meta ? <div className="nav-rail-item-meta">{meta}</div> : null}
-      </Link>
-      <div
-        className={`nav-rail-item-actions${menuOpen ? " is-open" : ""}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <button
-          type="button"
-          className="nav-rail-item-menu-btn"
-          aria-label="Open item menu"
-          aria-expanded={menuOpen}
-          onClick={(e) => { e.stopPropagation(); onMenuOpen(); }}
-        >
-          <span /><span /><span />
-        </button>
-        {menuOpen ? (
-          <div className="nav-rail-item-menu">{menuContent}</div>
-        ) : null}
-      </div>
     </div>
   );
 }

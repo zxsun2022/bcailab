@@ -653,8 +653,8 @@ export default function DictationSession() {
   return (
     <div className="dictation-session">
       <header className="dictation-session-header">
-        <Link to="/dictation" className="dictation-breadcrumb">
-          ← Library
+        <Link to="/dictation" className="session-project-return">
+          Back to Dictation
         </Link>
         <span className="dictation-session-band">{passage.band}</span>
         <h1 className="dictation-session-title">{passage.title}</h1>

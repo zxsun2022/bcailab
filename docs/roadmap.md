@@ -172,6 +172,18 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-29 — **English Studio shell and navigation contract.** Standardised the learner
+  surfaces around one collapsible product rail: stable `English Studio` identity, `Home`
+  and product-level `Progress` first, then practice/tools, with tool-local actions in a
+  separate context section. Translate now stays inside the shell. Removed Speech,
+  Dictation and Writing history rows from the rail until a cross-tool session contract
+  exists, and removed the shared rail's arbitrary list slot so tools cannot reintroduce
+  history ad hoc. Speech generation history moved to a real `/speech/history` workspace
+  tab beside Generate, following the tool-local pattern rather than global navigation;
+  concrete Dictation, Reading and Writing workspaces expose an explicit return to their
+  tool. Fixed the viewport/scroll ownership bug that locked catalogues such as
+  `/dictation` and `/reading`: ordinary pages now use the main content scroller, while
+  only editor/session layouts opt into bounded inner scrolling.
 - 2026-07-28 — **Library expanded to forty passages, with reference audio.** Ten graded
   passages per CEFR band instead of five, across five topics the library did not previously
   cover (health, shopping, family, transport, hobbies), generated per band so the register

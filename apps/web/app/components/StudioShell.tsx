@@ -10,21 +10,22 @@ import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
  */
 export function StudioShell({
   user,
+  canvasClassName = "studio-canvas",
   children
 }: {
-  user: NavUser;
+  user: NavUser | null;
+  canvasClassName?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="writing-shell">
       <ToolNavRail
         toolName="English Studio"
-        collapsedKey="studio-nav-rail-collapsed"
         pinnedActions={[]}
         user={user}
       />
       <div className="writing-main">
-        <div className="studio-canvas">{children}</div>
+        <div className={canvasClassName}>{children}</div>
       </div>
     </div>
   );

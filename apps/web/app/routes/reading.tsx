@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Outlet, useLoaderData, useLocation, useParams } from "@remix-run/react";
+import { Outlet, useLoaderData, useParams } from "@remix-run/react";
 import { requireUser } from "~/utils/auth.server";
 import { ReadingNavRail } from "~/components/ReadingNavRail";
 
@@ -30,9 +30,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 export default function EslReadingLayout() {
   const { user } = useLoaderData<typeof loader>();
   const params = useParams();
-  const location = useLocation();
   const activeId = params.id ?? null;
-  const isWorkspaceRoute = location.pathname === "/reading" || activeId !== null;
+  // Only a live reading session owns its own inner scroll regions. Catalogue, progress,
+  // settings and creation pages use the shell's single main-content scroller.
+  const isWorkspaceRoute = activeId !== null;
   const mainClassName = `writing-main${isWorkspaceRoute ? " is-workspace" : ""}`;
   const canvasClassName = `reading-canvas${isWorkspaceRoute ? " is-workspace" : ""}${activeId ? " is-detail" : ""}`;
 

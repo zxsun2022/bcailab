@@ -5,7 +5,6 @@ import { listWritingArticlesByUser } from "@bcailab/db";
 import { WritingNavRail } from "~/components/WritingNavRail";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
-import { getWritingAgentOrDefault } from "~/utils/writing-agents";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
 
 export const handle = {
@@ -17,18 +16,9 @@ export const handle = {
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   try {
-    const articles = await listWritingArticlesByUser(context.env.DB, user.id);
-
-    const articleSummaries = articles.map((a) => ({
-      id: a.id,
-      title: a.title,
-      agent_type: a.agent_type,
-      agentLabel: getWritingAgentOrDefault(a.agent_type).label,
-      updated_at: a.updated_at
-    }));
+    await listWritingArticlesByUser(context.env.DB, user.id);
 
     return json({
-      articles: articleSummaries,
       user: {
         id: user.id,
         name: user.name,
@@ -42,7 +32,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     logWritingSchemaMissing("writing.loader", error);
     return json(
       {
-        articles: [],
         user: {
           id: user.id,
           name: user.name,
@@ -57,7 +46,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 export default function WritingLayout() {
-  const { articles, user, schemaReady } = useLoaderData<typeof loader>();
+  const { user, schemaReady } = useLoaderData<typeof loader>();
   const params = useParams();
   const activeId = params.id ?? null;
   const canvasClassName = `writing-canvas${activeId ? " is-detail" : ""}`;
@@ -75,7 +64,7 @@ export default function WritingLayout() {
 
   return (
     <div className="writing-shell">
-      <WritingNavRail articles={articles} activeId={activeId} user={user} />
+      <WritingNavRail user={user} />
       <div className={mainClassName}>
         <div className={canvasClassName}>
           <Outlet />

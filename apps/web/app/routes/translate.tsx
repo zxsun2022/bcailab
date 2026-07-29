@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Link, useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
+import { useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
 import { getOptionalUser } from "~/utils/auth.server";
 import { translateText } from "~/utils/translate.server";
 import {
@@ -18,9 +18,12 @@ import {
   type TranslateLanguageCode
 } from "~/utils/translate-languages";
 import { openLoginPopup } from "~/utils/login-popup";
+import { StudioShell } from "~/components/StudioShell";
 
 export const handle = {
-  breadcrumb: { label: "translate", href: "/translate" }
+  breadcrumb: { label: "translate", href: "/translate" },
+  hideHeader: true,
+  hideHeaderUserMenu: true
 };
 
 export const meta: MetaFunction = () => [
@@ -37,7 +40,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     ip: getClientIp(request)
   });
   return json(
-    { authed: Boolean(user), quota },
+    {
+      authed: Boolean(user),
+      quota,
+      user: user
+        ? { name: user.name, email: user.email, avatar_url: user.avatar_url }
+        : null
+    },
     setCookie ? { headers: { "Set-Cookie": setCookie } } : undefined
   );
 };
@@ -141,7 +150,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function TranslatePage() {
-  const { authed, quota } = useLoaderData<typeof loader>();
+  const { authed, quota, user } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
   const revalidator = useRevalidator();
   const [text, setText] = React.useState("");
@@ -202,11 +211,9 @@ export default function TranslatePage() {
   const overLimit = text.length > quota.maxChars;
 
   return (
-    <div className="translate-page">
+    <StudioShell user={user} canvasClassName="translate-shell-canvas">
+      <div className="translate-page">
       <div className="translate-head">
-        <Link to="/english" className="translate-studio-back">
-          &larr; English Studio
-        </Link>
         <h1 className="translate-title">Translate</h1>
         <p className="translate-sub">LLM-powered translation. Natural phrasing, formatting preserved.</p>
       </div>
@@ -357,6 +364,7 @@ export default function TranslatePage() {
           </button>
         </div>
       </fetcher.Form>
-    </div>
+      </div>
+    </StudioShell>
   );
 }

@@ -1,7 +1,6 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Outlet, useLoaderData, useLocation, useSearchParams } from "@remix-run/react";
-import { listTtsGenerationsByUser } from "@bcailab/db";
+import { Outlet, useLoaderData } from "@remix-run/react";
 import { requireUser } from "~/utils/auth.server";
 import { SpeechNavRail } from "~/components/SpeechNavRail";
 
@@ -13,15 +12,7 @@ export const handle = {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
-  const generations = await listTtsGenerationsByUser(context.env.DB, user.id);
-  const history = generations.map((g) => ({
-    id: g.id,
-    inputText: g.input_text,
-    languageCode: g.language_code,
-    createdAt: g.created_at,
-  }));
   return json({
-    history,
     user: {
       name: user.name,
       email: user.email,
@@ -31,19 +22,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 export default function TtsLayout() {
-  const { history, user } = useLoaderData<typeof loader>();
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-  const activeId = searchParams.get("record");
-  const isWorkspaceRoute = location.pathname === "/speech";
-  const mainClassName = `writing-main${isWorkspaceRoute ? " is-workspace" : ""}`;
-  const canvasClassName = `speech-canvas${isWorkspaceRoute ? " is-workspace" : ""}`;
+  const { user } = useLoaderData<typeof loader>();
 
   return (
     <div className="writing-shell">
-      <SpeechNavRail history={history} activeId={activeId} user={user} />
-      <div className={mainClassName}>
-        <div className={canvasClassName}>
+      <SpeechNavRail user={user} />
+      <div className="writing-main">
+        <div className="speech-canvas">
           <Outlet />
         </div>
       </div>

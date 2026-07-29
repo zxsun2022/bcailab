@@ -158,12 +158,14 @@ bcailab                            ← all products
            Dictation · Reading · Writing      ← practice loop
            Translate · Speech                 ← adjacent tools
             └─ material surface (library as main axis)
-                 └─ session (no competing rail)
+                 └─ session (same global rail + explicit return to tool)
 ```
 
-### 3.2 The static rail (every page)
+### 3.2 The static rail (every page; clarified 2026-07-29)
 
-- Entries from the shared registry: **English Studio** (→ Home) · Practice: Dictation,
+- Product identity in the rail header is always **English Studio**. It does not change to
+  "Reading", "Speech", etc.; the active entry and page heading provide that context.
+- Entries from the shared registry: **Home**, then **Progress**, then Practice: Dictation,
   Reading, Writing · Tools: Translate, Speech. Signed-out users are routed per the
   registry's `access` field (`public` → straight in; `trial` → trial route; `auth` →
   login popup) — this is the §1.3(3) bug fix.
@@ -171,7 +173,23 @@ bcailab                            ← all products
   "Reading progress"; Writing → "+ New piece" (its "+" creates work, not material — until
   the prompt bank exists), "Writing progress". Actions live in the rail so they stay
   visible no matter how long the material list grows.
-- Translate keeps its two-pane shape but gains at least a link back to the studio.
+- Translate keeps its two-pane shape inside the same shell; entering it must not remove
+  the rail.
+- The rail has one collapse state shared across the product rather than one preference per
+  tool.
+- No attempt/article/generation history appears in the rail until "session" has one
+  consistent cross-tool contract (identity, resumability and lifecycle). Existing history
+  remains on catalogue/progress/history surfaces. `ToolNavRail` intentionally has no
+  arbitrary-content/list slot, so this rule is enforced by its component API rather than
+  relying on each tool to remember it.
+- Speech follows the workspace pattern directly: `Generate / History` is local navigation
+  above the Speech canvas, and `/speech/history` renders the generation list in the main
+  content area. Neither tab nor any generation record appears in the product rail.
+- A concrete session keeps the global rail and exposes an explicit upper-right
+  **Back to [tool]** action.
+- The shell owns viewport height. The main content column is the default and only page
+  scroller; session layouts may opt into bounded inner scrollers where their editor or
+  feedback rail genuinely needs them.
 
 ### 3.3 Home — action zone (top of viewport)
 
@@ -235,8 +253,8 @@ tool-scoped drill-downs beneath it.
 - Topic/state filters and search: build **when the library grows** (trigger: first
   expansion batch, not calendar time). At 20 passages they are overbuild.
 
-**Dictation:** unchanged this iteration (its catalogue already leads with the library;
-whether its history rail stays is a per-tool call, not something Reading copies).
+**Dictation:** its catalogue already leads with the library. Attempt history is not shown
+in the global rail; resumable/completed state remains on catalogue and progress surfaces.
 
 **Writing:** unchanged until the prompt bank lands (roadmap item). When it does, it
 instantiates the same list skeleton with writing semantics (decision 17): prompt cards

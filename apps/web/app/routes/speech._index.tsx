@@ -26,6 +26,7 @@ import {
   buildSpeechPlan
 } from "~/utils/tts.server";
 import * as React from "react";
+import { SpeechWorkspaceTabs } from "~/components/SpeechWorkspaceTabs";
 
 type LoaderLanguage = {
   code: string;
@@ -358,6 +359,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   if (intent === "delete") {
     const id = String(formData.get("id") ?? "");
+    const returnTo =
+      String(formData.get("returnTo") ?? "") === "/speech/history"
+        ? "/speech/history"
+        : null;
     if (!id) {
       return json<ActionError>({ error: "Missing record id." }, { status: 400 });
     }
@@ -372,6 +377,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     try {
       await context.env.R2.delete(generation.r2_key);
       await softDeleteTtsGeneration(context.env.DB, { id, userId: user.id });
+      if (returnTo) return redirect(returnTo);
       const generations = await listTtsGenerationsByUser(context.env.DB, user.id);
       const next = generations.find((item) => item.id !== id);
       return redirect(next ? `/speech?record=${next.id}` : "/speech");
@@ -733,6 +739,7 @@ export default function TtsIndexPage() {
 
   return (
     <div className="speech-workspace">
+      <SpeechWorkspaceTabs />
       <div className="speech-center-stage">
         <div className="speech-content-column">
           <div className="tts-primary-content">

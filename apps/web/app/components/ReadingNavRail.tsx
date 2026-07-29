@@ -20,7 +20,6 @@ export function ReadingNavRail({ user }: { user: NavUser }) {
   return (
     <ToolNavRail
       toolName="Reading"
-      collapsedKey="reading-nav-rail-collapsed"
       pinnedActions={pinnedActions}
       settingsTo="/reading/settings"
       user={user}

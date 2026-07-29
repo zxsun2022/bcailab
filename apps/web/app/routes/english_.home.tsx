@@ -329,7 +329,7 @@ export default function EnglishHome() {
       <div className="home-page">
       <header className="home-header">
         <h1 className="home-title">
-          {firstName ? `Welcome back, ${firstName}` : "English Studio"}
+          {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
         </h1>
         <p className="home-subtitle">
           {isCold
