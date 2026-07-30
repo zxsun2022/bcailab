@@ -117,6 +117,102 @@ export const callGemini = async (input: {
 };
 
 /**
+ * Streaming variant of `callGemini`. Yields text deltas as the model produces them.
+ *
+ * Uses `:streamGenerateContent?alt=sse`, which returns Server-Sent Events whose payloads
+ * are the same `GeminiResponse` shape as the unary endpoint, one partial candidate per event.
+ * Callers that need the whole response should use `callGemini` instead — streaming is only
+ * worth the extra plumbing where the user watches the output arrive.
+ */
+export const streamGemini = async (input: {
+  env: Env;
+  task: LlmTask;
+  parts: GeminiPart[];
+  generationConfig?: Record<string, unknown>;
+  signal?: AbortSignal;
+}): Promise<{ modelName: string; textStream: AsyncIterable<string> }> => {
+  const apiKey = input.env.GEMINI_API_KEY?.trim();
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
+
+  const baseUrl = input.env.GEMINI_BASE_URL?.trim() || DEFAULT_BASE_URL;
+  const modelName = resolveModelForTask(input.env, input.task);
+
+  const response = await fetch(
+    `${baseUrl}/models/${encodeURIComponent(modelName)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: input.parts }],
+        ...(input.generationConfig ? { generationConfig: input.generationConfig } : {})
+      }),
+      signal: input.signal
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini request failed (${response.status}): ${errorText.slice(0, 500)}`);
+  }
+  if (!response.body) throw new Error("Gemini stream response has no body.");
+
+  const body = response.body;
+
+  const textStream = (async function* () {
+    const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        // Gemini terminates SSE lines with CRLF; normalizing first keeps the blank-line
+        // scan below to a single case. A chunk ending mid-CRLF is normalized on the next
+        // append, before any boundary is looked for.
+        buffer = `${buffer}${value}`.replace(/\r\n/g, "\n");
+        // SSE events are separated by a blank line; a single event may span chunks.
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary >= 0) {
+          const event = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+          const delta = readSseDelta(event);
+          if (delta) yield delta;
+          boundary = buffer.indexOf("\n\n");
+        }
+      }
+      const tail = readSseDelta(buffer);
+      if (tail) yield tail;
+    } finally {
+      await reader.cancel().catch(() => {});
+    }
+  })();
+
+  return { modelName, textStream };
+};
+
+/** Extracts the text delta from one SSE event block, or "" when it carries none. */
+const readSseDelta = (event: string): string => {
+  const payload = event
+    .split("\n")
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .join("");
+  if (!payload || payload === "[DONE]") return "";
+
+  let json: GeminiResponse;
+  try {
+    json = JSON.parse(payload) as GeminiResponse;
+  } catch {
+    return "";
+  }
+  if (json.error?.message) throw new Error(`Gemini error: ${json.error.message}`);
+  return (
+    json.candidates?.[0]?.content?.parts
+      ?.map((part) => (typeof part.text === "string" ? part.text : ""))
+      .join("") ?? ""
+  );
+};
+
+/**
  * Parses JSON from an LLM response, tolerating ```json fences and surrounding
  * prose (falls back to the outermost {...} block). Throws on failure.
  */
