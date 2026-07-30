@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { useLoaderData, Link } from "@remix-run/react";
 import { listWritingArticlesByUser, listCompletedWritingRevisionsByUser } from "@bcailab/db";
@@ -17,6 +17,10 @@ import {
 export const handle = {
   breadcrumb: { label: "progress", href: "/writing/progress" }
 };
+
+export const meta: MetaFunction = () => [
+  { title: "Writing progress · English Studio · bcailab" }
+];
 
 type BandPoint = {
   articleId: string;

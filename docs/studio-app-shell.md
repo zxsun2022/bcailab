@@ -82,6 +82,18 @@ the body width never changes that origin. Primary pages use one heading scale an
 vertical rhythm. Page-level actions live in the header; tool-local navigation lives below
 it.
 
+Secondary routes follow the same semantic contract even when their inner workspace is
+specialised:
+
+- Every page supplies a route-specific browser title using
+  `Page · Tool · English Studio · bcailab`.
+- Every rendered page has exactly one `h1`; edit, settings and collapse controls are siblings
+  of that heading rather than children of it.
+- Settings and progress routes compose `StudioPage` instead of introducing a route-owned
+  outer margin.
+- Bounded session/editor workspaces may keep their own inner grid, but expose a clear return
+  to the owning tool and keep the page title as the workspace heading.
+
 ## Scroll and responsive rules
 
 - Ordinary pages have one owner for vertical scrolling: the main inset.
@@ -90,6 +102,9 @@ it.
 - On smaller screens the rail becomes a drawer and the page begins below its fixed trigger.
 - Page widths compress through the same frame; individual routes must not add their own
   viewport-height lock or outer horizontal coordinate system.
+- A saved client preference must not determine the server/client initial tree. Collapsed
+  rails and panels render a deterministic default for SSR, then restore `localStorage`
+  preferences in an effect after hydration.
 
 These rules are the acceptance criteria for new Studio pages. A new tool should compose the
 existing shell and frame before adding tool-specific layout inside the page body.

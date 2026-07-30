@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs } from "@remix-run/cloudflare";
+import type { ActionFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { Card, Textarea } from "@bcailab/ui";
 import { createUserPassage, softDeleteUserPassage } from "@bcailab/db";
@@ -17,6 +17,10 @@ import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string };
 const HISTORY_RAIL_COLLAPSED_KEY = "reading-history-rail-collapsed";
+
+export const meta: MetaFunction = () => [
+  { title: "New passage · Reading · English Studio · bcailab" }
+];
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -108,7 +112,7 @@ export default function EslReadingIndexPage() {
         <div className="reading-content-column">
           <div className="esl-center-panel">
             <div className="esl-welcome">
-              <h2>New Passage</h2>
+              <h1>New passage</h1>
               <EslModeToggle mode={mode} onModeChange={setMode} />
             </div>
 

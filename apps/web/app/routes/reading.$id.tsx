@@ -1,4 +1,8 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction
+} from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import {
   Link,
@@ -47,6 +51,14 @@ import * as React from "react";
 
 type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
 const HISTORY_RAIL_COLLAPSED_KEY = "reading-history-rail-collapsed";
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  {
+    title: data?.passage
+      ? `${getDisplayEslPassageTitle(data.passage.title, data.passage.content_text)} · Reading · English Studio · bcailab`
+      : "Reading · English Studio · bcailab"
+  }
+];
 
 const deleteAttemptArtifacts = async (
   context: ActionFunctionArgs["context"],

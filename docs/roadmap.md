@@ -172,6 +172,15 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-29 — **English Studio secondary-page semantics and hydration consistency.**
+  Extended the app-shell contract beyond primary catalogues and dashboards: Reading,
+  Writing and Speech settings now use the shared page frame; progress, creation, settings
+  and detail routes provide tool-specific browser titles; every secondary workspace has one
+  semantic `h1`; and Writing's edit control no longer lives inside its heading. Fixed the
+  real Reading workspace hydration mismatch by rendering persisted rail/panel preferences
+  from deterministic SSR defaults and restoring them after hydration, applying the same
+  rule to the equivalent Writing detail panel. Documented these as acceptance rules in
+  `docs/studio-app-shell.md`.
 - 2026-07-29 — **English Studio application shell and page-frame contract.** Replaced the
   collection of route-owned outer coordinate systems with two reusable layers:
   `StudioShell` now owns the rail/main/canvas nesting for every primary tool, and

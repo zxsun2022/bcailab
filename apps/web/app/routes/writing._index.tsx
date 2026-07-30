@@ -1,4 +1,4 @@
-import type { ActionFunctionArgs } from "@remix-run/cloudflare";
+import type { ActionFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { useFetcher, useNavigate } from "@remix-run/react";
 import * as React from "react";
@@ -16,6 +16,10 @@ import {
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 
 type ActionData = { error?: string; redirectTo?: string };
+
+export const meta: MetaFunction = () => [
+  { title: "New piece · Writing · English Studio · bcailab" }
+];
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);

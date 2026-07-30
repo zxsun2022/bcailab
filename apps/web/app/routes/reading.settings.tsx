@@ -1,4 +1,6 @@
+import type { MetaFunction } from "@remix-run/cloudflare";
 import { useRouteLoaderData } from "@remix-run/react";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { READING_OUTPUT_LANGUAGE_OPTIONS } from "~/utils/reading-settings";
 import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
@@ -7,6 +9,10 @@ import type { loader as readingLoader } from "~/routes/reading";
 export const handle = {
   breadcrumb: { label: "settings", href: "/reading/settings" }
 };
+
+export const meta: MetaFunction = () => [
+  { title: "Reading settings · English Studio · bcailab" }
+];
 
 export default function ReadingSettingsPage() {
   const data = useRouteLoaderData<typeof readingLoader>("routes/reading");
@@ -19,11 +25,13 @@ export default function ReadingSettingsPage() {
   const displayName = user?.name ?? user?.email ?? "Account";
 
   return (
-    <div className="tool-settings-page">
-      <div className="tool-settings-card">
-        <div className="tool-settings-header">
-          <h2>Settings</h2>
-        </div>
+    <StudioPage width="standard">
+      <StudioPageHeader
+        title="Reading settings"
+        description="Manage your account, appearance, and reading feedback language."
+      />
+      <StudioPageBody className="tool-settings-page">
+        <div className="tool-settings-card">
 
         {/* User profile */}
         <section className="tool-settings-section">
@@ -83,7 +91,8 @@ export default function ReadingSettingsPage() {
             ))}
           </div>
         </section>
-      </div>
-    </div>
+        </div>
+      </StudioPageBody>
+    </StudioPage>
   );
 }

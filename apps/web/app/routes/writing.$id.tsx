@@ -1,4 +1,9 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs, SerializeFrom } from "@remix-run/cloudflare";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+  SerializeFrom
+} from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { useFetcher, useLoaderData, Link, useNavigate } from "@remix-run/react";
 import * as React from "react";
@@ -42,6 +47,14 @@ type ActionData = {
 };
 const PENDING_STALE_MS = 60_000;
 const ASIDE_COLLAPSED_KEY = "writing-aside-collapsed";
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  {
+    title: data?.article?.title
+      ? `${data.article.title} · Writing · English Studio · bcailab`
+      : "Writing · English Studio · bcailab"
+  }
+];
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -652,24 +665,23 @@ function WritingArticlePageReady({
                   onKeyDown={handleTitleKeyDown}
                 />
               ) : (
-                <h1
-                  className="writing-title"
-                  onClick={() => setEditingTitle(true)}
-                  title="Click to edit title"
-                >
-                  {displayTitle}
+                <>
+                  <h1
+                    className="writing-title"
+                    onClick={() => setEditingTitle(true)}
+                    title="Click to edit title"
+                  >
+                    {displayTitle}
+                  </h1>
                   <button
                     type="button"
                     className="writing-title-edit-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingTitle(true);
-                    }}
+                    onClick={() => setEditingTitle(true)}
                     aria-label="Edit title"
                   >
                     ✎
                   </button>
-                </h1>
+                </>
               )}
               <span className="writing-agent-label">{agent.label}</span>
             </div>

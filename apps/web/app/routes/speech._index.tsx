@@ -1,4 +1,8 @@
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/cloudflare";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction
+} from "@remix-run/cloudflare";
 import { json, redirect } from "@remix-run/cloudflare";
 import { useActionData, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { Button, Card, Textarea } from "@bcailab/ui";
@@ -61,6 +65,10 @@ type ActionSuccess = {
   alignment: SpeechAlignment;
   warning?: string;
 };
+
+export const meta: MetaFunction = () => [
+  { title: "Speech · English Studio · bcailab" }
+];
 
 const filterSpeechVoices = (voices: SpeechVoiceOption[]): SpeechVoiceOption[] =>
   voices.filter((voice) => voice.family === "chirp3");

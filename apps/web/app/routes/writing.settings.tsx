@@ -1,4 +1,6 @@
+import type { MetaFunction } from "@remix-run/cloudflare";
 import { useRouteLoaderData } from "@remix-run/react";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import { WRITING_FEEDBACK_LANGUAGE_OPTIONS } from "~/utils/writing-settings";
@@ -7,6 +9,10 @@ import type { loader as writingLoader } from "~/routes/writing";
 export const handle = {
   breadcrumb: { label: "settings", href: "/writing/settings" }
 };
+
+export const meta: MetaFunction = () => [
+  { title: "Writing settings · English Studio · bcailab" }
+];
 
 export default function WritingSettingsPage() {
   const data = useRouteLoaderData<typeof writingLoader>("routes/writing");
@@ -20,11 +26,13 @@ export default function WritingSettingsPage() {
 
   return (
     <div className="writing-main-scroll">
-      <div className="tool-settings-page">
-        <div className="tool-settings-card">
-          <div className="tool-settings-header">
-            <h2>Settings</h2>
-          </div>
+      <StudioPage width="standard">
+        <StudioPageHeader
+          title="Writing settings"
+          description="Manage your account, appearance, and writing feedback language."
+        />
+        <StudioPageBody className="tool-settings-page">
+          <div className="tool-settings-card">
 
           {/* User profile */}
           <section className="tool-settings-section">
@@ -84,8 +92,9 @@ export default function WritingSettingsPage() {
               ))}
             </div>
           </section>
-        </div>
-      </div>
+          </div>
+        </StudioPageBody>
+      </StudioPage>
     </div>
   );
 }

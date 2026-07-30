@@ -1,10 +1,16 @@
+import type { MetaFunction } from "@remix-run/cloudflare";
 import { useRouteLoaderData } from "@remix-run/react";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import type { loader as speechLoader } from "~/routes/speech";
 
 export const handle = {
   breadcrumb: { label: "settings", href: "/speech/settings" }
 };
+
+export const meta: MetaFunction = () => [
+  { title: "Speech settings · English Studio · bcailab" }
+];
 
 export default function SpeechSettingsPage() {
   const data = useRouteLoaderData<typeof speechLoader>("routes/speech");
@@ -16,11 +22,13 @@ export default function SpeechSettingsPage() {
   const displayName = user?.name ?? user?.email ?? "Account";
 
   return (
-    <div className="tool-settings-page">
-      <div className="tool-settings-card">
-        <div className="tool-settings-header">
-          <h2>Settings</h2>
-        </div>
+    <StudioPage width="standard">
+      <StudioPageHeader
+        title="Speech settings"
+        description="Manage your account and appearance preferences."
+      />
+      <StudioPageBody className="tool-settings-page">
+        <div className="tool-settings-card">
 
         {/* User profile */}
         <section className="tool-settings-section">
@@ -56,7 +64,8 @@ export default function SpeechSettingsPage() {
             ))}
           </div>
         </section>
-      </div>
-    </div>
+        </div>
+      </StudioPageBody>
+    </StudioPage>
   );
 }
