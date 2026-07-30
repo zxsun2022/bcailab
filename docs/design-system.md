@@ -35,13 +35,31 @@ Fallbacks:
 
 ## Color Tokens
 
-Shared accents:
+Colour is assigned by meaning, not by a pigment name. Components must consume these
+semantic contracts rather than hard-coded status colours:
 
-- `--red: #b52a1c`
-- `--copper: #c4956a`
-- `--copper-dim: rgba(196,149,106,0.15)`
+| Meaning | Light | Dark | Use |
+|---|---|---|---|
+| `--color-brand` | `#b52a1c` | `#d85a3f` | Product identity only |
+| `--color-action` | `#b52a1c` | `#d85a3f` | Primary actions, active navigation, links and focus |
+| `--color-danger` | `#9f2735` | `#f07685` | Errors, destructive actions, failed/critical states |
+| `--color-warning` | `#80551f` | `#d6a354` | Caution, pending work and approaching limits |
+| `--color-success` | `#39724f` | `#71b48a` | Completed, resolved, playing and positive movement |
 
-Light mode:
+Action and feedback families also provide `-hover`, `-surface` and `-border` variants
+where the state needs a filled control or a quiet container. `--color-on-action` is the
+foreground for a solid action. Brand and action intentionally share a hue today, but they
+are separate tokens so product identity can change without rewriting interaction states.
+
+Rules:
+
+- Never use `--color-action` to render an error or destructive affordance.
+- Never use `--color-danger` merely for emphasis or branding.
+- Use the matching `-surface` and `-border` tokens instead of hand-authored translucent
+  versions of a state colour.
+- Copper remains a decorative/material accent, not a feedback state.
+
+Neutral light-mode tokens:
 
 - `--bg: #f6f2eb`
 - `--bg-alt: #eee8dd`
@@ -50,10 +68,9 @@ Light mode:
 - `--text: #2a2420`
 - `--text-muted: #8a8078`
 - `--text-faint: #b0a89e`
-- `--accent: #b52a1c`
 - `--border: #d8d0c4`
 
-Dark mode:
+Neutral dark-mode tokens:
 
 - `--bg: #0f0e0c`
 - `--bg-alt: #1a1917`
@@ -62,7 +79,6 @@ Dark mode:
 - `--text: #e8e2d8`
 - `--text-muted: #8a8478`
 - `--text-faint: #5a5650`
-- `--accent: #c23a22`
 - `--border: rgba(232,226,216,0.08)`
 
 Dark extras:

@@ -36,13 +36,6 @@ returns, so neither needs an IA change.
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
   it from the evaluation. Confirmed 2026-07-21.
-- **Semantic colour separation** (owner-raised 2026-07-23). Today `--accent: #b52a1c` and
-  `--red: #b52a1c` are **the same colour in light mode**, and `--accent` (87 usages) covers both
-  primary CTAs and `.form-error` — so a form error and a primary button are indistinguishable by
-  colour. There is no semantic colour layer at all (no `--error` / `--success` / `--warning`).
-  Fold in a related defect: `.dash-trend.is-up` references `var(--sage, …)` but `--sage` is never
-  defined, silently relying on the fallback. Sequenced **before** the item below, because that one
-  adds new coloured UI and you should not add coloured elements before deciding what colours mean.
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the
@@ -163,6 +156,13 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-30 — **Semantic colour layer.** Replaced pigment-named `--accent` / `--red`
+  contracts with action, danger, warning and success families for both themes. Primary
+  actions retain the Studio's vermilion while errors/destructive controls use a distinct
+  crimson, warnings use ochre and completed/positive states use sage. Migrated form/login/
+  translation errors, destructive menus, writing feedback, Speech warnings, Reading status,
+  Dictation diffs and progress trends; the previously undefined `--sage` fallback is gone.
+  Usage rules and light/dark values are documented in `docs/design-system.md`.
 - 2026-07-30 — **Reading progress includes library attempts.** Repointed the completed-attempt
   history query from the rollback-only `esl_passages` table to the unified `passages` table,
   matching the foreign key introduced by the material-layer migration. `/reading/progress`

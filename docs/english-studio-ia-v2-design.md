@@ -99,9 +99,8 @@ Carried from prior iterations (do not relitigate):
 4. One passage, two modes = a handoff at the summary, not a combined page.
 5. Translate stays in English Studio as the free funnel.
 6. No admin/back-office system yet.
-7. Colour semantics are a separate track (today `--accent` and `--red` are the same hex;
-   primary CTAs and form errors are indistinguishable). The IA work makes **no** colour
-   decisions.
+7. Colour semantics are orthogonal to IA. The IA work made no colour decisions; the
+   semantic action/danger/warning/success layer landed separately on 2026-07-30.
 
 Decided across the two review rounds of this design:
 
