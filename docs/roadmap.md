@@ -52,8 +52,8 @@ returns, so neither needs an IA change.
 
 ## Later
 
-- Long-document translation: chunked parallel translation + streaming output; raise
-  signed-in limit to ~100k chars.
+- Long-document translation: chunked parallel translation; raise signed-in limit to ~100k
+  chars. (Streaming output — the other half of this item — shipped 2026-07-30; see Done.)
 - Faster first-token: evaluate Groq (or similar) for the translate task via the
   `llm.server.ts` routing table; adopt Cloudflare AI Gateway for cost/usage observability.
 - **Model routing hot-config** (owner-raised 2026-07-21). As the task→model table grows
@@ -156,6 +156,16 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-30 — **Streaming translation output.** `/translate` no longer waits for the whole
+  model response: a new SSE resource route (`/translate/stream`) streams the translation as it
+  is generated, cutting time-to-first-text from the full generation time to first-token time
+  (~1.7s vs ~2.7s on a 145-character sample; the gap widens with length). Added `streamGemini`
+  to the shared LLM layer beside `callGemini`, so any task can stream without changing which
+  model serves it. Because JSON cannot be read mid-stream, the streaming prompt emits the
+  detected language as a `#lang:` header line that the server strips before forwarding deltas.
+  Validation and quota moved into `translate-request.server.ts`, shared with the untouched
+  `/translate` action, which remains the no-JS fallback. Usage is still charged only on a
+  completed translation.
 - 2026-07-30 — **Semantic colour layer.** Replaced pigment-named `--accent` / `--red`
   contracts with action, danger, warning and success families for both themes. Primary
   actions retain the Studio's vermilion while errors/destructive controls use a distinct

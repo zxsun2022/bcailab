@@ -38,6 +38,10 @@ Model tiers (2026-07-21): most tasks use `gemini-2.5-flash` (pinned explicitly r
 evaluation tasks (`reading_eval`, `writing_feedback`) opt into `gemini-3.6-flash`. `GEMINI_MODEL`
 still overrides tasks flagged `envModelOverride`.
 
+`callGemini` returns the whole response; `streamGemini` is the incremental variant over
+`:streamGenerateContent?alt=sse`, used where the user watches output arrive (currently Translate
+only). Both share the routing table, so a task streams or not without changing which model serves it.
+
 ## Key Flows
 - Sign-in happens in a popup at `/login`: Google OAuth, or an email one-time code (for users
   who cannot reach Google). Email is the primary identity; a Google login with a matching
@@ -70,6 +74,7 @@ still overrides tasks flagged `envModelOverride`.
   the rail, deliberately **not** folded into the Home; see docs/learner-model-design.md and
   docs/english-studio-ia-v2-design.md §3.6)
 - `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
+- `/translate/stream` SSE endpoint backing the Translate page's streaming output (POST only)
 - `/login` sign-in popup page (Google OAuth or email OTP code)
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
 - `/posts` posts tool (compose + history rail + in-place editing)

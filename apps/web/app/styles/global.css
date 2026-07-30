@@ -2086,8 +2086,28 @@ select.input:focus {
   text-transform: uppercase;
 }
 
-.translate-pane.is-busy .translate-output {
-  opacity: 0.7;
+/* Blinking caret trailing the streamed translation, so a pause in the token stream
+   still reads as "working" rather than "finished". */
+.translate-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--text-faint);
+  animation: translate-caret-blink 1s steps(2, start) infinite;
+}
+
+@keyframes translate-caret-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .translate-caret {
+    animation: none;
+  }
 }
 
 .translate-pane-foot {

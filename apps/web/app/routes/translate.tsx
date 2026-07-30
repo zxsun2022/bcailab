@@ -1,11 +1,11 @@
 import * as React from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
+import { useActionData, useLoaderData, useRevalidator } from "@remix-run/react";
 import { getOptionalUser } from "~/utils/auth.server";
 import { translateText } from "~/utils/translate.server";
+import { prepareTranslateRequest } from "~/utils/translate-request.server";
 import {
-  TRANSLATE_TIERS,
   ensureAnonId,
   getClientIp,
   getTranslateQuotaStatus,
@@ -61,86 +61,47 @@ type ActionData =
     }
   | { ok: false; error: string; code?: "quota_exceeded" | "too_long" };
 
+/**
+ * No-JS fallback. The page streams via `/translate/stream` whenever JavaScript is
+ * available; this action serves the plain document POST, so validation and quota live in
+ * the shared `prepareTranslateRequest` rather than being duplicated across the two.
+ */
 export const action = async ({ request, context }: ActionFunctionArgs) => {
-  const user = await getOptionalUser(request, context);
-  const { anonId, setCookie } = ensureAnonId(request);
-  const ip = getClientIp(request);
-  const identity = { userId: user?.id ?? null, anonId, ip };
-  const tierConfig = user ? TRANSLATE_TIERS.free : TRANSLATE_TIERS.anonymous;
-  const extraHeaders = setCookie ? { "Set-Cookie": setCookie } : undefined;
-
   const formData = await request.formData();
-  const text = String(formData.get("text") ?? "");
-  const sourceRaw = String(formData.get("source") ?? "auto");
-  const targetRaw = String(formData.get("target") ?? "en");
+  const prepared = await prepareTranslateRequest(request, context, formData);
+  const extraHeaders = prepared.setCookie ? { "Set-Cookie": prepared.setCookie } : undefined;
 
-  if (!text.trim()) {
+  if (!prepared.ok) {
     return json<ActionData>(
-      { ok: false, error: "Enter some text to translate." },
-      { status: 400, headers: extraHeaders }
-    );
-  }
-  if (text.length > tierConfig.maxChars) {
-    return json<ActionData>(
-      {
-        ok: false,
-        code: "too_long",
-        error: user
-          ? `Text is too long (max ${tierConfig.maxChars.toLocaleString()} characters).`
-          : `Text is too long for anonymous use (max ${tierConfig.maxChars.toLocaleString()} characters). Sign in to translate up to ${TRANSLATE_TIERS.free.maxChars.toLocaleString()}.`
-      },
-      { status: 400, headers: extraHeaders }
-    );
-  }
-  const sourceLang = sourceRaw === "auto" || !isTranslateLanguageCode(sourceRaw) ? "auto" : sourceRaw;
-  if (!isTranslateLanguageCode(targetRaw)) {
-    return json<ActionData>(
-      { ok: false, error: "Unsupported target language." },
-      { status: 400, headers: extraHeaders }
-    );
-  }
-  if (sourceLang !== "auto" && sourceLang === targetRaw) {
-    return json<ActionData>(
-      { ok: false, error: "Source and target languages are the same." },
-      { status: 400, headers: extraHeaders }
-    );
-  }
-
-  const quota = await getTranslateQuotaStatus(context.env.DB, identity);
-  if (quota.remainingToday <= 0) {
-    return json<ActionData>(
-      {
-        ok: false,
-        code: "quota_exceeded",
-        error: user
-          ? "Daily translation limit reached. Please come back tomorrow."
-          : "You've used today's free translations. Sign in to continue — it's free."
-      },
-      { status: 429, headers: extraHeaders }
+      { ok: false, error: prepared.error, code: prepared.code },
+      { status: prepared.status, headers: extraHeaders }
     );
   }
 
   try {
     const result = await translateText({
       env: context.env,
-      task: tierConfig.task,
-      text,
-      sourceLang,
-      targetLang: targetRaw
+      task: prepared.task,
+      text: prepared.text,
+      sourceLang: prepared.sourceLang,
+      targetLang: prepared.targetLang
     });
-    await recordTranslateUsage(context.env.DB, { ...identity, chars: text.length });
+    await recordTranslateUsage(context.env.DB, {
+      ...prepared.identity,
+      chars: prepared.text.length
+    });
     return json<ActionData>(
       {
         ok: true,
         translation: result.translation,
         detectedSourceLanguage: result.detectedSourceLanguage,
-        remainingToday: quota.remainingToday - 1
+        remainingToday: prepared.remainingToday - 1
       },
       extraHeaders ? { headers: extraHeaders } : undefined
     );
   } catch (error) {
     console.error("translate action failed", error);
-    // Keep handled provider failures in the fetcher data path. In production,
+    // Keep handled provider failures in the normal data path. In production,
     // Cloudflare can replace a 502 response body with its HTML error page,
     // which Remix cannot deserialize and promotes to the route error boundary.
     return json<ActionData>(
@@ -150,23 +111,80 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 };
 
+/** Wire events emitted by `/translate/stream`; see that route for the format. */
+type StreamEvent =
+  | { type: "detected"; language: TranslateLanguageCode | null }
+  | { type: "delta"; text: string }
+  | { type: "done"; remainingToday: number }
+  | { type: "error"; error: string; code?: "quota_exceeded" | "too_long" };
+
+const parseStreamEvent = (block: string): StreamEvent | null => {
+  const payload = block
+    .split("\n")
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice(5).trim())
+    .join("");
+  if (!payload) return null;
+  try {
+    return JSON.parse(payload) as StreamEvent;
+  } catch {
+    return null;
+  }
+};
+
+/** Client-side view of one streaming translation. */
+type StreamState = {
+  status: "idle" | "streaming" | "done" | "error";
+  translation: string;
+  detected: TranslateLanguageCode | null;
+  error: string | null;
+  quotaExceeded: boolean;
+  remainingToday: number | null;
+};
+
+const IDLE_STREAM: StreamState = {
+  status: "idle",
+  translation: "",
+  detected: null,
+  error: null,
+  quotaExceeded: false,
+  remainingToday: null
+};
+
 export default function TranslatePage() {
   const { authed, quota, user } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<ActionData>();
+  // Only reachable without JavaScript, where the form posts to this route's action.
+  const fallbackData = useActionData<typeof action>() as ActionData | undefined;
   const revalidator = useRevalidator();
   const [text, setText] = React.useState("");
   const [source, setSource] = React.useState<string>("auto");
   const [target, setTarget] = React.useState<TranslateLanguageCode>("en");
   const [copied, setCopied] = React.useState(false);
+  const [stream, setStream] = React.useState<StreamState>(IDLE_STREAM);
   const formRef = React.useRef<HTMLFormElement | null>(null);
+  const abortRef = React.useRef<AbortController | null>(null);
 
-  const busy = fetcher.state !== "idle";
-  const data = fetcher.data;
-  const translation = data?.ok ? data.translation : "";
-  const detected = data?.ok ? data.detectedSourceLanguage : null;
-  const errorMessage = data && !data.ok ? data.error : null;
-  const quotaExceeded = data && !data.ok && data.code === "quota_exceeded";
-  const remainingToday = data?.ok ? data.remainingToday : quota.remainingToday;
+  React.useEffect(() => () => abortRef.current?.abort(), []);
+
+  const busy = stream.status === "streaming";
+  const started = stream.status !== "idle";
+  const translation = started ? stream.translation : fallbackData?.ok ? fallbackData.translation : "";
+  const detected = started
+    ? stream.detected
+    : fallbackData?.ok
+      ? fallbackData.detectedSourceLanguage
+      : null;
+  const errorMessage = started
+    ? stream.error
+    : fallbackData && !fallbackData.ok
+      ? fallbackData.error
+      : null;
+  const quotaExceeded = started
+    ? stream.quotaExceeded
+    : Boolean(fallbackData && !fallbackData.ok && fallbackData.code === "quota_exceeded");
+  const remainingToday =
+    stream.remainingToday ??
+    (fallbackData?.ok ? fallbackData.remainingToday : quota.remainingToday);
 
   // Refresh quota display after login completes in the popup.
   React.useEffect(() => {
@@ -180,10 +198,73 @@ export default function TranslatePage() {
     return () => window.removeEventListener("message", handleMessage);
   }, [revalidator]);
 
-  const submit = React.useCallback(() => {
-    if (!text.trim() || busy) return;
-    fetcher.submit(formRef.current);
-  }, [fetcher, text, busy]);
+  const submit = React.useCallback(async () => {
+    const form = formRef.current;
+    if (!form || !text.trim() || busy) return;
+
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setStream({ ...IDLE_STREAM, status: "streaming" });
+
+    const apply = (event: StreamEvent) => {
+      setStream((prev) => {
+        switch (event.type) {
+          case "detected":
+            return { ...prev, detected: event.language };
+          case "delta":
+            return { ...prev, translation: prev.translation + event.text };
+          case "done":
+            return { ...prev, status: "done", remainingToday: event.remainingToday };
+          case "error":
+            return {
+              ...prev,
+              status: "error",
+              error: event.error,
+              quotaExceeded: event.code === "quota_exceeded"
+            };
+        }
+      });
+    };
+
+    try {
+      const response = await fetch("/translate/stream", {
+        method: "POST",
+        body: new FormData(form),
+        signal: controller.signal
+      });
+      if (!response.ok || !response.body) throw new Error(`Stream failed (${response.status})`);
+
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      let buffer = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += value;
+        let boundary = buffer.indexOf("\n\n");
+        while (boundary >= 0) {
+          const event = parseStreamEvent(buffer.slice(0, boundary));
+          buffer = buffer.slice(boundary + 2);
+          if (event) apply(event);
+          boundary = buffer.indexOf("\n\n");
+        }
+      }
+      // A stream that ends without `done` or `error` was cut off mid-flight.
+      setStream((prev) =>
+        prev.status === "streaming"
+          ? { ...prev, status: "error", error: "Translation was interrupted. Please try again." }
+          : prev
+      );
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      console.error("translate stream failed", error);
+      setStream((prev) => ({
+        ...prev,
+        status: "error",
+        error: "Translation failed. Please try again in a moment."
+      }));
+    }
+  }, [text, busy]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -232,7 +313,17 @@ export default function TranslatePage() {
         </div>
       ) : null}
 
-      <fetcher.Form method="post" ref={formRef} className="translate-board">
+      <form
+        method="post"
+        action="/translate"
+        ref={formRef}
+        className="translate-board"
+        onSubmit={(event) => {
+          // JS path streams from /translate/stream; the native POST above is the fallback.
+          event.preventDefault();
+          void submit();
+        }}
+      >
         <div className="translate-toolbar">
           <div className="translate-lang-group">
             <select
@@ -316,17 +407,20 @@ export default function TranslatePage() {
           </div>
 
           <div className={`translate-pane is-output${busy ? " is-busy" : ""}`}>
-            <div className="translate-output" aria-live="polite">
-              {busy ? (
+            <div className="translate-output" aria-live="polite" aria-busy={busy}>
+              {translation ? (
+                <>
+                  {translation}
+                  {busy ? <span className="translate-caret" aria-hidden="true" /> : null}
+                </>
+              ) : busy ? (
                 <span className="translate-pending">Translating…</span>
-              ) : translation ? (
-                translation
               ) : (
                 <span className="translate-placeholder">Translation appears here.</span>
               )}
             </div>
             <div className="translate-pane-foot">
-              {detected && source === "auto" && !busy ? (
+              {detected && source === "auto" ? (
                 <span className="translate-detected">Detected {languageLabel(detected)}</span>
               ) : (
                 <span />
@@ -365,7 +459,7 @@ export default function TranslatePage() {
             {busy ? "Translating…" : "Translate"}
           </button>
         </div>
-      </fetcher.Form>
+      </form>
         </StudioPageBody>
       </StudioPage>
     </StudioShell>
