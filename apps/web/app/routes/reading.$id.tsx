@@ -312,9 +312,13 @@ export default function EslReadingPracticePage() {
   const [liveReferenceAudio, setLiveReferenceAudio] = React.useState(referenceAudio);
   const [liveSelected, setLiveSelected] = React.useState(selected);
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
-  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(() => {
-    try { return localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY) === "true"; } catch { return false; }
-  });
+  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      setHistoryRailCollapsed(localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY) === "true");
+    } catch {}
+  }, []);
   const sortedAttempts = React.useMemo(
     () => [...liveAttempts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     [liveAttempts]

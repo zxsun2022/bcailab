@@ -317,9 +317,13 @@ function WritingArticlePageReady({
 
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const essayPrompt = article.essay_prompt ?? "";
-  const [asideCollapsed, setAsideCollapsed] = React.useState(() => {
-    try { return localStorage.getItem(ASIDE_COLLAPSED_KEY) === "true"; } catch { return false; }
-  });
+  const [asideCollapsed, setAsideCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      setAsideCollapsed(localStorage.getItem(ASIDE_COLLAPSED_KEY) === "true");
+    } catch {}
+  }, []);
 
   const handleAsideToggle = React.useCallback(() => {
     setAsideCollapsed((current) => {

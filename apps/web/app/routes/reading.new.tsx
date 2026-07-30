@@ -85,14 +85,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 export default function EslReadingIndexPage() {
   const [content, setContent] = React.useState("");
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
-  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(() => {
+  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(true);
+
+  React.useEffect(() => {
     try {
       const stored = localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY);
-      return stored === null ? true : stored === "true";
-    } catch {
-      return true;
-    }
-  });
+      setHistoryRailCollapsed(stored === null ? true : stored === "true");
+    } catch {}
+  }, []);
 
   const handleHistoryRailToggle = React.useCallback(() => {
     setHistoryRailCollapsed((current) => {
