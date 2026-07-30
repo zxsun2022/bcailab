@@ -3,6 +3,7 @@ import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
 import { listDictationAttemptsByUser, listLibraryPassages } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 
 export const meta: MetaFunction = () => [
   { title: "Dictation · bcailab" },
@@ -61,47 +62,51 @@ export default function DictationLibrary() {
   const { authed, bands } = useLoaderData<typeof loader>();
 
   return (
-    <div className="passage-catalogue">
-      <header className="passage-catalogue-header">
-        <h1 className="passage-catalogue-title">Dictation</h1>
-        <p className="passage-catalogue-subtitle">
+    <StudioPage width="wide">
+      <StudioPageHeader
+        title="Dictation"
+        description={
+          <>
           Listen to a passage sentence by sentence and type what you hear. You get instant
           feedback on every sentence.
           {!authed ? " No account needed to start." : null}
-        </p>
-      </header>
+          </>
+        }
+      />
 
-      {bands.length === 0 ? (
-        <p className="passage-catalogue-empty">No passages are available yet.</p>
-      ) : (
-        bands.map((group) => (
-          <section key={group.band} className="passage-band">
-            <div className="passage-band-header">
-              <h2 className="passage-band-title">{group.band}</h2>
-              <span className="passage-band-blurb">{group.blurb}</span>
-            </div>
-            <ul className="passage-card-grid">
-              {group.passages.map((passage) => (
-                <li key={passage.id}>
-                  <Link to={`/dictation/${passage.id}`} className="passage-card">
-                    <span className="passage-card-title">{passage.title}</span>
-                    <span className="passage-card-meta">
-                      {passage.topic} · {passage.sentenceCount} sentences
-                    </span>
-                    {passage.bestAccuracy !== null ? (
-                      <span className="passage-card-best">
-                        Best {Math.round(passage.bestAccuracy * 100)}%
+      <StudioPageBody className="passage-catalogue">
+        {bands.length === 0 ? (
+          <p className="passage-catalogue-empty">No passages are available yet.</p>
+        ) : (
+          bands.map((group) => (
+            <section key={group.band} className="passage-band">
+              <div className="passage-band-header">
+                <h2 className="passage-band-title">{group.band}</h2>
+                <span className="passage-band-blurb">{group.blurb}</span>
+              </div>
+              <ul className="passage-card-grid">
+                {group.passages.map((passage) => (
+                  <li key={passage.id}>
+                    <Link to={`/dictation/${passage.id}`} className="passage-card">
+                      <span className="passage-card-title">{passage.title}</span>
+                      <span className="passage-card-meta">
+                        {passage.topic} · {passage.sentenceCount} sentences
                       </span>
-                    ) : (
-                      <span className="passage-card-start">Start</span>
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
-      )}
-    </div>
+                      {passage.bestAccuracy !== null ? (
+                        <span className="passage-card-best">
+                          Best {Math.round(passage.bestAccuracy * 100)}%
+                        </span>
+                      ) : (
+                        <span className="passage-card-start">Start</span>
+                      )}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        )}
+      </StudioPageBody>
+    </StudioPage>
   );
 }

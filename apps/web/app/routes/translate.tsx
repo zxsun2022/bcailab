@@ -19,6 +19,7 @@ import {
 } from "~/utils/translate-languages";
 import { openLoginPopup } from "~/utils/login-popup";
 import { StudioShell } from "~/components/StudioShell";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 
 export const handle = {
   breadcrumb: { label: "translate", href: "/translate" },
@@ -212,11 +213,12 @@ export default function TranslatePage() {
 
   return (
     <StudioShell user={user} canvasClassName="translate-shell-canvas">
-      <div className="translate-page">
-      <div className="translate-head">
-        <h1 className="translate-title">Translate</h1>
-        <p className="translate-sub">LLM-powered translation. Natural phrasing, formatting preserved.</p>
-      </div>
+      <StudioPage width="workspace">
+        <StudioPageHeader
+          title="Translate"
+          description="LLM-powered translation. Natural phrasing, formatting preserved."
+        />
+        <StudioPageBody className="translate-page">
 
       {!authed ? (
         <div className="translate-quota-banner">
@@ -364,7 +366,8 @@ export default function TranslatePage() {
           </button>
         </div>
       </fetcher.Form>
-      </div>
+        </StudioPageBody>
+      </StudioPage>
     </StudioShell>
   );
 }

@@ -172,6 +172,18 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-29 — **English Studio application shell and page-frame contract.** Replaced the
+  collection of route-owned outer coordinate systems with two reusable layers:
+  `StudioShell` now owns the rail/main/canvas nesting for every primary tool, and
+  `StudioPage` owns the shared title, description, page action, local tabs, content origin
+  and three controlled body widths. Migrated Home, the three Progress views, Dictation,
+  Reading, Writing, Translate and both Speech workspaces. The result keeps catalogue,
+  focused-form and two-pane layouts appropriately different without letting each page
+  redefine its margins or heading rhythm. Speech now has a real page header while
+  Generate/History remain tool-local tabs; history still never enters the product rail.
+  Verified public surfaces at desktop, tablet and mobile widths and confirmed that the main
+  inset, rather than the document body, owns long-page scrolling. Architecture and adoption
+  rules: `docs/studio-app-shell.md`.
 - 2026-07-29 — **English Studio rail boundary and unified Progress entry.** Strengthened
   the product navigation contract from "no history" to "destinations only": removed the
   pinned-action API from the shared rail, so Reading and Writing can no longer add local

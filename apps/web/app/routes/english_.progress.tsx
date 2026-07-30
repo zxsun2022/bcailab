@@ -6,6 +6,12 @@ import { requireUser } from "~/utils/auth.server";
 import { StudioShell } from "~/components/StudioShell";
 import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
 import { resolveCefr, TAG_DESCRIPTIONS, type TagMastery } from "~/utils/learner-model";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/english/progress" },
@@ -133,15 +139,15 @@ export default function EnglishProgressPage() {
 
   return (
     <StudioShell user={user}>
-      <div className="writing-dashboard">
-        <div className="writing-dashboard-header">
-          <h2>Progress</h2>
-          <p className="writing-dashboard-subtitle">
-            One view of your English across every module. Dictation is the most precise signal;
-            reading contributes a lighter one.
-          </p>
-        </div>
-        <ProgressWorkspaceTabs />
+      <StudioPage width="wide">
+        <StudioPageHeader
+          title="Progress"
+          description="One view of your English across every module. Dictation is the most precise signal; reading contributes a lighter one."
+        />
+        <StudioPageTabs>
+          <ProgressWorkspaceTabs />
+        </StudioPageTabs>
+        <StudioPageBody className="writing-dashboard">
 
         {!hasData ? (
           <div className="writing-dashboard-empty">
@@ -238,7 +244,8 @@ export default function EnglishProgressPage() {
             </div>
           </>
         )}
-      </div>
+        </StudioPageBody>
+      </StudioPage>
     </StudioShell>
   );
 }

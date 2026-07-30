@@ -27,6 +27,12 @@ import {
 } from "~/utils/tts.server";
 import * as React from "react";
 import { SpeechWorkspaceTabs } from "~/components/SpeechWorkspaceTabs";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 
 type LoaderLanguage = {
   code: string;
@@ -738,9 +744,16 @@ export default function TtsIndexPage() {
   };
 
   return (
-    <div className="speech-workspace">
-      <SpeechWorkspaceTabs />
-      <div className="speech-center-stage">
+    <StudioPage width="workspace">
+      <StudioPageHeader
+        title="Speech"
+        description="Turn text into natural-sounding audio, then revisit previous generations from this workspace."
+      />
+      <StudioPageTabs>
+        <SpeechWorkspaceTabs />
+      </StudioPageTabs>
+      <StudioPageBody className="speech-workspace">
+        <div className="speech-center-stage">
         <div className="speech-content-column">
           <div className="tts-primary-content">
             {voiceError ? (
@@ -886,6 +899,7 @@ export default function TtsIndexPage() {
           </div>
         </div>
       </div>
-    </div>
+      </StudioPageBody>
+    </StudioPage>
   );
 }

@@ -3,6 +3,7 @@ import { json } from "@remix-run/cloudflare";
 import { Outlet, useLoaderData, useLocation } from "@remix-run/react";
 import { getOptionalUser } from "~/utils/auth.server";
 import { DictationNavRail } from "~/components/DictationNavRail";
+import { StudioShell } from "~/components/StudioShell";
 
 export const handle = {
   breadcrumb: { label: "dictation", href: "/dictation" },
@@ -31,13 +32,11 @@ export default function DictationLayout() {
   const isLibrary = location.pathname === "/dictation";
 
   return (
-    <div className="writing-shell">
-      <DictationNavRail user={user} />
-      <div className="writing-main">
-        <div className={`dictation-canvas${isLibrary ? "" : " is-session"}`}>
-          <Outlet />
-        </div>
-      </div>
-    </div>
+    <StudioShell
+      navigation={<DictationNavRail user={user} />}
+      canvasClassName={`dictation-canvas${isLibrary ? "" : " is-session"}`}
+    >
+      <Outlet />
+    </StudioShell>
   );
 }

@@ -3,6 +3,7 @@ import { json } from "@remix-run/cloudflare";
 import { Outlet, useLoaderData } from "@remix-run/react";
 import { requireUser } from "~/utils/auth.server";
 import { SpeechNavRail } from "~/components/SpeechNavRail";
+import { StudioShell } from "~/components/StudioShell";
 
 export const handle = {
   breadcrumb: { label: "speech", href: "/speech" },
@@ -25,13 +26,11 @@ export default function TtsLayout() {
   const { user } = useLoaderData<typeof loader>();
 
   return (
-    <div className="writing-shell">
-      <SpeechNavRail user={user} />
-      <div className="writing-main">
-        <div className="speech-canvas">
-          <Outlet />
-        </div>
-      </div>
-    </div>
+    <StudioShell
+      navigation={<SpeechNavRail user={user} />}
+      canvasClassName="speech-canvas"
+    >
+      <Outlet />
+    </StudioShell>
   );
 }

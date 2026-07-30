@@ -10,6 +10,7 @@ import {
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { resolveCefr } from "~/utils/learner-model";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 
 /**
  * Reading catalogue. Design: `docs/english-studio-ia-v2-design.md` §3.7.
@@ -153,22 +154,19 @@ export default function ReadingCatalogue() {
     setOpenBands((current) => ({ ...current, [band]: !current[band] }));
 
   return (
-    <div className="passage-catalogue">
-      <header className="passage-catalogue-header">
-        <div className="passage-catalogue-heading-row">
-          <h1 className="passage-catalogue-title">Reading</h1>
+    <StudioPage width="wide">
+      <StudioPageHeader
+        title="Reading"
+        description="Read a passage aloud and get feedback on pronunciation, fluency, rhythm, and clarity. Any level is open — practising a step above or below is useful, and it sharpens your level estimate."
+        action={
           <Link to="/reading/new" className="btn btn-primary btn-sm">
             Add text
           </Link>
-        </div>
-        <p className="passage-catalogue-subtitle">
-          Read a passage aloud and get feedback on pronunciation, fluency, rhythm, and
-          clarity. Any level is open — practising a step above or below is useful, and it
-          sharpens your level estimate.
-        </p>
-      </header>
+        }
+      />
 
-      {bands.map((group) => {
+      <StudioPageBody className="passage-catalogue">
+        {bands.map((group) => {
         const isOpen = openBands[group.band] ?? false;
         const isYours = yourBand === group.band;
         return (
@@ -196,7 +194,7 @@ export default function ReadingCatalogue() {
         );
       })}
 
-      <section className="passage-own">
+        <section className="passage-own">
         <div className="passage-own-header">
           <div>
             <h2 className="passage-own-title">Your texts</h2>
@@ -243,7 +241,8 @@ export default function ReadingCatalogue() {
             ))}
           </ul>
         )}
-      </section>
-    </div>
+        </section>
+      </StudioPageBody>
+    </StudioPage>
   );
 }

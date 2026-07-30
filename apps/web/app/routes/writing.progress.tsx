@@ -7,6 +7,12 @@ import { getWritingAgentOrDefault, formatWritingAssessment } from "~/utils/writi
 import type { WritingFeedback, WritingAnnotation } from "~/utils/writing-eval.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
 import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/writing/progress" }
@@ -249,9 +255,12 @@ export default function WritingProgressPage() {
   if (!data.schemaReady) {
     return (
       <div className="writing-main-scroll">
-        <div className="writing-dashboard">
-          <p className="writing-status-desc">Writing tool is temporarily unavailable.</p>
-        </div>
+        <StudioPage width="wide">
+          <StudioPageHeader title="Writing progress" />
+          <StudioPageBody className="writing-dashboard">
+            <p className="writing-status-desc">Writing tool is temporarily unavailable.</p>
+          </StudioPageBody>
+        </StudioPage>
       </div>
     );
   }
@@ -261,12 +270,15 @@ export default function WritingProgressPage() {
 
   return (
     <div className="writing-main-scroll">
-      <div className="writing-dashboard">
-        <div className="writing-dashboard-header">
-          <h2>Writing progress</h2>
-          <p className="writing-dashboard-subtitle">Your writing history at a glance.</p>
-        </div>
-        <ProgressWorkspaceTabs />
+      <StudioPage width="wide">
+        <StudioPageHeader
+          title="Writing progress"
+          description="Your writing history at a glance."
+        />
+        <StudioPageTabs>
+          <ProgressWorkspaceTabs />
+        </StudioPageTabs>
+        <StudioPageBody className="writing-dashboard">
 
         {isEmpty ? (
           <div className="writing-dashboard-empty">
@@ -337,7 +349,8 @@ export default function WritingProgressPage() {
             </div>
           </>
         )}
-      </div>
+        </StudioPageBody>
+      </StudioPage>
     </div>
   );
 }

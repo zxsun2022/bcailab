@@ -5,6 +5,12 @@ import { listCompletedEslReadingAttemptsByUser, listPassagesByUser } from "@bcai
 import { requireUser } from "~/utils/auth.server";
 import { getDisplayEslPassageTitle, parseEslReadingEvaluationOutput } from "~/utils/esl-reading";
 import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/reading/progress" }
@@ -228,12 +234,15 @@ export default function ReadingProgressPage() {
 
   return (
     <div className="writing-main-scroll">
-      <div className="writing-dashboard">
-        <div className="writing-dashboard-header">
-          <h2>Reading progress</h2>
-          <p className="writing-dashboard-subtitle">Your reading and recitation history at a glance.</p>
-        </div>
-        <ProgressWorkspaceTabs />
+      <StudioPage width="wide">
+        <StudioPageHeader
+          title="Reading progress"
+          description="Your reading and recitation history at a glance."
+        />
+        <StudioPageTabs>
+          <ProgressWorkspaceTabs />
+        </StudioPageTabs>
+        <StudioPageBody className="writing-dashboard">
 
         {isEmpty ? (
           <div className="writing-dashboard-empty">
@@ -324,7 +333,8 @@ export default function ReadingProgressPage() {
             </div>
           </>
         )}
-      </div>
+        </StudioPageBody>
+      </StudioPage>
     </div>
   );
 }

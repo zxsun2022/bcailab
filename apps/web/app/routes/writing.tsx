@@ -6,6 +6,7 @@ import { WritingNavRail } from "~/components/WritingNavRail";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
+import { StudioShell } from "~/components/StudioShell";
 
 export const handle = {
   breadcrumb: { label: "writing", href: "/writing" },
@@ -50,26 +51,22 @@ export default function WritingLayout() {
   const params = useParams();
   const activeId = params.id ?? null;
   const canvasClassName = `writing-canvas${activeId ? " is-detail" : ""}`;
-  const mainClassName = `writing-main${activeId ? " is-detail" : ""}`;
 
   if (!schemaReady) {
     return (
-      <div className="writing-shell">
-        <div className="writing-main">
-          <WritingUnavailableState />
-        </div>
-      </div>
+      <StudioShell user={user}>
+        <WritingUnavailableState />
+      </StudioShell>
     );
   }
 
   return (
-    <div className="writing-shell">
-      <WritingNavRail user={user} />
-      <div className={mainClassName}>
-        <div className={canvasClassName}>
-          <Outlet />
-        </div>
-      </div>
-    </div>
+    <StudioShell
+      navigation={<WritingNavRail user={user} />}
+      mainClassName={activeId ? "is-detail" : undefined}
+      canvasClassName={canvasClassName}
+    >
+      <Outlet />
+    </StudioShell>
   );
 }

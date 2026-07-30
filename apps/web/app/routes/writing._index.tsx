@@ -13,6 +13,7 @@ import {
   logWritingSchemaMissing,
   WRITING_UNAVAILABLE_ERROR
 } from "~/utils/writing-schema.server";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 
 type ActionData = { error?: string; redirectTo?: string };
 
@@ -93,12 +94,13 @@ export default function WritingIndexPage() {
 
   return (
     <div className="writing-main-scroll">
-      <div className="writing-index">
-        <div className="writing-index-header">
-          <h1>New piece</h1>
-          <p>Write with a coach and get structured feedback on your next revision.</p>
-        </div>
+      <StudioPage width="standard">
+        <StudioPageHeader
+          title="New piece"
+          description="Write with a coach and get structured feedback on your next revision."
+        />
 
+        <StudioPageBody className="writing-index">
         <fetcher.Form method="post" action="?index" className="writing-index-form">
           <input type="hidden" name="_intent" value="createArticle" />
           <input type="hidden" name="_transport" value="fetcher" />
@@ -151,7 +153,8 @@ export default function WritingIndexPage() {
             </button>
           </div>
         </fetcher.Form>
-      </div>
+        </StudioPageBody>
+      </StudioPage>
     </div>
   );
 }

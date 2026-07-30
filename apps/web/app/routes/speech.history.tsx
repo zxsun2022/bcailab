@@ -5,6 +5,12 @@ import { listTtsGenerationsByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { SpeechWorkspaceTabs } from "~/components/SpeechWorkspaceTabs";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 
 export const handle = {
   breadcrumb: { label: "history" }
@@ -30,9 +36,16 @@ export default function SpeechHistoryPage() {
   const { generations } = useLoaderData<typeof loader>();
 
   return (
-    <div className="speech-workspace">
-      <SpeechWorkspaceTabs />
-      <div className="speech-center-stage">
+    <StudioPage width="workspace">
+      <StudioPageHeader
+        title="Speech"
+        description="Turn text into natural-sounding audio, then revisit previous generations from this workspace."
+      />
+      <StudioPageTabs>
+        <SpeechWorkspaceTabs />
+      </StudioPageTabs>
+      <StudioPageBody className="speech-workspace">
+        <div className="speech-center-stage">
         <div className="speech-content-column">
           <header className="speech-history-header">
             <div>
@@ -83,6 +96,7 @@ export default function SpeechHistoryPage() {
           )}
         </div>
       </div>
-    </div>
+      </StudioPageBody>
+    </StudioPage>
   );
 }

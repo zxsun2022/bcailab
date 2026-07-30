@@ -12,6 +12,7 @@ import {
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { StudioShell } from "~/components/StudioShell";
+import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import {
   CEFR_LEVELS,
   resolveCefr,
@@ -326,17 +327,16 @@ export default function EnglishHome() {
 
   return (
     <StudioShell user={user}>
-      <div className="home-page">
-      <header className="home-header">
-        <h1 className="home-title">
-          {firstName ? `Welcome back, ${firstName}` : "Welcome back"}
-        </h1>
-        <p className="home-subtitle">
-          {isCold
-            ? "Let's find your level — it takes about three minutes."
-            : "Pick up where you left off, or start something new."}
-        </p>
-      </header>
+      <StudioPage width="wide">
+        <StudioPageHeader
+          title={firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+          description={
+            isCold
+              ? "Let's find your level — it takes about three minutes."
+              : "Pick up where you left off, or start something new."
+          }
+        />
+        <StudioPageBody className="home-page">
 
       {degraded ? (
         <p className="home-degraded">
@@ -535,7 +535,8 @@ export default function EnglishHome() {
           </section>
         </>
       )}
-      </div>
+        </StudioPageBody>
+      </StudioPage>
     </StudioShell>
   );
 }

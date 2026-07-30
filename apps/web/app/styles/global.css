@@ -8391,6 +8391,159 @@ select.input:focus {
   padding: var(--space-xl) var(--space-lg) 80px;
 }
 
+/* ==========================================================================
+   English Studio application shell + page frame
+
+   The rail owns product navigation; this frame owns every primary page's
+   origin, heading rhythm and controlled content width. Tools may choose a
+   wider body, but may not invent a new outer coordinate system.
+   ========================================================================== */
+
+.studio-app-shell {
+  --studio-frame-max: 1400px;
+  --studio-page-standard: 780px;
+  --studio-page-wide: 1120px;
+  --studio-page-workspace: 1400px;
+}
+
+.studio-main,
+.studio-canvas-host {
+  min-width: 0;
+}
+
+.studio-canvas-host {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.studio-page {
+  --studio-page-content-max: var(--studio-page-wide);
+  display: flex;
+  flex-direction: column;
+  width: min(100%, var(--studio-frame-max));
+  min-height: 100%;
+  margin-inline: auto;
+  padding: 0 0 72px;
+}
+
+.studio-page--standard {
+  --studio-page-content-max: var(--studio-page-standard);
+}
+
+.studio-page--wide {
+  --studio-page-content-max: var(--studio-page-wide);
+}
+
+.studio-page--workspace {
+  --studio-page-content-max: var(--studio-page-workspace);
+}
+
+.studio-page-header,
+.studio-page-tabs,
+.studio-page-body {
+  width: min(100%, var(--studio-page-content-max));
+  margin-inline: 0;
+}
+
+.studio-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: 28px;
+}
+
+.studio-page-header-copy {
+  min-width: 0;
+  max-width: 70ch;
+}
+
+.studio-page-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.studio-page-description {
+  max-width: 66ch;
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.studio-page-header-action {
+  flex: none;
+  padding-top: 2px;
+}
+
+.studio-page-tabs {
+  margin-top: -8px;
+  margin-bottom: 32px;
+}
+
+.studio-page-tabs .workspace-tabs {
+  margin-bottom: 0;
+}
+
+.studio-page-body {
+  min-width: 0;
+}
+
+/* Retire the one-off page coordinate systems as each route adopts StudioPage. */
+.studio-page-body.home-page,
+.studio-page-body.writing-dashboard,
+.studio-page-body.writing-index,
+.studio-page-body.passage-catalogue,
+.studio-page-body.translate-page {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dictation-canvas:not(.is-session),
+.writing-canvas:not(.is-detail),
+.speech-canvas {
+  max-width: none;
+  padding-top: 0;
+}
+
+.studio-page-body.speech-workspace {
+  flex: 1;
+  height: auto;
+}
+
+@media (min-width: 1024px) {
+  .studio-page {
+    padding: 40px clamp(12px, 1.4vw, 24px) 80px;
+  }
+}
+
+@media (max-width: 720px) {
+  .studio-page-header {
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-bottom: 24px;
+  }
+
+  .studio-page-title {
+    font-size: 2rem;
+  }
+
+  .studio-page-description {
+    font-size: 0.9375rem;
+  }
+
+  .studio-page-header-action {
+    width: 100%;
+    padding-top: 0;
+  }
+}
+
 .home-header {
   margin-bottom: var(--space-xl);
 }

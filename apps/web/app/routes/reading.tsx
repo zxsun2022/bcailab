@@ -3,6 +3,7 @@ import { json } from "@remix-run/cloudflare";
 import { Outlet, useLoaderData, useParams } from "@remix-run/react";
 import { requireUser } from "~/utils/auth.server";
 import { ReadingNavRail } from "~/components/ReadingNavRail";
+import { StudioShell } from "~/components/StudioShell";
 
 export const handle = {
   breadcrumb: { label: "reading", href: "/reading" },
@@ -34,17 +35,15 @@ export default function EslReadingLayout() {
   // Only a live reading session owns its own inner scroll regions. Catalogue, progress,
   // settings and creation pages use the shell's single main-content scroller.
   const isWorkspaceRoute = activeId !== null;
-  const mainClassName = `writing-main${isWorkspaceRoute ? " is-workspace" : ""}`;
   const canvasClassName = `reading-canvas${isWorkspaceRoute ? " is-workspace" : ""}${activeId ? " is-detail" : ""}`;
 
   return (
-    <div className="writing-shell">
-      <ReadingNavRail user={user} />
-      <div className={mainClassName}>
-        <div className={canvasClassName}>
-          <Outlet />
-        </div>
-      </div>
-    </div>
+    <StudioShell
+      navigation={<ReadingNavRail user={user} />}
+      mainClassName={isWorkspaceRoute ? "is-workspace" : undefined}
+      canvasClassName={canvasClassName}
+    >
+      <Outlet />
+    </StudioShell>
   );
 }

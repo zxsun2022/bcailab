@@ -2,27 +2,33 @@ import * as React from "react";
 import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
 
 /**
- * Shell for the studio-level pages (Home, Progress) that are not a tool.
+ * Persistent app shell for every English Studio destination.
  *
- * The rail is universal by design (`docs/english-studio-ia-v2-design.md` §3.2): because it
- * always lists every module, the Home's body carries no "explore" section of its own. These
- * Page and tool actions belong to their main workspace, never the product rail.
+ * The default rail is universal (`docs/english-studio-ia-v2-design.md` §3.2); a tool may
+ * inject its settings-aware wrapper without changing the rail/main/canvas hierarchy.
+ * Page actions and tool history belong to the main workspace, never the product rail.
  */
 export function StudioShell({
   user,
-  canvasClassName = "studio-canvas",
+  navigation,
+  mainClassName,
+  canvasClassName,
   children
 }: {
-  user: NavUser | null;
+  user?: NavUser | null;
+  navigation?: React.ReactNode;
+  mainClassName?: string;
   canvasClassName?: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="writing-shell">
-      <ToolNavRail user={user} />
-      <div className="writing-main">
-        <div className={canvasClassName}>{children}</div>
-      </div>
+    <div className="writing-shell studio-app-shell">
+      {navigation ?? <ToolNavRail user={user ?? null} />}
+      <main className={`writing-main studio-main${mainClassName ? ` ${mainClassName}` : ""}`}>
+        <div className={`studio-canvas-host${canvasClassName ? ` ${canvasClassName}` : ""}`}>
+          {children}
+        </div>
+      </main>
     </div>
   );
 }
