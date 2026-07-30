@@ -885,7 +885,7 @@ export async function listCompletedEslReadingAttemptsByUser(
     .prepare(
       `SELECT a.*, p.title AS passage_title, p.content_text AS passage_content_text, e.output_json AS evaluation_output_json
        FROM esl_reading_attempts a
-       JOIN esl_passages p ON p.id = a.passage_id
+       JOIN passages p ON p.id = a.passage_id
        JOIN esl_reading_evaluations e
          ON e.id = (
            SELECT e2.id
@@ -1958,10 +1958,9 @@ export type RecentReadingAttempt = {
 /**
  * Recent reading attempts for the Home's activity strip.
  *
- * Bounded by `limit`, and joined against `passages` rather than the legacy `esl_passages`
- * table that `listCompletedEslReadingAttemptsByUser` still uses — attempts have pointed at
- * `passages` since the material layer migration, so the old join silently misses every
- * attempt on library material.
+ * Bounded by `limit`. Reading attempts have pointed at the unified `passages` table since
+ * the material-layer migration; every attempt reader must join that table so library and
+ * user-created material are both represented.
  */
 export async function listRecentReadingAttempts(
   db: Db,

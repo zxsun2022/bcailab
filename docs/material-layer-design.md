@@ -263,6 +263,8 @@ what would have been awkward inside a D1 migration.
    Preserve ids.
 4. Rebuild `esl_reading_attempts` with its foreign key pointing at `passages(id)`.
    Because passage ids are preserved, the attempt rows copy across unchanged.
+   Every history/progress query must also join `passages`, not the rollback-only
+   `esl_passages` table; otherwise attempts on global library material disappear.
 5. Run the tagger over the library passages (user passages stay untagged — §5.5).
 6. Repoint all dictation and reading queries at the new tables.
 7. Leave `dictation_passages`, `dictation_sentences`, and `esl_passages` in place as a

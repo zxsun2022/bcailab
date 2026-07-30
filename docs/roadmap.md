@@ -32,15 +32,6 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
-
-- **Reading history silently drops library attempts** (found 2026-07-28 while building the
-  Coach Home). `listCompletedEslReadingAttemptsByUser` still joins the legacy `esl_passages`
-  table, but reading attempts have pointed at `passages` since the material-layer migration —
-  so an inner join on the old table matches only user-created passages and **every attempt on
-  library material vanishes** from `/reading/progress`. Not cosmetic: it under-reports practice
-  and skews the reading dashboard's averages. `listRecentReadingAttempts` (added for the Home)
-  shows the correct join; repoint the older helper and check the rest of the file for the same
-  stale join before assuming it is the only one.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
@@ -172,6 +163,12 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-30 — **Reading progress includes library attempts.** Repointed the completed-attempt
+  history query from the rollback-only `esl_passages` table to the unified `passages` table,
+  matching the foreign key introduced by the material-layer migration. `/reading/progress`
+  now counts and averages evaluated attempts on global library material as well as the
+  learner's own texts. Audited the remaining legacy-table reads: they belong to the retained
+  legacy passage CRUD only; no other attempt/history query still joins the stale table.
 - 2026-07-29 — **Studio brand and account controls restored.** Corrected two app-shell
   regressions found after deployment: the bcailab mark once again returns to the site
   homepage instead of bouncing a signed-in learner back to English Studio Home, and the
