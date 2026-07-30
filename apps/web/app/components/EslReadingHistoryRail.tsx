@@ -46,9 +46,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
     onToggle,
   } = props;
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
-  const [isDesktop, setIsDesktop] = React.useState(() => {
-    try { return window.matchMedia("(min-width: 1024px)").matches; } catch { return false; }
-  });
+  const [isDesktop, setIsDesktop] = React.useState(false);
   const sortedAttempts = React.useMemo(
     () => [...attempts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     [attempts]

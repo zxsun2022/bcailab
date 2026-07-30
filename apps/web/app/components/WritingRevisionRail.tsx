@@ -62,9 +62,13 @@ export function WritingRevisionRail({
   disableNewRevision = false,
   assessmentPrefix
 }: WritingRevisionRailProps) {
-  const [collapsed, setCollapsed] = React.useState(() => {
-    try { return localStorage.getItem(COLLAPSED_KEY) === "true"; } catch { return false; }
-  });
+  const [collapsed, setCollapsed] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "true");
+    } catch {}
+  }, []);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
