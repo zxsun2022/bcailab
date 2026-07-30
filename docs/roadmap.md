@@ -146,6 +146,10 @@ returns, so neither needs an IA change.
 Under consideration by the owner, **not scoped, not prioritized** (recorded 2026-07-21 so
 they are not forgotten — none are urgent):
 
+- **English Studio UX follow-ups** — Writing material-led home/prompt bank, Translate long-input
+  growth, Dictation session navigation and cues, shared return-link placement, Reading's
+  personal-text affordance, and a Speech compose-height investigation. Recorded 2026-07-30 in
+  `docs/ux-follow-ups-2026-07-30.md`; this is a discussion record, not a commitment or ordering.
 - Homepage redesign.
 - Overall visual language pass across the studio.
 - An admin/back-office system for **content** (material-library management currently happens
