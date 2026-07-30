@@ -6768,16 +6768,6 @@ select.input:focus {
   color: var(--text);
 }
 
-/* Identity-only variant: signed in on a tool with no settings page. */
-.nav-rail-user-btn.is-static {
-  cursor: default;
-}
-
-.nav-rail-user-btn.is-static:hover {
-  background: transparent;
-  color: var(--text-muted);
-}
-
 .nav-rail-user-btn.is-active {
   background: rgba(196, 149, 106, 0.1);
   color: var(--copper);

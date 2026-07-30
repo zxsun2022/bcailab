@@ -172,6 +172,11 @@ they are not forgotten — none are urgent):
 
 ## Done
 
+- 2026-07-29 — **Studio brand and account controls restored.** Corrected two app-shell
+  regressions found after deployment: the bcailab mark once again returns to the site
+  homepage instead of bouncing a signed-in learner back to English Studio Home, and the
+  pinned avatar is again an interactive account menu rather than a static identity row.
+  The shared menu exposes profile context, theme, sign-out and tool Settings when available.
 - 2026-07-29 — **English Studio secondary-page semantics and hydration consistency.**
   Extended the app-shell contract beyond primary catalogues and dashboards: Reading,
   Writing and Speech settings now use the shared page frame; progress, creation, settings

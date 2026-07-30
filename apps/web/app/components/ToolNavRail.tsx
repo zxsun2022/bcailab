@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, NavLink, useLocation } from "@remix-run/react";
+import { Link, useLocation } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
 import {
@@ -69,8 +69,10 @@ export function ToolNavRail({
   // then restore the preference after hydration to avoid a chevron/class mismatch.
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [userMenuOpen, setUserMenuOpen] = React.useState(false);
+  const userMenuRef = React.useRef<HTMLDivElement | null>(null);
   // Apply stored theme preference on tool pages (no site header rendered here)
-  useThemePreference();
+  const [themePreference, setThemePreference] = useThemePreference();
 
   React.useEffect(() => {
     try { setCollapsed(localStorage.getItem(collapsedKey) === "true"); } catch {}
@@ -86,7 +88,25 @@ export function ToolNavRail({
 
   React.useEffect(() => {
     setMobileOpen(false);
+    setUserMenuOpen(false);
   }, [location.pathname]);
+
+  React.useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setUserMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? "Account";
@@ -122,7 +142,7 @@ export function ToolNavRail({
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
-          <Link to="/english" className="nav-rail-logo" aria-label="Back to English Studio">
+          <Link to="/" className="nav-rail-logo" aria-label="Back to bcailab home">
             <img
               src="/brand/logo-64.png"
               srcSet="/brand/logo-64.png 1x, /brand/logo-128.png 2x"
@@ -178,25 +198,63 @@ export function ToolNavRail({
           ))}
         </nav>
 
-        {/* Pinned bottom: user + settings when signed in, sign-in prompt when not */}
+        {/* Pinned bottom: universal account menu when signed in, sign-in prompt when not */}
         <div className="nav-rail-pinned-bottom">
-          {user && settingsTo ? (
-            <NavLink
-              to={settingsTo}
-              className={({ isActive }) => `nav-rail-user-btn${isActive ? " is-active" : ""}`}
-            >
-              <img
-                className="nav-rail-avatar"
-                src={avatarSrc}
-                alt={displayName}
-              />
-              <span className="nav-rail-user-name">{displayName}</span>
-            </NavLink>
-          ) : user ? (
-            /* Signed in, but this tool has no settings page — identity only. */
-            <div className="nav-rail-user-btn is-static">
-              <img className="nav-rail-avatar" src={avatarSrc} alt="" />
-              <span className="nav-rail-user-name">{displayName}</span>
+          {user ? (
+            <div className="nav-rail-user-shell" ref={userMenuRef}>
+              <button
+                type="button"
+                className="nav-rail-user-btn"
+                aria-label="Open user menu"
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                onClick={() => setUserMenuOpen((open) => !open)}
+              >
+                <img className="nav-rail-avatar" src={avatarSrc} alt="" />
+                <span className="nav-rail-user-name">{displayName}</span>
+              </button>
+              {userMenuOpen ? (
+                <div className="nav-rail-user-menu" role="menu" aria-label="User menu">
+                  <div className="nav-rail-user-profile">
+                    <div className="nav-rail-user-fullname">{user.name ?? "Signed in"}</div>
+                    {user.email ? (
+                      <div className="nav-rail-user-email">{user.email}</div>
+                    ) : null}
+                  </div>
+                  <div className="nav-rail-user-section">
+                    <div className="menu-label">Theme</div>
+                    <div className="menu-theme-options">
+                      {([
+                        { value: "system", label: "Auto" },
+                        { value: "light", label: "Light" },
+                        { value: "dark", label: "Dark" }
+                      ] as const).map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`menu-theme-option${
+                            themePreference === option.value ? " is-active" : ""
+                          }`}
+                          aria-pressed={themePreference === option.value}
+                          onClick={() => setThemePreference(option.value)}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {settingsTo ? (
+                    <Link to={settingsTo} className="menu-item" role="menuitem">
+                      Settings
+                    </Link>
+                  ) : null}
+                  <form method="post" action="/logout">
+                    <button type="submit" className="menu-item" role="menuitem">
+                      Log out
+                    </button>
+                  </form>
+                </div>
+              ) : null}
             </div>
           ) : (
             <button

@@ -66,6 +66,11 @@ Tool history is never rendered in the product rail. If a tool has meaningful his
 belongs to that tool's main workspace as a local tab or panel. A concrete session or
 document is a detail workspace and provides a return to its tool page.
 
+The brand mark and product navigation have separate jobs: the bcailab mark returns to the
+site homepage, while `Home` returns to English Studio. The pinned account control is a
+button on every signed-in Studio route and opens the same profile, theme and sign-out menu;
+tool-specific settings may be exposed as an additional menu item.
+
 ## Code contract
 
 `StudioShell` owns the persistent rail/main/canvas nesting. Tool layouts inject their rail
