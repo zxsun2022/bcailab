@@ -9,7 +9,9 @@
 
 Product direction (agreed 2026-07): bcailab is a studio; **English Studio** is the flagship
 product (an AI English coach: read, write, listen, translate). Translate is the free,
-no-account acquisition funnel into it.
+no-account acquisition funnel into it. A second product, **Mapdown**, was added 2026-08-01 —
+a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
+infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
 ## Now (nothing scoped — awaiting the owner)
 
@@ -32,6 +34,20 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
+- **Mapdown — new product, specification landed 2026-08-01, implementation not scoped.** A
+  static, local-first, keyboard-first Markdown mind-map editor: the semantic document is an
+  ordered tree, the map is a projection of it, and everything exports to standard Markdown, SVG
+  and PNG with no account and no server. Three-phase business plan confirmed by the owner:
+  (1) fully free static tool, (2) local document history in IndexedDB, (3) optional bcailab
+  accounts for cloud-saved maps, with paid tiers reserved for AI features and heavy use — free
+  users keep the large majority of functionality. It lives in this repo as `apps/mapdown` and
+  deploys as a **second** Cloudflare Pages project to `map.bcailab.com`; it inherits the
+  account system but none of the Studio's visual language. The v1.0 specification, the decision
+  log and the token-layering rules are in `docs/mapdown/`; start at `docs/mapdown/README.md`,
+  and read `decisions.md` before reopening any settled question. **Entry point is Phase 0**
+  (`docs/mapdown/spec/phases.md`): disposable spikes for Chinese IME inside canvas text editing,
+  variable-size tidy-tree layout, and CJK-safe SVG export — the three places the whole product
+  can fail. Scoping this into an iteration is the owner's call, not an implementer's.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
