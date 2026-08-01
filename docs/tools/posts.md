@@ -19,6 +19,17 @@ A lightweight publishing tool that accepts Markdown input and publishes a sharea
 | Legacy list | `/posts/list` | Redirects to `/posts` for compatibility. |
 | Legacy edit | `/posts/:id/edit` | Redirects to `/posts?editing=:id` for compatibility. |
 
+## Destructive Actions
+
+- Delete is available only from the posts list page, **not** from the edit page. The edit page
+  offers Save and Cancel only.
+- Confirmation is currently implemented with the native `confirm()` dialog on form submit
+  (`onSubmit` handler). Replacing it with branded confirmation UI is a `docs/roadmap.md` item.
+
+The repo-wide rule that destructive actions must be confirmed before executing stays in
+`AGENTS.md`; the two facts above are this tool's implementation of it and moved here
+on 2026-08-01.
+
 ## Legacy Routes
 
 - `/text/*` is preserved for compatibility and redirects to `/posts/*`.

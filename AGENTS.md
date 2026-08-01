@@ -3,15 +3,24 @@
 This repository is intentionally structured for multi-agent collaboration across tools.
 
 ## Roadmap Discipline
-- `docs/roadmap.md` is the single source of truth for iteration planning (Now / Next / Later / Done).
-- Read it before starting product work; move finished items to Done (with date) in the same commit/PR.
-- Never add or reprioritize roadmap items without explicit owner confirmation.
+- `docs/roadmap.md` is the single source of truth for what is **planned and authorized**
+  (Now / Next / Later). It is not the delivery record and not an idea list.
+- Read it before starting product work. Never add or reprioritize items without explicit owner
+  confirmation.
+- An item without acceptance criteria is exploratory, not authorized. Ask rather than assume.
+- Report finished work as `in_review` with evidence and append the entry to `docs/changelog.md`
+  in the same commit/PR. **Only the owner marks work accepted** — never make that transition
+  yourself.
+- Ideas in `docs/exploration.md` are not authorization. Neither is chat history, nor advice
+  from an AI outside this repo.
 - The goal: any AI coding tool can pick up where another left off using only the repo's docs.
 
 ## Repo Layout
-- `apps/` - Product surfaces (Remix app, future tools)
+- `apps/` - Product surfaces (`web`, the Remix app; `mapdown` planned, see `docs/mapdown/`)
 - `packages/` - Shared libraries (UI, auth, DB, utilities)
-- `docs/` - Architecture and operational docs
+- `docs/` - Intent, decisions, specs, and procedures (see the Docs section below)
+- `migrations/` - D1 schema, applied in filename order
+- `scripts/` - Context packs, material seeding, spikes
 - `ai/` - Agent prompts, conventions, and research notes
 
 ## Tests
@@ -61,28 +70,25 @@ This repository is intentionally structured for multi-agent collaboration across
 - For index-route mutations inside a layout route (e.g. `esl.reading._index.tsx` under `esl.reading.tsx`), forms should submit with `action="?index"` when the action is defined on the index route.
   Without `?index`, Remix posts to the parent route action by default.
 
-## Tool Route Canonicalization
-- Canonical speech routes are `/speech` and `/speech/audio/:id`.
-- Keep legacy `/tts`, `/tts/history`, and `/tts/*` redirects for backward compatibility.
-
 ## User Context Pattern
 - `root.tsx` fetches the optional user once and passes it down via `<Outlet context={{ user }} />`.
 - Child routes that need the user without an auth check should use `useOutletContext<{ user: User | null }>()` instead of running a separate loader query.
 - Routes that **require** authentication call `requireUser()` in their own loader; this redirects to `/?login=1` when unauthenticated.
 
-## Unauthenticated Interaction
-- The homepage is a studio page: product cards link to landing pages. `/english` is public; clicking an **auth-required** module card there (or an auth-required product card like Posts on the homepage) when not signed in opens the Google OAuth popup directly (same popup used by the Header login button). It does **not** navigate to the tool page first. The popup helper lives in `apps/web/app/utils/login-popup.ts`.
-- Modules marked `public: true` in `english.tsx` (currently Translate and Dictation) skip the popup and link straight into the tool, which handles anonymous users itself via daily quotas. These are the acquisition funnels — do not gate them behind the popup.
-- Modules with a `trialSlug` (currently Reading and Writing) send signed-out users to an anonymous trial route instead of the popup. Trial routes escape their tool's auth-required layout with the `_` route-name prefix (`reading_.trial.tsx`, `writing_.trial.tsx`), persist **nothing**, and enforce their own daily quota via `feature-quota.server.ts`; the popup appears from inside the trial once that quota is spent. Signed-in users hitting a trial route are redirected to the real tool.
-- The OAuth flow is popup-based: `window.open("/auth/google", …)` → callback posts a message → parent reloads. There is no standalone login page.
-
-## Delete / Destructive Actions
-- Destructive actions must be confirmed before executing.
-- Currently implemented via the native `confirm()` dialog on form submit (`onSubmit` handler).
-- Delete is available only from the posts list page, not from the edit page. The edit page offers Save and Cancel only.
+## Destructive Actions
+- Destructive actions must be confirmed before executing. This is non-negotiable; per-tool
+  implementations are documented in `docs/tools/`.
 
 ## Docs
 - Update `docs/` when adding new tools or changing infra.
+- Where things live: `docs/roadmap.md` what is planned · `docs/decisions/` why it is like this
+  · `docs/changelog.md` what shipped · `docs/exploration.md` unapproved ideas ·
+  `docs/ops/`-style procedure docs (`workflow.md`, `infra-cloudflare.md`) · `docs/tools/`
+  per-tool behaviour · `docs/access-model.md` what works without an account ·
+  `docs/mapdown/` the Mapdown product.
+- Repository facts — routes, schema, env var names, dependencies — are **derived**, not
+  documented by hand: `pnpm context` generates them from the code. Do not hand-maintain a
+  route or schema list in `docs/`.
 
 ## External Consultation
 - To ask an AI outside this repo (ChatGPT, Gemini, a fresh session) for a diagnosis or

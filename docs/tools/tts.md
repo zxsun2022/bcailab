@@ -19,6 +19,11 @@ Speech is an authenticated text-to-speech utility built on Google Cloud TTS Chir
 | Audio stream/download | `/speech/audio/:id` | Auth required. Owner-only playback/download endpoint. |
 | Legacy compatibility | `/tts`, `/tts/history`, `/tts/*` | 301 redirect to `/speech*`. |
 
+`/speech` and `/speech/audio/:id` are the **canonical** routes. The `/tts*` redirects are a
+backward-compatibility contract and must be kept — do not remove them when touching these
+routes. (Moved from `AGENTS.md` on 2026-08-01: a route inventory is feature behaviour, not a
+working rule.)
+
 ## Workspace Structure
 - Desktop `/speech` follows the shared tool-shell pattern used by Writing and Reading:
   - shared left rail shell for history and settings access
