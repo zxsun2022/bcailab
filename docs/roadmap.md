@@ -24,7 +24,8 @@ iteration is not scoped.** Candidates sit in Next below; picking among them is t
 call, not an implementer's.
 
 Two invariants established by that iteration outlive it and apply to anything touching the
-learner surfaces — the reasoning is in `docs/english-studio-ia-v2-design.md`:
+learner surfaces — recorded as [ADR 0006](decisions/0006-learner-surface-invariants.md), with
+the full reasoning in `docs/english-studio-ia-v2-design.md`:
 
 - **Never render a `null` level as "B1".** A policy may use B1 internally; the UI must not
   claim a level the system has not established.
@@ -87,41 +88,27 @@ returns, so neither needs an IA change.
   for the per-task cost/latency data that tells you *which* task to re-route. An admin UI over
   that table comes only if a non-engineer ever needs to change it. Trigger: a 2nd provider, or
   the first time a routing change is wanted between deploys.
-- **Reading grader — deterministic split** (not triggered by current evidence; revisit if the
-  trigger below reproduces). The grader variance spike (see `docs/changelog.md`, 2026-07-23) found the
-  single-call reading evaluator repeatable on 2 of 3 samples (stddev well under the 4-point
-  threshold) and borderline-but-under on the third (a jargon-dense sentence). That does not
-  justify the deterministic-measurement rebuild (ASR diff + calibrated pronunciation API) the
-  v1 diagnosis proposed — the evaluator looks trustworthy enough as-is for most material.
-  **Trigger to revisit:** a further spike run on more jargon-dense/unfamiliar-register material
-  reproduces variance that actually crosses the threshold; until then this stays parked.
-- Chinese UI (at least Translate + landing pages) — decided to defer, 2026-07-15.
+- **Reading grader — deterministic split.** Parked: the 2026-07-23 variance spikes showed the
+  single-call evaluator repeatable enough that the ASR-diff rebuild is not justified.
+  **Trigger to revisit:** a further spike run on more jargon-dense or unfamiliar-register
+  material reproduces variance that actually crosses the 4-point threshold. Evidence and
+  reasoning: [ADR 0005](decisions/0005-reading-grader-stays-single-call.md).
+- Chinese UI (at least Translate + landing pages) — deferred 2026-07-15,
+  [ADR 0003](decisions/0003-defer-chinese-ui.md).
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
 - Translate history for signed-in users — opt-in only (current privacy stance: translation
   text is never persisted). Most interesting framed as learning material: saved translations
   feeding vocabulary/dictionary and the learner profile, not a standalone log.
-- Dictation v2 — level-adaptive material **matching** (revised 2026-07-20, owner
-  confirmed; supersedes the earlier "dynamic per-user generation" framing): elevate
-  `learner_profile` into a shared learner-model layer (tools write observations, the
-  profile layer aggregates), then **retrieve** from a large pre-generated, tagged
-  material library instead of generating per request. The LLM's job is assessing the
-  learner and interpreting error patterns, not producing material at request time.
-  Rationale: a fixed item bank can be empirically calibrated from real accuracy data
-  (every passage accumulates a sample; generated-once material never can), TTS cost is
-  paid once and amortized across all users rather than per session, and retrieval is a
-  D1 query rather than a multi-second generate-then-synthesize round trip. It also keeps
-  the owner's per-passage review in the loop. Work shifts from generation to (a) a
-  dimensional tag schema shared by library and learner profile, (b) a matching policy,
-  (c) growing the library from 20 to several hundred passages (now its own raised item above).
-  Reading/Writing migrate to the same interface gradually (interface migration, not a rewrite).
-  Prerequisites: shared learner model (done 2026-07-21) + dictation v1 (done).
-  **Where it attaches (2026-07-27):** IA v2 Phase 2 builds `selectStarterPractice()` — a pure
-  function returning a list of recommended actions with reasons. Matching replaces that function
-  and inherits its callers; the Home renders whatever the seam returns, so no IA change is needed.
-  The **session / goal-first layer** (compose "today's practice" rather than return single items)
-  is the tenant after matching, on the same seam — recorded 2026-07-27 from the second IA review
-  as the eventual framing, deliberately not built now.
+- **Dictation v2 — level-adaptive material matching.** Retrieve from the tagged library rather
+  than generate per request. The work is (a) a dimensional tag schema shared by library and
+  learner profile, (b) a matching policy, (c) growing the library (now its own item above).
+  It replaces `selectStarterPractice()` and inherits its callers, so the Home needs no IA
+  change; the session / goal-first layer is the next tenant on that same seam, deliberately not
+  built now. Prerequisites are delivered (shared learner model 2026-07-21, dictation v1).
+  Reading and Writing migrate to the same interface gradually — an interface migration, not a
+  rewrite. Full reasoning:
+  [ADR 0004](decisions/0004-dictation-v2-retrieves-rather-than-generates.md).
 - Dictation: bring-your-own-text — user pastes a passage and practices dictation on it.
   Noted 2026-07-20 as the one place runtime generation/synthesis genuinely earns its
   keep; it is user-initiated, distinct from adaptive difficulty, and should not be
@@ -158,13 +145,6 @@ returns, so neither needs an IA change.
   evidence trail, not a migration** (IA v2 design §6.2). Do it on evidence — more variance runs
   across registers and speakers — not on vibes. New signal sources (a speaking evaluator, say)
   join the same way: one enum value, one weight.
-- **vanmemo** (formerly vanbox) stays a permanently separate product — settled
-  2026-07-21. It is getting its own top-level domain (vanmemo.com) and its own accounts,
-  and its stack is Next.js + OpenNext on Workers with Auth.js, so a monorepo would share
-  almost nothing while adding two build systems and two deploy pipelines. bcailab's only
-  tie to it is a product link from the homepage — shipped 2026-07-23 as the third card in
-  the homepage Products list (external link to vanmemo.com). This is no longer a decision
-  awaiting a trigger; treat it as closed.
 
 ## Exploration, history, and decisions
 
