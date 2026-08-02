@@ -47,7 +47,10 @@ returns, so neither needs an IA change.
   and read `decisions.md` before reopening any settled question. **Entry point is Phase 0**
   (`docs/mapdown/spec/phases.md`): disposable spikes for Chinese IME inside canvas text editing,
   variable-size tidy-tree layout, and CJK-safe SVG export — the three places the whole product
-  can fail. Scoping this into an iteration is the owner's call, not an implementer's.
+  can fail. A real 科判 outline is the fixture for those spikes, because it is the only material
+  that stresses all three at once (D-12). URL-fragment sharing is approved for after Phase 1,
+  with two constraints that cannot be retrofitted (D-11). Scoping any of this into an iteration
+  is the owner's call, not an implementer's.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop

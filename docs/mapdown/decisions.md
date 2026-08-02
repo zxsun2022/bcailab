@@ -219,22 +219,96 @@ that the editor's `emptyPlaceholderText` must never be written to the exported f
 
 ---
 
+## D-10 — The session cookie is host-only until a second host needs it
+
+**Decided 2026-08-01.** Applied in `packages/auth/src/index.ts`; commit `f6313a7`.
+
+**Decision.** `bcailab_session` sets no `Domain` attribute. It does not reach
+`map.bcailab.com`. Sharing it with a second host is a deliberate change made when phase three
+needs one, not a default inherited from a helper that happened to be written that way.
+
+**Why.** An explicit `Domain` is all-or-nothing: it covers the domain and *every* subdomain
+(RFC 6265 §5.2.3), with no way to include one and exclude another. The trade was a free phase
+three against an authenticated cookie sitting on a static origin that has no use for it.
+
+The asymmetry decided it. Tightening now costs one function deletion and a test; leaving it open
+costs a standing exposure that only shows up when something goes wrong. And because subdomains
+are same-**site**, `SameSite=lax` gives no separation between `map.bcailab.com` and
+`bcailab.com` — a protection people commonly assume is there. Mapdown will import arbitrary
+Markdown and generate SVG, so it is precisely the kind of application that should not share a
+site boundary with an authenticated app before it has to.
+
+**Verified before changing.** `www.bcailab.com` has no DNS record, so no real session is split.
+Logout is unaffected: `destroySession()` deletes the D1 row, so server-side revocation is the
+source of truth and a lingering legacy cookie carries an id that no longer resolves.
+
+**Consequences.** Phase three must widen this explicitly, with its own review. The constraint is
+locked by `packages/auth/src/session-cookie.test.ts`, which was confirmed to fail when `domain`
+is reintroduced. `httpOnly`, `SameSite` and the localhost `Secure` exemption are locked in the
+same test, so tightening one attribute cannot quietly loosen another.
+
+---
+
+## D-11 — URL-fragment sharing is approved, after the serialiser is stable
+
+**Decided 2026-08-01.** Approved as future work. **Not yet scheduled**; see `docs/roadmap.md`.
+
+**Decision.** Mapdown will support sharing a map by compressing its Markdown into the **URL
+fragment**. Build it once canonical Markdown export is stable — that is, after Phase 1 — and not
+before.
+
+**Why.** Sharing is the one thing a local-first tool cannot otherwise do, and it works with no
+backend and no account, which is the whole first phase of the product. A shared link is also its
+own distribution. Building it before the serialiser settles would mean rebuilding it.
+
+**Binding constraint — the fragment, never the query string.** The payload MUST live after `#`.
+A fragment is never sent to the server, so no document content reaches Cloudflare's logs.
+`spec/product-specification.md` §20 requires that the app not transmit document content by
+default; a query string would violate that requirement, not merely be untidy.
+
+**Binding constraint — version the payload.** The encoded payload MUST begin with a format
+version. This is the one part of the design that cannot be retrofitted: without it, every link
+ever shared breaks the first time the encoding changes. With it, old links can be migrated. The
+cost now is one byte.
+
+**Known limits, to be surfaced in the UI rather than hidden.** Browsers accept large fragments
+and Markdown compresses well, so length is not the real ceiling — chat clients truncating long
+URLs is. A shared link is a *snapshot*: it cannot be edited, and losing the link loses the copy.
+The UI must not let it look like durable storage.
+
+**Alternatives considered.** A short-link service backed by a server — rejected for phase one:
+it would require the backend the product is defined by not having, and it would put user content
+on a server the privacy stance says it never touches.
+
+---
+
+## D-12 — 科判 outlines are validation material, not a product commitment
+
+**Decided 2026-08-01.**
+
+**Decision.** A real 科判 (Buddhist-study) outline is adopted as a **test fixture** for Phase 0
+and Phase 1. It does not make 科判 a supported vertical, and it earns no feature of its own.
+
+**Why it is the right fixture.** This content happens to exercise all three risks Phase 0 exists
+to retire, which no synthetic English sample would: it nests five or six levels deep, which
+stresses variable-size tidy-tree layout and the collapse projection; its labels are long CJK
+strings, which stress text measurement, wrapping, and Chinese IME inside canvas editing; and a
+科判 is meant to be *looked at*, so CJK-safe SVG and PNG export is the fixture's own pass/fail
+condition rather than a separate concern. Testing the spikes on Latin placeholder text would
+route around every hazard the spikes were written to find.
+
+**Why the line matters.** `spec/vision.md` §2 lists Buddhist-study outlines among the target use
+cases, and left unqualified that could pull the product toward outline numbering schemes, deep
+outline navigation, or per-branch presets — none of which fit an ordered tree with automatic
+layout. Any such request goes through the scope rubric in `spec/phases.md` §11 like any other,
+with no standing built from this decision.
+
+**Consequences.** One non-sensitive outline is committed as a fixture, and layout and export
+regressions run against real deep CJK structure from Phase 0 onward. The owner selects the
+outline.
+
+---
+
 ## Open questions
 
-Not decided. Listed so they are not lost, and so nobody assumes they were settled.
-
-- **Should `map.bcailab.com` receive the session cookie before it needs one?** It will by
-  default: `getCookieDomain()` already scopes `bcailab_session` to the whole `bcailab.com`
-  domain (see the correction in D-03). Two consequences to weigh. In Mapdown's favour: phase
-  three needs no cookie work at all. Against: an authenticated cookie is sent to a static origin
-  that has no use for it, and — because subdomains are **same-site** — `SameSite=lax` provides
-  no protection between `map.bcailab.com` and `bcailab.com`. The cookie is `httpOnly`, so
-  Mapdown's own scripts cannot read it. The alternative is making the domain attribute
-  conditional so only the app host gets it until phase three deliberately widens it.
-- **URL-based sharing.** A static site can still share: compress the Markdown into the URL
-  fragment, as mermaid.live does. Zero backend, zero account, and it makes "send someone a map"
-  work long before accounts exist. Raised as a candidate; **not** on the roadmap and not
-  approved.
-- **Own-use validation.** `spec/vision.md` §2 lists Buddhist-study outlines among the target use
-  cases, which matches the 科判 outlines maintained elsewhere by the owner. That is a real
-  first-user scenario worth exercising during Phase 1, not a product commitment.
+None currently. Resolved questions become records above rather than disappearing.
