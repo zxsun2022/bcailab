@@ -151,7 +151,7 @@ make the final transition; see `AGENTS.md`.
   became a catalogue with creation moved to `/reading/new`, and dictation sessions dropped
   the competing rail; and each practice mode offers the same passage in the other mode at
   the point where that is the natural next step. Migration 0013. Deliberately excludes
-  browse IA, which waits on the learner model — `docs/english-studio-ia-design.md` §2.
+  browse IA, which waits on the learner model — `docs/archive/english-studio-ia-design.md` §2.
 
 - 2026-07-21 — Material layer unified: dictation and reading now share one graded passage
   store (`passages` / `passage_sentences` / `passage_tags` / `passage_stats`), so a single

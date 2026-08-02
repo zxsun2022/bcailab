@@ -1,3 +1,8 @@
+> **HISTORICAL — not a current source of truth.** A point-in-time adoption audit from
+> 2026-03-20, archived 2026-08-01. Its findings have been acted on. The current pattern is
+> `docs/tool-shell-pattern.md`; the current shell contract is `docs/studio-app-shell.md`.
+> Do not plan work from this file.
+
 # Tool Shell Audit
 
 Audit of current tool layouts against the shared shell model in `docs/tool-shell-pattern.md`.
@@ -142,7 +147,7 @@ Reading’s evaluation content is still better suited to the center workspace. T
 
 Reading already has the right information architecture; it mainly needs shell discipline.
 
-Detailed implementation plan: `docs/reading-shell-refactor-plan.md`
+Detailed implementation plan: `docs/archive/reading-shell-refactor-plan.md`
 
 ## Speech
 

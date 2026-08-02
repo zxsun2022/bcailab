@@ -1,3 +1,8 @@
+> **HISTORICAL — not a current source of truth.** Written 2026-03-20 and executed; archived
+> 2026-08-01. Kept for context on why the reading shell is shaped as it is. The current
+> pattern is `docs/tool-shell-pattern.md`; the current shell contract is
+> `docs/studio-app-shell.md`. Do not plan work from this file.
+
 # Reading Shell Refactor Plan
 
 Implementation plan for moving Reading toward the shared shell model defined in `docs/tool-shell-pattern.md`, using Writing as the reference implementation where it improves structural clarity.

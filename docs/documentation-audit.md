@@ -1,8 +1,13 @@
 # Documentation Audit — 2026-08-01
 
-A read-only inventory of this repository's documentation, produced to decide whether and how
-to restructure it. **No migration has been executed.** Every "proposed" action below is a
-recommendation awaiting owner approval; nothing in this document changes a source of truth.
+An inventory of this repository's documentation, produced to decide whether and how to
+restructure it.
+
+**Migration status (updated 2026-08-01):** the owner approved three of the four recommended
+items — split the roadmap, extract ADRs, and move feature behaviour out of `AGENTS.md` — plus
+archiving the three documents §6 could not classify. All four are **executed**; see §4. The
+fourth recommendation, regrouping `docs/` into `specs/` and `ops/` subdirectories, was
+**deferred** by agreement, and the declined items in §5 stand.
 
 Scope of the audit: `AGENTS.md`, `CLAUDE.md`, `README.md`, the whole of `docs/`,
 `scripts/context-pack.sh`, `package.json` scripts, CI configuration, and current Git state.
@@ -149,26 +154,53 @@ owner confirmation before being archived; none should be moved on inference.
 
 ---
 
-## 4. Proposed migration table
+## 4. Migration table
 
-**Status: proposed, not executed.** Actions marked *gated* require owner approval because they
-change a source of truth or introduce a workflow.
-
-| Original | Responsibility today | Proposed destination | Action | Notes |
+| Original | Responsibility before | Destination | Action | Status |
 |---|---|---|---|---|
-| `docs/roadmap.md` "Done" (~190 lines) | Completion record | `docs/changelog.md` | split | *gated* — changes what roadmap.md is |
-| `docs/roadmap.md` "Under consideration" | Exploration | `docs/exploration.md` or retained | split | *gated* |
-| `docs/roadmap.md` Now/Next/Later | Authorized queue | retained in place | retain | Remains the task source of truth |
-| Decisions embedded in roadmap bullets (F-4) | Decision | `docs/decisions/NNNN-*.md` | split | Copy, do not remove, in the first pass |
-| `AGENTS.md` — Tool Route Canonicalization, Unauthenticated Interaction, Delete/Destructive | Spec inside Contract | `docs/specs/` or `docs/tools/` | moved | ~30 lines |
-| `AGENTS.md` — remainder | Contract | retained | retain | Already concise |
-| `CLAUDE.md` duplicated rules | Contract (duplicate) | pointer to `AGENTS.md` | replaced | Keep the reading list, drop restatements |
-| `docs/*-design.md` (5 files) | Spec | `docs/specs/` | moved | Requires `context-pack.sh` update (F-6) |
+| `docs/roadmap.md` "Done" (~186 lines) | Completion record | `docs/changelog.md` | split | **done** — verbatim |
+| `docs/roadmap.md` "Under consideration" | Exploration | `docs/exploration.md` | split | **done** — verbatim |
+| `docs/roadmap.md` Now/Next/Later | Authorized queue | retained in place | retain | **done** — 363 → 153 lines |
+| Decisions embedded in roadmap bullets (F-4) | Decision | `docs/decisions/0001`–`0006` | split | **done** — see note below |
+| `AGENTS.md` — Tool Route Canonicalization | Spec inside Contract | `docs/tools/tts.md` | moved | **done** — was already duplicated there |
+| `AGENTS.md` — Unauthenticated Interaction | Spec inside Contract | `docs/access-model.md` (new) | moved | **done** |
+| `AGENTS.md` — Delete/Destructive details | Spec inside Contract | `docs/tools/posts.md` | moved | **done** — repo-wide rule kept in `AGENTS.md` |
+| `AGENTS.md` — remainder | Contract | retained | retain | **done** — 99 → 105 lines |
+| `CLAUDE.md` duplicated rules | Contract (duplicate) | pointer + reading table | replaced | **done** — 26 → 30 lines |
+| `docs/tool-shell-audit.md` | Historical | `docs/archive/` | archived | **done** — owner confirmed executed |
+| `docs/reading-shell-refactor-plan.md` | Historical | `docs/archive/` | archived | **done** — owner confirmed executed |
+| `docs/english-studio-ia-design.md` | Spec (v1) | `docs/archive/` | archived | **done** — owner confirmed superseded |
+| `scripts/context-pack.sh` | Derived (generator) | extended | retained | **done** — added §2b decisions, §2c changelog, access-model |
+| `docs/*-design.md` (4 remaining) | Spec | `docs/specs/` | — | **deferred** by agreement |
+| `docs/{workflow,infra-cloudflare,google-oauth-setup,external-consultation}.md` | Ops | `docs/ops/` | — | **deferred** by agreement |
 | `docs/tools/*.md` | Spec | retained | retain | Already grouped and referenced by path |
-| `docs/{workflow,infra-cloudflare,google-oauth-setup,external-consultation}.md` | Ops | `docs/ops/` | moved | Requires `context-pack.sh` update (F-6) |
-| `docs/{tool-shell-audit,reading-shell-refactor-plan}.md`, `docs/spikes/`, `docs/mockups/` | Historical | `docs/archive/` | archived | **Blocked** — supersession unconfirmed (§3) |
-| Derived facts (routes, schema, env names, deps) | Derived | **stays in `scripts/context-pack.sh`** | retained | Declining `docs/derived/` — see D-1 |
+| `docs/spikes/`, `docs/mockups/` | Historical | retained | retain | Still cited as evidence by ADR 0005 and the changelog |
+| Derived facts (routes, schema, env names, deps) | Derived | **stays in `scripts/context-pack.sh`** | retained | `docs/derived/` declined — see D-1 |
 | `docs/mapdown/` | Contract + Decision + Spec | unchanged | retain | Already conforms |
+
+**Note on the ADR extraction.** The first pass was planned as copy-don't-remove. In execution,
+four of the six left a pointer rather than a duplicate, because leaving two copies of a
+rationale reintroduces exactly the drift this migration exists to remove:
+
+- **0001 (vanmemo)** was removed from `Later` entirely — it was a closed decision, not work,
+  which is why it did not belong in a backlog.
+- **0004 (Dictation v2)** and **0005 (reading grader)** kept their roadmap items, trimmed to
+  the task and its re-trigger, with the reasoning now in the ADR.
+- **0002, 0003, 0006** left short pointers in place.
+
+Nothing was lost: every ADR preserves the original wording, and the pre-split text is one
+`git show` away. Where the original recorded no rationale (0003), the record says so rather
+than inventing one.
+
+## 4a. Verification performed
+
+- `pnpm test` — 113 tests across 7 files, all passing.
+- Repo-wide relative Markdown link check across every tracked `.md` — no broken links.
+- `bash scripts/context-pack.sh -p product` — regenerates successfully; the decision records,
+  changelog and access model appear in the output.
+- `git diff --name-only` across the migration — **only `docs/` and Markdown files, plus
+  `scripts/context-pack.sh`**. No application code was touched, so no externally observable
+  behaviour changed.
 
 ---
 
@@ -201,9 +233,17 @@ or demoting information on inference.
 
 ## 6. What this audit does not establish
 
-- Whether `reading-shell-refactor-plan.md` was executed.
-- Whether `english-studio-ia-design.md` (v1) is fully superseded by v2.
-- Whether `tool-shell-audit.md` is superseded by `tool-shell-pattern.md`.
+Resolved by the owner on 2026-08-01 and acted on:
+
+- ~~Whether `reading-shell-refactor-plan.md` was executed.~~ Executed (dated 2026-03-20).
+  Archived.
+- ~~Whether `english-studio-ia-design.md` (v1) is fully superseded by v2.~~ Superseded.
+  Archived, with a banner pointing at v2.
+- ~~Whether `tool-shell-audit.md` is superseded by `tool-shell-pattern.md`.~~ Executed
+  (dated 2026-03-20). Archived.
+
+Still open:
+
 - Whether the per-tool docs in `docs/tools/` match current implemented behaviour — the audit
   read documentation, not code, and the brief forbids treating code as product intent.
 - Any statement about product behaviour. **No code was read or changed for this audit.**

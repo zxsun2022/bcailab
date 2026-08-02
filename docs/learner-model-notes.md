@@ -47,7 +47,7 @@ Order, in leverage sequence:
 3. **UI / IA unification** — only then, because that is when it becomes obvious what
    context the shells should actually share.
 
-`docs/english-studio-ia-design.md` §2 defers most IA work for the same reason, with an
+`docs/archive/english-studio-ia-design.md` §2 defers most IA work for the same reason, with an
 additional argument: once recommendations exist, browsing is no longer the primary path, so
 designing browse IA ahead of the learner model risks building a secondary surface as the
 main one.

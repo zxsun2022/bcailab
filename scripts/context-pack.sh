@@ -157,6 +157,33 @@ cat <<'EOF'
 ## 2. Product direction and current iteration *(intent)*
 EOF
 emit_file docs/roadmap.md markdown
+emit_file docs/access-model.md markdown
+fi
+
+if want arch product full; then
+cat <<'EOF'
+
+---
+
+## 2b. Accepted decisions *(intent)*
+
+Append-only decision records. These say *why* the project is shaped the way it is, and which
+questions are closed. Do not propose reopening one without addressing its recorded reasoning.
+EOF
+  for f in docs/decisions/*.md; do emit_file "$f" markdown; done
+  emit_file docs/mapdown/decisions.md markdown
+fi
+
+if want product full; then
+cat <<'EOF'
+
+---
+
+## 2c. Delivery record *(intent)*
+
+What has shipped and what was learned. History, not a plan.
+EOF
+emit_file docs/changelog.md markdown
 fi
 
 if want arch product full; then
