@@ -49,9 +49,6 @@ const isSecureHost = (hostname: string): boolean => {
   return true;
 };
 
-const getCookieDomain = (hostname: string): string | undefined => {
-  return hostname.endsWith("bcailab.com") ? "bcailab.com" : undefined;
-};
 
 const getSessionStorage = (env: AuthEnv, request: Request) => {
   const hostname = new URL(request.url).hostname;
@@ -62,7 +59,13 @@ const getSessionStorage = (env: AuthEnv, request: Request) => {
       path: "/",
       sameSite: "lax",
       secure: isSecureHost(hostname),
-      domain: getCookieDomain(hostname),
+      // No `domain`, deliberately: the session cookie is host-only and never reaches another
+      // host under bcailab.com. An explicit Domain covers that domain *and every subdomain*
+      // (RFC 6265 §5.2.3) — all-or-nothing — so setting it would hand bcailab_session to
+      // map.bcailab.com (Mapdown), a static app with no account feature. `sameSite: "lax"`
+      // does not help: subdomains are same-*site*, so omitting Domain is what separates them.
+      // Sharing the session with a second host is a reviewable change, not a default:
+      // see docs/mapdown/decisions.md D-10. Locked by session-cookie.test.ts.
       secrets: [env.SESSION_SECRET]
     }
   });
