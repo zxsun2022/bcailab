@@ -194,13 +194,22 @@ interface ControlTokens {
   collapseHoverBackground: string;
   collapseSize: number;
   collapseFontSize: number;
-  toolbarBackground: string;
-  toolbarText: string;
-  toolbarBorder: string;
 }
 ```
 
 The collapsed count badge must remain readable for two-digit direct-child counts. For very large counts, it MAY use compact text such as `99+`, while the accessible label states the exact count.
+
+### 10.1 Toolbar tokens are not theme tokens
+
+Application chrome — the toolbar, dialogs, Help centre, status area and menus — MUST NOT be styled from `MindMapTheme`.
+
+A document theme is a property of the document: it is written into Markdown front matter, it travels with the file, and its values appear in every export. Application chrome is a workspace preference that never leaves the browser and is excluded from every export. A document theme that could restyle the toolbar would mean that exporting a Business-themed map implied something about the application frame, which is meaningless.
+
+The collapse tokens above stay in the theme because the collapsed count badge is part of the map and is **required to appear in exported images** (`storage-export.md` §12.2).
+
+Chrome tokens are owned by the implementation, outside the theme schema. See `../design-tokens.md`.
+
+> **Amendment (2026-08-01).** This section previously declared `toolbarBackground`, `toolbarText` and `toolbarBorder` inside `ControlTokens`. They were removed and this rule added; see `../decisions.md` D-08.
 
 ## 11. Layout-related theme tokens
 

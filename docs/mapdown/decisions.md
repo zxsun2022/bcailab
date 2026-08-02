@@ -166,17 +166,55 @@ duplication-drift reason. English is normative.
 
 ---
 
+## D-08 — `ControlTokens` no longer carries toolbar styling
+
+**Decided 2026-08-01.** Amends `spec/theme.md` §10 — a normative schema change.
+
+**Decision.** `toolbarBackground`, `toolbarText` and `toolbarBorder` are removed from
+`ControlTokens`, and therefore from `MindMapTheme`. Application chrome is styled by Layer A and
+is outside the theme schema. A new §10.1 states the rule in the specification itself.
+
+**Why.** The interface bundled tokens with opposite export behaviour. The collapse badge is part
+of the map and is **required to appear in exported images** (`spec/storage-export.md` §12.2);
+the toolbar is chrome and is excluded from every export. Keeping them in one interface implied
+that a document theme could restyle the application frame — which would mean that exporting a
+Business-themed map asserted something about the toolbar, a claim with no meaning. Full
+reasoning: `design-tokens.md` §5.
+
+**Consequences.** A theme preset defines six collapse tokens rather than nine. Chrome tokens
+live in `apps/mapdown/src/styles/`. No behaviour described elsewhere in the specification
+changes: no other document referenced these three tokens, verified before the edit.
+
+---
+
+## D-09 — `markdown-format.md` §14.3 restated as a rule
+
+**Decided 2026-08-01.** Amends `spec/markdown-format.md` §14.3 — **presentation only; the rule
+is unchanged.**
+
+**Decision.** The section previously offered three candidate approaches to exporting empty node
+labels and rejected two of them in running prose ("But that pollutes Markdown…"), leaving the
+operative rule buried in the discussion. It now states the rule directly: an empty root exports
+as `#`, an empty ordinary node exports as a bare `-` with no trailing whitespace, no placeholder
+and no sentinel.
+
+**Why.** A normative document that argues with itself gets implemented inconsistently, and this
+one would have been read by an implementer building the serialiser. The conclusion the original
+reached was sound; only its presentation was not.
+
+**What was preserved.** The two rejected alternatives are retained as a short note, because the
+reasoning bears on any future revision: `- Untitled` was rejected for silently inventing content
+and changing document semantics; `- <!-- empty -->` was rejected for polluting the file and
+breaking portability. The section also now states explicitly that the round trip of a bare list
+marker is parser-dependent and therefore a **required** test rather than a recommendation, and
+that the editor's `emptyPlaceholderText` must never be written to the exported file.
+
+---
+
 ## Open questions
 
 Not decided. Listed so they are not lost, and so nobody assumes they were settled.
 
-- **`spec/markdown-format.md` §14.3 reads as an unresolved argument.** The section on exporting
-  empty node labels proposes three approaches and rejects two of them in prose ("But that
-  pollutes Markdown…"), leaving the actual rule — export an empty ordinary node as a bare `-` —
-  buried in the discussion. The conclusion looks sound; the section should be rewritten as a
-  clean normative statement before anyone implements the serialiser, because a normative
-  document that argues with itself will be implemented inconsistently. **Needs owner
-  confirmation** that the rewrite changes presentation only.
 - **Cookie scope for phase three.** Sharing sessions across `bcailab.com` and `map.bcailab.com`
   requires widening the session cookie to `domain=.bcailab.com`. This affects the existing
   product, so it is a phase-three task with its own review, not preparatory work.

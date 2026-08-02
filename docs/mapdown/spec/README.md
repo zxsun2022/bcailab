@@ -62,6 +62,15 @@ in this repo `docs/roadmap.md` is the reserved single source of truth for iterat
 The upstream combined single-file edition was deliberately not copied, to avoid two
 copies of every normative statement drifting apart.
 
+**This baseline has since been amended.** It is no longer pristine v1.0. Every amendment carries
+an inline `> **Amendment (date)**` note at the point of change and a matching record in
+`../decisions.md`, so the delta from v1.0 is readable both from the spec and from the log:
+
+| Amendment | Section | Kind |
+|---|---|---|
+| D-08 | `theme.md` §10, §10.1 | Normative — toolbar tokens removed from `ControlTokens` |
+| D-09 | `markdown-format.md` §14.3 | Presentation — rule restated, unchanged |
+
 ## 4. Normative product decisions
 
 The following decisions are fixed for version 1.0 unless changed through a recorded specification revision:

@@ -88,9 +88,13 @@ explicit, persistent, part of the document, and undoable as a presentation comma
 coupling, and `spec/theme.md` §16 already requires it to define both token sets and its export
 behaviour before it can exist.
 
-## 5. A-01 — Proposed amendment: split `ControlTokens`
+## 5. A-01 — Applied amendment: `ControlTokens` split
 
-**Finding.** `spec/theme.md` §10 `ControlTokens` bundles two things that this document's layering
+**Status: applied 2026-08-01** (`decisions.md` D-08). `spec/theme.md` §10 no longer declares the
+toolbar tokens, and its new §10.1 states the rule directly. This section is retained as the
+reasoning behind that change.
+
+**Finding.** `spec/theme.md` §10 `ControlTokens` bundled two things that this document's layering
 separates:
 
 ```ts
@@ -103,14 +107,10 @@ The collapse badge is part of the map: `spec/storage-export.md` §12.2 requires 
 count badge to **remain in exported images**, because it communicates hidden structure. The
 toolbar is chrome and is excluded from every export.
 
-**Proposed.** Keep the collapse tokens in the document theme, and move `toolbarBackground`,
-`toolbarText` and `toolbarBorder` out of `MindMapTheme` into Layer A. A document theme should not
-be able to restyle the toolbar; if it could, exporting a Business-themed map would imply
-something about the application frame, which is meaningless.
-
-**Status.** Not yet applied to `spec/theme.md`. Recorded here; needs owner confirmation, as it
-changes a normative schema. Until then, an implementation should treat the three `toolbar*`
-tokens as Layer A regardless of where the schema lists them.
+**Resolution.** The collapse tokens stay in the document theme; `toolbarBackground`,
+`toolbarText` and `toolbarBorder` were removed from `MindMapTheme` and belong to Layer A. A
+document theme cannot restyle the toolbar; if it could, exporting a Business-themed map would
+imply something about the application frame, which is meaningless.
 
 ## 6. Implementation notes
 

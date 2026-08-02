@@ -355,29 +355,25 @@ Export traverses semantic `childIds` order using pre-order depth-first serializa
 
 ### 14.3 Empty labels
 
-Empty ordinary nodes SHOULD export as `-` followed by no label or a documented placeholder.
-
-Recommended canonical export uses:
+An empty root MUST export as a bare heading marker:
 
 ```markdown
-- 
+#
 ```
 
-However trailing-space removal can make this parser-dependent. Safer MVP behavior is:
+An empty ordinary node MUST export as a bare list marker with no label and no trailing whitespace:
 
 ```markdown
-- Untitled
+-
 ```
 
-This changes semantics, so a better normative decision is:
+No placeholder text is substituted, and no sentinel is emitted. An empty node is empty in the exported file exactly as it is in the document.
 
-> Empty node labels are exported as an HTML comment sentinel only in canonical app export, for example `- <!-- empty -->`, and imported back as empty.
+Because a bare list marker is the one construct in this format whose round trip depends on the chosen Markdown parser, parser tests MUST confirm that `Import(Export(document))` returns an empty label for both cases, against the parser the implementation actually ships. This is a required test, not a recommendation — see §17.
 
-But that pollutes Markdown. To keep portability, final MVP decision:
+The editor displays `emptyPlaceholderText` (`theme.md` §6) for an empty node. That placeholder is a rendering affordance and MUST NOT be written to the exported file.
 
-- allow empty root as `#`;
-- export empty ordinary node as `-`;
-- parser tests MUST confirm round-trip using the selected Markdown parser.
+> **Amendment (2026-08-01).** This section previously presented three candidate approaches and rejected two of them in prose, leaving the operative rule inside the discussion. The rule is unchanged; only its statement was made unambiguous. The rejected alternatives, kept because the reasoning bears on any future revision: exporting `- Untitled` was rejected for silently inventing content and changing document semantics, and a sentinel such as `- <!-- empty -->` was rejected for polluting the file and breaking portability to editors outside this application. See `../decisions.md` D-09.
 
 ### 14.4 Atomic download
 

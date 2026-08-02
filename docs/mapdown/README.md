@@ -35,10 +35,13 @@ should not be casually reopened during implementation.
 | `design-tokens.md` | this repo | living document |
 | `spec/` | upstream baseline v1.0 | frozen; amend only through `decisions.md` |
 
-`spec/` is a versioned artifact that entered the repo on 2026-08-01. Two editorial changes
-were made on intake and are recorded in `decisions.md` D-07. Amendments to normative behaviour
-are recorded as decisions here rather than by silently editing the baseline, so that the
-delta from v1.0 stays visible.
+`spec/` is a versioned artifact that entered the repo on 2026-08-01. Two editorial changes were
+made on intake (`decisions.md` D-07), and it has since been amended twice (D-08, D-09).
+
+**Amendments are never silent.** Each one marks the spec inline at the point of change with an
+`> **Amendment (date)**` note *and* gets a record in `decisions.md` carrying the reasoning.
+Reading the spec alone tells you a rule changed; reading the log tells you why.
+`spec/README.md` carries the running list.
 
 ## Relationship to the repo roadmap
 
