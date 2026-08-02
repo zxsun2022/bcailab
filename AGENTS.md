@@ -19,7 +19,7 @@ This repository is intentionally structured for multi-agent collaboration across
   deterministic logic whose bugs are silent** — scoring, parsing, normalization.
 - Route loaders/actions and `*.server.ts` modules need D1/R2 bindings; verify those
   against the running dev server instead of mocking the platform.
-- Tests live next to their module as `*.test.ts` under `apps/web/app/`.
+- Tests live next to their module as `*.test.ts`, under `apps/web/app/` or `packages/*/src/`.
 
 ## Conventions
 - Prefer small, focused commits and clear diffs.
