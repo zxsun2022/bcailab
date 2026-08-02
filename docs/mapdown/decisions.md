@@ -77,10 +77,18 @@ projects from one repository is a supported Cloudflare configuration.
 triggers two builds. Set them when the second project is created — the existing `apps/web`
 project should be narrowed to `apps/web/*` + `packages/*` at the same time.
 
-Because both hosts sit under the `bcailab.com` apex, a session cookie scoped to
-`domain=.bcailab.com` can be shared across them when D-02's phase-three payoff is collected.
-The current cookie is host-only; widening it is a phase-three task, listed under Open questions
-below, and must not be done speculatively.
+Because both hosts sit under the `bcailab.com` apex, the session cookie already reaches
+`map.bcailab.com` — see the correction below.
+
+> **Correction (2026-08-01).** This record originally stated that the session cookie is
+> host-only and would need widening in phase three. **That was wrong**, and was written without
+> checking the code. `getCookieDomain()` in `packages/auth/src/index.ts` returns
+> `"bcailab.com"` for any hostname ending in `bcailab.com`, and an explicit `Domain` attribute
+> makes a cookie valid for that domain *and all subdomains* (RFC 6265 §5.2.3 — the legacy
+> leading dot is not required). `bcailab_session` will therefore be sent to `map.bcailab.com`
+> from its first deploy, before Mapdown has any account feature. No work is needed to share
+> sessions; the open question is whether that default is desirable, which is now the question
+> recorded below.
 
 ---
 
@@ -215,9 +223,14 @@ that the editor's `emptyPlaceholderText` must never be written to the exported f
 
 Not decided. Listed so they are not lost, and so nobody assumes they were settled.
 
-- **Cookie scope for phase three.** Sharing sessions across `bcailab.com` and `map.bcailab.com`
-  requires widening the session cookie to `domain=.bcailab.com`. This affects the existing
-  product, so it is a phase-three task with its own review, not preparatory work.
+- **Should `map.bcailab.com` receive the session cookie before it needs one?** It will by
+  default: `getCookieDomain()` already scopes `bcailab_session` to the whole `bcailab.com`
+  domain (see the correction in D-03). Two consequences to weigh. In Mapdown's favour: phase
+  three needs no cookie work at all. Against: an authenticated cookie is sent to a static origin
+  that has no use for it, and — because subdomains are **same-site** — `SameSite=lax` provides
+  no protection between `map.bcailab.com` and `bcailab.com`. The cookie is `httpOnly`, so
+  Mapdown's own scripts cannot read it. The alternative is making the domain attribute
+  conditional so only the app host gets it until phase three deliberately widens it.
 - **URL-based sharing.** A static site can still share: compress the Markdown into the URL
   fragment, as mermaid.live does. Zero backend, zero account, and it makes "send someone a map"
   work long before accounts exist. Raised as a candidate; **not** on the roadmap and not
