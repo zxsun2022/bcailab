@@ -221,7 +221,10 @@ that the editor's `emptyPlaceholderText` must never be written to the exported f
 
 ## D-10 — The session cookie is host-only until a second host needs it
 
-**Decided 2026-08-01.** Applied in `packages/auth/src/index.ts`; commit `f6313a7`.
+**Decided 2026-08-01.** Applied in `packages/auth/src/index.ts`, and locked by
+`packages/auth/src/session-cookie.test.ts`. That change ships as its own pull request, separate
+from this documentation — deliberately, since it fixes the existing product and Mapdown has no
+code yet.
 
 **Decision.** `bcailab_session` sets no `Domain` attribute. It does not reach
 `map.bcailab.com`. Sharing it with a second host is a deliberate change made when phase three
