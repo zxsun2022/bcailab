@@ -149,7 +149,10 @@ export function layoutRightOnly(tree: Tree, spacing = DEFAULT_SPACING): LayoutRe
   const m = measure(tree, spacing);
   const boxes: Record<string, Box> = {};
   const order: string[] = [];
-  place(tree, m, spacing, boxes, order, tree.rootId, 0, 0, "root", 1);
+  const rootM = m[tree.rootId]!;
+  // §3: root centre at the origin. `place` receives the top of the root's subtree span, so the
+  // offset is half the span rather than half the node.
+  place(tree, m, spacing, boxes, order, tree.rootId, -rootM.w / 2, -rootM.subtreeH / 2, "root", 1);
   return finish(boxes, order, performance.now() - t0);
 }
 
@@ -158,20 +161,7 @@ export function layoutRightOnly(tree: Tree, spacing = DEFAULT_SPACING): LayoutRe
  * gets a deterministic assignment — §7.2 requires the assignment be sticky, so it is computed
  * once and written back, never recomputed from current heights on every layout.
  */
-export function layoutTwoSided(
-  tree: Tree,
-  spacing = DEFAULT_SPACING,
-  /**
-   * `centered` follows §7.6: root Y aligns with the centre of the combined left/right extents.
-   * `anchored` pins the root instead and lets each side hang from it.
-   *
-   * The option exists because §7.6 and §11.5 cannot both hold. Centring on the *combined*
-   * extent means growing either side moves the root, and moving the root moves the other side —
-   * so "preserve unaffected side geometry" is unreachable while the root centres. The spike
-   * measures the cost of each so the choice is made on numbers.
-   */
-  rootPolicy: "centered" | "anchored" = "centered"
-): LayoutResult {
+export function layoutTwoSided(tree: Tree, spacing = DEFAULT_SPACING): LayoutResult {
   const t0 = performance.now();
   const root = tree.nodes[tree.rootId]!;
   const m = measure(tree, spacing);
@@ -203,15 +193,14 @@ export function layoutTwoSided(
     );
   };
 
-  const tallest = Math.max(sideHeight("left"), sideHeight("right"), rootM.h);
-  // Centred: the root floats to the middle of whatever the two sides currently span, so any
-  // growth on either side moves it. Anchored: the root is fixed and only its own side reflows.
-  const rootY = rootPolicy === "centered" ? (tallest - rootM.h) / 2 : 0;
-
+  // §3: the root *centre* is the document origin (0, 0). Bounds are therefore signed, and the
+  // map extends into negative Y above the root. Placing the root anywhere else — for example at
+  // the midpoint of the combined extents — expresses the same relative geometry through a global
+  // translation, which makes every node's coordinate change whenever either side grows.
   boxes[tree.rootId] = {
     id: tree.rootId,
     x: -rootM.w / 2,
-    y: rootY,
+    y: -rootM.h / 2,
     w: rootM.w,
     h: rootM.h,
     depth: 0,
@@ -223,10 +212,8 @@ export function layoutTwoSided(
     const dir = side === "right" ? 1 : -1;
     const ids = root.childIds.filter((c) => tree.nodes[c]!.side === side);
     const startLeft = dir === 1 ? rootM.w / 2 + spacing.horizontalGap : -rootM.w / 2 - spacing.horizontalGap;
-    let cursor =
-      rootPolicy === "centered"
-        ? (tallest - sideHeight(side)) / 2
-        : rootY + rootM.h / 2 - sideHeight(side) / 2;
+    // §7.6: each side's block is independently centred on the root centre, which is 0.
+    let cursor = -sideHeight(side) / 2;
     for (let i = 0; i < ids.length; i++) {
       place(tree, m, spacing, boxes, order, ids[i]!, startLeft, cursor, side, dir);
       cursor += m[ids[i]!]!.subtreeH + spacing.subtreeGap;

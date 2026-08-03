@@ -107,33 +107,31 @@ export function LayoutSpike() {
       const all = diffLayouts(a, after);
       out.push({
         label: "Cascade from one leaf edit is measured, not assumed",
-        pass: true, // information, not a verdict — see the report
+        pass: true, // information, not a verdict
         detail: `${all.moved}/${all.shared} nodes moved (${all.movedPct.toFixed(1)}%), max ${all.maxShift.toFixed(1)}px, mean ${all.meanShift.toFixed(1)}px`
       });
 
       if (mode === "two-sided" && editedSide) {
         const other = diffLayouts(a, after, untouched);
         out.push({
-          label: "§11.5 — the untouched side stays put (root centred per §7.6)",
+          label: "§11.5 — the untouched side does not move at all",
           pass: other.moved === 0,
-          detail: `${other.moved}/${other.shared} nodes on the ${editedSide === "left" ? "right" : "left"} side moved, max ${other.maxShift.toFixed(1)}px`
-        });
-
-        // Same edit, root anchored instead of centred. If this holds the untouched side still,
-        // the conflict is §7.6's centring rule and nothing else.
-        const aAnchored = layoutTwoSided(cloneTree(tree), undefined, "anchored");
-        const afterAnchored = layoutTwoSided(edited, undefined, "anchored");
-        const otherAnchored = diffLayouts(aAnchored, afterAnchored, (id) => {
-          const box = aAnchored.boxes[id];
-          return box !== undefined && box.side !== "root" && box.side !== editedSide;
-        });
-        out.push({
-          label: "Same edit with the root anchored instead of centred",
-          pass: otherAnchored.moved === 0,
-          detail: `${otherAnchored.moved}/${otherAnchored.shared} nodes on the untouched side moved — this is the §7.6 vs §11.5 tradeoff, quantified`
+          detail: `${other.moved}/${other.shared} nodes on the ${editedSide === "left" ? "right" : "left"} side moved, max ${other.maxShift.toFixed(2)}px`
         });
       }
     }
+
+    // The invariant that makes §11.5 measurable in the first place. With the root centre pinned
+    // to the origin, geometry is root-relative and a growing side cannot translate the map.
+    const rootBox = result.boxes[tree.rootId];
+    const rootCentre = rootBox ? { x: rootBox.x + rootBox.w / 2, y: rootBox.y + rootBox.h / 2 } : null;
+    out.push({
+      label: "§3 — root centre is the document origin (0, 0)",
+      pass: rootCentre !== null && Math.abs(rootCentre.x) < 0.01 && Math.abs(rootCentre.y) < 0.01,
+      detail: rootCentre
+        ? `root centre (${rootCentre.x.toFixed(2)}, ${rootCentre.y.toFixed(2)}); bounds Y ${result.bounds.minY.toFixed(0)}…${result.bounds.maxY.toFixed(0)} (signed, as §3 expects)`
+        : "no root box"
+    });
 
     // Sticky side (§7.2/§11.2): content edits must never flip a branch to the other side.
     if (mode === "two-sided") {
