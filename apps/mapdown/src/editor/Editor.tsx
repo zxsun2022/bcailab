@@ -16,6 +16,15 @@ import {
 import { createDocument, getNode, type NodeId } from "../model/types";
 import type { Command } from "../model/commands";
 import { useImeGuard } from "./useImeGuard";
+import {
+  createAutosave,
+  recoverDocument,
+  recoveryMessage,
+  saveStatusLabel,
+  type Autosave,
+  type SaveStatus
+} from "../storage/autosave";
+import { createStore, recallLastDocument } from "../storage/store";
 import { resolveKey, type EditorMode } from "./keymap";
 
 /**
@@ -49,6 +58,10 @@ export function Editor() {
     createHistory(createDocument("New map"))
   );
   const [editing, setEditing] = useState<EditingState | null>(null);
+  const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
+  const [notice, setNotice] = useState<string | null>(null);
+  const [restored, setRestored] = useState(false);
+  const store = useMemo(() => createStore(), []);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const guard = useImeGuard();
@@ -84,6 +97,66 @@ export function Editor() {
     field.setSelectionRange(editing.draft.length, editing.draft.length);
   }, [editing?.nodeId]);
 
+  /**
+   * The autosave is created **and** destroyed by one effect.
+   *
+   * It was a `useMemo` with `dispose()` in a different effect's cleanup, which is broken under
+   * StrictMode: the simulated unmount ran the cleanup and disposed the instance, but the memo
+   * survived the remount, so every later `schedule()` returned immediately and nothing was ever
+   * written. Anything with a `dispose()` has to be born and buried in the same effect, or its
+   * lifetime does not match the thing that kills it.
+   */
+  const autosaveRef = useRef<Autosave | null>(null);
+
+  useEffect(() => {
+    const instance = createAutosave({ store, onStatus: setStatus });
+    autosaveRef.current = instance;
+
+    // §9 — do not rely on unload. visibilitychange is what browsers actually honour.
+    const onHidden = () => {
+      if (document.visibilityState === "hidden") void instance.flush();
+    };
+    document.addEventListener("visibilitychange", onHidden);
+
+    return () => {
+      document.removeEventListener("visibilitychange", onHidden);
+      instance.dispose();
+      autosaveRef.current = null;
+    };
+  }, [store]);
+
+  /**
+   * §3.5 — restore the most recently active document on launch. Recovery validates invariants
+   * and falls back to an earlier snapshot rather than opening a tree that cannot be exported;
+   * when it has to fall back, it says so instead of silently losing the newest edits.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    const lastId = recallLastDocument();
+    if (!lastId) {
+      setRestored(true);
+      return;
+    }
+    void recoverDocument(store, lastId).then((outcome) => {
+      if (cancelled) return;
+      if (outcome.kind === "restored" || outcome.kind === "restored-earlier") {
+        setHistory(createHistory(outcome.snapshot.document, outcome.snapshot.selectedNodeId ?? undefined));
+      }
+      setNotice(recoveryMessage(outcome));
+      setRestored(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [store]);
+
+  // §5.1 — every semantic edit schedules a save. Gated on `restored` so the empty starter
+  // document cannot overwrite a real one before recovery has finished reading it.
+  useEffect(() => {
+    if (!restored) return;
+    autosaveRef.current?.schedule(history.doc, history.selection);
+  }, [history.doc, history.selection, restored]);
+
   /** Writes the draft into the document as part of the session's undo group. */
   const commitDraft = useCallback(
     (state: EditorHistory, session: EditingState): EditorHistory => {
@@ -98,17 +171,26 @@ export function Editor() {
   );
 
   /**
-   * §6.4 — a node that was just created, is still empty and is abandoned leaves no trace.
-   * `dropLastEntry` removes the node and its history entry together, so a later undo cannot
-   * resurrect it.
+   * Escape exits the editing session. It does **not** discard what was typed.
+   *
+   * §6.7 is explicit: "Escape does not revert the text to its value at editing entry. Undo
+   * provides reversion. This avoids surprising loss of typed work." And §6.8: "If the new node
+   * contains text, Escape merely exits editing and keeps it."
+   *
+   * The first implementation dropped the draft in both cases, which is the exact behaviour
+   * those two sections were written to forbid — a new node typed into and then escaped came
+   * back empty. Only a new node that is *still empty* is removed (§6.4), and then the node and
+   * its history entry go together so a later undo cannot resurrect it.
    */
   const cancelEdit = useCallback(() => {
     if (!editing) return;
     if (editing.isNewNode && editing.draft.trim() === "") {
       setHistory((state) => dropLastEntry(state));
+    } else {
+      setHistory((state) => commitDraft(state, editing));
     }
     setEditing(null);
-  }, [editing]);
+  }, [editing, commitDraft]);
 
   /**
    * Creates a node and immediately opens an editing session on it.
@@ -270,7 +352,7 @@ export function Editor() {
   return (
     <div
       ref={surfaceRef}
-      style={{ display: "grid", gridTemplateRows: "auto 1fr auto", height: "100%", outline: "none" }}
+      style={{ display: "grid", gridTemplateRows: "auto auto 1fr auto", height: "100%", outline: "none" }}
       onKeyDown={onKeyDown}
       tabIndex={-1}
     >
@@ -293,6 +375,26 @@ export function Editor() {
         </button>
         <button onMouseDown={(e) => e.preventDefault()} onClick={download}>Export Markdown</button>
       </header>
+
+      {notice && (
+        <div
+          role="status"
+          style={{
+            padding: "0.5rem 0.75rem",
+            background: "#fff8e1",
+            color: "#5c4813",
+            borderBottom: "1px solid #e8d9a0",
+            fontSize: "13px",
+            display: "flex",
+            gap: "0.75rem"
+          }}
+        >
+          <span>{notice}</span>
+          <button onClick={() => setNotice(null)} style={{ marginLeft: "auto" }}>
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div style={{ position: "relative", background: "var(--canvas-bg)", overflow: "hidden" }}>
         <MapCanvas
@@ -332,13 +434,9 @@ export function Editor() {
             }
             onCompositionStart={guard.onCompositionStart}
             onCompositionEnd={guard.onCompositionEnd}
-            onBlur={() => {
-              if (editing.isNewNode && editing.draft.trim() === "") cancelEdit();
-              else {
-                setHistory((state) => commitDraft(state, editing));
-                setEditing(null);
-              }
-            }}
+            // Blur and Escape now mean the same thing: end the session, keep the text, and
+            // drop the node only if it was new and never got any.
+            onBlur={cancelEdit}
             style={{
               position: "absolute",
               left: `${editorRect.left}%`,
@@ -367,11 +465,23 @@ export function Editor() {
           padding: "0.4rem 0.75rem",
           borderTop: "1px solid var(--chrome-border)",
           color: "var(--chrome-text-muted)",
-          fontSize: "12px"
+          fontSize: "12px",
+          display: "flex",
+          gap: "1rem"
         }}
       >
-        {Object.keys(doc.nodes).length} nodes · Enter = sibling · Tab = child · Shift+Tab = promote
-        · Space = collapse · F2 = rename
+        <span>
+          {Object.keys(doc.nodes).length} nodes · Enter = sibling · Tab = child · Shift+Tab =
+          promote · Space = collapse · F2 = rename
+        </span>
+        <span
+          style={{
+            marginLeft: "auto",
+            color: status.kind === "failed" ? "#d94f4f" : "var(--chrome-text-muted)"
+          }}
+        >
+          {saveStatusLabel(status)}
+        </span>
       </footer>
     </div>
   );

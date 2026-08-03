@@ -395,6 +395,40 @@ being exercised either.
 
 ---
 
+## D-15 — The editing surface is an overlaid textarea
+
+**Decided 2026-08-03**, deferred here from Phase 0.
+
+**Decision.** In-place node editing uses a `<textarea>` positioned over the node box, not
+`contentEditable` and not a hidden input.
+
+**Why not on IME grounds.** Spike 1 measured all three surfaces under a real Chinese IME in two
+browsers and found **no difference** — the OS consumes the confirming key before any of them
+sees it. IME risk was the stated reason that spike ran first, so it is worth being clear that it
+did not decide this.
+
+**What decided it.**
+
+*A real form control is the boring path.* Every browser's IME, autocorrect, dictation and
+accessibility machinery is tuned for form controls. `contentEditable` is a rich-text surface
+pretending to be plain text: `product-specification.md` §4.3 requires plain Unicode, so paste
+sanitisation and suppressing browser formatting commands would be permanent obligations rather
+than one-off work.
+
+*A hidden input costs a hand-drawn caret.* It gives the most rendering control, which suits an
+SVG canvas — but the caret must then be positioned and blinked by hand, including mid-composition,
+which is exactly where CJK text measurement is hardest. That is a large cost for a benefit MVP
+does not need.
+
+**The cost accepted.** The textarea must track its node box as the map reflows. It is positioned
+from the same `viewBox` the canvas computes, not measured from the DOM, so the two cannot drift.
+
+**Revisit when** per-node rich text arrives (`phases.md` §9.1), which would need a real editing
+model rather than a plain-text field, or if caret rendering inside the canvas becomes a
+requirement for another reason.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.
