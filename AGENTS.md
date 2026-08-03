@@ -16,7 +16,8 @@ This repository is intentionally structured for multi-agent collaboration across
 - The goal: any AI coding tool can pick up where another left off using only the repo's docs.
 
 ## Repo Layout
-- `apps/` - Product surfaces (`web`, the Remix app; `mapdown` planned, see `docs/mapdown/`)
+- `apps/` - Product surfaces (`web`, the Remix app; `mapdown`, a Vite SPA — see `docs/mapdown/`)
+  - `typescript` is pinned **per package**, not in root overrides: `web` 5.9.3, `mapdown` 7.x.
 - `packages/` - Shared libraries (UI, auth, DB, utilities)
 - `docs/` - Intent, decisions, specs, and procedures (see the Docs section below)
 - `migrations/` - D1 schema, applied in filename order

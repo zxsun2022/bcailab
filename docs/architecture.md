@@ -5,10 +5,12 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 ## Components
 - **Remix app** (`apps/web`): Landing page, auth flows, tool UIs.
 - **Shared packages** (`packages/*`): UI primitives, auth helpers, D1 access helpers.
-- **Mapdown** (`apps/mapdown`, *planned — specified, not yet built*): a static Markdown
-  mind-map editor at `map.bcailab.com`. A client-only Vite SPA with no server, no bindings and
-  no visual dependency on `@bcailab/ui`; it deploys as its own Cloudflare Pages project from the
-  same repository and will adopt `@bcailab/auth` only when cloud-saved documents arrive.
+- **Mapdown** (`apps/mapdown`, *scaffold — no editor yet*): a static Markdown mind-map editor
+  for `map.bcailab.com`. A client-only Vite + React SPA with no server, no bindings and no
+  visual dependency on `@bcailab/ui`; it will deploy as its own Cloudflare Pages project from
+  this repository and adopt `@bcailab/auth` only when cloud-saved documents arrive. It is the
+  one package on **TypeScript 7** while `apps/web` stays on 5.9.3 — `typescript` is pinned per
+  package rather than in the root `pnpm.overrides` (docs/mapdown/decisions.md D-13).
   See docs/mapdown/.
 - **D1**: Primary relational store for users, sessions, and tool data.
 - **Material layer**: Dictation and Reading share one graded passage store (`passages`,

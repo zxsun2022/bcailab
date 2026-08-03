@@ -312,6 +312,60 @@ outline.
 
 ---
 
+## D-13 — Mapdown builds on TypeScript 7; `apps/web` stays on 5.9.3
+
+**Decided 2026-08-02.**
+
+**Decision.** `apps/mapdown` uses TypeScript **7.x** (`latest` at the time of writing is 7.0.2).
+`apps/web` stays on **5.9.3**, unchanged. `typescript` is therefore removed from the root
+`pnpm.overrides` block and pinned per package instead.
+
+**Why TypeScript 7.** It is the compiler rewritten in Go — a build-performance change, not a
+language version bump — and it is now the stable `latest` on npm rather than a preview. Mapdown
+is greenfield with no legacy type surface, so it carries none of the migration risk that makes
+this decision hard elsewhere, and compiler speed compounds over the life of a project that will
+be edited constantly.
+
+**Why `apps/web` does not move with it.** Not conservatism — **risk independence**. `apps/web`
+runs on Remix 2.17.4, a framework generation behind (Remix 2's successor is React Router 7).
+Validating TypeScript 7 against its type surface and the `@remix-run/dev` Vite plugin is a task
+with its own failure modes and its own value, and it has nothing to do with Mapdown. Coupling
+them would let an unrelated problem block a new product from starting. `apps/web` should move
+when someone decides to move it, on that task's own evidence.
+
+**Mechanics, and why they are safe.** The root `pnpm.overrides` block is a workspace-wide hard
+constraint: while `typescript` sat in it, no package could choose its own version. Removing it
+leaves `apps/web` bit-identical, because `apps/web/package.json` already pins `5.9.3` in its own
+`devDependencies` — the override was redundant for that package. The root `devDependencies` pin
+stays at `5.9.3` as well.
+
+**Relationship to D-02.** That record listed "one pinned toolchain instead of two" among the
+monorepo's benefits. This is the first time that benefit becomes a cost, and it is worth being
+honest that it does. It does not reopen D-02: the decisive argument was always `packages/auth`,
+not the toolchain, and per-package pinning is the ordinary way a workspace handles this — two
+TypeScript versions in one repository is normal, not a symptom.
+
+**Verified on the scaffold (2026-08-02).** No friction found. TypeScript 7.0.2 typechecks the
+scaffold — React 18.3.1 with `@types/react` 18.3.27, `vite/client` types, `@vitejs/plugin-react`
+and the `vite.config.ts` itself — in **0.83 s**, and `pnpm --filter mapdown build`
+(`tsc --noEmit && vite build`) completes end to end in **1.5 s**. `pnpm --filter mapdown exec tsc
+--version` reports 7.0.2 while `pnpm --filter web exec tsc --version` reports 5.9.3, so the two
+versions genuinely coexist in one workspace. `apps/web` typecheck and the 118-test suite were
+re-run unchanged.
+
+Still unverified, because those dependencies do not exist yet: whatever Mapdown adds later —
+a Markdown parser, a compression library for D-11's share payload, a test runner for the app.
+Record any friction here.
+
+**Not changed in the same pass.** `vite` stays pinned at 5.4.21 by the root overrides, and React
+at 18.3.1. One variable at a time: TypeScript was the question, and a scaffold that fails should
+implicate one change, not three.
+
+**Rollback.** One line in `apps/mapdown/package.json`. If TypeScript 7 proves troublesome, that
+app returns to 5.9.3 without touching anything else.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

@@ -1,7 +1,17 @@
 # Mapdown
 
-**Status:** specification baseline only — no code yet. `apps/mapdown` does not exist.
-**Planned home:** `apps/mapdown` in this monorepo, deployed to `map.bcailab.com`.
+**Status:** scaffold only — `apps/mapdown` exists and runs, but there is no editor. Phase 0
+spikes come next.
+**Home:** `apps/mapdown` in this monorepo; deploys to `map.bcailab.com` (Pages project not yet
+created).
+
+```bash
+pnpm --filter mapdown dev      # http://localhost:5174
+pnpm --filter mapdown build    # tsc --noEmit && vite build -> dist/
+```
+
+Vite + React SPA on **TypeScript 7** (D-04, D-13). No server, no Cloudflare bindings, and no
+dependency on `@bcailab/ui` — Mapdown owns its own chrome tokens in `src/styles/` (D-05).
 
 Mapdown is a browser-based, keyboard-first mind-map editor whose semantic source is a
 Markdown tree. Its promise: open the site, build a structured map immediately, let the
