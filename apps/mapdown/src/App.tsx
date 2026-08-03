@@ -6,6 +6,14 @@
  * findings are written back into the specification.
  */
 
+import { useSyncExternalStore } from "react";
+import { ImeSpike } from "./spikes/ime/ImeSpike";
+
+function subscribeToHash(onChange: () => void) {
+  window.addEventListener("hashchange", onChange);
+  return () => window.removeEventListener("hashchange", onChange);
+}
+
 const SPIKES = [
   {
     id: "ime",
@@ -25,6 +33,26 @@ const SPIKES = [
 ] as const;
 
 export function App() {
+  const spike = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1));
+
+  if (spike === "ime") {
+    return (
+      <main style={{ maxWidth: "52rem", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+        <a href="#" style={{ color: "var(--chrome-text-muted)" }}>
+          ← Mapdown
+        </a>
+        <h1 style={{ fontSize: "1.3rem", margin: "0.5rem 0 0.25rem" }}>
+          Spike 1 — Chinese IME in canvas text editing
+        </h1>
+        <p style={{ color: "var(--chrome-text-muted)", marginTop: 0 }}>
+          Enter creates a sibling and Tab creates a child — and both are how an IME confirms a
+          candidate. This compares three editing surfaces under one guard.
+        </p>
+        <ImeSpike />
+      </main>
+    );
+  }
+
   return (
     <main style={{ maxWidth: "46rem", margin: "0 auto", padding: "3rem 1.5rem" }}>
       <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.25rem" }}>Mapdown</h1>
@@ -40,10 +68,16 @@ export function App() {
 
       <h2 style={{ fontSize: "1rem", marginTop: "2.5rem" }}>Phase 0 — spikes to run first</h2>
       <ol style={{ paddingLeft: "1.25rem" }}>
-        {SPIKES.map((spike) => (
-          <li key={spike.id} style={{ marginBottom: "1rem" }}>
-            <strong>{spike.title}</strong>
-            <div style={{ color: "var(--chrome-text-muted)" }}>{spike.why}</div>
+        {SPIKES.map((entry) => (
+          <li key={entry.id} style={{ marginBottom: "1rem" }}>
+            {entry.id === "ime" ? (
+              <a href="#ime">
+                <strong>{entry.title}</strong>
+              </a>
+            ) : (
+              <strong>{entry.title}</strong>
+            )}
+            <div style={{ color: "var(--chrome-text-muted)" }}>{entry.why}</div>
           </li>
         ))}
       </ol>
