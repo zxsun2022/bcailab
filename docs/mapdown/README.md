@@ -1,7 +1,9 @@
 # Mapdown
 
-**Status:** scaffold only — `apps/mapdown` exists and runs, but there is no editor. Phase 0
-spikes come next.
+**Status:** **Phase 0 complete** — all three spikes run, no architectural blocker found. There is
+still no editor. One owner decision is open before Phase 1: a specification conflict between
+`spec/layout-engine.md` §7.6 and §11.5, quantified in
+[spike 3](spikes/03-variable-size-layout-20260802.md) Finding 2.
 **Home:** `apps/mapdown` in this monorepo; deploys to `map.bcailab.com` (Pages project not yet
 created).
 
@@ -80,10 +82,17 @@ These are the ones most likely to be lost in translation, drawn from across the 
 - **Every destructive or structural action is undoable**, and confirmation dialogs are not a
   substitute for reliable history (`spec/vision.md` §4.8).
 
-## Known risk
+## Phase 0 — results
 
-The hardest parts are concentrated in three places, and `spec/phases.md` Phase 0 exists to
-de-risk them before feature work starts: in-canvas WYSIWYG text editing with **Chinese IME**
-(Enter and Tab are both commands and IME confirmation keys — the main source of subtle bugs),
-text-measurement-driven variable-size tidy-tree layout, and SVG/PNG export containing CJK text
-with no external font dependency. Do not skip the spikes.
+The three hardest problems were spiked before feature work. All cleared; reports in `spikes/`.
+
+| Spike | Outcome |
+|---|---|
+| [1 — Chinese IME](spikes/01-ime-canvas-editing-20260802.md) | Cleared. Real 拼音 tested in Chromium and Safari. The documented Safari ordering hazard **did not reproduce** — macOS consumes the confirming key before the page sees it. The guard stays as insurance for Windows. IME does **not** discriminate between the three editing surfaces, so that choice moves to Phase 1. |
+| [2 — CJK SVG/PNG export](spikes/02-cjk-svg-export-20260802.md) | Cleared. Canvas measurement and SVG layout agree to **0.000 px**, so one measurement path serves both. Cross-machine font fidelity is an accepted, documented limitation — PNG does not share it. |
+| [3 — variable-size layout](spikes/03-variable-size-layout-20260802.md) | Cleared on performance (**0.70 ms at 500 nodes**) and determinism. Found a **specification conflict** needing an owner decision — see below. |
+
+**Open before Phase 1.** `spec/layout-engine.md` §7.6 (root centres on combined extents) and
+§11.5 (preserve unaffected side geometry) cannot both hold. Measured: root centred → 27/27
+untouched-side nodes move (max 10.5 px); root anchored → 0/27. Spike 3 Finding 2 lays out three
+options and recommends one. One of the two sections must be amended either way.
