@@ -81,3 +81,27 @@ body {
   outline: 2px solid var(--chrome-focus-ring);
   outline-offset: 2px;
 }
+
+/*
+ * Layer B preview — the Minimal Light document theme, the one Phase 1 ships (phases.md §3).
+ *
+ * These are document tokens, not chrome: they describe the map itself and must survive into an
+ * exported SVG as literal values. They live here only until the theme system lands in Phase 2,
+ * at which point they become data in the document model rather than CSS. Keeping them visually
+ * separate from the Layer A block above is the point — see docs/mapdown/design-tokens.md.
+ */
+:root {
+  --canvas-bg: #ffffff;
+  --node-fill: #ffffff;
+  --node-stroke: #c8ccd1;
+  --node-text: #1c1e21;
+  --node-root-fill: #2f6feb;
+  --node-root-text: #ffffff;
+  /* C-01: selection is a ring, not a fill colour, so it can never be confused with a branch
+     colour once branch palettes arrive. */
+  --node-selected-stroke: #2f6feb;
+  --connector: #b9bec6;
+  --control-fill: #ffffff;
+  --control-stroke: #c8ccd1;
+  --control-text: #61666d;
+}
