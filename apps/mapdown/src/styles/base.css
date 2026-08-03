@@ -1,0 +1,83 @@
+/*
+ * Layer A — application chrome only.
+ *
+ * Toolbar, dialogs, Help centre, status area, menus. Neutral by intent: the map is the
+ * figure, the application is the ground (product-specification.md §2.1).
+ *
+ * These tokens NEVER appear in an export. Document themes — canvas, nodes, connectors,
+ * branch palette, collapse badge — are a separate system that lives in the document model
+ * and must serialise to literal values for SVG export. Do not add document styling here,
+ * and do not style chrome from a document theme.
+ *
+ * See docs/mapdown/design-tokens.md (decisions D-05, D-06).
+ */
+
+:root {
+  color-scheme: light dark;
+
+  /* Neutrals */
+  --chrome-bg: #ffffff;
+  --chrome-bg-sunken: #f6f7f8;
+  --chrome-bg-raised: #ffffff;
+  --chrome-border: #e3e5e8;
+  --chrome-border-strong: #c8ccd1;
+  --chrome-text: #1c1e21;
+  --chrome-text-muted: #61666d;
+
+  /*
+   * One accent. C-01: this hue is reserved for chrome and MUST stay out of every document
+   * theme's branch palette, or a selected node becomes indistinguishable from a blue branch.
+   */
+  --chrome-accent: #2f6feb;
+  --chrome-accent-text: #ffffff;
+  --chrome-focus-ring: #2f6feb;
+
+  --chrome-radius: 6px;
+  --chrome-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+}
+
+/*
+ * C-02: chrome appearance follows the viewer's preference and is independent of the
+ * document theme. Choosing the Dark *document* theme must not darken the editor, and
+ * working in dark chrome must not change what a map exports as.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --chrome-bg: #16181c;
+    --chrome-bg-sunken: #1f2226;
+    --chrome-bg-raised: #24272c;
+    --chrome-border: #2f3339;
+    --chrome-border-strong: #444a52;
+    --chrome-text: #e8eaed;
+    --chrome-text-muted: #9aa0a8;
+    --chrome-accent: #5b8def;
+    --chrome-accent-text: #10131a;
+    --chrome-focus-ring: #5b8def;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--chrome-bg);
+  color: var(--chrome-text);
+  font-family: var(--chrome-font);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--chrome-focus-ring);
+  outline-offset: 2px;
+}

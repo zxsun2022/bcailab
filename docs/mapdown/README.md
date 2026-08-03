@@ -1,7 +1,17 @@
 # Mapdown
 
-**Status:** specification baseline only — no code yet. `apps/mapdown` does not exist.
-**Planned home:** `apps/mapdown` in this monorepo, deployed to `map.bcailab.com`.
+**Status:** **Phase 0 complete** — all three spikes run, no architectural blocker, no open
+decision. There is still no editor.
+**Home:** `apps/mapdown` in this monorepo; deploys to `map.bcailab.com` (Pages project not yet
+created).
+
+```bash
+pnpm --filter mapdown dev      # http://localhost:5174
+pnpm --filter mapdown build    # tsc --noEmit && vite build -> dist/
+```
+
+Vite + React SPA on **TypeScript 7** (D-04, D-13). No server, no Cloudflare bindings, and no
+dependency on `@bcailab/ui` — Mapdown owns its own chrome tokens in `src/styles/` (D-05).
 
 Mapdown is a browser-based, keyboard-first mind-map editor whose semantic source is a
 Markdown tree. Its promise: open the site, build a structured map immediately, let the
@@ -70,10 +80,19 @@ These are the ones most likely to be lost in translation, drawn from across the 
 - **Every destructive or structural action is undoable**, and confirmation dialogs are not a
   substitute for reliable history (`spec/vision.md` §4.8).
 
-## Known risk
+## Phase 0 — results
 
-The hardest parts are concentrated in three places, and `spec/phases.md` Phase 0 exists to
-de-risk them before feature work starts: in-canvas WYSIWYG text editing with **Chinese IME**
-(Enter and Tab are both commands and IME confirmation keys — the main source of subtle bugs),
-text-measurement-driven variable-size tidy-tree layout, and SVG/PNG export containing CJK text
-with no external font dependency. Do not skip the spikes.
+The three hardest problems were spiked before feature work. All cleared; reports in `spikes/`.
+
+| Spike | Outcome |
+|---|---|
+| [1 — Chinese IME](spikes/01-ime-canvas-editing-20260802.md) | Cleared. Real 拼音 tested in Chromium and Safari. The documented Safari ordering hazard **did not reproduce** — macOS consumes the confirming key before the page sees it. The guard stays as insurance for Windows. IME does **not** discriminate between the three editing surfaces, so that choice moves to Phase 1. |
+| [2 — CJK SVG/PNG export](spikes/02-cjk-svg-export-20260802.md) | Cleared. Canvas measurement and SVG layout agree to **0.000 px**, so one measurement path serves both. Cross-machine font fidelity is an accepted, documented limitation — PNG does not share it. |
+| [3 — variable-size layout](spikes/03-variable-size-layout-20260802.md) | Cleared. Deterministic, no overlaps, **0.70 ms at 500 nodes**. With the root centre pinned to the origin per §3, editing a deep leaf moves **0 of 27** nodes on the other side — §7.6 and §11.5 hold together exactly. |
+
+**One invariant to build on.** `spec/layout-engine.md` §3 — *the root centre is the document
+origin `(0, 0)`* — is not a convention, it is what makes stability measurable. Geometry expressed
+against any other origin turns a growing side into a global translation, and a stability metric
+then cannot tell that apart from a real reflow. Spike 3 Finding 2 records how that mistake was
+made and retracted. The Phase 1 test suite should assert the origin invariant **first**;
+determinism, no-overlap and side-independence all depend on it.
