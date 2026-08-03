@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapCanvas, viewBoxBounds } from "../canvas/MapCanvas";
-import { layout } from "../layout/layout";
+import { chooseSideForNewBranch, layout } from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
 import { sanitizeFilename } from "../markdown/escape";
 import {
@@ -14,7 +14,7 @@ import {
   type EditorHistory
 } from "../model/history";
 import { createDocument, getNode, type NodeId } from "../model/types";
-import type { Command } from "../model/commands";
+import { canMoveSide, type Command } from "../model/commands";
 import { useImeGuard } from "./useImeGuard";
 import {
   createAutosave,
@@ -205,7 +205,17 @@ export function Editor() {
     (state: EditorHistory, command: Command, label: string) => {
       sessionCounter += 1;
       const groupId = `new-${sessionCounter}`;
-      const next = dispatch(state, command, { groupId, label });
+      // §7.2 defines the side in terms of measured subtree heights, which is layout's knowledge.
+      // The editor is the one layer that has both, so it is where the two meet.
+      const willBeFirstLevel =
+        (command.type === "CreateChild" && command.parentId === state.doc.rootId) ||
+        (command.type === "CreateSibling" && state.doc.nodes[command.anchorId]?.parentId === state.doc.rootId) ||
+        (command.type === "CreateSibling" && command.anchorId === state.doc.rootId);
+      const withSide: Command =
+        willBeFirstLevel && state.doc.layout.mode === "two-sided"
+          ? { ...command, side: chooseSideForNewBranch(state.doc) }
+          : command;
+      const next = dispatch(state, withSide, { groupId, label });
       setHistory(next);
       setEditing({
         nodeId: next.selection,
@@ -373,6 +383,37 @@ export function Editor() {
         <button onMouseDown={(e) => e.preventDefault()} onClick={() => setHistory((s) => redo(s))} disabled={!canRedo(history)}>
           Redo
         </button>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            setHistory((state) => ({
+              ...state,
+              doc: {
+                ...state.doc,
+                layout: { mode: state.doc.layout.mode === "right" ? "two-sided" : "right" },
+                revision: state.doc.revision + 1
+              }
+            }))
+          }
+        >
+          {doc.layout.mode === "right" ? "Two-sided" : "Right-only"}
+        </button>
+        {selection && canMoveSide(doc, selection) && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setHistory((state) =>
+                dispatch(state, {
+                  type: "MoveFirstLevelBranchSide",
+                  nodeId: selection,
+                  side: getNode(state.doc, selection).side === "right" ? "left" : "right"
+                })
+              )
+            }
+          >
+            Move {getNode(doc, selection).side === "right" ? "left" : "right"}
+          </button>
+        )}
         <button onMouseDown={(e) => e.preventDefault()} onClick={download}>Export Markdown</button>
       </header>
 

@@ -61,7 +61,12 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
         ))}
       </text>
 
-      {box.directChildCount > 0 && (
+      {/*
+        §9.1 — only a node with children has a control, **and the root never does**: "The root
+        remains expanded in MVP." Rendering one on the root was visible in the very first
+        two-sided screenshot; it offers an action the model refuses to perform.
+      */}
+      {box.directChildCount > 0 && box.depth > 0 && (
         <CollapseControl box={box} onToggle={onToggleCollapse} />
       )}
     </g>
@@ -74,7 +79,10 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
  * count; an expanded one shows a minus.
  */
 function CollapseControl({ box, onToggle }: { box: NodeBox; onToggle: (id: NodeId) => void }) {
-  const cx = box.outwardEdgeX + 8;
+  // §9.2 — the control sits on the *outward* edge, which points away from the root. On the left
+  // side that is the node's left edge, so the offset has to mirror or the badge lands inside
+  // the node.
+  const cx = box.outwardEdgeX + (box.side === "left" ? -8 : 8);
   const cy = box.y + box.height / 2;
   const label = box.collapsed
     ? `Expand branch with ${box.directChildCount} direct ${box.directChildCount === 1 ? "child" : "children"}`

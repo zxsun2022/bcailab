@@ -31,11 +31,17 @@ import {
 
 export type Command =
   | { type: "RenameNode"; nodeId: NodeId; text: string }
-  | { type: "CreateSibling"; anchorId: NodeId; newNodeId?: NodeId; text?: string }
-  | { type: "CreateChild"; parentId: NodeId; newNodeId?: NodeId; text?: string }
+  /**
+   * `side` is supplied by the caller when the new node will be first-level, because §7.2 defines
+   * the choice in terms of measured subtree heights — layout's knowledge, not the model's. When
+   * omitted, the deterministic fallback below applies, so commands never import layout.
+   */
+  | { type: "CreateSibling"; anchorId: NodeId; newNodeId?: NodeId; text?: string; side?: BranchSide }
+  | { type: "CreateChild"; parentId: NodeId; newNodeId?: NodeId; text?: string; side?: BranchSide }
   | { type: "DeleteSubtree"; nodeId: NodeId }
   | { type: "PromoteNode"; nodeId: NodeId }
   | { type: "SetCollapsed"; nodeId: NodeId; collapsed: boolean }
+  | { type: "MoveFirstLevelBranchSide"; nodeId: NodeId; side: BranchSide }
   /** Internal: the inverse of DeleteSubtree. Not reachable from the UI. */
   | {
       type: "RestoreSubtree";
@@ -88,19 +94,26 @@ function insertAt<T>(list: T[], index: number, value: T): T[] {
  */
 function sideForNewFirstLevel(doc: MindMapDocument, nodes: Record<NodeId, MindMapNode>): BranchSide {
   if (doc.layout.mode === "right") return "right";
-  const root = nodes[doc.rootId]!;
-  let right = 0;
-  let left = 0;
-  for (const id of root.childIds) (nodes[id]!.side === "left" ? left++ : right++);
-  return right <= left ? "right" : "left";
+  // §7.2.3 tie-break, used when the caller supplies no side: first branch right, second left,
+  // then alternate from the most recently assigned. Deterministic without needing heights.
+  const assigned = nodes[doc.rootId]!.childIds
+    .map((id) => nodes[id]!.side)
+    .filter((side): side is BranchSide => side !== null);
+  const last = assigned.at(-1);
+  if (!last) return "right";
+  return last === "right" ? "left" : "right";
 }
 
 /** Clearing sides below the first level, used after a node changes depth. */
-function normalizeSides(doc: MindMapDocument, nodes: Record<NodeId, MindMapNode>): void {
+function normalizeSides(
+  doc: MindMapDocument,
+  nodes: Record<NodeId, MindMapNode>,
+  preferred?: BranchSide
+): void {
   for (const node of Object.values(nodes)) {
     const first = node.parentId === doc.rootId;
     if (!first && node.side !== null) node.side = null;
-    if (first && node.side === null) node.side = sideForNewFirstLevel(doc, nodes);
+    if (first && node.side === null) node.side = preferred ?? sideForNewFirstLevel(doc, nodes);
   }
 }
 
@@ -123,7 +136,13 @@ function renameNode(doc: MindMapDocument, nodeId: NodeId, text: string): Command
  * §6.1 — `Enter`. On the root this creates a first-level child instead, because the root has no
  * siblings; that is the one special case and it is deliberate, not an accident of implementation.
  */
-function createSibling(doc: MindMapDocument, anchorId: NodeId, id: NodeId, text: string): CommandResult {
+function createSibling(
+  doc: MindMapDocument,
+  anchorId: NodeId,
+  id: NodeId,
+  text: string,
+  side?: BranchSide
+): CommandResult {
   const anchor = getNode(doc, anchorId);
   const onRoot = anchor.parentId === null;
   const parentId = onRoot ? doc.rootId : anchor.parentId!;
@@ -132,11 +151,11 @@ function createSibling(doc: MindMapDocument, anchorId: NodeId, id: NodeId, text:
   const nodes = cloneNodes(doc);
   nodes[id] = createNode({ id, parentId, text: normalizeText(text) });
   nodes[parentId]!.childIds = insertAt(nodes[parentId]!.childIds, index, id);
-  normalizeSides(doc, nodes);
+  normalizeSides(doc, nodes, side);
 
   return {
     doc: withNodes(doc, nodes),
-    resolved: { type: "CreateSibling", anchorId, newNodeId: id, text },
+    resolved: { type: "CreateSibling", anchorId, newNodeId: id, text, side: nodes[id]!.side ?? undefined },
     inverse: { type: "DeleteSubtree", nodeId: id },
     selection: id,
     category: "structure"
@@ -144,16 +163,22 @@ function createSibling(doc: MindMapDocument, anchorId: NodeId, id: NodeId, text:
 }
 
 /** §6.2 — `Tab`. Appends a last child and expands the parent, so the new node is never hidden. */
-function createChild(doc: MindMapDocument, parentId: NodeId, id: NodeId, text: string): CommandResult {
+function createChild(
+  doc: MindMapDocument,
+  parentId: NodeId,
+  id: NodeId,
+  text: string,
+  side?: BranchSide
+): CommandResult {
   const nodes = cloneNodes(doc);
   nodes[id] = createNode({ id, parentId, text: normalizeText(text) });
   nodes[parentId]!.childIds = [...nodes[parentId]!.childIds, id];
   nodes[parentId]!.collapsed = false;
-  normalizeSides(doc, nodes);
+  normalizeSides(doc, nodes, side);
 
   return {
     doc: withNodes(doc, nodes),
-    resolved: { type: "CreateChild", parentId, newNodeId: id, text },
+    resolved: { type: "CreateChild", parentId, newNodeId: id, text, side: nodes[id]!.side ?? undefined },
     inverse: { type: "DeleteSubtree", nodeId: id },
     selection: id,
     category: "structure"
@@ -292,6 +317,35 @@ function setCollapsed(doc: MindMapDocument, nodeId: NodeId, collapsed: boolean):
   };
 }
 
+/**
+ * §7.3 — move a first-level branch to the other side.
+ *
+ * Only the side changes: semantic order is untouched, so the Markdown is byte-identical before
+ * and after. That is the point — side is a view property that standard Markdown does not carry
+ * (`markdown-format.md` §8.1), and a command that quietly reordered siblings to achieve a
+ * visual result would make the map and the file disagree.
+ */
+function moveFirstLevelBranchSide(
+  doc: MindMapDocument,
+  nodeId: NodeId,
+  side: BranchSide
+): CommandResult {
+  const node = getNode(doc, nodeId);
+  if (node.parentId !== doc.rootId) {
+    throw new Error("Only a first-level branch has a side (§7.3)");
+  }
+  const nodes = cloneNodes(doc);
+  nodes[nodeId]!.side = side;
+
+  return {
+    doc: withNodes(doc, nodes),
+    resolved: { type: "MoveFirstLevelBranchSide", nodeId, side },
+    inverse: { type: "MoveFirstLevelBranchSide", nodeId, side: node.side ?? "right" },
+    selection: nodeId,
+    category: "presentation"
+  };
+}
+
 /* ---------- entry point ---------- */
 
 export function applyCommand(doc: MindMapDocument, command: Command): CommandResult {
@@ -302,10 +356,10 @@ export function applyCommand(doc: MindMapDocument, command: Command): CommandRes
       result = renameNode(doc, command.nodeId, command.text);
       break;
     case "CreateSibling":
-      result = createSibling(doc, command.anchorId, command.newNodeId ?? newNodeId(), command.text ?? "");
+      result = createSibling(doc, command.anchorId, command.newNodeId ?? newNodeId(), command.text ?? "", command.side);
       break;
     case "CreateChild":
-      result = createChild(doc, command.parentId, command.newNodeId ?? newNodeId(), command.text ?? "");
+      result = createChild(doc, command.parentId, command.newNodeId ?? newNodeId(), command.text ?? "", command.side);
       break;
     case "DeleteSubtree":
       result = deleteSubtree(doc, command.nodeId);
@@ -321,6 +375,9 @@ export function applyCommand(doc: MindMapDocument, command: Command): CommandRes
       break;
     case "SetCollapsed":
       result = setCollapsed(doc, command.nodeId, command.collapsed);
+      break;
+    case "MoveFirstLevelBranchSide":
+      result = moveFirstLevelBranchSide(doc, command.nodeId, command.side);
       break;
   }
 
@@ -340,6 +397,10 @@ export function canPromote(doc: MindMapDocument, nodeId: NodeId): boolean {
 
 export function canDelete(doc: MindMapDocument, nodeId: NodeId): boolean {
   return nodeId !== doc.rootId && !!doc.nodes[nodeId];
+}
+
+export function canMoveSide(doc: MindMapDocument, nodeId: NodeId): boolean {
+  return doc.layout.mode === "two-sided" && doc.nodes[nodeId]?.parentId === doc.rootId;
 }
 
 export function canCollapse(doc: MindMapDocument, nodeId: NodeId): boolean {
