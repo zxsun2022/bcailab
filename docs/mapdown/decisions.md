@@ -366,6 +366,35 @@ app returns to 5.9.3 without touching anything else.
 
 ---
 
+## D-14 — Phase 2 must swap in a real CommonMark parser, and the reason is a test blind spot
+
+**Recorded 2026-08-03**, from building the Phase 1 serialiser.
+
+**What happened.** `markdown/parse.ts` is a small hand-written reader, written so that §15's
+round-trip guarantee could be tested at all — a serialiser with no reader is unverifiable. It
+passes every round-trip test. **A mutation check showed those tests were nearly worthless:**
+switching inline escaping off entirely left all 202 tests green.
+
+**Why.** The parser does not interpret inline Markdown, so unescaped `*x*` survives it untouched
+and comes back identical. The round trip proved the serialiser and this parser agree with *each
+other* — not that either is correct. Testing a serialiser against your own parser measures
+symmetry, not conformance.
+
+**Fixed for now** by pinning the escaping contract to concrete output (`escapeLabel("*x*")` must
+equal `\*x\*`) rather than to a round trip. Those assertions do fail under mutation, verified.
+
+**The standing consequence.** `markdown-format.md` §10.4 requires a documented
+CommonMark-compatible parser, and Phase 2 must actually adopt one. A real parser strips `*x*` to
+`x`, which is precisely the case the current reader cannot exercise. Until then, **round-trip
+tests in this repository are evidence about symmetry only**, and the byte-level assertions are
+the real contract.
+
+**For whoever does it:** when the CommonMark parser lands, re-run the same mutation — disable
+escaping and confirm the round-trip tests go red. If they stay green, the new parser is not
+being exercised either.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.
