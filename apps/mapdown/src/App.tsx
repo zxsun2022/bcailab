@@ -8,6 +8,7 @@
 
 import { useSyncExternalStore } from "react";
 import { ImeSpike } from "./spikes/ime/ImeSpike";
+import { SvgExportSpike } from "./spikes/svg-export/SvgExportSpike";
 
 function subscribeToHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
@@ -53,6 +54,24 @@ export function App() {
     );
   }
 
+  if (spike === "svg-export") {
+    return (
+      <main style={{ maxWidth: "62rem", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+        <a href="#" style={{ color: "var(--chrome-text-muted)" }}>
+          ← Mapdown
+        </a>
+        <h1 style={{ fontSize: "1.3rem", margin: "0.5rem 0 0.25rem" }}>
+          Spike 2 — CJK-safe SVG and PNG export
+        </h1>
+        <p style={{ color: "var(--chrome-text-muted)", marginTop: 0 }}>
+          An exported file may carry no external dependency, so the system font stack has to
+          survive the round trip with Chinese glyphs intact — on someone else's machine.
+        </p>
+        <SvgExportSpike />
+      </main>
+    );
+  }
+
   return (
     <main style={{ maxWidth: "46rem", margin: "0 auto", padding: "3rem 1.5rem" }}>
       <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.25rem" }}>Mapdown</h1>
@@ -70,12 +89,12 @@ export function App() {
       <ol style={{ paddingLeft: "1.25rem" }}>
         {SPIKES.map((entry) => (
           <li key={entry.id} style={{ marginBottom: "1rem" }}>
-            {entry.id === "ime" ? (
-              <a href="#ime">
+            {entry.id === "layout" ? (
+              <strong>{entry.title}</strong>
+            ) : (
+              <a href={`#${entry.id}`}>
                 <strong>{entry.title}</strong>
               </a>
-            ) : (
-              <strong>{entry.title}</strong>
             )}
             <div style={{ color: "var(--chrome-text-muted)" }}>{entry.why}</div>
           </li>
