@@ -15,6 +15,7 @@ import {
 } from "../model/history";
 import { createDocument, getNode, type NodeId } from "../model/types";
 import { canMoveSide, type Command } from "../model/commands";
+import { THEMES, themeById } from "../theme/presets";
 import { useImeGuard } from "./useImeGuard";
 import {
   createAutosave,
@@ -74,6 +75,7 @@ export function Editor() {
   // keeping geometry out of React is the mechanism — this recomputes only when the document
   // revision changes, and the canvas memoises per node.
   const result = useMemo(() => layout(doc), [doc]);
+  const theme = useMemo(() => themeById(doc.theme.themeId), [doc.theme.themeId]);
 
   // Focus after render, not from inside a handler: the textarea only exists once `editing` has
   // been committed to state, so focusing any earlier finds nothing.
@@ -414,6 +416,46 @@ export function Editor() {
             Move {getNode(doc, selection).side === "right" ? "left" : "right"}
           </button>
         )}
+        <select
+          value={doc.theme.themeId}
+          onMouseDown={(e) => e.preventDefault()}
+          onChange={(event) =>
+            setHistory((state) => ({
+              ...state,
+              doc: {
+                ...state.doc,
+                theme: { ...state.doc.theme, themeId: event.target.value },
+                revision: state.doc.revision + 1
+              }
+            }))
+          }
+          aria-label="Theme"
+        >
+          {THEMES.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.name}
+            </option>
+          ))}
+        </select>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            setHistory((state) => ({
+              ...state,
+              doc: {
+                ...state.doc,
+                theme: {
+                  ...state.doc.theme,
+                  branchColorMode:
+                    state.doc.theme.branchColorMode === "single" ? "by-first-level-branch" : "single"
+                },
+                revision: state.doc.revision + 1
+              }
+            }))
+          }
+        >
+          {doc.theme.branchColorMode === "single" ? "Branch colours" : "One colour"}
+        </button>
         <button onMouseDown={(e) => e.preventDefault()} onClick={download}>Export Markdown</button>
       </header>
 
@@ -437,8 +479,10 @@ export function Editor() {
         </div>
       )}
 
-      <div style={{ position: "relative", background: "var(--canvas-bg)", overflow: "hidden" }}>
+      <div style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}>
         <MapCanvas
+          doc={doc}
+          theme={theme}
           layout={result}
           selection={selection}
           onSelect={(id) => {

@@ -1,7 +1,8 @@
 import { memo } from "react";
-import { FONT_STACK } from "../layout/measure";
 import { DEFAULT_TYPOGRAPHY, type Connector, type LayoutResult, type NodeBox } from "../layout/layout";
-import type { NodeId } from "../model/types";
+import type { MindMapDocument, NodeId } from "../model/types";
+import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
+import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
 
 /**
  * SVG rendering of a computed layout.
@@ -12,18 +13,39 @@ import type { NodeId } from "../model/types";
  * memoised component keyed on its own box, so editing one label re-renders one node rather than
  * the map. Spike 3 measured layout itself at 0.70 ms for 500 nodes — reconciliation, not
  * geometry, is the budget that needs defending.
+ *
+ * **Colours come from the theme object, not from CSS.** The same tokens feed the SVG exporter,
+ * so what is on screen and what lands in a file cannot diverge (theme.md §2.7). A `var(--x)`
+ * here would render fine and export unstyled — see D-05.
  */
+
+/** §6 — root, first level, and everything deeper. Not a style per depth. */
+function roleTokens(theme: MindMapTheme, depth: number): NodeStyleTokens {
+  if (depth === 0) return theme.nodes.root;
+  if (depth === 1) return theme.nodes.level1;
+  return theme.nodes.default;
+}
+
+function roleTypography(theme: MindMapTheme, depth: number) {
+  const t = theme.typography;
+  if (depth === 0) return { size: t.rootFontSize, weight: t.rootFontWeight };
+  if (depth === 1) return { size: t.level1FontSize, weight: t.level1FontWeight };
+  return { size: t.nodeFontSize, weight: t.nodeFontWeight };
+}
 
 interface NodeProps {
   box: NodeBox;
+  theme: MindMapTheme;
   selected: boolean;
   onSelect: (id: NodeId) => void;
   onToggleCollapse: (id: NodeId) => void;
 }
 
-const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: NodeProps) {
-  const { fontSize, lineHeight, paddingX, paddingY } = DEFAULT_TYPOGRAPHY;
-  const isRoot = box.depth === 0;
+const Node = memo(function Node({ box, theme, selected, onSelect, onToggleCollapse }: NodeProps) {
+  const tokens = roleTokens(theme, box.depth);
+  const { size, weight } = roleTypography(theme, box.depth);
+  const { lineHeight } = theme.typography;
+  const { paddingX, paddingY } = DEFAULT_TYPOGRAPHY;
 
   return (
     <g
@@ -38,24 +60,24 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
         y={box.y}
         width={box.width}
         height={box.height}
-        rx={6}
-        fill={isRoot ? "var(--node-root-fill)" : "var(--node-fill)"}
-        stroke={selected ? "var(--node-selected-stroke)" : "var(--node-stroke)"}
-        strokeWidth={selected ? 2 : 1}
+        rx={tokens.radius}
+        fill={tokens.background}
+        stroke={selected ? theme.interaction.selectedOutline : tokens.border}
+        strokeWidth={selected ? theme.interaction.selectedOutlineWidth : tokens.borderWidth}
       />
       <text
         x={box.x + paddingX}
-        y={box.y + paddingY + (fontSize * lineHeight) / 2}
-        fontFamily={FONT_STACK}
-        fontSize={fontSize}
-        fontWeight={isRoot ? 600 : 400}
-        fill={isRoot ? "var(--node-root-text)" : "var(--node-text)"}
+        y={box.y + paddingY + (size * lineHeight) / 2}
+        fontFamily={theme.typography.fontFamily}
+        fontSize={size}
+        fontWeight={weight}
+        fill={tokens.text}
         dominantBaseline="central"
       >
         {box.lines.map((line, index) => (
           // Wrapping is decided by the measurement layer, so the renderer only positions the
           // lines it was given — the two can never disagree about where a break went.
-          <tspan key={index} x={box.x + paddingX} dy={index === 0 ? 0 : fontSize * lineHeight}>
+          <tspan key={index} x={box.x + paddingX} dy={index === 0 ? 0 : size * lineHeight}>
             {line === "" ? " " : line}
           </tspan>
         ))}
@@ -67,7 +89,7 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
         two-sided screenshot; it offers an action the model refuses to perform.
       */}
       {box.directChildCount > 0 && box.depth > 0 && (
-        <CollapseControl box={box} onToggle={onToggleCollapse} />
+        <CollapseControl box={box} theme={theme} onToggle={onToggleCollapse} />
       )}
     </g>
   );
@@ -78,7 +100,15 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
  * showing it on hover cannot change the node's width. A collapsed node shows its direct-child
  * count; an expanded one shows a minus.
  */
-function CollapseControl({ box, onToggle }: { box: NodeBox; onToggle: (id: NodeId) => void }) {
+function CollapseControl({
+  box,
+  theme,
+  onToggle
+}: {
+  box: NodeBox;
+  theme: MindMapTheme;
+  onToggle: (id: NodeId) => void;
+}) {
   // §9.2 — the control sits on the *outward* edge, which points away from the root. On the left
   // side that is the node's left edge, so the offset has to mirror or the badge lands inside
   // the node.
@@ -100,39 +130,65 @@ function CollapseControl({ box, onToggle }: { box: NodeBox; onToggle: (id: NodeI
       role="button"
       aria-label={label}
     >
-      <circle cx={cx} cy={cy} r={7} fill="var(--control-fill)" stroke="var(--control-stroke)" />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={theme.controls.collapseSize / 2}
+        fill={theme.controls.collapseBackground}
+        stroke={theme.controls.collapseBorder}
+      />
       {box.collapsed ? (
         <text
           x={cx}
           y={cy}
-          fontFamily={FONT_STACK}
-          fontSize={9}
-          fill="var(--control-text)"
+          fontFamily={theme.typography.fontFamily}
+          fontSize={theme.controls.collapseFontSize}
+          fill={theme.controls.collapseText}
           textAnchor="middle"
           dominantBaseline="central"
         >
           {box.directChildCount > 99 ? "99+" : box.directChildCount}
         </text>
       ) : (
-        <line x1={cx - 3.5} y1={cy} x2={cx + 3.5} y2={cy} stroke="var(--control-text)" strokeWidth={1.5} />
+        <line
+          x1={cx - 3.5}
+          y1={cy}
+          x2={cx + 3.5}
+          y2={cy}
+          stroke={theme.controls.collapseText}
+          strokeWidth={1.5}
+        />
       )}
     </g>
   );
 }
 
-const Edge = memo(function Edge({ connector }: { connector: Connector }) {
+const Edge = memo(function Edge({
+  connector,
+  color,
+  width,
+  opacity
+}: {
+  connector: Connector;
+  color: string;
+  width: number;
+  opacity: number;
+}) {
   const { x1, y1, c1x, c1y, c2x, c2y, x2, y2 } = connector.path;
   return (
     <path
       d={`M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`}
       fill="none"
-      stroke="var(--connector)"
-      strokeWidth={1.4}
+      stroke={color}
+      strokeWidth={width}
+      opacity={opacity}
     />
   );
 });
 
 export interface MapCanvasProps {
+  doc: MindMapDocument;
+  theme: MindMapTheme;
   layout: LayoutResult;
   selection: NodeId | null;
   onSelect: (id: NodeId) => void;
@@ -160,7 +216,15 @@ export function viewBoxBounds(bounds: LayoutResult["bounds"]) {
   return { minX: cx - spanX / 2, minY: cy - spanY / 2, maxX: cx + spanX / 2, maxY: cy + spanY / 2 };
 }
 
-export function MapCanvas({ layout, selection, onSelect, onSelectNone, onToggleCollapse }: MapCanvasProps) {
+export function MapCanvas({
+  doc,
+  theme,
+  layout,
+  selection,
+  onSelect,
+  onSelectNone,
+  onToggleCollapse
+}: MapCanvasProps) {
   const { minX, minY, maxX, maxY } = viewBoxBounds(layout.bounds);
   const viewBox = `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
 
@@ -170,18 +234,32 @@ export function MapCanvas({ layout, selection, onSelect, onSelectNone, onToggleC
       width="100%"
       height="100%"
       onPointerDown={onSelectNone}
-      style={{ display: "block", touchAction: "none" }}
+      style={{ display: "block", touchAction: "none", background: theme.canvas.background }}
       role="tree"
       aria-label="Mind map"
     >
       {/* Connectors first so nodes paint over them. */}
       {layout.connectors.map((connector) => (
-        <Edge key={`${connector.fromId}->${connector.toId}`} connector={connector} />
+        <Edge
+          key={`${connector.fromId}->${connector.toId}`}
+          connector={connector}
+          // §8.1 — a connector takes its branch's colour, so a subtree reads as one limb.
+          color={connectorColorFor(doc, theme, connector.toId)}
+          width={connector.fromId === doc.rootId ? theme.connectors.rootWidth : theme.connectors.width}
+          opacity={
+            theme.branches.descendantTintPolicy === "same-with-opacity" &&
+            branchColorFor(doc, theme, connector.toId) !== null &&
+            layout.boxes[connector.toId]!.depth > 1
+              ? 0.65
+              : theme.connectors.opacity
+          }
+        />
       ))}
       {layout.order.map((id) => (
         <Node
           key={id}
           box={layout.boxes[id]!}
+          theme={theme}
           selected={id === selection}
           onSelect={onSelect}
           onToggleCollapse={onToggleCollapse}
