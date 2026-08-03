@@ -10,7 +10,7 @@ This pattern is based on the current **Writing** implementation, which is the mo
 - **Primary source for shared behaviour**: this document
 - **Writing-specific product details**: `docs/tools/writing.md`
 - **Low-level CSS pitfalls and centering rules**: `docs/css-layout-conventions.md`
-- **Current cross-tool adoption audit**: `docs/tool-shell-audit.md`
+- **Current cross-tool adoption audit**: `docs/archive/tool-shell-audit.md`
 
 ## Philosophy
 

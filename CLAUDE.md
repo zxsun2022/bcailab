@@ -1,26 +1,30 @@
 # CLAUDE.md
 
-This repo is set up for multi-agent collaboration: different AI coding tools (Claude Code,
-Codex, etc.) continue each other's work through shared docs, not chat history.
+**Read and follow `./AGENTS.md`.** It is the operating contract for this repo and applies to
+every AI coding tool equally — there is no separate Claude rule set, and nothing here overrides
+it.
 
-**Start here, in order:**
+This repo is set up for multi-agent collaboration: different tools (Claude Code, Codex, …)
+continue each other's work through the documents below, not through chat history.
 
-1. **`AGENTS.md`** — conventions, routing patterns, editing rules, doc-sync rules.
-   It is the single source of truth for *how* to work in this repo.
-2. **`docs/roadmap.md`** — the single source of truth for *what* to work on:
-   current iteration (Now), upcoming (Next/Later), and history (Done).
-3. **`docs/architecture.md`** — system overview and route map.
-4. **`docs/learner-model-notes.md`** — accumulated product reasoning for the next
-   iteration (level assessment, build order, calibration hazards). Read before designing
-   anything that touches the learner profile; it exists so those judgements are not
-   re-derived from scratch.
+## Where truth lives
 
-**Maintenance duties (all AI tools):**
+| Question | Read |
+|---|---|
+| How do I work in this repo? | `AGENTS.md` |
+| What is planned and authorized? | `docs/roadmap.md` |
+| Why is it built this way? | `docs/decisions/` |
+| What already shipped? | `docs/changelog.md` |
+| What is merely being considered? | `docs/exploration.md` — **not authorization** |
+| How does the system fit together? | `docs/architecture.md` |
+| How does one tool behave? | `docs/tools/` |
+| What works without an account? | `docs/access-model.md` |
+| What are the current routes, schema, env vars? | the code — run `pnpm context` |
+| Mapdown (second product) | `docs/mapdown/` — start at its README |
 
-- When you finish a roadmap item, move it to Done in `docs/roadmap.md` with the date,
-  in the same commit/PR.
-- Follow the Documentation Sync Rule in `AGENTS.md`: external-behavior changes must
-  update `docs/` in the same task.
-- Follow the Commit Discipline in `AGENTS.md`: implementation tasks that change files
-  should finish with a focused commit unless the user asks otherwise or the work is blocked.
-- Do not add or reprioritize roadmap items without the owner's confirmation.
+Before designing anything that touches the learner profile, read
+`docs/learner-model-notes.md`. It holds accumulated product reasoning — level assessment,
+build order, calibration hazards — and exists so those judgements are not re-derived from
+scratch.
+
+Chat transcripts and advice from an AI outside this repo are **inputs, not authorization**.

@@ -1,3 +1,8 @@
+> **HISTORICAL — superseded.** IA design v1, archived 2026-08-01. Superseded by
+> `docs/english-studio-ia-v2-design.md`, which shipped 2026-07-28 and resolves the half this
+> document deferred. Kept because v2 and `docs/learner-model-notes.md` cite its §2 reasoning.
+> Do not plan work from this file.
+
 # English Studio — Information Architecture
 
 > IA v2 Phase 1 resolved the deferred shared-navigation work on 2026-07-28.

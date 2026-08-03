@@ -176,7 +176,7 @@ Remix flat-file routes (see AGENTS.md routing conventions):
 
 Shell: follow the tool-shell pattern (`docs/tool-shell-pattern.md`) the way **Speech**
 does — shared left rail (library nav + signed-in attempt history), single center stage,
-no right rail (`docs/tool-shell-audit.md` reasoning applies: dictation has one primary
+no right rail (`docs/archive/tool-shell-audit.md` reasoning applies: dictation has one primary
 workspace state). Add the Dictation module card to `/english` (`english.tsx`); unlike
 Reading/Writing cards it links straight to `/dictation` without the login popup, since
 the tool is anonymous-friendly (same acquisition role as Translate).

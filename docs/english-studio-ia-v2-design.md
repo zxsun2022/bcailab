@@ -2,7 +2,7 @@
 
 Status: **final specification, approved direction — ready to implement** once the owner
 signs off on this text. Written 2026-07-27 after two external review rounds and three
-prototype revisions. Supersedes the deferred half of `docs/english-studio-ia-design.md` (v1)
+prototype revisions. Supersedes the deferred half of `docs/archive/english-studio-ia-design.md` (v1)
 and all earlier drafts of this file.
 
 Companion artifacts (keep in sync only in spirit — this doc is the authority):
@@ -353,7 +353,7 @@ resolution for all three `access` values). Loaders verified against the dev serv
 
 ## 8. Documentation sync (with implementation)
 
-- `docs/english-studio-ia-design.md` — mark the deferred half resolved here.
+- `docs/archive/english-studio-ia-design.md` — mark the deferred half resolved here.
 - `docs/architecture.md` — `/english/home`, redirect behaviour, kept `/english/progress`,
   rail/registry model.
 - `docs/roadmap.md` — scope as the next iteration (phases → Done as they ship); raise the
