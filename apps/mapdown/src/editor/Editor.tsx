@@ -26,6 +26,8 @@ import {
   type SaveStatus
 } from "../storage/autosave";
 import { createStore, recallLastDocument } from "../storage/store";
+import { exportSvg } from "../export/svg";
+import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 
 /**
@@ -332,16 +334,34 @@ export function Editor() {
     [guard, runAction]
   );
 
-  const download = useCallback(() => {
-    const markdown = exportMarkdown(doc);
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+  const save = useCallback((data: string | Blob, extension: string) => {
+    const url = typeof data === "string" ? data : URL.createObjectURL(data);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${sanitizeFilename(doc.title)}.md`;
+    anchor.download = `${sanitizeFilename(doc.title)}.${extension}`;
     anchor.click();
-    URL.revokeObjectURL(url);
-  }, [doc]);
+    if (typeof data !== "string") URL.revokeObjectURL(url);
+  }, [doc.title]);
+
+  const download = useCallback(() => {
+    save(new Blob([exportMarkdown(doc)], { type: "text/markdown;charset=utf-8" }), "md");
+  }, [doc, save]);
+
+  const downloadSvg = useCallback(() => {
+    // The layout the canvas is already showing, so the file and the screen cannot disagree.
+    const { svg } = exportSvg(doc, {}, result);
+    save(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }), "svg");
+  }, [doc, result, save]);
+
+  const downloadPng = useCallback(async () => {
+    const png = await exportPng(doc, { scale: 2 });
+    if (!png.ok) {
+      setNotice(png.reason);
+      return;
+    }
+    setNotice(scaleReductionMessage(png));
+    save(png.dataUrl, "png");
+  }, [doc, save]);
 
   const editingBox = editing ? result.boxes[editing.nodeId] : null;
 
@@ -456,7 +476,15 @@ export function Editor() {
         >
           {doc.theme.branchColorMode === "single" ? "Branch colours" : "One colour"}
         </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={download}>Export Markdown</button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={download}>
+          Markdown
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={downloadSvg}>
+          SVG
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => void downloadPng()}>
+          PNG
+        </button>
       </header>
 
       {notice && (
