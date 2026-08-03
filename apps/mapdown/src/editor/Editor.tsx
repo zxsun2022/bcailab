@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapCanvas, viewBoxBounds } from "../canvas/MapCanvas";
+import { MapCanvas } from "../canvas/MapCanvas";
 import { chooseSideForNewBranch, layout } from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
 import { sanitizeFilename } from "../markdown/escape";
@@ -26,6 +26,17 @@ import {
   type SaveStatus
 } from "../storage/autosave";
 import { createStore, recallLastDocument } from "../storage/store";
+import {
+  IDENTITY,
+  centerOn,
+  fitMap,
+  revealSelection,
+  visibleRect,
+  zoomPercent,
+  zoomToCenter,
+  type Viewport,
+  type ViewportSize
+} from "../canvas/viewport";
 import { exportSvg } from "../export/svg";
 import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
@@ -65,6 +76,8 @@ export function Editor() {
   const [notice, setNotice] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
   const store = useMemo(() => createStore(), []);
+  const [viewport, setViewport] = useState<Viewport>(IDENTITY);
+  const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const guard = useImeGuard();
@@ -160,6 +173,19 @@ export function Editor() {
     if (!restored) return;
     autosaveRef.current?.schedule(history.doc, history.selection);
   }, [history.doc, history.selection, restored]);
+
+  /**
+   * §12.5 — bring the selection into view by panning as little as possible.
+   *
+   * Keyed on the selection, not on the document: re-running this per keystroke is exactly the
+   * "recentre the entire map after each edit" the section forbids. `revealSelection` returns
+   * the identical object when nothing needs to move, so an already-visible node re-renders
+   * nothing at all.
+   */
+  useEffect(() => {
+    setViewport((current) => revealSelection(current, canvasSize, result, history.selection));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately not on `result`
+  }, [history.selection, canvasSize]);
 
   /** Writes the draft into the document as part of the session's undo group. */
   const commitDraft = useCallback(
@@ -371,15 +397,13 @@ export function Editor() {
    */
   const editorRect = useMemo(() => {
     if (!editingBox) return { left: 0, top: 0, width: 0 };
-    const { minX, minY, maxX, maxY } = viewBoxBounds(result.bounds);
-    const spanX = maxX - minX;
-    const spanY = maxY - minY;
+    const rect = visibleRect(viewport, canvasSize);
     return {
-      left: ((editingBox.x - minX) / spanX) * 100,
-      top: ((editingBox.y + editingBox.height / 2 - minY) / spanY) * 100,
-      width: (editingBox.width / spanX) * 100
+      left: ((editingBox.x - rect.minX) / rect.width) * 100,
+      top: ((editingBox.y + editingBox.height / 2 - rect.minY) / rect.height) * 100,
+      width: (editingBox.width / rect.width) * 100
     };
-  }, [editingBox, result.bounds]);
+  }, [editingBox, viewport, canvasSize]);
 
   return (
     <div
@@ -476,6 +500,29 @@ export function Editor() {
         >
           {doc.theme.branchColorMode === "single" ? "Branch colours" : "One colour"}
         </button>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setViewport(fitMap(result.bounds, canvasSize))}
+          title="Fit map"
+        >
+          Fit
+        </button>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            const box = selection ? result.boxes[selection] : result.boxes[doc.rootId];
+            if (box) setViewport((v) => centerOn(v, box));
+          }}
+          title="Centre the selected node"
+        >
+          Centre
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}>
+          −
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}>
+          +
+        </button>
         <button onMouseDown={(e) => e.preventDefault()} onClick={download}>
           Markdown
         </button>
@@ -512,6 +559,9 @@ export function Editor() {
           doc={doc}
           theme={theme}
           layout={result}
+          viewport={viewport}
+          onViewport={setViewport}
+          onSize={setCanvasSize}
           selection={selection}
           onSelect={(id) => {
             if (editing && editing.nodeId !== id) {
@@ -587,6 +637,7 @@ export function Editor() {
           {Object.keys(doc.nodes).length} nodes · Enter = sibling · Tab = child · Shift+Tab =
           promote · Space = collapse · F2 = rename
         </span>
+        <span>{zoomPercent(viewport)}</span>
         <span
           style={{
             marginLeft: "auto",

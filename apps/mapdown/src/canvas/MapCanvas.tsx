@@ -1,6 +1,7 @@
-import { memo } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_TYPOGRAPHY, type Connector, type LayoutResult, type NodeBox } from "../layout/layout";
 import type { MindMapDocument, NodeId } from "../model/types";
+import { pan, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
 import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
 
@@ -191,29 +192,34 @@ export interface MapCanvasProps {
   theme: MindMapTheme;
   layout: LayoutResult;
   selection: NodeId | null;
+  viewport: Viewport;
+  /**
+   * An updater, not a value. Several `pointermove` events can land in one React batch, and a
+   * value-taking callback makes each of them read the same stale viewport — so a fast drag
+   * applies only its last step and loses the rest. Found by dispatching two moves in one tick.
+   */
+  onViewport: (update: (current: Viewport) => Viewport) => void;
+  /** Reported upward so commands like fit and reveal can use the real pixel size. */
+  onSize: (size: ViewportSize) => void;
   onSelect: (id: NodeId) => void;
   onSelectNone: () => void;
   onToggleCollapse: (id: NodeId) => void;
 }
 
-/**
- * The visible region, in document coordinates.
- *
- * A small map must not be blown up to fill the viewport — a single node at 8x reads as a bug,
- * not as a feature. A minimum span keeps a new document at a sane scale; real pan and zoom
- * (§12) arrive in Phase 2 and will replace this with a viewport transform.
- */
-export function viewBoxBounds(bounds: LayoutResult["bounds"]) {
-  const padding = 48;
-  const MIN_SPAN_X = 900;
-  const MIN_SPAN_Y = 560;
-
-  const cx = (bounds.minX + bounds.maxX) / 2;
-  const cy = (bounds.minY + bounds.maxY) / 2;
-  const spanX = Math.max(bounds.maxX - bounds.minX + padding * 2, MIN_SPAN_X);
-  const spanY = Math.max(bounds.maxY - bounds.minY + padding * 2, MIN_SPAN_Y);
-
-  return { minX: cx - spanX / 2, minY: cy - spanY / 2, maxX: cx + spanX / 2, maxY: cy + spanY / 2 };
+/** Tracks the element's pixel size, which every viewport calculation needs. */
+function useElementSize(ref: React.RefObject<Element | null>): ViewportSize {
+  const [size, setSize] = useState<ViewportSize>({ width: 1000, height: 600 });
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const rect = entry?.contentRect;
+      if (rect && rect.width > 0 && rect.height > 0) setSize({ width: rect.width, height: rect.height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+  return size;
 }
 
 export function MapCanvas({
@@ -221,19 +227,90 @@ export function MapCanvas({
   theme,
   layout,
   selection,
+  viewport,
+  onViewport,
+  onSize,
   onSelect,
   onSelectNone,
   onToggleCollapse
 }: MapCanvasProps) {
-  const { minX, minY, maxX, maxY } = viewBoxBounds(layout.bounds);
-  const viewBox = `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const size = useElementSize(svgRef);
+  const drag = useRef<{ pointerId: number; x: number; y: number; moved: boolean } | null>(null);
+
+  useEffect(() => onSize(size), [size, onSize]);
+
+  /**
+   * §12.1 — a drag on blank canvas pans, and "starting a pan MUST not clear selection until the
+   * gesture is interpreted as a blank click rather than a drag". So selection is cleared on
+   * pointer *up*, and only if the pointer never moved past the threshold.
+   */
+  const onPointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
+    if (event.button !== 0 && event.button !== 1) return;
+    drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
+
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      const state = drag.current;
+      if (!state || state.pointerId !== event.pointerId) return;
+      const dx = event.clientX - state.x;
+      const dy = event.clientY - state.y;
+      // A few pixels of slop, so a click with a shaky hand is still a click.
+      if (!state.moved && Math.hypot(dx, dy) < 4) return;
+      state.moved = true;
+      state.x = event.clientX;
+      state.y = event.clientY;
+      onViewport((current) => pan(current, dx, dy));
+    },
+    [onViewport]
+  );
+
+  const onPointerUp = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      const state = drag.current;
+      drag.current = null;
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      if (state && !state.moved) onSelectNone();
+    },
+    [onSelectNone]
+  );
+
+  /**
+   * §12.2 — Ctrl/Cmd+wheel zooms, as does a trackpad pinch, which browsers deliver as a wheel
+   * event with ctrlKey set. A plain wheel scrolls the map instead, which is what a two-finger
+   * swipe should do.
+   */
+  const onWheel = useCallback(
+    (event: React.WheelEvent<SVGSVGElement>) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+
+      if (event.ctrlKey || event.metaKey) {
+        const factor = Math.exp(-event.deltaY / 200);
+        onViewport((current) => zoomAbout(current, size, factor, x, y));
+      } else {
+        onViewport((current) => pan(current, -event.deltaX, -event.deltaY));
+      }
+    },
+    [size, onViewport]
+  );
 
   return (
     <svg
-      viewBox={viewBox}
+      ref={svgRef}
+      viewBox={toViewBox(viewport, size)}
       width="100%"
       height="100%"
-      onPointerDown={onSelectNone}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onWheel={onWheel}
       style={{ display: "block", touchAction: "none", background: theme.canvas.background }}
       role="tree"
       aria-label="Mind map"
