@@ -9,6 +9,7 @@
 import { useSyncExternalStore } from "react";
 import { ImeSpike } from "./spikes/ime/ImeSpike";
 import { SvgExportSpike } from "./spikes/svg-export/SvgExportSpike";
+import { LayoutSpike } from "./spikes/layout/LayoutSpike";
 
 function subscribeToHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
@@ -72,6 +73,24 @@ export function App() {
     );
   }
 
+  if (spike === "layout") {
+    return (
+      <main style={{ maxWidth: "68rem", margin: "0 auto", padding: "2.5rem 1.5rem" }}>
+        <a href="#" style={{ color: "var(--chrome-text-muted)" }}>
+          ← Mapdown
+        </a>
+        <h1 style={{ fontSize: "1.3rem", margin: "0.5rem 0 0.25rem" }}>
+          Spike 3 — variable-size tidy-tree layout
+        </h1>
+        <p style={{ color: "var(--chrome-text-muted)", marginTop: 0 }}>
+          Node sizes come from measured text, so the algorithm must handle variable boxes,
+          stay deterministic, and disturb a bounded region when one node changes.
+        </p>
+        <LayoutSpike />
+      </main>
+    );
+  }
+
   return (
     <main style={{ maxWidth: "46rem", margin: "0 auto", padding: "3rem 1.5rem" }}>
       <h1 style={{ fontSize: "1.5rem", margin: "0 0 0.25rem" }}>Mapdown</h1>
@@ -89,13 +108,9 @@ export function App() {
       <ol style={{ paddingLeft: "1.25rem" }}>
         {SPIKES.map((entry) => (
           <li key={entry.id} style={{ marginBottom: "1rem" }}>
-            {entry.id === "layout" ? (
+            <a href={`#${entry.id}`}>
               <strong>{entry.title}</strong>
-            ) : (
-              <a href={`#${entry.id}`}>
-                <strong>{entry.title}</strong>
-              </a>
-            )}
+            </a>
             <div style={{ color: "var(--chrome-text-muted)" }}>{entry.why}</div>
           </li>
         ))}
