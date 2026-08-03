@@ -1,6 +1,7 @@
 # Spike 1 — Chinese IME inside canvas text editing
 
-**Date:** 2026-08-02 · **Phase:** 0 · **Status:** logic settled, **awaiting a real-IME session**
+**Date:** 2026-08-02 · **Phase:** 0 · **Status:** real-IME session done on macOS/Chromium;
+**Safari still untested**
 **Code:** `apps/mapdown/src/spikes/ime/` — disposable, delete once Phase 1 adopts the guard
 **Run it:** `pnpm --filter mapdown dev` → <http://localhost:5174/#ime>
 
@@ -50,16 +51,44 @@ catches a composition that began before the guard was mounted.
 **Do not `preventDefault()` on an IME-owned key.** The IME needs it. The guard returns early
 without touching the event; only a key that reaches the command layer is prevented.
 
-## Finding 3 — the grace window is the one number that must be measured
+## Finding 3 — on macOS the confirming key never reaches the page at all
 
-`COMPOSITION_GRACE_MS = 50` is currently a **placeholder**. Too short and Safari leaks; too long
-and a genuine Enter pressed immediately after confirming a word gets swallowed, which is a
-common way to type — confirm a word, then press Enter to end the node.
+**Real 拼音 session, macOS, Chromium, 2026-08-02.** Three commits of 测试, chronological:
 
-The guard therefore reports the observed `compositionend → keydown` delta on every decision, and
-the spike page logs it. **The constant should be set from a real-IME session, not from this
-number.** A microtask- or frame-based flag may prove better than a wall-clock window; the
-measurement decides.
+```
+compositionstart → compositionend "测试" → keydown[Enter] COMMAND +1754.5ms
+compositionstart → compositionend "测试" → keydown[Enter] COMMAND  +838.6ms
+compositionstart → compositionend "测试" → keydown[Enter] COMMAND  +721.4ms
+```
+
+Between `compositionstart` and `compositionend` there is **no keydown of any kind**. The macOS
+IME consumes the confirming key outright; the page never sees it. The three `COMMAND` rows are
+separate, deliberate Enter presses made after the commit, and classifying them as commands is
+correct — that is a user ending a node, not confirming a candidate.
+
+So on this platform the guard was never actually stressed: signals (1)–(3) had nothing to fire
+on, and (4) never engaged because the gap was three orders of magnitude past the window.
+**No spurious node was produced.** That is the result the spike wanted, reached by a different
+route than expected.
+
+The consequence for the design: the grace window is **insurance against the Safari ordering and
+against Windows IMEs**, not a mechanism that does anything on macOS. It stays, because the cost
+is one comparison and the failure it prevents is severe.
+
+## Finding 4 — the grace window now has measured bounds
+
+`COMPOSITION_GRACE_MS = 50` was a placeholder; the session gives it real bounds.
+
+| Bound | Value | Source |
+|---|---|---|
+| Upper — swallowing a genuine Enter | **721 ms** | fastest genuine post-commit Enter observed |
+| Lower — catching the Safari confirm | **single-digit ms** | Safari emits `compositionend` and the confirming keydown in the same task |
+
+50 ms sits roughly 14× clear of both, so it is kept. A frame-based flag would also satisfy both
+bounds and is more principled; it is not worth the change given this margin.
+
+One caveat on the upper bound: 721 ms is an unhurried pace. A fast typist confirming a word and
+immediately ending the node might reach 150–300 ms — still 3× the window, so the margin holds.
 
 ## Verification performed
 
@@ -71,29 +100,39 @@ measurement decides.
 | Self-test: Enter with no composition history | reaches command layer ✓ |
 | Live: typed text, pressed Enter | `COMMAND`, sibling count 1 ✓ |
 | Live: pressed Tab | `COMMAND`, child count 1, focus did **not** leave the field ✓ |
+| **Real macOS 拼音, 3 commits of 测试** | **no spurious node; no keydown during composition** ✓ |
 | TypeScript 7 typecheck | clean ✓ |
 
 The self-test replays both browser orderings against the guard directly, so the logic is proven
 without needing two browsers.
 
-## What is NOT verified — read before trusting this
+## What is still NOT verified
 
-**No real IME was exercised.** Browser automation types characters directly and does **not** fire
-`compositionstart` / `compositionupdate` / `compositionend`. Everything above tests the guard's
-*logic* against orderings taken from documented browser behaviour; it does not prove how macOS
-拼音, Windows Microsoft Pinyin, or a mobile IME actually behave in this page.
+**Safari — and that is where the whole hazard lives.** The session above ran in Chromium, where
+the confirming key never surfaces. Safari is the browser documented to emit `compositionend`
+*before* the confirming keydown, which is the one ordering the guard exists for, and it remains
+unobserved. Until someone runs the page in Safari with 拼音, Finding 1 rests on documented
+behaviour rather than on this repository's own measurement.
 
-**This must be done by a human before Phase 1 begins.** Open the page, switch to Chinese input,
-and for each of the three surfaces:
+**Which surface produced which rows.** The session was reported as covering all three surfaces,
+but the log did not render the surface name at the time, so that cannot be read back from the
+data. Fixed on 2026-08-02 — each row now carries its surface — so a re-run is self-describing.
 
-1. Type 拼音 and confirm a candidate with **Enter** → every row must read `IME`, never `COMMAND`.
-2. Confirm with **space**, then press Enter → the Enter must read `COMMAND`.
-3. Confirm a candidate with **Tab** where the IME uses it → must read `IME`.
-4. Note the reported `+Xms` deltas → these set `COMPOSITION_GRACE_MS`.
-5. Repeat in Safari, which is where the failure mode lives.
+**Windows IMEs** (Microsoft Pinyin), where `keyCode === 229` and the `isComposing` flag are the
+signals that matter and macOS's consume-the-key behaviour does not apply.
 
-Also unverified: mobile/touch IMEs, `compositionupdate` mid-word cursor behaviour, and paste
-during composition.
+**Also open:** mobile/touch IMEs, `compositionupdate` mid-word caret behaviour, and paste during
+composition.
+
+### Safari check, for whoever runs it
+
+Open <http://localhost:5174/#ime> in Safari, switch to Chinese input, and for each surface:
+
+1. Type 拼音 and confirm with **Enter** → every row must read `IME`, never `COMMAND`. A single
+   `COMMAND` row during confirmation is the bug.
+2. Confirm with **space**, then press Enter → that Enter must read `COMMAND`.
+3. Note any `+Xms` on a row that reads `post-composition-window` — that is the Safari gap, and
+   it is the number that would justify changing `COMPOSITION_GRACE_MS`.
 
 ## Surface comparison — provisional
 
@@ -120,8 +159,11 @@ decision in `../decisions.md` at that point, since it binds the whole editing la
 
 ## Follow-ups
 
-- Set `COMPOSITION_GRACE_MS` from measured data; consider a frame-based flag instead.
+- **Run the Safari check above.** It is the last open question on this spike and the only one
+  that could still change the design.
 - `spec/product-specification.md` §5.4 should gain the ordering hazard and the
   do-not-`preventDefault` rule — right now it states the requirement without the trap.
 - The self-test should become a real unit test when Phase 1 adopts the guard; the spike page is
   disposable, the guard is not.
+- ~~Set `COMPOSITION_GRACE_MS` from measured data~~ — done, see Finding 4. 50 ms kept, now with
+  bounds rather than taste behind it.

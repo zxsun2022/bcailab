@@ -267,7 +267,19 @@ export function ImeSpike() {
                       : "var(--chrome-text)"
               }}
             >
-              <span style={{ opacity: 0.5 }}>#{row.seq}</span> {row.event}
+              <span style={{ opacity: 0.5 }}>#{row.seq}</span>{" "}
+              <span
+                style={{
+                  opacity: 0.75,
+                  padding: "0 0.3rem",
+                  borderRadius: 3,
+                  background: "var(--chrome-bg-raised)",
+                  border: "1px solid var(--chrome-border)"
+                }}
+              >
+                {row.surface}
+              </span>{" "}
+              {row.event}
               {row.key ? ` [${row.key}]` : ""} — {row.detail}
             </div>
           ))}

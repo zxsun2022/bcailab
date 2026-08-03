@@ -26,6 +26,19 @@ import { useCallback, useRef } from "react";
  * reported with the observed delta so a real-IME session can set the constant from data.
  */
 
+/**
+ * Bounded by measurement, not chosen by taste. Real macOS 拼音 session, 2026-08-02
+ * (docs/mapdown/spikes/01-ime-canvas-editing-20260802.md):
+ *
+ *   upper bound  the fastest *genuine* Enter after a commit was +721ms; anything at or above
+ *                that would swallow a keypress the user meant as a command
+ *   lower bound  Safari emits compositionend and the confirming keydown in the same task,
+ *                so single-digit ms
+ *
+ * 50ms sits roughly 14x clear of both. Note the macOS session never produced a keydown for the
+ * confirming key at all — the IME consumed it — so this window is currently insurance against
+ * the Safari ordering and against Windows IMEs, not something that fires on macOS.
+ */
 export const COMPOSITION_GRACE_MS = 50;
 
 export type GuardDecision = {
