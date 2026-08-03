@@ -1,7 +1,7 @@
 # Spike 1 — Chinese IME inside canvas text editing
 
-**Date:** 2026-08-02 · **Phase:** 0 · **Status:** real-IME session done on macOS/Chromium;
-**Safari still untested**
+**Date:** 2026-08-02 · **Phase:** 0 · **Status:** complete — real IME tested on macOS in both
+Chromium and Safari
 **Code:** `apps/mapdown/src/spikes/ime/` — disposable, delete once Phase 1 adopts the guard
 **Run it:** `pnpm --filter mapdown dev` → <http://localhost:5174/#ime>
 
@@ -15,18 +15,23 @@ roughly every word a Chinese user types — not an edge case, a broken product.
 premature command execution" but does not say how. This spike answers how, and it runs before
 the other two because its outcome decides the editing architecture that Phase 1 builds on.
 
-## Finding 1 — `KeyboardEvent.isComposing` alone is not sufficient
+## Finding 1 — `KeyboardEvent.isComposing` alone is not sufficient *(documented, not reproduced)*
 
-This is the whole substance of the spike. Browsers disagree on event *ordering*:
+> **Superseded in part by Finding 3b.** The ordering below is documented browser behaviour and
+> is why the guard was written. It did **not** reproduce on macOS in either browser, because the
+> system IME consumes the confirming key before the page sees it. Read this section as the
+> rationale for the guard's design, not as an observed failure in this repository.
 
-| Browser | Sequence when confirming a candidate with Enter |
+Browsers are documented to disagree on event *ordering*:
+
+| Browser | Documented sequence when confirming a candidate with Enter |
 |---|---|
 | Chrome, Firefox | `keydown` (`isComposing === true`) → `compositionend` |
 | Safari | `compositionend` → `keydown` (`isComposing === false`) |
 
-So on Safari the confirming Enter arrives **after** composition has officially ended and is
-indistinguishable from a genuine Enter. The obvious implementation — `if (e.isComposing) return`
-— passes every test written on Chrome and leaks a spurious node on Safari.
+Where that ordering holds, the confirming Enter arrives **after** composition has officially
+ended and is indistinguishable from a genuine Enter, so the obvious implementation —
+`if (e.isComposing) return` — passes every test written on Chrome and leaks a spurious node.
 
 Demonstrated in the running page rather than asserted:
 
@@ -75,6 +80,50 @@ The consequence for the design: the grace window is **insurance against the Safa
 against Windows IMEs**, not a mechanism that does anything on macOS. It stays, because the cost
 is one comparison and the failure it prevents is severe.
 
+## Finding 3b — Safari did not reproduce the documented hazard
+
+**Real 拼音 session, macOS Safari, 2026-08-02**, all three surfaces:
+
+```
+contenteditable  compositionstart → compositionend "测试" → keydown[Enter] COMMAND +4294.0ms
+textarea         compositionstart → compositionend "测试" → keydown[Enter] COMMAND +2090.0ms
+hidden-input     compositionstart → compositionend "带"
+                 compositionstart → compositionend "测试" → keydown[Enter] COMMAND +1536.0ms
+```
+
+Safari behaved exactly like Chromium: **no keydown between `compositionstart` and
+`compositionend` on any surface.** The confirming key is consumed by the macOS IME. No row ever
+reported `post-composition-window`, so signal (4) has now failed to fire in two real sessions
+across both browsers.
+
+**This weakens Finding 1's evidence and the report should say so.** The Chrome/Safari ordering
+difference is documented browser behaviour and is why the guard was written, but on macOS with
+the system Pinyin IME it does not surface — the OS-level IME swallows the key before either
+browser reports it. Where the hazard is still plausible: **Windows** IMEs, where `keyCode === 229`
+is the documented signal and the consume-the-key behaviour does not apply; older Safari; and
+non-Pinyin IMEs.
+
+**One thing these sessions do not settle.** The logs cannot tell whether the candidate was
+confirmed with **Enter** or with **space** — only the separate, deliberate Enter that followed
+is visible, 1.5–4.3 s later. If space was used throughout, the specific "Enter confirms a
+candidate" path remains untested even now. It is worth one more deliberate pass, but it no
+longer blocks anything: on macOS no key reaches the page during composition either way.
+
+**Recommendation: keep the guard unchanged.** Its cost is a few comparisons on Enter and Tab
+only, and the failure it prevents — a spurious node on every word a Chinese user types — is
+severe enough that insurance against untested platforms is cheap. But it is now documented as
+*insurance*, not as a mechanism observed to do work.
+
+## Finding 3c — IME behaviour does not discriminate between the three surfaces
+
+All three surfaces behaved identically under a real IME, in both browsers. **The surface choice
+therefore cannot be made on IME grounds** — which is worth knowing, because IME risk was the
+stated reason this spike ran first.
+
+It must be decided on the remaining criteria instead: caret rendering control, paste
+sanitisation burden, and how hard the surface is to keep in visual sync with a node box as the
+map pans, zooms and reflows. Those belong to the layout and editing work in Phase 1, not here.
+
 ## Finding 4 — the grace window now has measured bounds
 
 `COMPOSITION_GRACE_MS = 50` was a placeholder; the session gives it real bounds.
@@ -108,31 +157,11 @@ without needing two browsers.
 
 ## What is still NOT verified
 
-**Safari — and that is where the whole hazard lives.** The session above ran in Chromium, where
-the confirming key never surfaces. Safari is the browser documented to emit `compositionend`
-*before* the confirming keydown, which is the one ordering the guard exists for, and it remains
-unobserved. Until someone runs the page in Safari with 拼音, Finding 1 rests on documented
-behaviour rather than on this repository's own measurement.
-
-**Which surface produced which rows.** The session was reported as covering all three surfaces,
-but the log did not render the surface name at the time, so that cannot be read back from the
-data. Fixed on 2026-08-02 — each row now carries its surface — so a re-run is self-describing.
-
 **Windows IMEs** (Microsoft Pinyin), where `keyCode === 229` and the `isComposing` flag are the
 signals that matter and macOS's consume-the-key behaviour does not apply.
 
 **Also open:** mobile/touch IMEs, `compositionupdate` mid-word caret behaviour, and paste during
 composition.
-
-### Safari check, for whoever runs it
-
-Open <http://localhost:5174/#ime> in Safari, switch to Chinese input, and for each surface:
-
-1. Type 拼音 and confirm with **Enter** → every row must read `IME`, never `COMMAND`. A single
-   `COMMAND` row during confirmation is the bug.
-2. Confirm with **space**, then press Enter → that Enter must read `COMMAND`.
-3. Note any `+Xms` on a row that reads `post-composition-window` — that is the Safari gap, and
-   it is the number that would justify changing `COMPOSITION_GRACE_MS`.
 
 ## Surface comparison — provisional
 
@@ -153,14 +182,25 @@ measurement is hardest.
 
 ## Recommendation
 
-Adopt `useImeGuard` regardless of surface — the four-signal check is surface-independent and is
-the actual finding here. Defer the surface choice until the real-IME session, and record it as a
-decision in `../decisions.md` at that point, since it binds the whole editing layer.
+**Adopt `useImeGuard`, unchanged.** The four-signal check is surface-independent, costs a few
+comparisons on Enter and Tab only, and guards a failure severe enough to justify insurance
+against platforms this session could not cover.
+
+**Do not choose the editing surface from this spike.** Finding 3c is that IME behaviour does not
+discriminate between the three, which is the opposite of what this spike was expected to
+establish. The choice now rests on caret control, paste sanitisation and node-box sync, so it
+belongs with the Phase 1 editing work and should be recorded in `../decisions.md` then.
+
+**Phase 0 exit for this risk: cleared.** There is no architectural blocker for WYSIWYG text
+editing with a Chinese IME.
 
 ## Follow-ups
 
-- **Run the Safari check above.** It is the last open question on this spike and the only one
-  that could still change the design.
+- ~~Run the Safari check~~ — done, see Finding 3b. The documented hazard did not reproduce.
+- If a Windows machine is ever available, re-run there: that is where the guard's `keyCode === 229`
+  signal is documented to matter and where the macOS consume-the-key behaviour does not apply.
+- One deliberate pass confirming a candidate with **Enter specifically** rather than space,
+  to close the ambiguity noted in Finding 3b. Not blocking.
 - `spec/product-specification.md` §5.4 should gain the ordering hazard and the
   do-not-`preventDefault` rule — right now it states the requirement without the trap.
 - The self-test should become a real unit test when Phase 1 adopts the guard; the spike page is
