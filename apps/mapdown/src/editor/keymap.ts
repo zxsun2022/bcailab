@@ -22,10 +22,9 @@ export type EditorAction =
   | { type: "begin-edit"; selectAll: boolean }
   | { type: "commit-edit" }
   | { type: "cancel-edit" }
+  | { type: "clear-selection" }
   | { type: "navigate"; to: NodeId }
   | { type: "toggle-collapse" }
-  | { type: "collapse" }
-  | { type: "expand" }
   | { type: "reorder"; direction: "before-previous" | "after-next" }
   | { type: "undo" }
   | { type: "redo" }
@@ -166,7 +165,7 @@ export function resolveKey(
     case " ":
       return { type: "toggle-collapse" };
     case "Escape":
-      return { type: "none" };
+      return { type: "clear-selection" };
     default:
       // §5.2/§5.4 — typing a printable character on a selected node enters editing and replaces
       // the existing text with that first keystroke.

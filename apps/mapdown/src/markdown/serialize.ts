@@ -41,6 +41,17 @@ function isAllDefaults(doc: MindMapDocument): boolean {
   );
 }
 
+function emitChildren(doc: MindMapDocument, parentId: NodeId, out: string[]): void {
+  const emit = (id: NodeId, depth: number) => {
+    const node = getNode(doc, id);
+    const indent = "  ".repeat(depth);
+    out.push(node.text === "" ? `${indent}-` : `${indent}- ${escapeLabel(node.text)}`);
+    for (const childId of node.childIds) emit(childId, depth + 1);
+  };
+
+  for (const childId of getNode(doc, parentId).childIds) emit(childId, 0);
+}
+
 export function exportMarkdown(doc: MindMapDocument, options: ExportOptions = {}): string {
   const mode = options.frontMatter ?? "auto";
   const out: string[] = [];
@@ -57,16 +68,7 @@ export function exportMarkdown(doc: MindMapDocument, options: ExportOptions = {}
 
   if (root.childIds.length > 0) {
     out.push(""); // §2.6 — exactly one blank line between heading and first item
-
-    const emit = (id: NodeId, depth: number) => {
-      const node = getNode(doc, id);
-      const indent = "  ".repeat(depth); // §2.8 — two spaces per level
-      // §14.3 — an empty ordinary node is a bare marker with no trailing whitespace.
-      out.push(node.text === "" ? `${indent}-` : `${indent}- ${escapeLabel(node.text)}`);
-      for (const childId of node.childIds) emit(childId, depth + 1);
-    };
-
-    for (const childId of root.childIds) emit(childId, 0);
+    emitChildren(doc, doc.rootId, out);
   }
 
   // §2.10 — the file ends with exactly one newline.
@@ -79,13 +81,7 @@ export function exportBranchMarkdown(doc: MindMapDocument, nodeId: NodeId): stri
   const out: string[] = [node.text === "" ? "#" : `# ${escapeLabel(node.text)}`];
   if (node.childIds.length > 0) {
     out.push("");
-    const emit = (id: NodeId, depth: number) => {
-      const child = getNode(doc, id);
-      const indent = "  ".repeat(depth);
-      out.push(child.text === "" ? `${indent}-` : `${indent}- ${escapeLabel(child.text)}`);
-      for (const grandchild of child.childIds) emit(grandchild, depth + 1);
-    };
-    for (const childId of node.childIds) emit(childId, 0);
+    emitChildren(doc, nodeId, out);
   }
   return out.join("\n") + "\n";
 }

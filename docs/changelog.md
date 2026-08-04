@@ -9,22 +9,17 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-
-- 2026-08-03 — **Mapdown Phase 1 shipped; Phase 2 half done.** A second product: a static,
-  local-first, keyboard-first Markdown mind-map editor (`apps/mapdown`, PR #26). The semantic
-  core is a document model with ten enforced tree invariants, a pure command layer whose
-  commands return their own inverse, and undo grouping driven by the editing state machine
-  rather than by a timer — so typing collapses into one entry, creation-plus-typing is one
-  entry, and an abandoned empty node leaves none. On top of that: right-only and two-sided
-  layout with sticky side assignment, four document themes carried as *data* so the SVG
-  exporter and the renderer read the same tokens, canonical Markdown export, SVG and PNG
-  export, IndexedDB autosave with atomic writes and invariant-validated recovery, and
-  pan/zoom/fit. Runs on TypeScript 7 while `apps/web` stays on 5.9.3 (D-13). 393 tests.
-  Two working habits produced most of the real findings and are recorded in
-  `docs/mapdown/README.md`: mutation-check anything load-bearing (it exposed a whole
-  tautological test suite, D-14), and drive the browser for anything involving React, focus or
-  the DOM (six defects unit tests could not see). Phase 0's three spikes are written up in
-  `docs/mapdown/spikes/`, including one finding that was retracted after the owner corrected it.
+- 2026-08-04 — **in_review: Mapdown Phase 1 semantic editor (PR #26).** The review candidate
+  contains the document model and ten enforced tree invariants, pure invertible commands,
+  session-grouped undo/redo, right-only variable-size layout, keyboard-first editing with IME
+  protection, canonical Markdown import/export, and IndexedDB autosave with validated snapshot
+  recovery. Pre-landing review added production-backend IndexedDB coverage, direct IME guard
+  boundary tests, stable canvas callbacks so typing does not reconcile every SVG node, correct
+  F2 selection and editing-session undo behavior, and a recovery failure path that cannot
+  permanently disable later saves. Final review also closed restored-session ID collisions,
+  cross-session snapshot overwrites, selection clearing, and abandoned empty-node handling.
+  Evidence: 287/287 tests, a clean production build, and browser regression checks. Only
+  the owner may change this entry from `in_review` to accepted/shipped.
 
 - 2026-07-30 — **Streaming translation output.** `/translate` no longer waits for the whole
   model response: a new SSE resource route (`/translate/stream`) streams the translation as it

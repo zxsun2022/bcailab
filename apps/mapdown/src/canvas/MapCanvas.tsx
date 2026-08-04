@@ -290,7 +290,7 @@ interface DropPreview {
   index: number;
 }
 
-export function MapCanvas({
+export const MapCanvas = memo(function MapCanvas({
   doc,
   theme,
   layout,
@@ -438,7 +438,6 @@ export function MapCanvas({
     },
     [size, onViewport]
   );
-
   return (
     <svg
       ref={svgRef}
@@ -489,4 +488,4 @@ export function MapCanvas({
       )}
     </svg>
   );
-}
+});

@@ -29,7 +29,7 @@ describe("undo and redo basics", () => {
     const doc = startedDoc();
     let state = createHistory(doc);
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId, text: "a" });
-    const created = state.selection;
+    const created = state.selection!;
 
     expect(canUndo(state)).toBe(true);
     state = undo(state);
@@ -50,6 +50,17 @@ describe("undo and redo basics", () => {
     expect(canRedo(state)).toBe(true);
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId, text: "b" });
     expect(canRedo(state)).toBe(false);
+  });
+
+  it("preserves an explicitly empty selection through undo", () => {
+    const doc = startedDoc();
+    let state = createHistory(doc, null);
+    expect(state.selection).toBeNull();
+
+    state = dispatch(state, { type: "CreateChild", parentId: doc.rootId, text: "a" });
+    state = undo(state);
+
+    expect(state.selection).toBeNull();
   });
 });
 
@@ -83,7 +94,7 @@ describe("§8.3 — creation plus typing is one entry", () => {
     const doc = startedDoc();
     let state = createHistory(doc, doc.rootId);
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId }, { groupId: "new-1" });
-    const created = state.selection;
+    const created = state.selection!;
     for (const text of ["暇", "暇满", "暇满难得"]) {
       state = dispatch(state, { type: "RenameNode", nodeId: created, text }, { groupId: "new-1" });
     }
@@ -99,7 +110,7 @@ describe("§8.3 — creation plus typing is one entry", () => {
     const doc = startedDoc();
     let state = createHistory(doc, doc.rootId);
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId }, { groupId: "g" });
-    const created = state.selection;
+    const created = state.selection!;
     state = dispatch(state, { type: "RenameNode", nodeId: created, text: "hello" }, { groupId: "g" });
 
     const before = walk(state.doc);
@@ -114,7 +125,7 @@ describe("§8.4 — creating an empty node and cancelling leaves no history", ()
     const doc = startedDoc();
     let state = createHistory(doc, doc.rootId);
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId }, { groupId: "new" });
-    const created = state.selection;
+    const created = state.selection!;
 
     state = dropLastEntry(state);
 
@@ -128,10 +139,10 @@ describe("§8.4 — creating an empty node and cancelling leaves no history", ()
     const doc = startedDoc();
     let state = createHistory(doc, doc.rootId);
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId, text: "kept" });
-    const kept = state.selection;
+    const kept = state.selection!;
 
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId }, { groupId: "new" });
-    const abandoned = state.selection;
+    const abandoned = state.selection!;
     state = dropLastEntry(state);
 
     state = undo(state);
@@ -147,9 +158,9 @@ describe("history survives a long mixed session", () => {
     let state = createHistory(doc, doc.rootId);
 
     state = dispatch(state, { type: "CreateChild", parentId: doc.rootId, text: "a" });
-    const a = state.selection;
+    const a = state.selection!;
     state = dispatch(state, { type: "CreateChild", parentId: a, text: "a1" });
-    const a1 = state.selection;
+    const a1 = state.selection!;
     state = dispatch(state, { type: "CreateSibling", anchorId: a1, text: "a2" });
     state = dispatch(state, { type: "PromoteNode", nodeId: a1 });
     state = dispatch(state, { type: "SetCollapsed", nodeId: a, collapsed: true });

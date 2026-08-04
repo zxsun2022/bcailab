@@ -156,6 +156,12 @@ function request<T>(req: IDBRequest<T>): Promise<T> {
 export class IndexedDbStore implements SnapshotStore {
   private db: Promise<IDBDatabase> | null = null;
 
+  async close(): Promise<void> {
+    const db = await this.db;
+    db?.close();
+    this.db = null;
+  }
+
   private open(): Promise<IDBDatabase> {
     if (this.db) return this.db;
     this.db = new Promise((resolve, reject) => {

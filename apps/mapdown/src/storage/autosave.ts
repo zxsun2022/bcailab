@@ -54,7 +54,7 @@ export interface AutosaveOptions {
   onStatus: (status: SaveStatus) => void;
   debounceMs?: number;
   now?: () => number;
-  newSnapshotId?: () => string;
+  newSnapshotId?: (document: MindMapDocument) => string;
 }
 
 let snapshotSeq = 0;
@@ -77,12 +77,19 @@ export function createAutosave(options: AutosaveOptions): Autosave {
     onStatus,
     debounceMs = DEBOUNCE_MS,
     now = () => Date.now(),
-    newSnapshotId = () => `s${++snapshotSeq}`
+    newSnapshotId = (document) => {
+      const nonce =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now().toString(36)}-${++snapshotSeq}`;
+      return `${document.id}-${nonce}`;
+    }
   } = options;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: { document: MindMapDocument; selection: NodeId | null } | null = null;
   let inFlight: Promise<void> = Promise.resolve();
+  let pruneInFlight: Promise<void> = Promise.resolve();
   let disposed = false;
 
   const write = async () => {
@@ -91,7 +98,12 @@ export function createAutosave(options: AutosaveOptions): Autosave {
     if (!job || disposed) return;
 
     onStatus({ kind: "saving" });
-    const snapshot = makeSnapshot(job.document, job.selection, newSnapshotId(), now());
+    const snapshot = makeSnapshot(
+      job.document,
+      job.selection,
+      newSnapshotId(job.document),
+      now()
+    );
 
     try {
       // 1. Write under a new id. The previous snapshot is untouched and still pointed at.
@@ -112,7 +124,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
       onStatus({ kind: "saved", at: snapshot.savedAt });
 
       // 3. Prune asynchronously — never on the path that reports success.
-      void prune(store, job.document.id).catch(() => {});
+      pruneInFlight = prune(store, job.document.id).catch(() => {});
     } catch (error) {
       // §8.2 — the in-memory document is kept, the warning is non-blocking, and the wording
       // points at the action that actually protects the user's work.
@@ -145,6 +157,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
       }
       inFlight = inFlight.then(write);
       await inFlight;
+      await pruneInFlight;
     },
 
     dispose() {

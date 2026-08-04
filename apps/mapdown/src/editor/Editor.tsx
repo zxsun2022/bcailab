@@ -68,6 +68,8 @@ interface EditingState {
   draft: string;
   /** The text as it was when the session began, for cancel. */
   originalText: string;
+  /** F2 selects the existing label; printable-key editing already replaces it in state. */
+  selectAllOnFocus: boolean;
   isNewNode: boolean;
   groupId: string;
 }
@@ -87,7 +89,9 @@ export function Editor() {
   const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const editingRef = useRef<EditingState | null>(editing);
   const guard = useImeGuard();
+  editingRef.current = editing;
 
   const doc = history.doc;
   const selection = history.selection;
@@ -118,7 +122,11 @@ export function Editor() {
     const field = inputRef.current;
     if (!field) return;
     field.focus();
-    field.setSelectionRange(editing.draft.length, editing.draft.length);
+    if (editing.selectAllOnFocus) {
+      field.select();
+    } else {
+      field.setSelectionRange(editing.draft.length, editing.draft.length);
+    }
   }, [editing?.nodeId]);
 
   /**
@@ -161,14 +169,25 @@ export function Editor() {
       setRestored(true);
       return;
     }
-    void recoverDocument(store, lastId).then((outcome) => {
-      if (cancelled) return;
-      if (outcome.kind === "restored" || outcome.kind === "restored-earlier") {
-        setHistory(createHistory(outcome.snapshot.document, outcome.snapshot.selectedNodeId ?? undefined));
-      }
-      setNotice(recoveryMessage(outcome));
-      setRestored(true);
-    });
+    void recoverDocument(store, lastId)
+      .then((outcome) => {
+        if (cancelled) return;
+        if (outcome.kind === "restored" || outcome.kind === "restored-earlier") {
+          setHistory(createHistory(outcome.snapshot.document, outcome.snapshot.selectedNodeId ?? undefined));
+        }
+        setNotice(recoveryMessage(outcome));
+        setRestored(true);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // IndexedDB can exist but still refuse to open (private mode, corruption, policy).
+        // Recovery failure must not leave `restored=false`, which would disable every later
+        // autosave attempt for the lifetime of the tab.
+        setNotice(
+          "Stored documents could not be read in this browser. This session still works; export a Markdown copy to keep it."
+        );
+        setRestored(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -255,9 +274,10 @@ export function Editor() {
       const next = dispatch(state, withSide, { groupId, label });
       setHistory(next);
       setEditing({
-        nodeId: next.selection,
+        nodeId: next.selection!,
         draft: "",
         originalText: "",
+        selectAllOnFocus: false,
         isNewNode: true,
         groupId
       });
@@ -285,7 +305,12 @@ export function Editor() {
       switch (action.type) {
         case "undo":
           setEditing(null);
-          setHistory(undo(history));
+          // Draft text deliberately stays outside document/history until the editing session
+          // commits. Undoing a changed existing-node draft therefore means abandoning that
+          // draft, not undoing the unrelated command immediately before editing began.
+          if (!editing || editing.isNewNode || editing.draft === editing.originalText) {
+            setHistory(undo(history));
+          }
           break;
         case "redo":
           setEditing(null);
@@ -301,6 +326,7 @@ export function Editor() {
             // §5.4 — the keystroke that started editing replaces the text.
             draft: event.key.length === 1 ? event.key : text,
             originalText: text,
+            selectAllOnFocus: action.selectAll,
             isNewNode: false,
             groupId: `edit-${sessionCounter}`
           });
@@ -310,6 +336,13 @@ export function Editor() {
         case "commit-edit":
         case "create-sibling": {
           const anchor = editing?.nodeId ?? selection;
+          if (
+            editing?.isNewNode &&
+            editing.draft.trim() === "" &&
+            getNode(committed.doc, editing.nodeId).childIds.length === 0
+          ) {
+            break;
+          }
           if (anchor) createAndEdit(committed, { type: "CreateSibling", anchorId: anchor }, "New sibling");
           break;
         }
@@ -322,6 +355,11 @@ export function Editor() {
 
         case "cancel-edit":
           cancelEdit();
+          break;
+
+        case "clear-selection":
+          setEditing(null);
+          setHistory({ ...committed, selection: null });
           break;
 
         case "promote":
@@ -403,6 +441,83 @@ export function Editor() {
     save(png.dataUrl, "png");
   }, [doc, save]);
 
+  /**
+   * Canvas callbacks stay stable while a textarea draft changes. Without this, every keystroke
+   * creates three new callback identities, invalidates every memoised SVG node, and turns a
+   * one-field edit into a 500-node reconciliation (§19).
+   */
+  const selectNode = useCallback(
+    (id: NodeId) => {
+      const session = editingRef.current;
+      setHistory((state) => {
+        const committed =
+          session && session.nodeId !== id
+            ? session.isNewNode &&
+              session.draft.trim() === "" &&
+              getNode(state.doc, session.nodeId).childIds.length === 0
+              ? dropLastEntry(state)
+              : commitDraft(state, session)
+            : state;
+        return { ...committed, selection: id };
+      });
+      if (session && session.nodeId !== id) setEditing(null);
+      surfaceRef.current?.focus();
+    },
+    [commitDraft]
+  );
+
+  const selectNone = useCallback(() => {
+    const session = editingRef.current;
+    if (session) {
+      setHistory((state) => {
+        const committed =
+          session.isNewNode &&
+          session.draft.trim() === "" &&
+          getNode(state.doc, session.nodeId).childIds.length === 0
+            ? dropLastEntry(state)
+            : commitDraft(state, session);
+        return { ...committed, selection: null };
+      });
+      setEditing(null);
+    } else {
+      setHistory((state) => ({ ...state, selection: null }));
+    }
+    surfaceRef.current?.focus();
+  }, [commitDraft]);
+
+  const toggleCollapse = useCallback((id: NodeId) => {
+    setHistory((state) =>
+      dispatch(state, {
+        type: "SetCollapsed",
+        nodeId: id,
+        collapsed: !getNode(state.doc, id).collapsed
+      })
+    );
+    surfaceRef.current?.focus();
+  }, []);
+
+  const reparentNode = useCallback((id: NodeId, parentId: NodeId, index: number) => {
+    setHistory((state) =>
+      dispatch(state, { type: "ReparentNode", nodeId: id, parentId, index })
+    );
+    surfaceRef.current?.focus();
+  }, []);
+
+  const undoFromUi = useCallback(() => {
+    const session = editingRef.current;
+    setEditing(null);
+    if (!session || session.isNewNode || session.draft === session.originalText) {
+      setHistory((state) => undo(state));
+    }
+    surfaceRef.current?.focus();
+  }, []);
+
+  const redoFromUi = useCallback(() => {
+    setEditing(null);
+    setHistory((state) => redo(state));
+    surfaceRef.current?.focus();
+  }, []);
+
   const editingBox = editing ? result.boxes[editing.nodeId] : null;
 
   /**
@@ -437,10 +552,10 @@ export function Editor() {
         }}
       >
         <strong style={{ marginRight: "auto" }}>Mapdown</strong>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setHistory((s) => undo(s))} disabled={!canUndo(history)}>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={undoFromUi} disabled={!canUndo(history)}>
           Undo
         </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setHistory((s) => redo(s))} disabled={!canRedo(history)}>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={redoFromUi} disabled={!canRedo(history)}>
           Redo
         </button>
         <button
@@ -633,38 +748,10 @@ export function Editor() {
           onViewport={setViewport}
           onSize={setCanvasSize}
           selection={selection}
-          onSelect={(id) => {
-            if (editing && editing.nodeId !== id) {
-              setHistory((state) => commitDraft(state, editing));
-              setEditing(null);
-            }
-            setHistory((state) => ({ ...state, selection: id }));
-            // A click on an SVG node is not itself a focusable target, so without this the
-            // browser's default click-blur behaviour leaves nothing focused (or leaves focus
-            // wherever Tab order last put it, e.g. a toolbar button) — every keyboard command
-            // this step adds, and every one Phase 1 already had, then goes nowhere. The mount
-            // effect only refocuses the surface on an editing-session transition, which a plain
-            // selection click is not. Found the same way as Phase 1's version of this bug: by
-            // checking `document.activeElement` after a real click, not by reading the code.
-            surfaceRef.current?.focus();
-          }}
-          onSelectNone={() => {
-            if (editing) {
-              setHistory((state) => commitDraft(state, editing));
-              setEditing(null);
-            }
-            surfaceRef.current?.focus();
-          }}
-          onToggleCollapse={(id) => {
-            setHistory((state) =>
-              dispatch(state, { type: "SetCollapsed", nodeId: id, collapsed: !getNode(state.doc, id).collapsed })
-            );
-            surfaceRef.current?.focus();
-          }}
-          onReparent={(id, parentId, index) => {
-            setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: id, parentId, index }));
-            surfaceRef.current?.focus();
-          }}
+          onSelect={selectNode}
+          onSelectNone={selectNone}
+          onToggleCollapse={toggleCollapse}
+          onReparent={reparentNode}
         />
 
         {/*

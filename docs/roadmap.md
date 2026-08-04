@@ -17,11 +17,16 @@ no-account acquisition funnel into it. A second product, **Mapdown**, was added 
 a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
 infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
-## Now (nothing scoped — awaiting the owner)
+## Now — Mapdown production MVP
 
-The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see `docs/changelog.md`). **The next
-iteration is not scoped.** Candidates sit in Next below; picking among them is the owner's
-call, not an implementer's.
+The owner authorized Mapdown implementation through the Phase 2 production-MVP exit criteria
+on 2026-08-04. Phase 1 is **in_review** in PR #26; it is not accepted or shipped until the owner
+merges it. Phase 2 continues only in reviewable checkpoints after that base lands. Its acceptance
+criteria are `docs/mapdown/spec/phases.md` §4 plus the scenario matrix in
+`docs/mapdown/spec/testing-acceptance.md`.
+
+The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see
+`docs/changelog.md`).
 
 Two invariants established by that iteration outlive it and apply to anything touching the
 learner surfaces — recorded as [ADR 0006](decisions/0006-learner-surface-invariants.md), with
@@ -39,13 +44,13 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
-- **Mapdown — Phase 1 shipped, Phase 2 in progress.** A static, local-first, keyboard-first
+- **Mapdown — Phase 1 merged, Phase 2 in progress.** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, deploying to `map.bcailab.com`. The editor works:
   keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
-  Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit. 393 tests.
+  Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit.
   **Progress table and what is left: `docs/mapdown/README.md`.** Remaining Phase 2 work is
-  drag-and-drop plus accessible move commands, the Help/Command Center, accessibility hardening,
-  a performance pass, swapping in a real CommonMark parser (D-14), and creating the second
+  finishing drag-and-drop, the Help/Command Center, accessibility hardening,
+  a performance/regression pass, and creating the second
   Cloudflare Pages project (D-03 has the settings). Read `docs/mapdown/decisions.md` before
   reopening any settled question — it has fifteen records, several of which correct an earlier
   mistake of mine and say so.

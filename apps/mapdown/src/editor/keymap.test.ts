@@ -80,6 +80,13 @@ describe("node mode (§6, §7, §8)", () => {
       type: "none"
     });
   });
+
+  it("clears the current selection on Escape", () => {
+    const { doc, ids } = fixture();
+    expect(resolveKey(doc, ids["a"]!, "node-selected", key("Escape"))).toEqual({
+      type: "clear-selection"
+    });
+  });
 });
 
 describe("editing mode (§5.3, §8.3)", () => {

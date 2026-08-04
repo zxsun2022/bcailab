@@ -75,9 +75,24 @@ describe("§5 — autosave", () => {
       autosave.schedule({ ...doc, revision: i }, null);
       await autosave.flush();
     }
-    // Pruning is asynchronous by design, so let it settle before counting.
-    await new Promise((r) => setTimeout(r, 20));
     expect((await store.listSnapshotIds(doc.id)).length).toBeLessThanOrEqual(SNAPSHOTS_RETAINED);
+  });
+
+  it("does not overwrite a recovery point when autosave is recreated", async () => {
+    const store = new MemoryStore();
+    const doc = docWith(["a"]);
+    const first = harness(store).autosave;
+    first.schedule(doc, null);
+    await first.flush();
+
+    resetSnapshotIdsForTests();
+    const second = harness(store).autosave;
+    second.schedule({ ...doc, revision: doc.revision + 1 }, null);
+    await second.flush();
+
+    const ids = await store.listSnapshotIds(doc.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
   });
 });
 

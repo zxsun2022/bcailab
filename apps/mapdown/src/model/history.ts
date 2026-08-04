@@ -32,7 +32,7 @@ export interface EditorHistory {
   doc: MindMapDocument;
   past: HistoryEntry[];
   future: HistoryEntry[];
-  selection: NodeId;
+  selection: NodeId | null;
 }
 
 export interface DispatchOptions {
@@ -41,8 +41,13 @@ export interface DispatchOptions {
   label?: string;
 }
 
-export function createHistory(doc: MindMapDocument, selection?: NodeId): EditorHistory {
-  return { doc, past: [], future: [], selection: selection ?? doc.rootId };
+export function createHistory(doc: MindMapDocument, selection?: NodeId | null): EditorHistory {
+  return {
+    doc,
+    past: [],
+    future: [],
+    selection: selection === undefined ? doc.rootId : selection
+  };
 }
 
 let entrySeq = 0;
@@ -102,18 +107,6 @@ export function dispatch(
   };
 }
 
-/**
- * Applies a command without recording history.
- *
- * The use case §8.4 describes: a newly created empty node that the user cancels should leave no
- * trace. The creation is dispatched normally; cancelling calls `dropLastEntry`, which removes
- * the entry *and* the node in one step, so undo does not resurrect a node the user abandoned.
- */
-export function applyWithoutHistory(state: EditorHistory, command: Command): EditorHistory {
-  const result = applyCommand(state.doc, command);
-  return { ...state, doc: result.doc, selection: result.selection };
-}
-
 /** §8.4 — undo the last entry and forget it ever happened. */
 export function dropLastEntry(state: EditorHistory): EditorHistory {
   const entry = state.past.at(-1);
@@ -124,7 +117,7 @@ export function dropLastEntry(state: EditorHistory): EditorHistory {
     doc,
     past: state.past.slice(0, -1),
     future: state.future,
-    selection: entry.beforeSelection ?? doc.rootId
+    selection: entry.beforeSelection
   };
 }
 
@@ -145,7 +138,7 @@ export function undo(state: EditorHistory): EditorHistory {
     doc,
     past: state.past.slice(0, -1),
     future: [entry, ...state.future],
-    selection: entry.beforeSelection ?? doc.rootId
+    selection: entry.beforeSelection
   };
 }
 
