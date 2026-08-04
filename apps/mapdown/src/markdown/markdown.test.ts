@@ -1,0 +1,343 @@
+import { beforeEach, describe, expect, it } from "vitest";
+import kepanSource from "../fixtures/kepan.md?raw";
+import { applyCommand } from "../model/commands";
+import { checkInvariants } from "../model/invariants";
+import {
+  createDocument,
+  getNode,
+  resetIdCounterForTests,
+  walk,
+  type MindMapDocument
+} from "../model/types";
+import { escapeLabel, sanitizeFilename, unescapeLabel } from "./escape";
+import { importMarkdown } from "./parse";
+import { exportMarkdown } from "./serialize";
+
+beforeEach(() => resetIdCounterForTests());
+
+/** Text of every node in document order — the thing §15 says must survive a round trip. */
+function shape(doc: MindMapDocument): { text: string; depth: number }[] {
+  return walk(doc).map((id) => {
+    let depth = 0;
+    let node = getNode(doc, id);
+    while (node.parentId !== null) {
+      depth++;
+      node = getNode(doc, node.parentId);
+    }
+    return { text: getNode(doc, id).text, depth };
+  });
+}
+
+function roundTrip(doc: MindMapDocument): MindMapDocument {
+  const result = importMarkdown(exportMarkdown(doc));
+  if (!result.ok) throw new Error(`round trip failed: ${result.error}`);
+  return result.doc;
+}
+
+function build(labels: [string, number][]): MindMapDocument {
+  let doc = createDocument(labels[0]![0]);
+  const atDepth: string[] = [doc.rootId];
+  for (const [text, depth] of labels.slice(1)) {
+    const parent = atDepth[depth - 1]!;
+    const result = applyCommand(doc, { type: "CreateChild", parentId: parent, text });
+    doc = result.doc;
+    atDepth[depth] = result.selection;
+    atDepth.length = depth + 1;
+  }
+  return doc;
+}
+
+describe("canonical export (§2)", () => {
+  it("emits heading, one blank line, two-space indentation and a single trailing newline", () => {
+    const doc = build([
+      ["Product plan", 0],
+      ["Problem", 1],
+      ["User pain", 2],
+      ["Solution", 1]
+    ]);
+    expect(exportMarkdown(doc)).toBe(
+      "# Product plan\n\n- Problem\n  - User pain\n- Solution\n"
+    );
+  });
+
+  it("omits front matter when every setting is default, and emits it when one differs", () => {
+    const doc = build([["Root", 0]]);
+    expect(exportMarkdown(doc)).toBe("# Root\n");
+
+    const themed: MindMapDocument = { ...doc, theme: { ...doc.theme, themeId: "business" } };
+    expect(exportMarkdown(themed)).toBe(
+      "---\nmindmap:\n  version: 1\n  theme: business\n---\n\n# Root\n"
+    );
+  });
+
+  it("exports collapsed descendants — collapse is view state, not content (§14.1)", () => {
+    const doc = build([
+      ["Root", 0],
+      ["Branch", 1],
+      ["Hidden child", 2]
+    ]);
+    const branchId = getNode(doc, doc.rootId).childIds[0]!;
+    const collapsed = applyCommand(doc, { type: "SetCollapsed", nodeId: branchId, collapsed: true }).doc;
+
+    expect(getNode(collapsed, branchId).collapsed).toBe(true);
+    expect(exportMarkdown(collapsed)).toContain("Hidden child");
+    expect(exportMarkdown(collapsed)).toBe(exportMarkdown(doc));
+  });
+
+  it("writes an empty root as a bare # and an empty node as a bare - (§14.3, D-09)", () => {
+    let doc = createDocument("");
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "" }).doc;
+    const output = exportMarkdown(doc);
+    expect(output).toBe("#\n\n-\n");
+    expect(output).not.toMatch(/[ \t]\n/); // no trailing whitespace on any line
+  });
+});
+
+/**
+ * These assert the *bytes produced*, not a round trip.
+ *
+ * A round trip through this repository's own parser proves the serialiser and parser agree with
+ * each other, which is not the same as either being right: this parser does not interpret inline
+ * Markdown, so unescaped `*x*` survives it untouched and the round-trip tests below pass even
+ * with escaping switched off entirely (verified by mutation). §10.4 requires a real
+ * CommonMark-compatible parser in Phase 2, and that one *will* strip the emphasis.
+ *
+ * So the escaping contract has to be pinned to concrete output, independent of any reader.
+ */
+describe("escaping produces the expected bytes (§6)", () => {
+  it.each([
+    ["*emphasis*", "\\*emphasis\\*"],
+    ["_underscore_", "\\_underscore\\_"],
+    ["`code`", "\\`code\\`"],
+    ["[label](url)", "\\[label\\](url)"],
+    ["a\\b", "a\\\\b"],
+    ["<html>", "\\<html\\>"],
+    ["- leading marker", "\\- leading marker"],
+    ["+ leading marker", "\\+ leading marker"],
+    ["# leading hash", "\\# leading hash"],
+    ["1. ordered", "1\\. ordered"],
+    ["2) ordered", "2\\) ordered"],
+    ["暇满难得", "暇满难得"],
+    ["plain text", "plain text"]
+  ])("escapes %j to %j", (input, expected) => {
+    expect(escapeLabel(input)).toBe(expected);
+  });
+
+  it("leaves an interior hash alone — only a leading one changes the block type", () => {
+    expect(escapeLabel("issue #42")).toBe("issue #42");
+  });
+
+  it("does not escape a hyphen that is not a list marker", () => {
+    expect(escapeLabel("well-known")).toBe("well-known");
+  });
+});
+
+describe("escaping is reversible (§6.3)", () => {
+  const hazards = [
+    "- not a list item",
+    "# not a heading",
+    "1. not ordered",
+    "*not emphasis*",
+    "_not emphasis_",
+    "`not code`",
+    "[label](https://example.com)",
+    "a\\b backslash",
+    "<not html>",
+    "混合 *中文* 与 [链接](url)",
+    "100% safe & sound"
+  ];
+
+  it.each(hazards)("round-trips %j through escape/unescape", (text) => {
+    expect(unescapeLabel(escapeLabel(text))).toBe(text);
+  });
+
+  it.each(hazards)("round-trips %j through a full document export/import", (text) => {
+    const doc = build([
+      ["Root", 0],
+      [text, 1]
+    ]);
+    expect(shape(roundTrip(doc))).toEqual(shape(doc));
+  });
+});
+
+describe("round-trip guarantee (§15)", () => {
+  it("preserves text, hierarchy and sibling order", () => {
+    const doc = build([
+      ["Interview preparation", 0],
+      ["Product sense", 1],
+      ["Market", 2],
+      ["Users", 2],
+      ["Technical knowledge", 1],
+      ["Behavioral stories", 1]
+    ]);
+    expect(shape(roundTrip(doc))).toEqual(shape(doc));
+  });
+
+  it("preserves supported document settings", () => {
+    const base = build([["Root", 0]]);
+    const doc: MindMapDocument = {
+      ...base,
+      layout: { mode: "two-sided" },
+      theme: { themeId: "dark", branchColorMode: "by-first-level-branch" }
+    };
+    const back = roundTrip(doc);
+    expect(back.layout.mode).toBe("two-sided");
+    expect(back.theme).toEqual(doc.theme);
+  });
+
+  it("is idempotent — exporting the reimported document gives byte-identical output", () => {
+    const doc = build([
+      ["根节点", 0],
+      ["暇满难得", 1],
+      ["思维本性闲暇", 2],
+      ["- 看起来像列表", 2],
+      ["寿命无常", 1]
+    ]);
+    const once = exportMarkdown(doc);
+    const twice = exportMarkdown(roundTrip(doc));
+    expect(twice).toBe(once);
+  });
+
+  it("survives the seven-level 科判 fixture unchanged", () => {
+    const first = importMarkdown(kepanSource);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+
+    expect(checkInvariants(first.doc)).toEqual([]);
+    expect(walk(first.doc)).toHaveLength(72);
+    expect(shape(roundTrip(first.doc))).toEqual(shape(first.doc));
+    expect(exportMarkdown(roundTrip(first.doc))).toBe(exportMarkdown(first.doc));
+  });
+});
+
+describe("import of hand-written variations (§4, §17)", () => {
+  it("accepts four-space indentation and normalizes it to two", () => {
+    const result = importMarkdown("# Root\n\n- A\n    - A1\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc)).toEqual([
+      { text: "Root", depth: 0 },
+      { text: "A", depth: 1 },
+      { text: "A1", depth: 2 }
+    ]);
+    expect(exportMarkdown(result.doc)).toBe("# Root\n\n- A\n  - A1\n");
+  });
+
+  it("accepts * and + markers", () => {
+    const result = importMarkdown("# Root\n\n* A\n+ B\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc).map((n) => n.text)).toEqual(["Root", "A", "B"]);
+  });
+
+  it("converts ordered lists to ordinary nodes with a warning (§4.1)", () => {
+    const result = importMarkdown("# Root\n\n1. First\n2. Second\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc).map((n) => n.text)).toEqual(["Root", "First", "Second"]);
+    expect(result.warnings.map((w) => w.category)).toContain("ordered-list-converted");
+  });
+
+  it("keeps an empty root and empty nodes empty rather than inventing placeholders", () => {
+    const result = importMarkdown("#\n\n-\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc)).toEqual([
+      { text: "", depth: 0 },
+      { text: "", depth: 1 }
+    ]);
+  });
+
+  it("does not invent intermediate nodes for a depth jump (§4.3)", () => {
+    const result = importMarkdown("# Root\n\n- A\n      - B\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc)).toEqual([
+      { text: "Root", depth: 0 },
+      { text: "A", depth: 1 },
+      { text: "B", depth: 2 }
+    ]);
+  });
+
+  it("handles CJK, emoji and combining characters", () => {
+    const result = importMarkdown("# 暇满难得\n\n- emoji 😀 combining é ǎ\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc).map((n) => n.text)).toEqual(["暇满难得", "emoji 😀 combining é ǎ"]);
+  });
+
+  it("strips a BOM and accepts CRLF line endings", () => {
+    const result = importMarkdown("﻿# Root\r\n\r\n- A\r\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(shape(result.doc).map((n) => n.text)).toEqual(["Root", "A"]);
+  });
+
+  it("reports extra level-1 headings instead of silently creating a second root (§3.2)", () => {
+    const result = importMarkdown("# First\n\n- A\n\n# Second\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.doc.nodes[result.doc.rootId]!.text).toBe("First");
+    expect(result.warnings.map((w) => w.category)).toContain("additional-heading-ignored");
+  });
+
+  it("produces a valid tree for every accepted input", () => {
+    for (const source of ["# R\n", "# R\n\n- A\n  - B\n", "#\n\n-\n", kepanSource]) {
+      const result = importMarkdown(source);
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(checkInvariants(result.doc)).toEqual([]);
+    }
+  });
+});
+
+describe("import failure leaves the caller free to keep the current document (§12)", () => {
+  it("fails when there is no level-1 heading", () => {
+    const result = importMarkdown("- just a list\n");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/heading/i);
+  });
+
+  it("fails on unclosed front matter", () => {
+    const result = importMarkdown("---\nmindmap:\n  version: 1\n\n# Root\n");
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses a future format version rather than guessing (§7.4)", () => {
+    const result = importMarkdown("---\nmindmap:\n  version: 9\n---\n\n# Root\n");
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/version 9/);
+  });
+
+  it("falls back to defaults for an invalid layout rather than failing (§7.3)", () => {
+    const result = importMarkdown("---\nmindmap:\n  version: 1\n  layout: sideways\n---\n\n# Root\n");
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.doc.layout.mode).toBe("right");
+  });
+
+  it("reports unknown front-matter keys without acting on them (§7.2)", () => {
+    const result = importMarkdown("---\nmindmap:\n  version: 1\n  danger: yes\n---\n\n# Root\n");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.warnings.map((w) => w.category)).toContain("unsupported-front-matter-key");
+    }
+  });
+});
+
+describe("export filename (storage-export.md §11.3)", () => {
+  it("removes filesystem-forbidden characters and collapses whitespace", () => {
+    expect(sanitizeFilename('my/map: "draft"  v2')).toBe("my map draft v2");
+  });
+
+  it("falls back for an empty title", () => {
+    expect(sanitizeFilename("   ")).toBe("mind-map");
+  });
+
+  it("avoids Windows reserved device names", () => {
+    expect(sanitizeFilename("CON")).toBe("mind-map");
+    expect(sanitizeFilename("nul")).toBe("mind-map");
+  });
+
+  it("keeps CJK titles intact", () => {
+    expect(sanitizeFilename("前行引导文 科判")).toBe("前行引导文 科判");
+  });
+});

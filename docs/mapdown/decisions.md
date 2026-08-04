@@ -366,6 +366,69 @@ app returns to 5.9.3 without touching anything else.
 
 ---
 
+## D-14 — Phase 2 must swap in a real CommonMark parser, and the reason is a test blind spot
+
+**Recorded 2026-08-03**, from building the Phase 1 serialiser.
+
+**What happened.** `markdown/parse.ts` is a small hand-written reader, written so that §15's
+round-trip guarantee could be tested at all — a serialiser with no reader is unverifiable. It
+passes every round-trip test. **A mutation check showed those tests were nearly worthless:**
+switching inline escaping off entirely left all 202 tests green.
+
+**Why.** The parser does not interpret inline Markdown, so unescaped `*x*` survives it untouched
+and comes back identical. The round trip proved the serialiser and this parser agree with *each
+other* — not that either is correct. Testing a serialiser against your own parser measures
+symmetry, not conformance.
+
+**Fixed for now** by pinning the escaping contract to concrete output (`escapeLabel("*x*")` must
+equal `\*x\*`) rather than to a round trip. Those assertions do fail under mutation, verified.
+
+**The standing consequence.** `markdown-format.md` §10.4 requires a documented
+CommonMark-compatible parser, and Phase 2 must actually adopt one. A real parser strips `*x*` to
+`x`, which is precisely the case the current reader cannot exercise. Until then, **round-trip
+tests in this repository are evidence about symmetry only**, and the byte-level assertions are
+the real contract.
+
+**For whoever does it:** when the CommonMark parser lands, re-run the same mutation — disable
+escaping and confirm the round-trip tests go red. If they stay green, the new parser is not
+being exercised either.
+
+---
+
+## D-15 — The editing surface is an overlaid textarea
+
+**Decided 2026-08-03**, deferred here from Phase 0.
+
+**Decision.** In-place node editing uses a `<textarea>` positioned over the node box, not
+`contentEditable` and not a hidden input.
+
+**Why not on IME grounds.** Spike 1 measured all three surfaces under a real Chinese IME in two
+browsers and found **no difference** — the OS consumes the confirming key before any of them
+sees it. IME risk was the stated reason that spike ran first, so it is worth being clear that it
+did not decide this.
+
+**What decided it.**
+
+*A real form control is the boring path.* Every browser's IME, autocorrect, dictation and
+accessibility machinery is tuned for form controls. `contentEditable` is a rich-text surface
+pretending to be plain text: `product-specification.md` §4.3 requires plain Unicode, so paste
+sanitisation and suppressing browser formatting commands would be permanent obligations rather
+than one-off work.
+
+*A hidden input costs a hand-drawn caret.* It gives the most rendering control, which suits an
+SVG canvas — but the caret must then be positioned and blinked by hand, including mid-composition,
+which is exactly where CJK text measurement is hardest. That is a large cost for a benefit MVP
+does not need.
+
+**The cost accepted.** The textarea must track its node box as the map reflows. It is positioned
+from the same `viewBox` the canvas computes, not measured from the DOM, so the two cannot drift.
+
+**Revisit when** per-node rich text arrives (`phases.md` §9.1), which would need a real editing
+model rather than a plain-text field, or if caret rendering inside the canvas becomes a
+requirement for another reason.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

@@ -10,6 +10,7 @@ import { useSyncExternalStore } from "react";
 import { ImeSpike } from "./spikes/ime/ImeSpike";
 import { SvgExportSpike } from "./spikes/svg-export/SvgExportSpike";
 import { LayoutSpike } from "./spikes/layout/LayoutSpike";
+import { Editor } from "./editor/Editor";
 
 function subscribeToHash(onChange: () => void) {
   window.addEventListener("hashchange", onChange);
@@ -36,6 +37,10 @@ const SPIKES = [
 
 export function App() {
   const spike = useSyncExternalStore(subscribeToHash, () => window.location.hash.slice(1));
+
+  if (spike === "" || spike === "editor") {
+    return <Editor />;
+  }
 
   if (spike === "ime") {
     return (
