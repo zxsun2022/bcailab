@@ -49,7 +49,7 @@ returns, so neither needs an IA change.
   keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
   Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit.
   **Progress table and what is left: `docs/mapdown/README.md`.** Remaining Phase 2 work is
-  finishing drag-and-drop, the Help/Command Center, accessibility hardening,
+  the Help/Command Center, accessibility hardening,
   a performance/regression pass, and creating the second
   Cloudflare Pages project (D-03 has the settings). Read `docs/mapdown/decisions.md` before
   reopening any settled question — it has fifteen records, several of which correct an earlier

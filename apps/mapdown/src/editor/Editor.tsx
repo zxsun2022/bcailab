@@ -503,6 +503,13 @@ export function Editor() {
     surfaceRef.current?.focus();
   }, []);
 
+  const moveBranchSide = useCallback((id: NodeId, side: "left" | "right") => {
+    setHistory((state) =>
+      dispatch(state, { type: "MoveFirstLevelBranchSide", nodeId: id, side })
+    );
+    surfaceRef.current?.focus();
+  }, []);
+
   const undoFromUi = useCallback(() => {
     const session = editingRef.current;
     setEditing(null);
@@ -752,6 +759,7 @@ export function Editor() {
           onSelectNone={selectNone}
           onToggleCollapse={toggleCollapse}
           onReparent={reparentNode}
+          onMoveSide={moveBranchSide}
         />
 
         {/*

@@ -1,10 +1,11 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_TYPOGRAPHY, type Connector, type LayoutResult, type NodeBox } from "../layout/layout";
-import type { MindMapDocument, NodeId } from "../model/types";
+import { getNode, subtreeIds, type BranchSide, type MindMapDocument, type NodeId } from "../model/types";
 import { resolveDropTarget, type DropZone } from "../model/commands";
 import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
 import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
+import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
 
 /**
  * SVG rendering of a computed layout.
@@ -215,34 +216,170 @@ const Edge = memo(function Edge({
  * design-tokens.md §2/§6: excluded from export, defined per document theme so they stay legible
  * against whichever canvas/node colours that theme picked.
  */
-function DropIndicator({ box, zone, theme }: { box: NodeBox; zone: DropZone; theme: MindMapTheme }) {
+function DropIndicator({
+  box,
+  zone,
+  valid,
+  theme
+}: {
+  box: NodeBox;
+  zone: DropZone;
+  valid: boolean;
+  theme: MindMapTheme;
+}) {
   const gap = 6;
+  const stroke = valid ? theme.interaction.dropIndicator : theme.interaction.invalidDropIndicator;
   if (zone === "inside") {
     return (
-      <rect
-        x={box.x - gap}
-        y={box.y - gap}
-        width={box.width + gap * 2}
-        height={box.height + gap * 2}
-        rx={(roleTokens(theme, box.depth).radius ?? 6) + gap}
-        fill="none"
-        stroke={theme.interaction.dropIndicator}
-        strokeWidth={2}
-        strokeDasharray="4 3"
-      />
+      <g>
+        <rect
+          x={box.x - gap}
+          y={box.y - gap}
+          width={box.width + gap * 2}
+          height={box.height + gap * 2}
+          rx={(roleTokens(theme, box.depth).radius ?? 6) + gap}
+          fill="none"
+          stroke={stroke}
+          strokeWidth={2}
+          strokeDasharray={valid ? "4 3" : "2 3"}
+        />
+        {!valid && (
+          <>
+            <line
+              x1={box.x - gap}
+              y1={box.y - gap}
+              x2={box.x + box.width + gap}
+              y2={box.y + box.height + gap}
+              stroke={stroke}
+              strokeWidth={2}
+            />
+            <line
+              x1={box.x + box.width + gap}
+              y1={box.y - gap}
+              x2={box.x - gap}
+              y2={box.y + box.height + gap}
+              stroke={stroke}
+              strokeWidth={2}
+            />
+          </>
+        )}
+      </g>
     );
   }
   const y = zone === "before" ? box.y - gap : box.y + box.height + gap;
   return (
-    <line
-      x1={box.x}
-      y1={y}
-      x2={box.x + box.width}
-      y2={y}
-      stroke={theme.interaction.dropIndicator}
-      strokeWidth={2.5}
-      strokeLinecap="round"
-    />
+    <g>
+      <line
+        x1={box.x}
+        y1={y}
+        x2={box.x + box.width}
+        y2={y}
+        stroke={stroke}
+        strokeWidth={2.5}
+        strokeLinecap="round"
+        strokeDasharray={valid ? undefined : "3 3"}
+      />
+      {!valid && (
+        <line
+          x1={box.x + box.width / 2 - 5}
+          y1={y - 5}
+          x2={box.x + box.width / 2 + 5}
+          y2={y + 5}
+          stroke={stroke}
+          strokeWidth={2}
+        />
+      )}
+    </g>
+  );
+}
+
+function DragPreview({
+  x,
+  y,
+  label,
+  count,
+  theme
+}: {
+  x: number;
+  y: number;
+  label: string;
+  count: number;
+  theme: MindMapTheme;
+}) {
+  const displayLabel = label.trim() || theme.nodes.emptyPlaceholderText;
+  const clipped = displayLabel.length > 32 ? `${displayLabel.slice(0, 31)}…` : displayLabel;
+  const width = Math.max(112, Math.min(300, clipped.length * 8 + 28));
+  return (
+    <g transform={`translate(${x + 14} ${y + 14})`} pointerEvents="none">
+      <rect
+        width={width}
+        height={48}
+        rx={8}
+        fill={theme.interaction.dragPreviewBackground}
+        stroke={theme.interaction.dropIndicator}
+        strokeWidth={1.5}
+      />
+      <text
+        x={12}
+        y={18}
+        fill={theme.nodes.default.text}
+        fontFamily={theme.typography.fontFamily}
+        fontSize={theme.typography.nodeFontSize}
+        fontWeight={600}
+      >
+        {clipped}
+      </text>
+      <text
+        x={12}
+        y={37}
+        fill={theme.nodes.default.text}
+        opacity={0.75}
+        fontFamily={theme.typography.fontFamily}
+        fontSize={11}
+      >
+        {count} {count === 1 ? "node" : "nodes"}
+      </text>
+    </g>
+  );
+}
+
+function SideDropIndicator({
+  root,
+  side,
+  theme
+}: {
+  root: NodeBox;
+  side: BranchSide;
+  theme: MindMapTheme;
+}) {
+  const width = Math.max(96, root.width * 0.9);
+  const x = side === "left" ? root.x - width - 22 : root.x + root.width + 22;
+  return (
+    <g pointerEvents="none">
+      <rect
+        x={x}
+        y={root.y - 18}
+        width={width}
+        height={root.height + 36}
+        rx={10}
+        fill={theme.interaction.dragPreviewBackground}
+        stroke={theme.interaction.dropIndicator}
+        strokeWidth={2}
+        strokeDasharray="6 4"
+      />
+      <text
+        x={x + width / 2}
+        y={root.y + root.height / 2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fill={theme.nodes.root.text}
+        fontFamily={theme.typography.fontFamily}
+        fontSize={12}
+        fontWeight={600}
+      >
+        Move {side}
+      </text>
+    </g>
   );
 }
 
@@ -265,6 +402,8 @@ export interface MapCanvasProps {
   onToggleCollapse: (id: NodeId) => void;
   /** §7.2/§7.3 — the drop, already resolved to a legal `{ parentId, index }` by `resolveDropTarget`. */
   onReparent: (nodeId: NodeId, parentId: NodeId, index: number) => void;
+  /** §11.2 — first-level branches may cross the root without changing parent/order. */
+  onMoveSide: (nodeId: NodeId, side: BranchSide) => void;
 }
 
 /** Tracks the element's pixel size, which every viewport calculation needs. */
@@ -283,12 +422,21 @@ function useElementSize(ref: React.RefObject<Element | null>): ViewportSize {
   return size;
 }
 
-interface DropPreview {
+interface NodeDropPreview {
+  kind: "node";
   targetId: NodeId;
   zone: DropZone;
-  parentId: NodeId;
-  index: number;
+  valid: boolean;
+  parentId?: NodeId;
+  index?: number;
 }
+
+interface SideDropPreview {
+  kind: "side";
+  side: BranchSide;
+}
+
+type DropPreview = NodeDropPreview | SideDropPreview;
 
 export const MapCanvas = memo(function MapCanvas({
   doc,
@@ -301,19 +449,33 @@ export const MapCanvas = memo(function MapCanvas({
   onSelect,
   onSelectNone,
   onToggleCollapse,
-  onReparent
+  onReparent,
+  onMoveSide
 }: MapCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const size = useElementSize(svgRef);
+  const viewportRef = useRef(viewport);
+  viewportRef.current = viewport;
   const drag = useRef<{ pointerId: number; x: number; y: number; moved: boolean } | null>(null);
   /**
    * A separate gesture from canvas pan, tracked in its own ref for the same reason `drag` is a
    * ref and not state: a fast pointermove can deliver several events in one React batch, and
    * only a ref reads back the value written a moment ago rather than the one from render start.
    */
-  const nodeDrag = useRef<{ pointerId: number; nodeId: NodeId; moved: boolean } | null>(null);
+  const nodeDrag = useRef<{
+    pointerId: number;
+    nodeId: NodeId;
+    startX: number;
+    startY: number;
+    clientX: number;
+    clientY: number;
+    moved: boolean;
+  } | null>(null);
+  const dropPreviewRef = useRef<DropPreview | null>(null);
+  const autopanFrame = useRef<number | null>(null);
   const [draggingId, setDraggingId] = useState<NodeId | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
+  const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => onSize(size), [size, onSize]);
 
@@ -339,10 +501,151 @@ export const MapCanvas = memo(function MapCanvas({
     [layout, doc.rootId]
   );
 
+  const updateDropPreview = useCallback(
+    (nodeId: NodeId, clientX: number, clientY: number) => {
+      const svg = svgRef.current;
+      if (!svg) return;
+      const rect = svg.getBoundingClientRect();
+      const point = screenToDocument(
+        viewportRef.current,
+        size,
+        clientX - rect.left,
+        clientY - rect.top
+      );
+      setDragPoint(point);
+
+      const source = getNode(doc, nodeId);
+      const root = layout.boxes[doc.rootId];
+      let next: DropPreview | null = null;
+      const side =
+        root &&
+        sideDropTarget(
+          source.side,
+          source.parentId === doc.rootId,
+          doc.layout.mode === "two-sided",
+          point,
+          root
+        );
+      if (side) {
+        next = { kind: "side", side };
+      } else {
+        const hit = hitTest(point.x, point.y);
+        if (hit) {
+          const resolved = resolveDropTarget(doc, nodeId, hit.nodeId, hit.zone);
+          next = resolved
+            ? {
+                kind: "node",
+                targetId: hit.nodeId,
+                zone: hit.zone,
+                valid: true,
+                parentId: resolved.parentId,
+                index: resolved.index
+              }
+            : {
+                kind: "node",
+                targetId: hit.nodeId,
+                zone: hit.zone,
+                valid: false
+              };
+        }
+      }
+
+      dropPreviewRef.current = next;
+      setDropPreview(next);
+    },
+    [doc, hitTest, layout.boxes, size]
+  );
+
   const onNodePointerDown = useCallback((nodeId: NodeId, event: React.PointerEvent<SVGGElement>) => {
-    nodeDrag.current = { pointerId: event.pointerId, nodeId, moved: false };
+    if (event.button !== 0) return;
+    nodeDrag.current = {
+      pointerId: event.pointerId,
+      nodeId,
+      startX: event.clientX,
+      startY: event.clientY,
+      clientX: event.clientX,
+      clientY: event.clientY,
+      moved: false
+    };
     event.currentTarget.setPointerCapture(event.pointerId);
   }, []);
+
+  const stopAutopan = useCallback(() => {
+    if (autopanFrame.current !== null) {
+      cancelAnimationFrame(autopanFrame.current);
+      autopanFrame.current = null;
+    }
+  }, []);
+
+  const scheduleAutopan = useCallback(() => {
+    if (autopanFrame.current !== null) return;
+
+    const tick = () => {
+      const state = nodeDrag.current;
+      const svg = svgRef.current;
+      if (!state?.moved || !svg) {
+        autopanFrame.current = null;
+        return;
+      }
+      const rect = svg.getBoundingClientRect();
+      const delta = autopanDelta(
+        state.clientX - rect.left,
+        state.clientY - rect.top,
+        rect.width,
+        rect.height
+      );
+      if (delta.x === 0 && delta.y === 0) {
+        autopanFrame.current = null;
+        return;
+      }
+      onViewport((current) => pan(current, delta.x, delta.y));
+      updateDropPreview(state.nodeId, state.clientX, state.clientY);
+      autopanFrame.current = requestAnimationFrame(tick);
+    };
+
+    autopanFrame.current = requestAnimationFrame(tick);
+  }, [onViewport, updateDropPreview]);
+
+  const finishNodeDrag = useCallback(
+    (commit: boolean) => {
+      const state = nodeDrag.current;
+      const preview = dropPreviewRef.current;
+      nodeDrag.current = null;
+      stopAutopan();
+
+      if (commit && state?.moved && preview) {
+        if (preview.kind === "side") {
+          onMoveSide(state.nodeId, preview.side);
+        } else if (
+          preview.valid &&
+          preview.parentId !== undefined &&
+          preview.index !== undefined
+        ) {
+          onReparent(state.nodeId, preview.parentId, preview.index);
+        }
+      }
+
+      dropPreviewRef.current = null;
+      setDraggingId(null);
+      setDropPreview(null);
+      setDragPoint(null);
+    },
+    [onMoveSide, onReparent, stopAutopan]
+  );
+
+  useEffect(() => {
+    if (!draggingId) return;
+    const cancelOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      finishNodeDrag(false);
+    };
+    window.addEventListener("keydown", cancelOnEscape, true);
+    return () => window.removeEventListener("keydown", cancelOnEscape, true);
+  }, [draggingId, finishNodeDrag]);
+
+  useEffect(() => () => stopAutopan(), [stopAutopan]);
 
   /**
    * §12.1 — a drag on blank canvas pans, and "starting a pan MUST not clear selection until the
@@ -363,18 +666,23 @@ export const MapCanvas = memo(function MapCanvas({
     (event: React.PointerEvent<SVGSVGElement>) => {
       const nodeState = nodeDrag.current;
       if (nodeState && nodeState.pointerId === event.pointerId) {
+        nodeState.clientX = event.clientX;
+        nodeState.clientY = event.clientY;
+        if (
+          !nodeState.moved &&
+          !crossedDragThreshold(
+            nodeState.startX,
+            nodeState.startY,
+            event.clientX,
+            event.clientY
+          )
+        ) {
+          return;
+        }
         nodeState.moved = true;
         setDraggingId((current) => (current === nodeState.nodeId ? current : nodeState.nodeId));
-
-        const rect = event.currentTarget.getBoundingClientRect();
-        const point = screenToDocument(viewport, size, event.clientX - rect.left, event.clientY - rect.top);
-        const hit = hitTest(point.x, point.y);
-        const resolved = hit ? resolveDropTarget(doc, nodeState.nodeId, hit.nodeId, hit.zone) : null;
-        setDropPreview((current) => {
-          if (!hit || !resolved) return current === null ? current : null;
-          if (current?.targetId === hit.nodeId && current.zone === hit.zone) return current;
-          return { targetId: hit.nodeId, zone: hit.zone, parentId: resolved.parentId, index: resolved.index };
-        });
+        updateDropPreview(nodeState.nodeId, event.clientX, event.clientY);
+        scheduleAutopan();
         return;
       }
 
@@ -383,28 +691,22 @@ export const MapCanvas = memo(function MapCanvas({
       const dx = event.clientX - state.x;
       const dy = event.clientY - state.y;
       // A few pixels of slop, so a click with a shaky hand is still a click.
-      if (!state.moved && Math.hypot(dx, dy) < 4) return;
+      if (!state.moved && !crossedDragThreshold(state.x, state.y, event.clientX, event.clientY)) {
+        return;
+      }
       state.moved = true;
       state.x = event.clientX;
       state.y = event.clientY;
       onViewport((current) => pan(current, dx, dy));
     },
-    [onViewport, doc, viewport, size, hitTest]
+    [onViewport, scheduleAutopan, updateDropPreview]
   );
 
   const onPointerUp = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
       const nodeState = nodeDrag.current;
       if (nodeState && nodeState.pointerId === event.pointerId) {
-        nodeDrag.current = null;
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-          event.currentTarget.releasePointerCapture(event.pointerId);
-        }
-        if (nodeState.moved && dropPreview) {
-          onReparent(nodeState.nodeId, dropPreview.parentId, dropPreview.index);
-        }
-        setDraggingId(null);
-        setDropPreview(null);
+        finishNodeDrag(true);
         return;
       }
 
@@ -415,7 +717,18 @@ export const MapCanvas = memo(function MapCanvas({
       }
       if (state && !state.moved) onSelectNone();
     },
-    [onSelectNone, dropPreview, onReparent]
+    [finishNodeDrag, onSelectNone]
+  );
+
+  const onPointerCancel = useCallback(
+    (event: React.PointerEvent<SVGSVGElement>) => {
+      if (nodeDrag.current?.pointerId === event.pointerId) {
+        finishNodeDrag(false);
+        return;
+      }
+      if (drag.current?.pointerId === event.pointerId) drag.current = null;
+    },
+    [finishNodeDrag]
   );
 
   /**
@@ -447,7 +760,7 @@ export const MapCanvas = memo(function MapCanvas({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
       onWheel={onWheel}
       style={{ display: "block", touchAction: "none", background: theme.canvas.background }}
       role="tree"
@@ -483,8 +796,29 @@ export const MapCanvas = memo(function MapCanvas({
         />
       ))}
       {/* Drawn last so the indicator paints over both nodes and connectors. */}
-      {dropPreview && layout.boxes[dropPreview.targetId] && (
-        <DropIndicator box={layout.boxes[dropPreview.targetId]!} zone={dropPreview.zone} theme={theme} />
+      {dropPreview?.kind === "node" && layout.boxes[dropPreview.targetId] && (
+        <DropIndicator
+          box={layout.boxes[dropPreview.targetId]!}
+          zone={dropPreview.zone}
+          valid={dropPreview.valid}
+          theme={theme}
+        />
+      )}
+      {dropPreview?.kind === "side" && layout.boxes[doc.rootId] && (
+        <SideDropIndicator
+          root={layout.boxes[doc.rootId]!}
+          side={dropPreview.side}
+          theme={theme}
+        />
+      )}
+      {draggingId && dragPoint && doc.nodes[draggingId] && (
+        <DragPreview
+          x={dragPoint.x}
+          y={dragPoint.y}
+          label={doc.nodes[draggingId]!.text}
+          count={subtreeIds(doc, draggingId).length}
+          theme={theme}
+        />
       )}
     </svg>
   );

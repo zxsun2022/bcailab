@@ -3,7 +3,7 @@
 **Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, Phase 2 in progress.
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
-a real CommonMark parser. **421 tests.**
+a real CommonMark parser. **425 tests.**
 
 **Home:** `apps/mapdown`; deploys to `map.bcailab.com` (Pages project **not yet created**).
 
@@ -29,7 +29,7 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 7 | Local save and recovery | ✅ `src/storage/` |
 | 8 | Markdown import/export | ✅ `src/markdown/` — real CommonMark parser landed, D-14 |
 | 9 | Two-sided sticky branches | ✅ |
-| 10 | Drag/drop and accessible move commands | 🟡 commands, Alt+↑/↓, toolbar and basic pointer drop work; preview, side drop, invalid state, threshold/cancel and autopan remain |
+| 10 | Drag/drop and accessible move commands | ✅ preview + subtree count, before/after/inside, cross-root side drop, patterned invalid state, 4px threshold, Escape/pointer cancel, bounded autopan; Alt+↑/↓ and toolbar alternatives |
 | 11 | Pan / zoom / fit | ✅ `src/canvas/viewport.ts` |
 | 12 | Theme tokens and presets | ✅ `src/theme/` |
 | 13 | SVG export | ✅ `src/export/svg.ts` |
