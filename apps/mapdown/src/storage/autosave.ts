@@ -83,6 +83,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: { document: MindMapDocument; selection: NodeId | null } | null = null;
   let inFlight: Promise<void> = Promise.resolve();
+  let pruneInFlight: Promise<void> = Promise.resolve();
   let disposed = false;
 
   const write = async () => {
@@ -112,7 +113,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
       onStatus({ kind: "saved", at: snapshot.savedAt });
 
       // 3. Prune asynchronously — never on the path that reports success.
-      void prune(store, job.document.id).catch(() => {});
+      pruneInFlight = prune(store, job.document.id).catch(() => {});
     } catch (error) {
       // §8.2 — the in-memory document is kept, the warning is non-blocking, and the wording
       // points at the action that actually protects the user's work.
@@ -145,6 +146,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
       }
       inFlight = inFlight.then(write);
       await inFlight;
+      await pruneInFlight;
     },
 
     dispose() {

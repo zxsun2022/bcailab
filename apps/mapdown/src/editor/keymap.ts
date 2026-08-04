@@ -24,8 +24,6 @@ export type EditorAction =
   | { type: "cancel-edit" }
   | { type: "navigate"; to: NodeId }
   | { type: "toggle-collapse" }
-  | { type: "collapse" }
-  | { type: "expand" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "none" };

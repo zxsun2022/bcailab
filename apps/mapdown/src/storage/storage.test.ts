@@ -75,8 +75,6 @@ describe("§5 — autosave", () => {
       autosave.schedule({ ...doc, revision: i }, null);
       await autosave.flush();
     }
-    // Pruning is asynchronous by design, so let it settle before counting.
-    await new Promise((r) => setTimeout(r, 20));
     expect((await store.listSnapshotIds(doc.id)).length).toBeLessThanOrEqual(SNAPSHOTS_RETAINED);
   });
 });

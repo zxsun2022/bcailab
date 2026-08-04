@@ -54,43 +54,54 @@ export type GuardDecision = {
 
 type KeyLike = Pick<KeyboardEvent, "isComposing" | "keyCode">;
 
+export interface ImeGuardState {
+  composing: boolean;
+  endedAt: number | null;
+}
+
+export function inspectImeEvent(
+  state: ImeGuardState,
+  event: KeyLike,
+  now: number,
+  graceMs: number = COMPOSITION_GRACE_MS
+): GuardDecision {
+  const since = state.endedAt === null ? null : now - state.endedAt;
+
+  if (state.composing) {
+    return { imeOwned: true, reason: "composing-flag", sinceCompositionEnd: since };
+  }
+  if (event.isComposing) {
+    return { imeOwned: true, reason: "isComposing", sinceCompositionEnd: since };
+  }
+  if (event.keyCode === 229) {
+    return { imeOwned: true, reason: "keycode-229", sinceCompositionEnd: since };
+  }
+  if (since !== null && since < graceMs) {
+    return { imeOwned: true, reason: "post-composition-window", sinceCompositionEnd: since };
+  }
+  return { imeOwned: false, reason: "none", sinceCompositionEnd: since };
+}
+
 export function useImeGuard(graceMs: number = COMPOSITION_GRACE_MS) {
-  const composing = useRef(false);
-  const endedAt = useRef<number | null>(null);
+  const state = useRef<ImeGuardState>({ composing: false, endedAt: null });
 
   const onCompositionStart = useCallback(() => {
-    composing.current = true;
+    state.current.composing = true;
   }, []);
 
   const onCompositionEnd = useCallback(() => {
-    composing.current = false;
-    endedAt.current = performance.now();
+    state.current.composing = false;
+    state.current.endedAt = performance.now();
   }, []);
 
   const inspect = useCallback(
-    (event: KeyLike): GuardDecision => {
-      const since = endedAt.current === null ? null : performance.now() - endedAt.current;
-
-      if (composing.current) {
-        return { imeOwned: true, reason: "composing-flag", sinceCompositionEnd: since };
-      }
-      if (event.isComposing) {
-        return { imeOwned: true, reason: "isComposing", sinceCompositionEnd: since };
-      }
-      if (event.keyCode === 229) {
-        return { imeOwned: true, reason: "keycode-229", sinceCompositionEnd: since };
-      }
-      if (since !== null && since < graceMs) {
-        return { imeOwned: true, reason: "post-composition-window", sinceCompositionEnd: since };
-      }
-      return { imeOwned: false, reason: "none", sinceCompositionEnd: since };
-    },
+    (event: KeyLike): GuardDecision =>
+      inspectImeEvent(state.current, event, performance.now(), graceMs),
     [graceMs]
   );
 
   const reset = useCallback(() => {
-    composing.current = false;
-    endedAt.current = null;
+    state.current = { composing: false, endedAt: null };
   }, []);
 
   return { onCompositionStart, onCompositionEnd, inspect, reset };

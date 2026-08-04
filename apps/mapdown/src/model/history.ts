@@ -102,18 +102,6 @@ export function dispatch(
   };
 }
 
-/**
- * Applies a command without recording history.
- *
- * The use case §8.4 describes: a newly created empty node that the user cancels should leave no
- * trace. The creation is dispatched normally; cancelling calls `dropLastEntry`, which removes
- * the entry *and* the node in one step, so undo does not resurrect a node the user abandoned.
- */
-export function applyWithoutHistory(state: EditorHistory, command: Command): EditorHistory {
-  const result = applyCommand(state.doc, command);
-  return { ...state, doc: result.doc, selection: result.selection };
-}
-
 /** §8.4 — undo the last entry and forget it ever happened. */
 export function dropLastEntry(state: EditorHistory): EditorHistory {
   const entry = state.past.at(-1);

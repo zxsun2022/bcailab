@@ -17,11 +17,16 @@ no-account acquisition funnel into it. A second product, **Mapdown**, was added 
 a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
 infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
-## Now (nothing scoped — awaiting the owner)
+## Now — Mapdown production MVP
 
-The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see `docs/changelog.md`). **The next
-iteration is not scoped.** Candidates sit in Next below; picking among them is the owner's
-call, not an implementer's.
+The owner authorized Mapdown implementation through the Phase 2 production-MVP exit criteria
+on 2026-08-04. Phase 1 is **in_review** in PR #26; it is not accepted or shipped until the owner
+merges it. Phase 2 continues only in reviewable checkpoints after that base lands. Its acceptance
+criteria are `docs/mapdown/spec/phases.md` §4 plus the scenario matrix in
+`docs/mapdown/spec/testing-acceptance.md`.
+
+The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see
+`docs/changelog.md`).
 
 Two invariants established by that iteration outlive it and apply to anything touching the
 learner surfaces — recorded as [ADR 0006](decisions/0006-learner-surface-invariants.md), with
@@ -39,7 +44,7 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
-- **Mapdown — new product, specification landed 2026-08-01, implementation not scoped.** A
+- **Mapdown — Phase 1 in review; Phase 2 authorized and in progress.** A
   static, local-first, keyboard-first Markdown mind-map editor: the semantic document is an
   ordered tree, the map is a projection of it, and everything exports to standard Markdown, SVG
   and PNG with no account and no server. Three-phase business plan confirmed by the owner:
@@ -49,13 +54,11 @@ returns, so neither needs an IA change.
   deploys as a **second** Cloudflare Pages project to `map.bcailab.com`; it inherits the
   account system but none of the Studio's visual language. The v1.0 specification, the decision
   log and the token-layering rules are in `docs/mapdown/`; start at `docs/mapdown/README.md`,
-  and read `decisions.md` before reopening any settled question. **Entry point is Phase 0**
-  (`docs/mapdown/spec/phases.md`): disposable spikes for Chinese IME inside canvas text editing,
-  variable-size tidy-tree layout, and CJK-safe SVG export — the three places the whole product
-  can fail. A real 科判 outline is the fixture for those spikes, because it is the only material
-  that stresses all three at once (D-12). URL-fragment sharing is approved for after Phase 1,
-  with two constraints that cannot be retrofitted (D-11). Scoping any of this into an iteration
-  is the owner's call, not an implementer's.
+  and read `decisions.md` before reopening any settled question. Phase 0 cleared the three
+  architectural risks; Phase 1's semantic editor is PR #26. Phase 2 is the public-MVP scope in
+  `spec/phases.md` §4. A real 科判 outline remains the regression fixture (D-12).
+  URL-fragment sharing is approved for after Phase 1, with two constraints that cannot be
+  retrofitted (D-11).
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop

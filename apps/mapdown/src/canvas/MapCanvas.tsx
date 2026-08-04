@@ -29,6 +29,7 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
     <g
       onPointerDown={(event) => {
         event.stopPropagation();
+        event.preventDefault();
         onSelect(box.nodeId);
       }}
       style={{ cursor: "default" }}
@@ -61,7 +62,7 @@ const Node = memo(function Node({ box, selected, onSelect, onToggleCollapse }: N
         ))}
       </text>
 
-      {box.directChildCount > 0 && (
+      {box.directChildCount > 0 && box.depth > 0 && (
         <CollapseControl box={box} onToggle={onToggleCollapse} />
       )}
     </g>
@@ -86,6 +87,7 @@ function CollapseControl({ box, onToggle }: { box: NodeBox; onToggle: (id: NodeI
         // Without this the click would fall through to the node and enter selection/editing —
         // `vision.md` §9 lists that exact confusion as a product regression.
         event.stopPropagation();
+        event.preventDefault();
         onToggle(box.nodeId);
       }}
       style={{ cursor: "pointer" }}
@@ -152,7 +154,13 @@ export function viewBoxBounds(bounds: LayoutResult["bounds"]) {
   return { minX: cx - spanX / 2, minY: cy - spanY / 2, maxX: cx + spanX / 2, maxY: cy + spanY / 2 };
 }
 
-export function MapCanvas({ layout, selection, onSelect, onSelectNone, onToggleCollapse }: MapCanvasProps) {
+export const MapCanvas = memo(function MapCanvas({
+  layout,
+  selection,
+  onSelect,
+  onSelectNone,
+  onToggleCollapse
+}: MapCanvasProps) {
   const { minX, minY, maxX, maxY } = viewBoxBounds(layout.bounds);
   const viewBox = `${minX} ${minY} ${maxX - minX} ${maxY - minY}`;
 
@@ -161,7 +169,10 @@ export function MapCanvas({ layout, selection, onSelect, onSelectNone, onToggleC
       viewBox={viewBox}
       width="100%"
       height="100%"
-      onPointerDown={onSelectNone}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        onSelectNone();
+      }}
       style={{ display: "block", touchAction: "none" }}
       role="tree"
       aria-label="Mind map"
@@ -181,4 +192,4 @@ export function MapCanvas({ layout, selection, onSelect, onSelectNone, onToggleC
       ))}
     </svg>
   );
-}
+});
