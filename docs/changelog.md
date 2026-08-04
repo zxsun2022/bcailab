@@ -15,10 +15,12 @@ make the final transition; see `AGENTS.md`.
   cancellation silently removed the label that Enter had just committed. Editing sessions are
   now synchronously consumed once. The canvas also lays out the visible draft while typing, so
   the textarea, SVG node and connectors resize and reflow together without adding per-character
-  undo entries. Evidence: two new regression tests, 441/441 repository tests, clean Mapdown
-  typecheck/build, and a real-browser reproduction showing a long root grow from about 95×39px
-  to 248×109px, then remain intact after Enter and leaving the empty next node. Only the owner
-  may mark this checkpoint accepted/shipped.
+  undo entries. Double-click now enters editing with the caret after the existing label, while
+  `F2` keeps the select-all replacement behavior. Evidence: two new regression tests, 441/441
+  repository tests, clean Mapdown typecheck/build, and real-browser reproductions showing a
+  long root grow from about 95×39px to 248×109px, remain intact after Enter and leaving the empty
+  next node, and accept appended text after a double-click. Only the owner may mark this
+  checkpoint accepted/shipped.
 
 - 2026-08-04 — **in_review: Mapdown visual-polish checkpoint.** Replaced fifteen equal-weight
   toolbar controls with seven top-level actions and grouped Arrange, View, Style and File

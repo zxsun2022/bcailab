@@ -33,7 +33,8 @@ The owner additionally authorized two Mapdown stabilization checkpoints on 2026-
   visible draft; typing must retain one undo group; the textarea, node box and connectors must
   follow the visible draft in real time without creating per-keypress history entries; and
   leaving the empty node created by Enter must remove only that empty node, never the text that
-  Enter just committed.
+  Enter just committed. Double-clicking a node must continue editing at the end of its existing
+  label; `F2` remains the select-all replacement path.
 - **Visual polish — in_review.** Reduce the top-level toolbar to a
   clear 6–7-control information hierarchy without losing commands; establish primary,
   secondary and quiet control styles; replace the unstyled theme picker; distinguish selection

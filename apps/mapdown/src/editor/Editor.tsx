@@ -659,6 +659,24 @@ export function Editor() {
     surfaceRef.current?.focus();
   }, [closeEditing, commitDraft]);
 
+  const editNodeAtEnd = useCallback((id: NodeId) => {
+    const current = historyRef.current;
+    const text = getNode(current.doc, id).text;
+    sessionCounter += 1;
+    const session: EditingState = {
+      nodeId: id,
+      draft: text,
+      originalText: text,
+      // Double-click means continue writing. F2 remains the explicit select-all entry.
+      selectAllOnFocus: false,
+      isNewNode: false,
+      groupId: `edit-${sessionCounter}`
+    };
+    editingRef.current = session;
+    setHistory((state) => ({ ...state, selection: id }));
+    setEditing(session);
+  }, []);
+
   const toggleCollapse = useCallback((id: NodeId) => {
     setHistory((state) =>
       dispatch(state, {
@@ -1322,6 +1340,7 @@ export function Editor() {
           onSize={setCanvasSize}
           selection={selection}
           onSelect={selectNode}
+          onEdit={editNodeAtEnd}
           onSelectNone={selectNone}
           onToggleCollapse={toggleCollapse}
           onReparent={reparentNode}

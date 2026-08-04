@@ -173,9 +173,12 @@ A selected node enters text editing when any of the following occurs:
 
 - the user begins printable text input;
 - the user clicks the text area of the already selected node;
-- the user double-clicks the node text;
+- the user double-clicks the node text, which places the caret after the existing text so typing
+  continues the label rather than replacing it;
 - the user presses `F2`;
 - a node-creation command creates a new node.
+
+`F2` remains the explicit select-all entry for replacing an existing label.
 
 Typing while selected SHOULD replace the existing text only when the typed input is a normal text-producing action and no modifier shortcut is active.
 

@@ -52,6 +52,7 @@ interface NodeProps {
   positionInSet: number;
   setSize: number;
   onSelect: (id: NodeId) => void;
+  onEdit: (id: NodeId) => void;
   onToggleCollapse: (id: NodeId) => void;
   onNodePointerDown: (id: NodeId, event: React.PointerEvent<SVGGElement>) => void;
 }
@@ -64,6 +65,7 @@ const Node = memo(function Node({
   positionInSet,
   setSize,
   onSelect,
+  onEdit,
   onToggleCollapse,
   onNodePointerDown
 }: NodeProps) {
@@ -101,6 +103,11 @@ const Node = memo(function Node({
         event.preventDefault();
         onSelect(box.nodeId);
         onNodePointerDown(box.nodeId, event);
+      }}
+      onDoubleClick={(event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        onEdit(box.nodeId);
       }}
       style={{ cursor: "default", opacity: dragging ? 0.4 : 1 }}
     >
@@ -191,6 +198,12 @@ function CollapseControl({
         // fires after `onToggle` and undoes the surface's own `.focus()` call.
         event.preventDefault();
         onToggle(box.nodeId);
+      }}
+      onDoubleClick={(event) => {
+        // A double-click on the collapse affordance remains a collapse gesture; it must not
+        // bubble to the node and unexpectedly open text editing.
+        event.stopPropagation();
+        event.preventDefault();
       }}
       style={{ cursor: "pointer" }}
       role="button"
@@ -443,6 +456,8 @@ export interface MapCanvasProps {
   /** Reported upward so commands like fit and reveal can use the real pixel size. */
   onSize: (size: ViewportSize) => void;
   onSelect: (id: NodeId) => void;
+  /** Double-click edits without replacing the existing label. */
+  onEdit: (id: NodeId) => void;
   onSelectNone: () => void;
   onToggleCollapse: (id: NodeId) => void;
   /** §7.2/§7.3 — the drop, already resolved to a legal `{ parentId, index }` by `resolveDropTarget`. */
@@ -493,6 +508,7 @@ export const MapCanvas = memo(function MapCanvas({
   onViewport,
   onSize,
   onSelect,
+  onEdit,
   onSelectNone,
   onToggleCollapse,
   onReparent,
@@ -850,6 +866,7 @@ export const MapCanvas = memo(function MapCanvas({
             positionInSet={siblings.indexOf(id) + 1}
             setSize={siblings.length}
             onSelect={onSelect}
+            onEdit={onEdit}
             onToggleCollapse={onToggleCollapse}
             onNodePointerDown={onNodePointerDown}
           />
