@@ -70,6 +70,7 @@ an inline `> **Amendment (date)**` note at the point of change and a matching re
 |---|---|---|
 | D-08 | `theme.md` §10, §10.1 | Normative — toolbar tokens removed from `ControlTokens` |
 | D-09 | `markdown-format.md` §14.3 | Presentation — rule restated, unchanged |
+| D-16 | `storage-export.md` §5.1 | Normative — active text drafts included in autosave snapshots |
 
 ## 4. Normative product decisions
 

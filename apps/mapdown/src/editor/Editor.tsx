@@ -51,6 +51,7 @@ import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
+import { documentWithDraft } from "./draft-persistence";
 
 /**
  * The editing state machine of `interaction.md`, wired to the model, layout and canvas.
@@ -99,8 +100,14 @@ export function Editor() {
   const helpButtonRef = useRef<HTMLButtonElement>(null);
   const helpInvokerRef = useRef<HTMLElement | null>(null);
   const editingRef = useRef<EditingState | null>(editing);
+  const historyRef = useRef(history);
+  const restoredRef = useRef(restored);
+  const statusRef = useRef(status);
   const guard = useImeGuard();
   editingRef.current = editing;
+  historyRef.current = history;
+  restoredRef.current = restored;
+  statusRef.current = status;
 
   const doc = history.doc;
   const selection = history.selection;
@@ -160,14 +167,43 @@ export function Editor() {
     const instance = createAutosave({ store, onStatus: setStatus });
     autosaveRef.current = instance;
 
-    // §9 — do not rely on unload. visibilitychange is what browsers actually honour.
+    const flushLatest = () => {
+      if (!restoredRef.current) return;
+      const latestHistory = historyRef.current;
+      const snapshotDocument = documentWithDraft(latestHistory.doc, editingRef.current);
+      if (snapshotDocument !== latestHistory.doc) {
+        instance.schedule(snapshotDocument, latestHistory.selection);
+      }
+      void instance.flush();
+    };
+
+    // §9 — visibilitychange is the primary lifecycle signal. pagehide is a best-effort
+    // fallback for navigation and refresh, after continuous debounced saving has already
+    // kept the latest draft close to disk.
     const onHidden = () => {
-      if (document.visibilityState === "hidden") void instance.flush();
+      if (document.visibilityState === "hidden") flushLatest();
+    };
+    const onPageHide = () => {
+      flushLatest();
+    };
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (
+        statusRef.current.kind === "unsaved" ||
+        statusRef.current.kind === "saving" ||
+        statusRef.current.kind === "failed"
+      ) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
     };
     document.addEventListener("visibilitychange", onHidden);
+    window.addEventListener("pagehide", onPageHide);
+    window.addEventListener("beforeunload", onBeforeUnload);
 
     return () => {
       document.removeEventListener("visibilitychange", onHidden);
+      window.removeEventListener("pagehide", onPageHide);
+      window.removeEventListener("beforeunload", onBeforeUnload);
       instance.dispose();
       autosaveRef.current = null;
     };
@@ -209,12 +245,16 @@ export function Editor() {
     };
   }, [store]);
 
-  // §5.1 — every semantic edit schedules a save. Gated on `restored` so the empty starter
-  // document cannot overwrite a real one before recovery has finished reading it.
+  // §5.1 — every semantic edit and every visible text draft schedules a save. The draft is
+  // overlaid only in the snapshot: the live document, layout and undo group stay unchanged.
+  // Gated on `restored` so the empty starter cannot overwrite a real recovery point.
   useEffect(() => {
     if (!restored) return;
-    autosaveRef.current?.schedule(history.doc, history.selection);
-  }, [history.doc, history.selection, restored]);
+    autosaveRef.current?.schedule(
+      documentWithDraft(history.doc, editing),
+      history.selection
+    );
+  }, [history.doc, history.selection, editing, restored]);
 
   /**
    * §12.5 — bring the selection into view by panning as little as possible.

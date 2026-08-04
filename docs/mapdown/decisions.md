@@ -463,6 +463,27 @@ requirement for another reason.
 
 ---
 
+## D-16 — Active text drafts are overlaid into persistence snapshots
+
+**Decided 2026-08-04** after reproducing a production data-loss path.
+
+**Decision.** The active textarea draft remains ephemeral editor state for rendering, layout
+and undo, but autosave derives a snapshot-only document with that draft applied. Typing schedules
+this derived snapshot through the existing 500ms debounce. `visibilitychange` and `pagehide`
+flush the latest draft, and `beforeunload` warns only while a write is unresolved or failed.
+
+**Why.** Previously the autosave effect observed only `history.doc`. A draft entered the document
+only on Enter, Escape, blur or selection change, so refreshing or closing a tab directly after
+typing restored the previous label even while the status said “Saved on this device.” Committing
+each keystroke to history would avoid the storage gap but would also couple typing to document
+revision, layout and undo mechanics.
+
+**Constraint.** The derived snapshot MUST NOT mutate the live document or add history entries.
+An editing session still becomes one undo group when it commits. Recovery is allowed to start
+with an empty undo history, as already permitted by `storage-export.md` §5.3.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

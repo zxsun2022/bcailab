@@ -2,11 +2,12 @@
 
 **Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, and Phase 2
 implementation complete in review. The production build is live; only the owner can mark the
-roadmap checkpoint accepted.
+roadmap checkpoint accepted. A P0 active-draft persistence fix is the current stabilization
+checkpoint.
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
 a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
-semantics. **434 tests.**
+semantics.
 
 **Home:** `apps/mapdown`; deployed by the Git-connected `mapdown` Pages project at
 [map.bcailab.com](https://map.bcailab.com).
@@ -43,7 +44,10 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 16 | Accessibility hardening | ✅ semantic tree order/metadata, live feedback, single canvas tab stop, reduced motion, 44px coarse-pointer targets |
 | 17 | Performance and regression pass | ✅ import limits, lazy CommonMark loading, browser regression pass and [performance baseline](performance.md) |
 
-Phase 2 has no remaining implementation or deployment task. The production checkpoint remains
+The production Pages project, custom domain and repository build-watch paths described by D-03
+are configured. Current stabilization scope and acceptance criteria live in
+[`docs/roadmap.md`](../roadmap.md).
+Phase 2 has no remaining implementation or deployment task; its production checkpoint remains
 `in_review` until the owner accepts it.
 
 ## How this codebase is worked on
