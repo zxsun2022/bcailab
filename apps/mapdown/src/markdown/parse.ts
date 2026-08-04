@@ -1,4 +1,4 @@
-import { unescapeLabel } from "./escape";
+import { Parser as CommonMarkParser, type Node as CommonMarkNode } from "commonmark";
 import {
   SCHEMA_VERSION,
   createNode,
@@ -12,11 +12,16 @@ import {
 /**
  * Markdown import for the documented subset, per `markdown-format.md` §10.
  *
- * Phase 1 needs this to *verify export*: §15's round-trip guarantee is the specification's
- * strongest claim about portability, and it is untestable without a reader. Full import — the
- * CommonMark pipeline, ordered lists, continuation paragraphs, inline-formatting warnings — is
- * Phase 2 scope. What is here handles the canonical form this app writes plus the ordinary
- * hand-written variations (§4.1 markers, §4.2 indentation).
+ * §10.4 requires "a documented CommonMark-compatible parser" for step 4 of the pipeline
+ * (parse Markdown into an AST). This uses `commonmark` — the reference implementation of the
+ * CommonMark spec — to build that AST; everything below it (root/list walking, inline-to-plain
+ * flattening, front matter) is this app's own mapping from that AST to the node tree.
+ *
+ * See `decisions.md` D-14: the hand-written reader this replaced never interpreted inline syntax,
+ * which made its own round-trip tests measure agreement with itself rather than correctness. A
+ * real parser resolves ambiguous indentation and inline escaping per the CommonMark spec, which
+ * is not always the same answer the old regex reader gave — see the depth-jump case in
+ * `markdown.test.ts`, updated here to the spec-correct resolution.
  *
  * §12: import **never** mutates the active document. It returns a new one or fails; the caller
  * decides whether to swap.
@@ -24,7 +29,8 @@ import {
 
 export type WarningCategory =
   | "ordered-list-converted"
-  | "mixed-indentation"
+  | "continuation-merged"
+  | "unsupported-block-removed"
   | "unsupported-front-matter-key"
   | "additional-heading-ignored";
 
@@ -37,9 +43,6 @@ export interface ImportWarning {
 export type ImportResult =
   | { ok: true; doc: MindMapDocument; warnings: ImportWarning[] }
   | { ok: false; error: string; line?: number };
-
-const LIST_ITEM = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
-const EMPTY_LIST_ITEM = /^(\s*)([-*+]|\d+[.)])\s*$/;
 
 interface FrontMatter {
   layout?: "right" | "two-sided";
@@ -109,9 +112,125 @@ function parseFrontMatter(lines: string[]): { data: FrontMatter; warnings: Impor
   return { data, warnings };
 }
 
+/**
+ * Flattens the inline content of a block node (paragraph or heading) to plain text, per §5.
+ *
+ * CommonMark itself resolves backslash escaping during inline parsing, so a backslash-escaped
+ * `\*` never reaches this function as a literal backslash — it is already the character it
+ * escaped. This function's own job is only normalization §5 asks for beyond that: emphasis,
+ * strong, code and link/image wrappers are dropped and their text content kept; soft/hard breaks
+ * become a single space, because a node label is one logical line (§4.4, §9).
+ */
+function flattenInline(block: CommonMarkNode): string {
+  let out = "";
+  const walker = block.walker();
+  let step = walker.next();
+  while (step) {
+    const { node, entering } = step;
+    if (entering && (node.type === "text" || node.type === "code")) {
+      out += node.literal ?? "";
+    } else if (entering && node.type === "html_inline") {
+      // §5 — "text content where safe, otherwise removed with warning". This app never executes
+      // or renders a label as HTML, so keeping the raw text is safe and lossless; there is
+      // nothing here for a warning to protect against.
+      out += node.literal ?? "";
+    } else if (node.type === "softbreak" || node.type === "linebreak") {
+      out += " ";
+    }
+    step = walker.next();
+  }
+  return out;
+}
+
+/** Every direct block child of a node, in document order. */
+function children(node: CommonMarkNode): CommonMarkNode[] {
+  const out: CommonMarkNode[] = [];
+  let child = node.firstChild;
+  while (child) {
+    out.push(child);
+    child = child.next;
+  }
+  return out;
+}
+
+function sourceLine(node: CommonMarkNode, bodyStart: number): number {
+  return bodyStart + (node.sourcepos?.[0]?.[0] ?? 1);
+}
+
+/**
+ * §4.4 — an item's label is every paragraph block it directly contains, concatenated with a
+ * single space (a "loose" list item has more than one, i.e. a continuation paragraph). A nested
+ * list is not concatenated; it becomes child nodes via `convertList`. Anything else — block
+ * quotes, code blocks, thematic breaks, raw HTML blocks — is unsupported block structure (§4.4)
+ * and is dropped with a warning rather than silently folded into the label.
+ */
+function itemLabelAndChildren(
+  item: CommonMarkNode,
+  bodyStart: number,
+  warnings: ImportWarning[]
+): { text: string; lists: CommonMarkNode[] } {
+  const parts: string[] = [];
+  const lists: CommonMarkNode[] = [];
+  const blocks = children(item);
+
+  if (blocks.length > 1) {
+    warnings.push({
+      category: "continuation-merged",
+      line: sourceLine(item, bodyStart),
+      detail: "A continuation paragraph was merged into the node label with a single space."
+    });
+  }
+
+  for (const block of blocks) {
+    switch (block.type) {
+      case "paragraph":
+        parts.push(flattenInline(block));
+        break;
+      case "list":
+        lists.push(block);
+        break;
+      default:
+        warnings.push({
+          category: "unsupported-block-removed",
+          line: sourceLine(block, bodyStart),
+          detail: `A ${block.type.replace("_", " ")} inside a list item is not supported and was removed.`
+        });
+    }
+  }
+
+  return { text: parts.join(" "), lists };
+}
+
+function convertList(
+  list: CommonMarkNode,
+  parentId: NodeId,
+  nodes: Record<NodeId, MindMapNode>,
+  bodyStart: number,
+  warnings: ImportWarning[]
+): void {
+  for (const item of children(list)) {
+    if (item.type !== "item") continue;
+
+    if (list.listType === "ordered") {
+      warnings.push({
+        category: "ordered-list-converted",
+        line: sourceLine(item, bodyStart),
+        detail: "Ordered-list numbering was dropped; the item became an ordinary node."
+      });
+    }
+
+    const { text, lists } = itemLabelAndChildren(item, bodyStart, warnings);
+    const id = newNodeId();
+    nodes[id] = createNode({ id, parentId, text: normalizeText(text) });
+    nodes[parentId]!.childIds.push(id);
+
+    for (const nested of lists) convertList(nested, id, nodes, bodyStart, warnings);
+  }
+}
+
 export function importMarkdown(source: string): ImportResult {
   // §10.1–§10.2 — strip a BOM and normalise line endings before anything else looks at the text.
-  const text = source.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
+  const text = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
   const lines = text.split("\n");
   const warnings: ImportWarning[] = [];
 
@@ -137,10 +256,16 @@ export function importMarkdown(source: string): ImportResult {
     };
   }
 
+  // §10.4 — step 4 of the pipeline: parse the body into an AST with a documented
+  // CommonMark-compatible parser. Everything from here on walks that AST rather than raw lines.
+  const body = lines.slice(bodyStart).join("\n");
+  const ast = new CommonMarkParser().parse(body);
+  const topLevel = children(ast);
+
   // §3.1 — the root comes from the first level-1 heading. `#` alone is a valid empty root
-  // (§3.3), so the space after the marker is optional.
-  const firstHeading = lines.findIndex((line, i) => i >= bodyStart && /^#(\s|$)/.test(line));
-  if (firstHeading === -1) {
+  // (§3.3), so a heading with no inline content is fine.
+  const rootIndex = topLevel.findIndex((node) => node.type === "heading" && node.level === 1);
+  if (rootIndex === -1) {
     return {
       ok: false,
       error: "No level-1 heading found. A document needs exactly one `# ` heading for its root."
@@ -148,71 +273,31 @@ export function importMarkdown(source: string): ImportResult {
   }
 
   // §3.2 — additional level-1 headings are reported, never silently turned into extra roots.
-  for (let i = firstHeading + 1; i < lines.length; i++) {
-    if (/^#(\s|$)/.test(lines[i]!)) {
+  for (let i = rootIndex + 1; i < topLevel.length; i++) {
+    const node = topLevel[i]!;
+    if (node.type === "heading" && node.level === 1) {
       warnings.push({
         category: "additional-heading-ignored",
-        line: i + 1,
+        line: sourceLine(node, bodyStart),
         detail: "Only the first level-1 heading becomes the root; this heading was ignored."
       });
     }
   }
 
-  const rootText = normalizeText(unescapeLabel(lines[firstHeading]!.replace(/^#\s*/, "")));
+  const rootHeading = topLevel[rootIndex]!;
+  const rootText = normalizeText(flattenInline(rootHeading));
   const rootId = newNodeId();
   const nodes: Record<NodeId, MindMapNode> = {
     [rootId]: createNode({ id: rootId, text: rootText })
   };
 
-  // stack[level] is the node most recently seen at that indentation level.
-  const stack: NodeId[] = [rootId];
-  const indentWidths = new Set<number>();
-
-  for (let i = firstHeading + 1; i < lines.length; i++) {
-    const raw = lines[i]!;
-    if (raw.trim() === "" || /^#(\s|$)/.test(raw)) continue;
-
-    const match = LIST_ITEM.exec(raw) ?? EMPTY_LIST_ITEM.exec(raw);
-    if (!match) continue;
-
-    const indent = (match[1] ?? "").replace(/\t/g, "  ");
-    const marker = match[2] ?? "-";
-    const body = match[3] ?? "";
-
-    if (/^\d/.test(marker)) {
-      warnings.push({
-        category: "ordered-list-converted",
-        line: i + 1,
-        detail: "Ordered-list numbering was dropped; the item became an ordinary node."
-      });
-    }
-    if (indent.length > 0) indentWidths.add(indent.length);
-
-    // §4.3 — a depth jump does not invent intermediate nodes. The level is clamped to one
-    // deeper than the deepest node so far, which is what a CommonMark parser resolves to.
-    const unit = smallestIndentUnit(indentWidths);
-    const rawLevel = Math.floor(indent.length / unit) + 1;
-    const level = Math.min(rawLevel, stack.length);
-
-    const parentId = stack[level - 1] ?? rootId;
-    const id = newNodeId();
-    nodes[id] = createNode({ id, parentId, text: normalizeText(unescapeLabel(body)) });
-    nodes[parentId]!.childIds.push(id);
-    stack[level] = id;
-    stack.length = level + 1;
-  }
-
-  // §4.2 — indentation that mixes widths is normalised, and the user is told.
-  if (indentWidths.size > 1) {
-    const widths = [...indentWidths].sort((a, b) => a - b);
-    const unit = widths[0]!;
-    if (widths.some((w) => w % unit !== 0)) {
-      warnings.push({
-        category: "mixed-indentation",
-        line: 0,
-        detail: `Mixed indentation widths (${widths.join(", ")}) were normalised by nesting depth.`
-      });
-    }
+  // Every top-level list after the root heading becomes root children, in document order.
+  // Content of any other block type (a stray paragraph, a block quote, a second heading level
+  // that is not level-1) is not part of this format's mapping and is silently ignored, matching
+  // the pre-D-14 reader's behaviour for any line that was not a list item.
+  for (let i = rootIndex + 1; i < topLevel.length; i++) {
+    const node = topLevel[i]!;
+    if (node.type === "list") convertList(node, rootId, nodes, bodyStart, warnings);
   }
 
   // §10.12 — first-level nodes get a side; deeper nodes must not have one.
@@ -233,9 +318,4 @@ export function importMarkdown(source: string): ImportResult {
   };
 
   return { ok: true, doc, warnings };
-}
-
-function smallestIndentUnit(widths: Set<number>): number {
-  if (widths.size === 0) return 2;
-  return Math.min(...widths);
 }

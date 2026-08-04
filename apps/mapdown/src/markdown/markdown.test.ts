@@ -249,13 +249,18 @@ describe("import of hand-written variations (§4, §17)", () => {
   });
 
   it("does not invent intermediate nodes for a depth jump (§4.3)", () => {
+    // §4.3: "the parser SHOULD normalize B as a child of A if the Markdown parser already
+    // resolves it that way. It MUST NOT invent unnamed intermediate nodes." Six spaces of indent
+    // is not enough for CommonMark to open a new nested list here — it is lazy continuation of
+    // A's paragraph — so the spec-correct resolution is a merged label, not an invented child.
+    // This is D-14 in effect: the hand-written reader this replaced invented a nested "B" node
+    // from indentation alone, which a real CommonMark parser does not do.
     const result = importMarkdown("# Root\n\n- A\n      - B\n");
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(shape(result.doc)).toEqual([
       { text: "Root", depth: 0 },
-      { text: "A", depth: 1 },
-      { text: "B", depth: 2 }
+      { text: "A - B", depth: 1 }
     ]);
   });
 

@@ -393,6 +393,35 @@ the real contract.
 escaping and confirm the round-trip tests go red. If they stay green, the new parser is not
 being exercised either.
 
+> **Resolved 2026-08-03.** `markdown/parse.ts` now parses the document body with `commonmark`
+> (0.31.2, the reference implementation), walking its AST instead of matching lines against
+> hand-written regexes. Front matter parsing is unchanged — it was never CommonMark's job, and
+> §7.2's anti-YAML reasoning still applies to it.
+>
+> **The mutation was re-run.** Disabling `escapeLabel` now turns **21 of 63** markdown tests red
+> (previously: 0 of 202). The parser is genuinely being exercised.
+>
+> **One test changed, not regressed.** `- A\n      - B` (six-space indent) no longer produces a
+> nested `B` under `A`. Real CommonMark resolves six spaces of indent here as lazy continuation of
+> A's paragraph, not a new nested list — §4.3 only asks for a child node "if the Markdown parser
+> already resolves it that way," and a real parser does not. The old hand-written reader invented
+> that nested node from indentation alone; this is D-14's own premise showing up in a test, not a
+> new defect. Updated in `markdown.test.ts` with the CommonMark reasoning inline.
+>
+> **Escaping still works the same way, for a different reason.** `escapeLabel`/`unescapeLabel`
+> (`escape.ts`) are unchanged and still used on export. On import, `unescapeLabel` is no longer
+> called — CommonMark performs backslash-escape resolution itself as part of inline parsing, so a
+> label serialised as `\*emphasis\*` comes back already unescaped from the AST's text nodes.
+> Calling `unescapeLabel` again on that output would be a harmless no-op (nothing left to
+> unescape), so it was simply removed rather than kept as dead-but-safe code.
+>
+> **One category dropped, two added.** `mixed-indentation` is gone: the old reader tracked raw
+> indent widths itself to flag mismatches, but a real CommonMark parser resolves indentation
+> structurally through its own AST nesting, and there was never a test pinning this category's
+> behaviour. Added `continuation-merged` and `unsupported-block-removed`, both named in
+> `markdown-format.md` §11's warning list but not reachable through the old line-based reader,
+> which had no concept of "another block inside a list item."
+
 ---
 
 ## D-15 — The editing surface is an overlaid textarea

@@ -26,7 +26,7 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 5 | History | ✅ `src/model/history.ts` |
 | 6 | Collapse visible projection | ✅ |
 | 7 | Local save and recovery | ✅ `src/storage/` |
-| 8 | Markdown import/export | ✅ `src/markdown/` — but see D-14 |
+| 8 | Markdown import/export | ✅ `src/markdown/` — real CommonMark parser landed, D-14 |
 | 9 | Two-sided sticky branches | ✅ |
 | 10 | **Drag/drop and accessible move commands** | ❌ not started |
 | 11 | Pan / zoom / fit | ✅ `src/canvas/viewport.ts` |
@@ -37,10 +37,8 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 16 | **Accessibility hardening** | ❌ not started |
 | 17 | **Performance and regression pass** | ❌ not started |
 
-Also outstanding for Phase 2: **swap in a real CommonMark parser** (D-14 — it carries a
-specific instruction for whoever does it), and **create the Cloudflare Pages project** (D-03
-has the exact settings, including the build watch paths that stop every push triggering two
-builds).
+Also outstanding for Phase 2: **create the Cloudflare Pages project** (D-03 has the exact
+settings, including the build watch paths that stop every push triggering two builds).
 
 ## How this codebase is worked on
 
