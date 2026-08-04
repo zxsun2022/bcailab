@@ -1,4 +1,9 @@
-import { layout, type LayoutResult, type NodeBox } from "../layout/layout";
+import {
+  layout,
+  layoutOptionsForTheme,
+  type LayoutResult,
+  type NodeBox
+} from "../layout/layout";
 import { escapeXml } from "./xml";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
 import { themeById } from "../theme/presets";
@@ -100,7 +105,7 @@ export function exportSvg(
   precomputed?: LayoutResult
 ): SvgExport {
   const theme = themeById(doc.theme.themeId);
-  const result = precomputed ?? layout(doc);
+  const result = precomputed ?? layout(doc, layoutOptionsForTheme(theme));
   const padding = options.padding ?? 32;
 
   // §12.2 — bounds include the collapse badge, or a collapsed branch on the outer edge would

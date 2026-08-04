@@ -1,5 +1,6 @@
 import { measureNode, type Typography } from "./measure";
 import { getNode, type BranchSide, type MindMapDocument, type NodeId } from "../model/types";
+import type { MindMapTheme } from "../theme/types";
 
 /**
  * Right-only automatic layout, per `layout-engine.md` §6 and §8.
@@ -77,8 +78,42 @@ export interface LayoutResult {
 }
 
 export interface LayoutOptions {
-  typography?: Typography;
+  typography?: Typography | ((depth: number) => Typography);
   spacing?: LayoutSpacing;
+}
+
+/** Keep measurement and rendered theme roles on the same font, padding and spacing contract. */
+export function layoutOptionsForTheme(theme: MindMapTheme): LayoutOptions {
+  return {
+    typography: (depth) => {
+      const role =
+        depth === 0 ? theme.nodes.root : depth === 1 ? theme.nodes.level1 : theme.nodes.default;
+      return {
+        fontSize:
+          depth === 0
+            ? theme.typography.rootFontSize
+            : depth === 1
+              ? theme.typography.level1FontSize
+              : theme.typography.nodeFontSize,
+        fontWeight:
+          depth === 0
+            ? theme.typography.rootFontWeight
+            : depth === 1
+              ? theme.typography.level1FontWeight
+              : theme.typography.nodeFontWeight,
+        lineHeight: theme.typography.lineHeight,
+        maxWidth: role.maxWidth,
+        paddingX: role.paddingX,
+        paddingY: role.paddingY
+      };
+    },
+    spacing: {
+      horizontalGap: theme.layout.parentChildGap,
+      siblingGap: theme.layout.siblingGap,
+      subtreeGap: theme.layout.subtreeGap,
+      collapseLane: theme.layout.collapseLane
+    }
+  };
 }
 
 interface Measured {
@@ -153,16 +188,17 @@ export function chooseSideForNewBranch(
 /** Pass 1 — §8 measure. */
 function measureTree(
   doc: MindMapDocument,
-  typography: Typography,
+  typography: Typography | ((depth: number) => Typography),
   spacing: LayoutSpacing
 ): Record<NodeId, Measured> {
   const out: Record<NodeId, Measured> = {};
 
-  const visit = (id: NodeId): Measured => {
+  const visit = (id: NodeId, depth: number): Measured => {
     const node = getNode(doc, id);
-    const { width, height, lines } = measureNode(node.text, typography);
+    const roleTypography = typeof typography === "function" ? typography(depth) : typography;
+    const { width, height, lines } = measureNode(node.text, roleTypography);
     const childIds = layoutChildren(doc, id);
-    for (const childId of childIds) visit(childId);
+    for (const childId of childIds) visit(childId, depth + 1);
 
     const block = childBlockHeight(doc, childIds, out, spacing);
     // §6.2 — a subtree is as tall as the taller of the node itself and its children's block.
@@ -171,7 +207,7 @@ function measureTree(
     return measured;
   };
 
-  visit(doc.rootId);
+  visit(doc.rootId, 0);
   return out;
 }
 

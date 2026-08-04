@@ -2,8 +2,8 @@
 
 **Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, and Phase 2
 implementation complete in review. The production build is live; only the owner can mark the
-roadmap checkpoint accepted. A P0 active-draft persistence fix is the current stabilization
-checkpoint.
+roadmap checkpoint accepted. The P0 active-draft persistence and visual-polish stabilization
+checkpoints are also in owner review. **439 tests.**
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
 a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
@@ -49,6 +49,10 @@ are configured. Current stabilization scope and acceptance criteria live in
 [`docs/roadmap.md`](../roadmap.md).
 Phase 2 has no remaining implementation or deployment task; its production checkpoint remains
 `in_review` until the owner accepts it.
+
+The latest code and visual findings, including what was fixed and which observations remain
+unauthorized, are in
+[`reviews/2026-08-04-code-and-visual-review.md`](reviews/2026-08-04-code-and-visual-review.md).
 
 ## How this codebase is worked on
 

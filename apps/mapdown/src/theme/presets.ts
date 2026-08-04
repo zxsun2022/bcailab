@@ -46,7 +46,7 @@ export const MINIMAL_LIGHT: MindMapTheme = {
     default: node({ background: "#ffffff", text: "#1c1e21", border: "#d8dce1" }),
     emptyPlaceholderText: "Untitled"
   },
-  connectors: { width: 1.4, rootWidth: 1.8, opacity: 1, defaultColor: "#b9bec6" },
+  connectors: { width: 1.5, rootWidth: 2, opacity: 1, defaultColor: "#aab0b8" },
   // Muted, so the map reads as content-first (§12.1). Deliberately no blue near the chrome
   // accent — see C-01 in docs/mapdown/design-tokens.md.
   branches: {
@@ -57,7 +57,7 @@ export const MINIMAL_LIGHT: MindMapTheme = {
     collapseBackground: "#ffffff",
     collapseText: "#61666d",
     collapseBorder: "#c8ccd1",
-    collapseSize: 14,
+    collapseSize: 16,
     collapseFontSize: 9
   },
   interaction: {
@@ -86,7 +86,7 @@ export const SOFT_BRANCHES: MindMapTheme = {
     default: node({ background: "#ffffff", text: "#2b2a27", border: "#e6e2da", radius: 10 }),
     emptyPlaceholderText: "Untitled"
   },
-  connectors: { width: 1.6, rootWidth: 2, opacity: 1, defaultColor: "#c9c2b6" },
+  connectors: { width: 1.7, rootWidth: 2.1, opacity: 1, defaultColor: "#b8b0a4" },
   // §8.3 — saturated enough to tell apart, but never used behind text, so contrast is the
   // node background's job rather than the palette's.
   branches: {
@@ -97,7 +97,7 @@ export const SOFT_BRANCHES: MindMapTheme = {
     collapseBackground: "#ffffff",
     collapseText: "#6b665c",
     collapseBorder: "#ded9d0",
-    collapseSize: 14,
+    collapseSize: 16,
     collapseFontSize: 9
   },
   interaction: {
@@ -127,7 +127,7 @@ export const BUSINESS: MindMapTheme = {
     default: node({ background: "#ffffff", text: "#12263f", border: "#c3d0e0", radius: 3 }),
     emptyPlaceholderText: "Untitled"
   },
-  connectors: { width: 1.2, rootWidth: 1.6, opacity: 1, defaultColor: "#a9bdd4" },
+  connectors: { width: 1.4, rootWidth: 1.8, opacity: 1, defaultColor: "#93abc4" },
   branches: {
     // Deliberately excludes the root fill (#1f3a5f) and the level-1 border: a branch colour
     // that is also a node colour makes a connector look like part of a box.
@@ -138,7 +138,7 @@ export const BUSINESS: MindMapTheme = {
     collapseBackground: "#ffffff",
     collapseText: "#3d6188",
     collapseBorder: "#a9bdd4",
-    collapseSize: 14,
+    collapseSize: 16,
     collapseFontSize: 9
   },
   interaction: {
@@ -168,7 +168,7 @@ export const DARK: MindMapTheme = {
     default: node({ background: "#1f2226", text: "#e8eaed", border: "#33383f" }),
     emptyPlaceholderText: "Untitled"
   },
-  connectors: { width: 1.4, rootWidth: 1.8, opacity: 1, defaultColor: "#4a5058" },
+  connectors: { width: 1.5, rootWidth: 2, opacity: 1, defaultColor: "#5c636d" },
   branches: {
     colors: ["#e0836a", "#e0b96a", "#9ac97a", "#6ac9bd", "#7a9fe0", "#b58ae0", "#e08ab5"],
     descendantTintPolicy: "same"
@@ -177,7 +177,7 @@ export const DARK: MindMapTheme = {
     collapseBackground: "#24272c",
     collapseText: "#9aa0a8",
     collapseBorder: "#3a3f46",
-    collapseSize: 14,
+    collapseSize: 16,
     collapseFontSize: 9
   },
   interaction: {
