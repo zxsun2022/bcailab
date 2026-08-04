@@ -20,9 +20,9 @@ infrastructure and eventually its accounts, but branded and styled independently
 ## Now — Mapdown production MVP
 
 The owner authorized Mapdown implementation through the Phase 2 production-MVP exit criteria
-on 2026-08-04. Phase 1 is **in_review** in PR #26; it is not accepted or shipped until the owner
-merges it. Phase 2 continues only in reviewable checkpoints after that base lands. Its acceptance
-criteria are `docs/mapdown/spec/phases.md` §4 plus the scenario matrix in
+on 2026-08-04. Phase 1 merged in PR #26; Phase 2 implementation and deployment are complete
+and **in_review**, not accepted until the owner makes that transition. Its acceptance criteria
+are `docs/mapdown/spec/phases.md` §4 plus the scenario matrix in
 `docs/mapdown/spec/testing-acceptance.md`.
 
 The owner additionally authorized two Mapdown stabilization checkpoints on 2026-08-04:
@@ -58,15 +58,16 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
-- **Mapdown — Phase 1 merged, Phase 2 in progress.** A static, local-first, keyboard-first
-  Markdown mind-map editor at `apps/mapdown`, deploying to `map.bcailab.com`. The editor works:
+- **Mapdown — production MVP in review.** A static, local-first, keyboard-first
+  Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:
   keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
   Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit,
   searchable Help/Command Center, and accessible tree semantics.
-  **Progress table and current stabilization work: `docs/mapdown/README.md`.** The dedicated
-  Cloudflare Pages project and `map.bcailab.com` production domain are live.
-  Read `docs/mapdown/decisions.md` before
-  reopening any settled question — it has sixteen records, several of which correct an earlier
+  All seventeen implementation steps and D-03 deployment are complete with evidence in
+  `docs/mapdown/README.md` and `docs/changelog.md`; owner acceptance is the remaining roadmap
+  transition, while the authorized stabilization checkpoints above continue separately. Read
+  `docs/mapdown/decisions.md` before reopening any settled question — it has sixteen records,
+  several of which correct an earlier
   mistake of mine and say so.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either

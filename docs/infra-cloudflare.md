@@ -13,9 +13,24 @@ only picks up a `functions/` dir relative to the configured root.
 | Root directory | `apps/web` |
 | Build command | `cd ../.. && pnpm install --frozen-lockfile && pnpm --filter web build` |
 | Build output directory | `build/client` |
+| Build watch include paths | `apps/web/*`, `packages/*` |
 
 The `cd ../..` is required because `pnpm install` must run from the monorepo
 root to resolve workspace dependencies (`@bcailab/*`).
+
+Mapdown is a second Git-connected Pages project:
+
+| Setting | Value |
+|---------|-------|
+| Project | `mapdown` |
+| Production URL | `https://map.bcailab.com` |
+| Root directory | `apps/mapdown` |
+| Build command | `cd ../.. && pnpm install --frozen-lockfile && pnpm --filter mapdown build` |
+| Build output directory | `dist` |
+| Build watch include paths | `apps/mapdown/*`, `packages/*` |
+
+Both projects must retain their narrowed watch paths; otherwise every monorepo push triggers
+two Pages builds.
 
 Redirects for canonical URLs are managed in `apps/web/public/_redirects`.
 Cloudflare Pages applies these at the edge before the request reaches Remix.

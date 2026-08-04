@@ -1,14 +1,16 @@
 # Mapdown
 
-**Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, Phase 2 delivered and
-in owner review. A P0 active-draft persistence fix is the current stabilization checkpoint.
+**Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, and Phase 2
+implementation complete in review. The production build is live; only the owner can mark the
+roadmap checkpoint accepted. A P0 active-draft persistence fix is the current stabilization
+checkpoint.
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
 a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
 semantics.
 
-**Home:** `apps/mapdown`; production: [map.bcailab.com](https://map.bcailab.com), deployed by
-the dedicated Cloudflare Pages project.
+**Home:** `apps/mapdown`; deployed by the Git-connected `mapdown` Pages project at
+[map.bcailab.com](https://map.bcailab.com).
 
 ```bash
 pnpm --filter mapdown dev      # http://localhost:5174
@@ -45,6 +47,8 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 The production Pages project, custom domain and repository build-watch paths described by D-03
 are configured. Current stabilization scope and acceptance criteria live in
 [`docs/roadmap.md`](../roadmap.md).
+Phase 2 has no remaining implementation or deployment task; its production checkpoint remains
+`in_review` until the owner accepts it.
 
 ## How this codebase is worked on
 
