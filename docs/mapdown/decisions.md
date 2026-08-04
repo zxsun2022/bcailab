@@ -69,6 +69,11 @@ repository, with `map.bcailab.com` as its custom domain.
 | Build output directory | `dist` |
 | Build watch paths | include `apps/mapdown/*`, `packages/*` |
 
+> **Implementation note (2026-08-04).** `apps/mapdown/wrangler.toml` must retain
+> `pages_build_output_dir = "dist"`. Without an app-local config, the monorepo build command
+> discovers the repository-root Wrangler config for the main web project and rejects its
+> `apps/web/build/client` output as outside Mapdown's configured root.
+
 **Why.** This is forced, not chosen: the existing Pages project sets its root directory to
 `apps/web` (see `docs/infra-cloudflare.md`), so it cannot see or build a sibling app. Two
 projects from one repository is a supported Cloudflare configuration.

@@ -24,9 +24,15 @@ traffic: `307` (temporary) or `308` (permanent). Many clients will change the
 method to `GET` on `301/302`, and `303` always forces `GET`, so `308` is used
 here for permanent, method‑preserving canonical redirects.
 
-A `wrangler.toml` exists at **both** the repo root (used by local `wrangler` commands)
-and `apps/web/` (picked up by Pages at deploy time). The D1/R2 bindings are
-identical in both; keep them in sync manually when changing.
+A `wrangler.toml` exists at the repo root (used by local `wrangler` commands), in
+`apps/web/` (picked up by the main Pages project), and in `apps/mapdown/` (picked up by
+the Mapdown Pages project). The root and `apps/web` D1/R2 bindings are identical; keep
+them in sync manually when changing. Mapdown is static and its config deliberately
+contains no bindings.
+
+The app-local Pages configs are required even though output directories are also set in
+the dashboard. A monorepo build command changes to the repository root, where Wrangler
+otherwise discovers the root `pages_build_output_dir` for the wrong app.
 
 ## Setup
 1. Create D1 database:
