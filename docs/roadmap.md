@@ -30,7 +30,10 @@ The owner additionally authorized two Mapdown stabilization checkpoints on 2026-
 - **P0 active-draft persistence — in_review.** Text visible in the editing textarea must be
   included in the debounced local snapshot before the editing session commits; direct refresh
   inside and after the debounce window must restore it; the saved indicator must track the
-  visible draft; typing must retain one undo group and must not trigger per-keypress layout.
+  visible draft; typing must retain one undo group; the textarea, node box and connectors must
+  follow the visible draft in real time without creating per-keypress history entries; and
+  leaving the empty node created by Enter must remove only that empty node, never the text that
+  Enter just committed.
 - **Visual polish — in_review.** Reduce the top-level toolbar to a
   clear 6–7-control information hierarchy without losing commands; establish primary,
   secondary and quiet control styles; replace the unstyled theme picker; distinguish selection

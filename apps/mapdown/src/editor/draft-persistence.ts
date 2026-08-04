@@ -7,12 +7,21 @@ import {
 } from "../model/types";
 
 /**
+ * Claims an editing session synchronously so two focus events from one interaction cannot
+ * commit or cancel it twice before React renders the new state.
+ */
+export function takeEditingSession<T>(active: { current: T | null }): T | null {
+  const session = active.current;
+  active.current = null;
+  return session;
+}
+
+/**
  * The editable textarea deliberately keeps its draft outside the semantic document so typing
- * does not recompute layout or create one undo entry per keypress. Persistence is different:
- * an autosave snapshot must include the latest visible text even before the editing session is
- * committed.
+ * does not create one undo entry per keypress. Live layout and persistence are different: both
+ * need the latest visible text even before the editing session is committed.
  *
- * This creates a snapshot-only document. It never mutates the live document or editor history.
+ * This creates a derived document. It never mutates the committed document or editor history.
  */
 export function documentWithDraft(
   document: MindMapDocument,

@@ -463,24 +463,31 @@ requirement for another reason.
 
 ---
 
-## D-16 — Active text drafts are overlaid into persistence snapshots
+## D-16 — Active text drafts are overlaid into live derived documents
 
-**Decided 2026-08-04** after reproducing a production data-loss path.
+**Decided 2026-08-04** after reproducing a production data-loss path. **Amended 2026-08-04**
+after the owner reported that fixed node geometry during typing made long-label editing feel
+broken.
 
-**Decision.** The active textarea draft remains ephemeral editor state for rendering, layout
-and undo, but autosave derives a snapshot-only document with that draft applied. Typing schedules
-this derived snapshot through the existing 500ms debounce. `visibilitychange` and `pagehide`
-flush the latest draft, and `beforeunload` warns only while a write is unresolved or failed.
+**Decision.** The active textarea draft remains ephemeral editor state for undo, but both live
+layout and autosave derive a document with that draft applied. The live derivation keeps the
+textarea, SVG node and connectors on the same measured geometry while the user types. The
+autosave derivation schedules through the existing 500ms debounce; `visibilitychange` and
+`pagehide` flush the latest draft, and `beforeunload` warns only while a write is unresolved or
+failed.
 
 **Why.** Previously the autosave effect observed only `history.doc`. A draft entered the document
 only on Enter, Escape, blur or selection change, so refreshing or closing a tab directly after
 typing restored the previous label even while the status said “Saved on this device.” Committing
-each keystroke to history would avoid the storage gap but would also couple typing to document
-revision, layout and undo mechanics.
+each keystroke to history would avoid the storage gap but would also turn every character into
+an undo entry. A derived live document gives layout the visible text without making it semantic
+history.
 
 **Constraint.** The derived snapshot MUST NOT mutate the live document or add history entries.
-An editing session still becomes one undo group when it commits. Recovery is allowed to start
-with an empty undo history, as already permitted by `storage-export.md` §5.3.
+An editing session still becomes one undo group when it commits. Focus transitions must consume
+that session exactly once: a canvas selection and the textarea blur produced by the same click
+cannot both remove history. Recovery is allowed to start with an empty undo history, as already
+permitted by `storage-export.md` §5.3.
 
 ---
 

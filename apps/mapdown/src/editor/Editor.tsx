@@ -51,7 +51,7 @@ import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
-import { documentWithDraft } from "./draft-persistence";
+import { documentWithDraft, takeEditingSession } from "./draft-persistence";
 import { ToolbarMenu } from "./ToolbarMenu";
 
 /**
@@ -115,11 +115,22 @@ export function Editor() {
   const mode: EditorMode = editing ? "node-editing" : "node-selected";
 
   const theme = useMemo(() => themeById(doc.theme.themeId), [doc.theme.themeId]);
-  // Layout is derived, never state. §19 forbids a full-document rerender per keystroke, and
-  // keeping geometry out of React is the mechanism — this recomputes only when the document
-  // revision changes, and the canvas memoises per node. Measurement consumes the same role
-  // typography the SVG renderer does, so a larger root label cannot overflow its measured box.
-  const result = useMemo(() => layout(doc, layoutOptionsForTheme(theme)), [doc, theme]);
+  // Geometry stays derived rather than entering React state, but it follows the text the user
+  // can currently see. This keeps the textarea, node box and connectors aligned while typing;
+  // history still receives only one grouped RenameNode when the session commits.
+  const previewDoc = useMemo(
+    () => documentWithDraft(doc, editing),
+    [doc, editing?.nodeId, editing?.draft]
+  );
+  const result = useMemo(
+    () => layout(previewDoc, layoutOptionsForTheme(theme)),
+    [previewDoc, theme]
+  );
+
+  const closeEditing = useCallback(() => {
+    editingRef.current = null;
+    setEditing(null);
+  }, []);
 
   // Focus after render, not from inside a handler: the textarea only exists once `editing` has
   // been committed to state, so focusing any earlier finds nothing.
@@ -288,14 +299,14 @@ export function Editor() {
     (nextMode: "help" | "search") => {
       helpInvokerRef.current =
         document.activeElement instanceof HTMLElement ? document.activeElement : helpButtonRef.current;
-      const session = editingRef.current;
+      const session = takeEditingSession(editingRef);
       if (session) {
         setHistory((state) => commitDraft(state, session));
-        setEditing(null);
+        closeEditing();
       }
       setHelpMode(nextMode);
     },
-    [commitDraft]
+    [closeEditing, commitDraft]
   );
 
   const closeHelp = useCallback(() => {
@@ -320,14 +331,15 @@ export function Editor() {
    * its history entry go together so a later undo cannot resurrect it.
    */
   const cancelEdit = useCallback(() => {
-    if (!editing) return;
-    if (editing.isNewNode && editing.draft.trim() === "") {
+    const session = takeEditingSession(editingRef);
+    if (!session) return;
+    if (session.isNewNode && session.draft.trim() === "") {
       setHistory((state) => dropLastEntry(state));
     } else {
-      setHistory((state) => commitDraft(state, editing));
+      setHistory((state) => commitDraft(state, session));
     }
-    setEditing(null);
-  }, [editing, commitDraft]);
+    closeEditing();
+  }, [closeEditing, commitDraft]);
 
   /**
    * Creates a node and immediately opens an editing session on it.
@@ -391,7 +403,7 @@ export function Editor() {
 
       switch (action.type) {
         case "undo":
-          setEditing(null);
+          closeEditing();
           // Draft text deliberately stays outside document/history until the editing session
           // commits. Undoing a changed existing-node draft therefore means abandoning that
           // draft, not undoing the unrelated command immediately before editing began.
@@ -400,7 +412,7 @@ export function Editor() {
           }
           break;
         case "redo":
-          setEditing(null);
+          closeEditing();
           setHistory(redo(history));
           break;
 
@@ -445,18 +457,18 @@ export function Editor() {
           break;
 
         case "clear-selection":
-          setEditing(null);
+          closeEditing();
           setHistory({ ...committed, selection: null });
           break;
 
         case "promote":
           if (selection) setHistory(dispatch(committed, { type: "PromoteNode", nodeId: selection }));
-          setEditing(null);
+          closeEditing();
           break;
 
         case "delete":
           if (selection) setHistory(dispatch(history, { type: "DeleteSubtree", nodeId: selection }));
-          setEditing(null);
+          closeEditing();
           break;
 
         case "toggle-collapse":
@@ -468,12 +480,12 @@ export function Editor() {
                 collapsed: !getNode(doc, selection).collapsed
               })
             );
-            setEditing(null);
+            closeEditing();
           }
           break;
 
         case "navigate":
-          setEditing(null);
+          closeEditing();
           setHistory({ ...committed, selection: action.to });
           break;
 
@@ -481,11 +493,22 @@ export function Editor() {
           if (selection) {
             setHistory(dispatch(committed, { type: "ReorderNode", nodeId: selection, direction: action.direction }));
           }
-          setEditing(null);
+          closeEditing();
           break;
       }
     },
-    [doc, selection, mode, editing, history, result, commitDraft, cancelEdit, createAndEdit]
+    [
+      doc,
+      selection,
+      mode,
+      editing,
+      history,
+      result,
+      closeEditing,
+      commitDraft,
+      cancelEdit,
+      createAndEdit
+    ]
   );
 
   const onGlobalKeyDown = useCallback(
@@ -527,24 +550,27 @@ export function Editor() {
   }, [doc.title]);
 
   const download = useCallback(() => {
-    save(new Blob([exportMarkdown(doc)], { type: "text/markdown;charset=utf-8" }), "md");
-  }, [doc, save]);
+    save(
+      new Blob([exportMarkdown(previewDoc)], { type: "text/markdown;charset=utf-8" }),
+      "md"
+    );
+  }, [previewDoc, save]);
 
   const downloadSvg = useCallback(() => {
     // The layout the canvas is already showing, so the file and the screen cannot disagree.
-    const { svg } = exportSvg(doc, {}, result);
+    const { svg } = exportSvg(previewDoc, {}, result);
     save(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }), "svg");
-  }, [doc, result, save]);
+  }, [previewDoc, result, save]);
 
   const downloadPng = useCallback(async () => {
-    const png = await exportPng(doc, { scale: 2 });
+    const png = await exportPng(previewDoc, { scale: 2 });
     if (!png.ok) {
       setNotice(png.reason);
       return;
     }
     setNotice(scaleReductionMessage(png));
     save(png.dataUrl, "png");
-  }, [doc, save]);
+  }, [previewDoc, save]);
 
   const openMarkdown = useCallback(async (file: File) => {
     if (
@@ -566,7 +592,7 @@ export function Editor() {
       }
       const title = file.name.replace(/\.(md|markdown)$/i, "") || imported.doc.title;
       const nextDoc = { ...imported.doc, title };
-      setEditing(null);
+      closeEditing();
       setHistory(createHistory(nextDoc, nextDoc.rootId));
       setViewport(IDENTITY);
       setNotice(
@@ -583,7 +609,7 @@ export function Editor() {
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, []);
+  }, [closeEditing]);
 
   /**
    * Canvas callbacks stay stable while a textarea draft changes. Without this, every keystroke
@@ -592,10 +618,14 @@ export function Editor() {
    */
   const selectNode = useCallback(
     (id: NodeId) => {
-      const session = editingRef.current;
+      const activeSession = editingRef.current;
+      const session =
+        activeSession && activeSession.nodeId !== id
+          ? takeEditingSession(editingRef)
+          : null;
       setHistory((state) => {
         const committed =
-          session && session.nodeId !== id
+          session
             ? session.isNewNode &&
               session.draft.trim() === "" &&
               getNode(state.doc, session.nodeId).childIds.length === 0
@@ -604,14 +634,14 @@ export function Editor() {
             : state;
         return { ...committed, selection: id };
       });
-      if (session && session.nodeId !== id) setEditing(null);
+      if (session) closeEditing();
       surfaceRef.current?.focus();
     },
-    [commitDraft]
+    [closeEditing, commitDraft]
   );
 
   const selectNone = useCallback(() => {
-    const session = editingRef.current;
+    const session = takeEditingSession(editingRef);
     if (session) {
       setHistory((state) => {
         const committed =
@@ -622,12 +652,12 @@ export function Editor() {
             : commitDraft(state, session);
         return { ...committed, selection: null };
       });
-      setEditing(null);
+      closeEditing();
     } else {
       setHistory((state) => ({ ...state, selection: null }));
     }
     surfaceRef.current?.focus();
-  }, [commitDraft]);
+  }, [closeEditing, commitDraft]);
 
   const toggleCollapse = useCallback((id: NodeId) => {
     setHistory((state) =>
@@ -661,19 +691,19 @@ export function Editor() {
   }, []);
 
   const undoFromUi = useCallback(() => {
-    const session = editingRef.current;
-    setEditing(null);
+    const session = takeEditingSession(editingRef);
+    closeEditing();
     if (!session || session.isNewNode || session.draft === session.originalText) {
       setHistory((state) => undo(state));
     }
     surfaceRef.current?.focus();
-  }, []);
+  }, [closeEditing]);
 
   const redoFromUi = useCallback(() => {
-    setEditing(null);
+    closeEditing();
     setHistory((state) => redo(state));
     surfaceRef.current?.focus();
-  }, []);
+  }, [closeEditing]);
 
   const executeRegisteredCommand = useCallback(
     (id: string) => {
@@ -806,11 +836,12 @@ export function Editor() {
           break;
       }
 
-      setEditing(null);
+      closeEditing();
       requestAnimationFrame(() => surfaceRef.current?.focus());
     },
     [
       canvasSize,
+      closeEditing,
       commitDraft,
       createAndEdit,
       download,
@@ -893,12 +924,13 @@ export function Editor() {
    * viewBox here rather than measured from the DOM, so a reflow cannot leave them disagreeing.
    */
   const editorRect = useMemo(() => {
-    if (!editingBox) return { left: 0, top: 0, width: 0 };
+    if (!editingBox) return { left: 0, top: 0, width: 0, height: 0 };
     const rect = visibleRect(viewport, canvasSize);
     return {
       left: ((editingBox.x - rect.minX) / rect.width) * 100,
       top: ((editingBox.y + editingBox.height / 2 - rect.minY) / rect.height) * 100,
-      width: (editingBox.width / rect.width) * 100
+      width: (editingBox.width / rect.width) * 100,
+      height: (editingBox.height / rect.height) * 100
     };
   }, [editingBox, viewport, canvasSize]);
 
@@ -1282,7 +1314,7 @@ export function Editor() {
         style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
       >
         <MapCanvas
-          doc={doc}
+          doc={previewDoc}
           theme={theme}
           layout={result}
           viewport={viewport}
@@ -1319,7 +1351,8 @@ export function Editor() {
               position: "absolute",
               left: `${editorRect.left}%`,
               top: `${editorRect.top}%`,
-              width: `${editorRect.width}%`
+              width: `${editorRect.width}%`,
+              height: `${editorRect.height}%`
             }}
             rows={1}
           />

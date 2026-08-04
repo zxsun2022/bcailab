@@ -9,6 +9,17 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown live-editing correctness.** Fixed the production path where
+  Enter correctly committed a label and created the next empty node, but clicking away let the
+  canvas selection handler and textarea blur both cancel that empty session; the second
+  cancellation silently removed the label that Enter had just committed. Editing sessions are
+  now synchronously consumed once. The canvas also lays out the visible draft while typing, so
+  the textarea, SVG node and connectors resize and reflow together without adding per-character
+  undo entries. Evidence: two new regression tests, 441/441 repository tests, clean Mapdown
+  typecheck/build, and a real-browser reproduction showing a long root grow from about 95×39px
+  to 248×109px, then remain intact after Enter and leaving the empty next node. Only the owner
+  may mark this checkpoint accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown visual-polish checkpoint.** Replaced fifteen equal-weight
   toolbar controls with seven top-level actions and grouped Arrange, View, Style and File
   popovers; added theme previews, clear action hierarchy, restrained chrome tokens, responsive
