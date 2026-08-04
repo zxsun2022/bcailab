@@ -24,9 +24,12 @@ import {
  * which means redo is just applying the original again and history needs no snapshots of the
  * whole document.
  *
- * Phase 1 implements the commands its scope needs (phases.md §3). Reorder, reparent and side
- * changes arrive with drag-and-drop and two-sided layout in Phase 2; the shape here is built to
- * take them without change.
+ * Phase 1 implemented the commands its scope needed (phases.md §3). `MoveNode` arrived then as
+ * `PromoteNode`'s inverse only, exercised solely across parents. Phase 2 (step 10,
+ * `interaction.md` §7.2–§7.4, `accessibility.md` §9) makes it a first-class command via
+ * `ReorderNode` and `ReparentNode`, which both resolve to it and are the first callers to move a
+ * node within its *own* parent — see the note on `moveNode` for why that case is not the
+ * off-by-one trap it looks like.
  */
 
 export type Command =
@@ -42,6 +45,19 @@ export type Command =
   | { type: "PromoteNode"; nodeId: NodeId }
   | { type: "SetCollapsed"; nodeId: NodeId; collapsed: boolean }
   | { type: "MoveFirstLevelBranchSide"; nodeId: NodeId; side: BranchSide }
+  /**
+   * §7.3 — swap the node with its immediate previous or next sibling. The keyboard/menu
+   * alternative to dragging between sibling positions.
+   */
+  | { type: "ReorderNode"; nodeId: NodeId; direction: "before-previous" | "after-next" }
+  /**
+   * §7.2 — move the node (and its subtree) to become a child of `parentId`. `index` positions it
+   * within the new parent's children; omitted, it defaults to last child, which is §7.2's default
+   * ("unless a more precise insertion indicator is shown") and what drag-and-drop's plain
+   * child-drop-zone uses. A precise drag insertion indicator, or a keyboard/menu command that
+   * targets a specific slot, supplies `index` explicitly.
+   */
+  | { type: "ReparentNode"; nodeId: NodeId; parentId: NodeId; index?: number }
   /** Internal: the inverse of DeleteSubtree. Not reachable from the UI. */
   | {
       type: "RestoreSubtree";
@@ -50,7 +66,15 @@ export type Command =
       parentId: NodeId;
       index: number;
     }
-  /** Internal: the inverse of PromoteNode. */
+  /**
+   * The one primitive every move goes through. `index` is the node's desired index in the
+   * *resulting* `parentId.childIds` — the array after the move, with the node already in it —
+   * not its index in any array before the move. That framing is why the same-parent case (the
+   * node reordering within its own parent, which `ReorderNode` and `ReparentNode` add since
+   * Phase 2; `PromoteNode`'s inverse, the only Phase 1 caller, is always cross-parent) needs no
+   * special-casing: `insertAt` splices into the array with the node already removed, which lands
+   * it at exactly that resulting index regardless of where it used to sit.
+   */
   | { type: "MoveNode"; nodeId: NodeId; parentId: NodeId; index: number; side: BranchSide | null };
 
 export type CommandCategory = "content" | "structure" | "presentation";
@@ -290,6 +314,12 @@ function moveNode(
   nodes[previousParent]!.childIds = nodes[previousParent]!.childIds.filter((id) => id !== nodeId);
   nodes[nodeId]!.parentId = parentId;
   nodes[nodeId]!.side = side;
+  // `index` is the node's desired position in the *resulting* array, same-parent or not:
+  // `insertAt` splices it into that position of the array with the node already removed, which
+  // places it at exactly that index regardless of where it used to sit. No adjustment for the
+  // node's own prior position is needed — or correct, if attempted. (Verified by
+  // `commands.test.ts`'s same-parent reorder/reparent cases, including moving a node past
+  // several siblings in one step.)
   nodes[parentId]!.childIds = insertAt(nodes[parentId]!.childIds, index, nodeId);
   normalizeSides(doc, nodes);
 
@@ -300,6 +330,46 @@ function moveNode(
     selection: nodeId,
     category: "structure"
   };
+}
+
+/**
+ * §7.3 — the keyboard/menu equivalent of dragging a node between sibling positions. Swaps the
+ * node with its immediate previous or next sibling; resolves to `MoveNode` so both paths share
+ * one index calculation.
+ */
+function reorderNode(
+  doc: MindMapDocument,
+  nodeId: NodeId,
+  direction: "before-previous" | "after-next"
+): CommandResult {
+  const node = getNode(doc, nodeId);
+  if (node.parentId === null) throw new Error("The root has no siblings to reorder with (§7.3)");
+  const index = siblingIndex(doc, nodeId);
+  const targetIndex = direction === "before-previous" ? index - 1 : index + 1;
+  const siblingCount = getNode(doc, node.parentId).childIds.length;
+  if (targetIndex < 0 || targetIndex >= siblingCount) {
+    const missing = direction === "before-previous" ? "previous" : "next";
+    throw new Error(`${nodeId} has no ${missing} sibling to reorder with (§7.3)`);
+  }
+  return moveNode(doc, nodeId, node.parentId, targetIndex, node.side);
+}
+
+/**
+ * §7.2 — the keyboard/menu equivalent of dragging a node onto another node's child drop zone.
+ * `index` omitted means last child, matching the drop-zone default; resolves to `MoveNode` so
+ * both paths share one index calculation and one self/descendant guard.
+ */
+function reparentNode(
+  doc: MindMapDocument,
+  nodeId: NodeId,
+  parentId: NodeId,
+  index: number | undefined
+): CommandResult {
+  const target = getNode(doc, parentId);
+  const targetIndex = index ?? target.childIds.length;
+  // §7.4 — deeper than first level, side is not the caller's to set; `moveNode` normalises it to
+  // null unless `parentId` is the root, in which case it assigns a fresh default.
+  return moveNode(doc, nodeId, parentId, targetIndex, null);
 }
 
 /** §7.7 — leaves normalise to expanded, and the root can never collapse. */
@@ -373,6 +443,12 @@ export function applyCommand(doc: MindMapDocument, command: Command): CommandRes
     case "MoveNode":
       result = moveNode(doc, command.nodeId, command.parentId, command.index, command.side);
       break;
+    case "ReorderNode":
+      result = reorderNode(doc, command.nodeId, command.direction);
+      break;
+    case "ReparentNode":
+      result = reparentNode(doc, command.nodeId, command.parentId, command.index);
+      break;
     case "SetCollapsed":
       result = setCollapsed(doc, command.nodeId, command.collapsed);
       break;
@@ -406,4 +482,42 @@ export function canMoveSide(doc: MindMapDocument, nodeId: NodeId): boolean {
 export function canCollapse(doc: MindMapDocument, nodeId: NodeId): boolean {
   const node = doc.nodes[nodeId];
   return !!node && nodeId !== doc.rootId && node.childIds.length > 0;
+}
+
+/** The immediate previous sibling, or null at the start of the list or on the root. */
+export function previousSiblingId(doc: MindMapDocument, nodeId: NodeId): NodeId | null {
+  const node = doc.nodes[nodeId];
+  if (!node || node.parentId === null) return null;
+  const siblings = doc.nodes[node.parentId]!.childIds;
+  return siblings[siblings.indexOf(nodeId) - 1] ?? null;
+}
+
+/** The immediate next sibling, or null at the end of the list or on the root. */
+export function nextSiblingId(doc: MindMapDocument, nodeId: NodeId): NodeId | null {
+  const node = doc.nodes[nodeId];
+  if (!node || node.parentId === null) return null;
+  const siblings = doc.nodes[node.parentId]!.childIds;
+  return siblings[siblings.indexOf(nodeId) + 1] ?? null;
+}
+
+/** §7.3 — whether `ReorderNode` with this direction is legal right now (§17). */
+export function canReorder(
+  doc: MindMapDocument,
+  nodeId: NodeId,
+  direction: "before-previous" | "after-next"
+): boolean {
+  return direction === "before-previous"
+    ? previousSiblingId(doc, nodeId) !== null
+    : nextSiblingId(doc, nodeId) !== null;
+}
+
+/**
+ * §7.2/§9 (accessibility) — whether reparenting `nodeId` under `parentId` is legal right now:
+ * not the root, not into itself, and not into its own descendant.
+ */
+export function canReparent(doc: MindMapDocument, nodeId: NodeId, parentId: NodeId): boolean {
+  if (nodeId === doc.rootId) return false;
+  if (!doc.nodes[nodeId] || !doc.nodes[parentId]) return false;
+  if (parentId === nodeId || isDescendantOf(doc, parentId, nodeId)) return false;
+  return true;
 }
