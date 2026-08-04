@@ -3,7 +3,8 @@
 **Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, Phase 2 in progress.
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
-a real CommonMark parser. **425 tests.**
+a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
+semantics. **434 tests.**
 
 **Home:** `apps/mapdown`; deploys to `map.bcailab.com` (Pages project **not yet created**).
 
@@ -11,6 +12,7 @@ a real CommonMark parser. **425 tests.**
 pnpm --filter mapdown dev      # http://localhost:5174
 pnpm --filter mapdown build    # tsc --noEmit && vite build -> dist/
 pnpm test                      # whole repo, includes apps/mapdown/src/**
+pnpm benchmark:mapdown         # deterministic 100/500/2000-node logic baseline
 ```
 
 Vite + React SPA on **TypeScript 7** (D-04, D-13). No server, no Cloudflare bindings, no
@@ -34,12 +36,13 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 12 | Theme tokens and presets | ✅ `src/theme/` |
 | 13 | SVG export | ✅ `src/export/svg.ts` |
 | 14 | PNG export | ✅ `src/export/png.ts` |
-| 15 | **Help / Command Center** | ❌ not started |
-| 16 | **Accessibility hardening** | ❌ not started |
-| 17 | **Performance and regression pass** | ❌ not started |
+| 15 | Help / Command Center | ✅ generated from the executable command registry; searchable, platform-aware, focus trapped |
+| 16 | Accessibility hardening | ✅ semantic tree order/metadata, live feedback, single canvas tab stop, reduced motion, 44px coarse-pointer targets |
+| 17 | Performance and regression pass | ✅ import limits, lazy CommonMark loading, browser regression pass and [performance baseline](performance.md) |
 
-Also outstanding for Phase 2: **create the Cloudflare Pages project** (D-03 has the exact
-settings, including the build watch paths that stop every push triggering two builds).
+The only remaining Phase 2 delivery task is to **create the Cloudflare Pages project**
+(D-03 has the exact settings, including the build watch paths that stop every push triggering
+two builds).
 
 ## How this codebase is worked on
 

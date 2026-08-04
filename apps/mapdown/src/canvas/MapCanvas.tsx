@@ -1,6 +1,13 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_TYPOGRAPHY, type Connector, type LayoutResult, type NodeBox } from "../layout/layout";
-import { getNode, subtreeIds, type BranchSide, type MindMapDocument, type NodeId } from "../model/types";
+import {
+  getNode,
+  subtreeIds,
+  visibleNodes,
+  type BranchSide,
+  type MindMapDocument,
+  type NodeId
+} from "../model/types";
 import { resolveDropTarget, type DropZone } from "../model/commands";
 import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
@@ -42,6 +49,8 @@ interface NodeProps {
   selected: boolean;
   /** §7.2/§7.3 — dimmed while it is the node being dragged, so the drop indicator reads clearly. */
   dragging: boolean;
+  positionInSet: number;
+  setSize: number;
   onSelect: (id: NodeId) => void;
   onToggleCollapse: (id: NodeId) => void;
   onNodePointerDown: (id: NodeId, event: React.PointerEvent<SVGGElement>) => void;
@@ -52,6 +61,8 @@ const Node = memo(function Node({
   theme,
   selected,
   dragging,
+  positionInSet,
+  setSize,
   onSelect,
   onToggleCollapse,
   onNodePointerDown
@@ -60,9 +71,27 @@ const Node = memo(function Node({
   const { size, weight } = roleTypography(theme, box.depth);
   const { lineHeight } = theme.typography;
   const { paddingX, paddingY } = DEFAULT_TYPOGRAPHY;
+  const accessibleLabel = [
+    box.lines.join(" ").trim() || theme.nodes.emptyPlaceholderText,
+    `level ${box.depth + 1}`,
+    box.depth === 1 ? `${box.side} side` : null,
+    box.directChildCount > 0 ? (box.collapsed ? "collapsed" : "expanded") : "leaf",
+    box.directChildCount > 0
+      ? `${box.directChildCount} direct ${box.directChildCount === 1 ? "child" : "children"}`
+      : null,
+    selected ? "selected" : null
+  ].filter(Boolean).join(", ");
 
   return (
     <g
+      id={`map-node-${box.nodeId}`}
+      role="treeitem"
+      aria-label={accessibleLabel}
+      aria-level={box.depth + 1}
+      aria-selected={selected}
+      aria-expanded={box.directChildCount > 0 ? !box.collapsed : undefined}
+      aria-posinset={positionInSet}
+      aria-setsize={setSize}
       onPointerDown={(event) => {
         event.stopPropagation();
         // The browser's own default action for a mousedown/pointerdown is to move focus to the
@@ -134,9 +163,10 @@ function CollapseControl({
   // the node.
   const cx = box.outwardEdgeX + (box.side === "left" ? -8 : 8);
   const cy = box.y + box.height / 2;
+  const nodeLabel = box.lines.join(" ").trim() || theme.nodes.emptyPlaceholderText;
   const label = box.collapsed
-    ? `Expand branch with ${box.directChildCount} direct ${box.directChildCount === 1 ? "child" : "children"}`
-    : `Collapse branch with ${box.directChildCount} direct ${box.directChildCount === 1 ? "child" : "children"}`;
+    ? `Expand '${nodeLabel}', ${box.directChildCount} direct ${box.directChildCount === 1 ? "child" : "children"}`
+    : `Collapse '${nodeLabel}', ${box.directChildCount} direct ${box.directChildCount === 1 ? "child" : "children"}`;
 
   return (
     <g
@@ -153,6 +183,7 @@ function CollapseControl({
       role="button"
       aria-label={label}
     >
+      <circle cx={cx} cy={cy} r={12} fill="transparent" />
       <circle
         cx={cx}
         cy={cy}
@@ -404,6 +435,7 @@ export interface MapCanvasProps {
   onReparent: (nodeId: NodeId, parentId: NodeId, index: number) => void;
   /** §11.2 — first-level branches may cross the root without changing parent/order. */
   onMoveSide: (nodeId: NodeId, side: BranchSide) => void;
+  onInvalidDrop: () => void;
 }
 
 /** Tracks the element's pixel size, which every viewport calculation needs. */
@@ -450,7 +482,8 @@ export const MapCanvas = memo(function MapCanvas({
   onSelectNone,
   onToggleCollapse,
   onReparent,
-  onMoveSide
+  onMoveSide,
+  onInvalidDrop
 }: MapCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const size = useElementSize(svgRef);
@@ -476,6 +509,10 @@ export const MapCanvas = memo(function MapCanvas({
   const [draggingId, setDraggingId] = useState<NodeId | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
+  const semanticOrder = useMemo(
+    () => visibleNodes(doc).filter((nodeId) => layout.boxes[nodeId] !== undefined),
+    [doc, layout.boxes]
+  );
 
   useEffect(() => onSize(size), [size, onSize]);
 
@@ -488,7 +525,7 @@ export const MapCanvas = memo(function MapCanvas({
    */
   const hitTest = useCallback(
     (docX: number, docY: number): { nodeId: NodeId; zone: DropZone } | null => {
-      for (const nodeId of layout.order) {
+      for (const nodeId of semanticOrder) {
         const box = layout.boxes[nodeId]!;
         if (docX < box.x || docX > box.x + box.width || docY < box.y || docY > box.y + box.height) continue;
         if (nodeId === doc.rootId) return { nodeId, zone: "inside" };
@@ -498,7 +535,7 @@ export const MapCanvas = memo(function MapCanvas({
       }
       return null;
     },
-    [layout, doc.rootId]
+    [layout.boxes, semanticOrder, doc.rootId]
   );
 
   const updateDropPreview = useCallback(
@@ -622,6 +659,8 @@ export const MapCanvas = memo(function MapCanvas({
           preview.index !== undefined
         ) {
           onReparent(state.nodeId, preview.parentId, preview.index);
+        } else if (!preview.valid) {
+          onInvalidDrop();
         }
       }
 
@@ -630,7 +669,7 @@ export const MapCanvas = memo(function MapCanvas({
       setDropPreview(null);
       setDragPoint(null);
     },
-    [onMoveSide, onReparent, stopAutopan]
+    [onInvalidDrop, onMoveSide, onReparent, stopAutopan]
   );
 
   useEffect(() => {
@@ -763,8 +802,8 @@ export const MapCanvas = memo(function MapCanvas({
       onPointerCancel={onPointerCancel}
       onWheel={onWheel}
       style={{ display: "block", touchAction: "none", background: theme.canvas.background }}
-      role="tree"
-      aria-label="Mind map"
+      role="group"
+      aria-label="Mind map drawing"
     >
       {/* Connectors first so nodes paint over them. */}
       {layout.connectors.map((connector) => (
@@ -783,18 +822,25 @@ export const MapCanvas = memo(function MapCanvas({
           }
         />
       ))}
-      {layout.order.map((id) => (
-        <Node
-          key={id}
-          box={layout.boxes[id]!}
-          theme={theme}
-          selected={id === selection}
-          dragging={id === draggingId}
-          onSelect={onSelect}
-          onToggleCollapse={onToggleCollapse}
-          onNodePointerDown={onNodePointerDown}
-        />
-      ))}
+      {semanticOrder.map((id) => {
+        const node = getNode(doc, id);
+        const siblings =
+          node.parentId === null ? [id] : getNode(doc, node.parentId).childIds;
+        return (
+          <Node
+            key={id}
+            box={layout.boxes[id]!}
+            theme={theme}
+            selected={id === selection}
+            dragging={id === draggingId}
+            positionInSet={siblings.indexOf(id) + 1}
+            setSize={siblings.length}
+            onSelect={onSelect}
+            onToggleCollapse={onToggleCollapse}
+            onNodePointerDown={onNodePointerDown}
+          />
+        );
+      })}
       {/* Drawn last so the indicator paints over both nodes and connectors. */}
       {dropPreview?.kind === "node" && layout.boxes[dropPreview.targetId] && (
         <DropIndicator

@@ -9,6 +9,18 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown production interaction gates.** Completes Steps 15–17:
+  a searchable Help/Command Center generated from the executable keymap and command registry;
+  platform-aware shortcuts, disabled-command explanations, focus trapping and restoration;
+  semantic document-order tree items with level, side, expansion and selection metadata;
+  single-tab-stop canvas navigation, live operation feedback, reduced-motion handling and
+  coarse-pointer targets. Markdown opening is atomic, confirms destructive replacement,
+  reports parse warnings, enforces resource limits, and lazy-loads CommonMark so the initial
+  bundle remains 81.55KB gzip. Evidence: 434/434 tests, clean production build, browser
+  keyboard/focus/responsive/accessibility/import checks, and deterministic 100/500/2,000-node
+  performance baselines in `docs/mapdown/performance.md`. Only the owner may mark this
+  checkpoint accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown Phase 2 checkpoint — layout, export, parser and move
   interaction.** Adds sticky two-sided branches, document themes, pan/zoom/fit, SVG/PNG export,
   a real CommonMark parser with a mutation check that proves escaping is parser-visible, and

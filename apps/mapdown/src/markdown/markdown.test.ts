@@ -10,7 +10,7 @@ import {
   type MindMapDocument
 } from "../model/types";
 import { escapeLabel, sanitizeFilename, unescapeLabel } from "./escape";
-import { importMarkdown } from "./parse";
+import { IMPORT_LIMITS, importMarkdown } from "./parse";
 import { exportMarkdown } from "./serialize";
 
 beforeEach(() => resetIdCounterForTests());
@@ -223,6 +223,15 @@ describe("import of hand-written variations (§4, §17)", () => {
     expect(exportMarkdown(result.doc)).toBe("# Root\n\n- A\n  - A1\n");
   });
 
+  it("does not report a continuation warning for an ordinary nested list", () => {
+    const result = importMarkdown("# Root\n\n- Parent\n  - Child\n");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.warnings.map((warning) => warning.category)).not.toContain(
+      "continuation-merged"
+    );
+  });
+
   it("accepts * and + markers", () => {
     const result = importMarkdown("# Root\n\n* A\n+ B\n");
     expect(result.ok).toBe(true);
@@ -325,6 +334,36 @@ describe("import failure leaves the caller free to keep the current document (§
     if (result.ok) {
       expect(result.warnings.map((w) => w.category)).toContain("unsupported-front-matter-key");
     }
+  });
+});
+
+describe("import resource limits (§13)", () => {
+  it("accepts depth 100 and rejects depth 101", () => {
+    const outline = (depth: number) =>
+      `# Root\n\n${Array.from({ length: depth }, (_, index) =>
+        `${"  ".repeat(index)}- Level ${index + 1}`
+      ).join("\n")}\n`;
+
+    expect(importMarkdown(outline(IMPORT_LIMITS.depth)).ok).toBe(true);
+    const tooDeep = importMarkdown(outline(IMPORT_LIMITS.depth + 1));
+    expect(tooDeep.ok).toBe(false);
+    if (!tooDeep.ok) expect(tooDeep.error).toMatch(/maximum depth/i);
+  });
+
+  it("rejects oversized files, node counts, and labels", () => {
+    const tooLarge = importMarkdown(`# Root\n${"x".repeat(IMPORT_LIMITS.bytes)}`);
+    expect(tooLarge.ok).toBe(false);
+    if (!tooLarge.ok) expect(tooLarge.error).toMatch(/5 MB/);
+
+    const tooMany = importMarkdown(
+      `# Root\n\n${Array.from({ length: IMPORT_LIMITS.nodes }, (_, index) => `- Node ${index}`).join("\n")}\n`
+    );
+    expect(tooMany.ok).toBe(false);
+    if (!tooMany.ok) expect(tooMany.error).toMatch(/maximum.*nodes/i);
+
+    const longLabel = importMarkdown(`# ${"字".repeat(IMPORT_LIMITS.labelCodePoints + 1)}\n`);
+    expect(longLabel.ok).toBe(false);
+    if (!longLabel.ok) expect(longLabel.error).toMatch(/root label/i);
   });
 });
 
