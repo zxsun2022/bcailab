@@ -79,6 +79,12 @@ export interface InteractionTokens {
   selectedOutlineWidth: number;
   keyboardFocusRing: string;
   editingOutline: string;
+  /** §7.2/§7.3 drag-and-drop: a valid before/after/inside drop target. */
+  dropIndicator: string;
+  /** theme.md §9 requires an invalid drop to differ by shape/pattern too, not colour alone. */
+  invalidDropIndicator: string;
+  dragPreviewBackground: string;
+  modalBackdrop: string;
 }
 
 export interface ThemeLayoutTokens {

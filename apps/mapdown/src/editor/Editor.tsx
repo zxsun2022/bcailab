@@ -661,6 +661,10 @@ export function Editor() {
             );
             surfaceRef.current?.focus();
           }}
+          onReparent={(id, parentId, index) => {
+            setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: id, parentId, index }));
+            surfaceRef.current?.focus();
+          }}
         />
 
         {/*

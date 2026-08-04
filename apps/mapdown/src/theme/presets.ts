@@ -65,7 +65,11 @@ export const MINIMAL_LIGHT: MindMapTheme = {
     selectedOutline: "#1c1e21",
     selectedOutlineWidth: 2,
     keyboardFocusRing: "#1c1e21",
-    editingOutline: "#1c1e21"
+    editingOutline: "#1c1e21",
+    dropIndicator: "#1c1e21",
+    invalidDropIndicator: "#c0392b",
+    dragPreviewBackground: "rgba(28, 30, 33, 0.08)",
+    modalBackdrop: "rgba(0, 0, 0, 0.4)"
   },
   layout: LAYOUT
 };
@@ -101,7 +105,11 @@ export const SOFT_BRANCHES: MindMapTheme = {
     selectedOutline: "#3c3a36",
     selectedOutlineWidth: 2,
     keyboardFocusRing: "#3c3a36",
-    editingOutline: "#3c3a36"
+    editingOutline: "#3c3a36",
+    dropIndicator: "#3c3a36",
+    invalidDropIndicator: "#b23a2f",
+    dragPreviewBackground: "rgba(60, 58, 54, 0.10)",
+    modalBackdrop: "rgba(0, 0, 0, 0.4)"
   },
   layout: LAYOUT
 };
@@ -138,7 +146,11 @@ export const BUSINESS: MindMapTheme = {
     selectedOutline: "#12263f",
     selectedOutlineWidth: 2,
     keyboardFocusRing: "#12263f",
-    editingOutline: "#12263f"
+    editingOutline: "#12263f",
+    dropIndicator: "#12263f",
+    invalidDropIndicator: "#a83232",
+    dragPreviewBackground: "rgba(18, 38, 63, 0.08)",
+    modalBackdrop: "rgba(0, 0, 0, 0.45)"
   },
   layout: LAYOUT
 };
@@ -173,7 +185,11 @@ export const DARK: MindMapTheme = {
     selectedOutline: "#e8eaed",
     selectedOutlineWidth: 2,
     keyboardFocusRing: "#e8eaed",
-    editingOutline: "#e8eaed"
+    editingOutline: "#e8eaed",
+    dropIndicator: "#e8eaed",
+    invalidDropIndicator: "#e05a5a",
+    dragPreviewBackground: "rgba(232, 234, 237, 0.12)",
+    modalBackdrop: "rgba(0, 0, 0, 0.6)"
   },
   layout: LAYOUT
 };

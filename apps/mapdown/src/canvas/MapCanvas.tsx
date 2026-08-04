@@ -1,7 +1,8 @@
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_TYPOGRAPHY, type Connector, type LayoutResult, type NodeBox } from "../layout/layout";
 import type { MindMapDocument, NodeId } from "../model/types";
-import { pan, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
+import { resolveDropTarget, type DropZone } from "../model/commands";
+import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
 import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
 
@@ -38,11 +39,22 @@ interface NodeProps {
   box: NodeBox;
   theme: MindMapTheme;
   selected: boolean;
+  /** §7.2/§7.3 — dimmed while it is the node being dragged, so the drop indicator reads clearly. */
+  dragging: boolean;
   onSelect: (id: NodeId) => void;
   onToggleCollapse: (id: NodeId) => void;
+  onNodePointerDown: (id: NodeId, event: React.PointerEvent<SVGGElement>) => void;
 }
 
-const Node = memo(function Node({ box, theme, selected, onSelect, onToggleCollapse }: NodeProps) {
+const Node = memo(function Node({
+  box,
+  theme,
+  selected,
+  dragging,
+  onSelect,
+  onToggleCollapse,
+  onNodePointerDown
+}: NodeProps) {
   const tokens = roleTokens(theme, box.depth);
   const { size, weight } = roleTypography(theme, box.depth);
   const { lineHeight } = theme.typography;
@@ -58,8 +70,9 @@ const Node = memo(function Node({ box, theme, selected, onSelect, onToggleCollap
         // own `.focus()` call in `onSelect`. Same reason the toolbar buttons below do this.
         event.preventDefault();
         onSelect(box.nodeId);
+        onNodePointerDown(box.nodeId, event);
       }}
-      style={{ cursor: "default" }}
+      style={{ cursor: "default", opacity: dragging ? 0.4 : 1 }}
     >
       <rect
         x={box.x}
@@ -195,6 +208,44 @@ const Edge = memo(function Edge({
   );
 });
 
+/**
+ * §7.2/§7.3 — the target indicator that "MUST distinguish 'before,' 'after,' and 'inside as
+ * child.'" Before/after is a line at the edge the node will land on; inside is an outline around
+ * the whole box, since that is the shape a new child's parent takes. Interaction tokens per
+ * design-tokens.md §2/§6: excluded from export, defined per document theme so they stay legible
+ * against whichever canvas/node colours that theme picked.
+ */
+function DropIndicator({ box, zone, theme }: { box: NodeBox; zone: DropZone; theme: MindMapTheme }) {
+  const gap = 6;
+  if (zone === "inside") {
+    return (
+      <rect
+        x={box.x - gap}
+        y={box.y - gap}
+        width={box.width + gap * 2}
+        height={box.height + gap * 2}
+        rx={(roleTokens(theme, box.depth).radius ?? 6) + gap}
+        fill="none"
+        stroke={theme.interaction.dropIndicator}
+        strokeWidth={2}
+        strokeDasharray="4 3"
+      />
+    );
+  }
+  const y = zone === "before" ? box.y - gap : box.y + box.height + gap;
+  return (
+    <line
+      x1={box.x}
+      y1={y}
+      x2={box.x + box.width}
+      y2={y}
+      stroke={theme.interaction.dropIndicator}
+      strokeWidth={2.5}
+      strokeLinecap="round"
+    />
+  );
+}
+
 export interface MapCanvasProps {
   doc: MindMapDocument;
   theme: MindMapTheme;
@@ -212,6 +263,8 @@ export interface MapCanvasProps {
   onSelect: (id: NodeId) => void;
   onSelectNone: () => void;
   onToggleCollapse: (id: NodeId) => void;
+  /** §7.2/§7.3 — the drop, already resolved to a legal `{ parentId, index }` by `resolveDropTarget`. */
+  onReparent: (nodeId: NodeId, parentId: NodeId, index: number) => void;
 }
 
 /** Tracks the element's pixel size, which every viewport calculation needs. */
@@ -230,6 +283,13 @@ function useElementSize(ref: React.RefObject<Element | null>): ViewportSize {
   return size;
 }
 
+interface DropPreview {
+  targetId: NodeId;
+  zone: DropZone;
+  parentId: NodeId;
+  index: number;
+}
+
 export function MapCanvas({
   doc,
   theme,
@@ -240,13 +300,49 @@ export function MapCanvas({
   onSize,
   onSelect,
   onSelectNone,
-  onToggleCollapse
+  onToggleCollapse,
+  onReparent
 }: MapCanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const size = useElementSize(svgRef);
   const drag = useRef<{ pointerId: number; x: number; y: number; moved: boolean } | null>(null);
+  /**
+   * A separate gesture from canvas pan, tracked in its own ref for the same reason `drag` is a
+   * ref and not state: a fast pointermove can deliver several events in one React batch, and
+   * only a ref reads back the value written a moment ago rather than the one from render start.
+   */
+  const nodeDrag = useRef<{ pointerId: number; nodeId: NodeId; moved: boolean } | null>(null);
+  const [draggingId, setDraggingId] = useState<NodeId | null>(null);
+  const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
 
   useEffect(() => onSize(size), [size, onSize]);
+
+  /**
+   * §7.2/§7.3 — which node is under a document-space point, and which of its three zones (top
+   * "before", middle "inside", bottom "after") the point falls in. Root is excluded from
+   * before/after: it has no parent, so only "inside" — becoming first-level — is meaningful for
+   * it (matching `resolveDropTarget`'s own guard, so a caller cannot reach a target this rejects
+   * anyway).
+   */
+  const hitTest = useCallback(
+    (docX: number, docY: number): { nodeId: NodeId; zone: DropZone } | null => {
+      for (const nodeId of layout.order) {
+        const box = layout.boxes[nodeId]!;
+        if (docX < box.x || docX > box.x + box.width || docY < box.y || docY > box.y + box.height) continue;
+        if (nodeId === doc.rootId) return { nodeId, zone: "inside" };
+        const relY = (docY - box.y) / box.height;
+        const zone: DropZone = relY < 0.3 ? "before" : relY > 0.7 ? "after" : "inside";
+        return { nodeId, zone };
+      }
+      return null;
+    },
+    [layout, doc.rootId]
+  );
+
+  const onNodePointerDown = useCallback((nodeId: NodeId, event: React.PointerEvent<SVGGElement>) => {
+    nodeDrag.current = { pointerId: event.pointerId, nodeId, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }, []);
 
   /**
    * §12.1 — a drag on blank canvas pans, and "starting a pan MUST not clear selection until the
@@ -265,6 +361,23 @@ export function MapCanvas({
 
   const onPointerMove = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
+      const nodeState = nodeDrag.current;
+      if (nodeState && nodeState.pointerId === event.pointerId) {
+        nodeState.moved = true;
+        setDraggingId((current) => (current === nodeState.nodeId ? current : nodeState.nodeId));
+
+        const rect = event.currentTarget.getBoundingClientRect();
+        const point = screenToDocument(viewport, size, event.clientX - rect.left, event.clientY - rect.top);
+        const hit = hitTest(point.x, point.y);
+        const resolved = hit ? resolveDropTarget(doc, nodeState.nodeId, hit.nodeId, hit.zone) : null;
+        setDropPreview((current) => {
+          if (!hit || !resolved) return current === null ? current : null;
+          if (current?.targetId === hit.nodeId && current.zone === hit.zone) return current;
+          return { targetId: hit.nodeId, zone: hit.zone, parentId: resolved.parentId, index: resolved.index };
+        });
+        return;
+      }
+
       const state = drag.current;
       if (!state || state.pointerId !== event.pointerId) return;
       const dx = event.clientX - state.x;
@@ -276,11 +389,25 @@ export function MapCanvas({
       state.y = event.clientY;
       onViewport((current) => pan(current, dx, dy));
     },
-    [onViewport]
+    [onViewport, doc, viewport, size, hitTest]
   );
 
   const onPointerUp = useCallback(
     (event: React.PointerEvent<SVGSVGElement>) => {
+      const nodeState = nodeDrag.current;
+      if (nodeState && nodeState.pointerId === event.pointerId) {
+        nodeDrag.current = null;
+        if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+          event.currentTarget.releasePointerCapture(event.pointerId);
+        }
+        if (nodeState.moved && dropPreview) {
+          onReparent(nodeState.nodeId, dropPreview.parentId, dropPreview.index);
+        }
+        setDraggingId(null);
+        setDropPreview(null);
+        return;
+      }
+
       const state = drag.current;
       drag.current = null;
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -288,7 +415,7 @@ export function MapCanvas({
       }
       if (state && !state.moved) onSelectNone();
     },
-    [onSelectNone]
+    [onSelectNone, dropPreview, onReparent]
   );
 
   /**
@@ -350,10 +477,16 @@ export function MapCanvas({
           box={layout.boxes[id]!}
           theme={theme}
           selected={id === selection}
+          dragging={id === draggingId}
           onSelect={onSelect}
           onToggleCollapse={onToggleCollapse}
+          onNodePointerDown={onNodePointerDown}
         />
       ))}
+      {/* Drawn last so the indicator paints over both nodes and connectors. */}
+      {dropPreview && layout.boxes[dropPreview.targetId] && (
+        <DropIndicator box={layout.boxes[dropPreview.targetId]!} zone={dropPreview.zone} theme={theme} />
+      )}
     </svg>
   );
 }

@@ -521,3 +521,45 @@ export function canReparent(doc: MindMapDocument, nodeId: NodeId, parentId: Node
   if (parentId === nodeId || isDescendantOf(doc, parentId, nodeId)) return false;
   return true;
 }
+
+/**
+ * §7.2 "child drop zone" (make it the last child) vs §7.3 "between sibling positions", with the
+ * "before/after/inside" distinction §7.3 requires the drop indicator to show. Hit-testing which
+ * zone the pointer is over is the canvas's job; turning that zone into a `{ parentId, index }`
+ * for `ReparentNode` is this function's, so drag-and-drop and any future non-drag caller (a
+ * "move near this node" picker) share one answer.
+ */
+export type DropZone = "before" | "after" | "inside";
+
+export function resolveDropTarget(
+  doc: MindMapDocument,
+  draggedId: NodeId,
+  targetId: NodeId,
+  zone: DropZone
+): { parentId: NodeId; index: number } | null {
+  if (draggedId === targetId || !doc.nodes[targetId]) return null;
+
+  if (zone === "inside") {
+    if (!canReparent(doc, draggedId, targetId)) return null;
+    return { parentId: targetId, index: doc.nodes[targetId]!.childIds.length };
+  }
+
+  // "before"/"after" a node means as its sibling, so the root — which has no parent — cannot be
+  // the target of either; only "inside" (becoming a first-level node) is meaningful for it.
+  const parentId = doc.nodes[targetId]!.parentId;
+  if (parentId === null || !canReparent(doc, draggedId, parentId)) return null;
+
+  const siblings = doc.nodes[parentId]!.childIds;
+  const targetIndex = siblings.indexOf(targetId);
+  let index = zone === "before" ? targetIndex : targetIndex + 1;
+  // `targetIndex` was read from the array as it stands *before* the dragged node is removed,
+  // but `ReparentNode`/`MoveNode`'s `index` means the dragged node's position *after* removal
+  // and reinsertion (see the note on `moveNode`). When both nodes already share this parent and
+  // the dragged node currently sits earlier in the list, its own removal shifts everything from
+  // `targetIndex` onward back by one, so that correction happens here, once, rather than in
+  // every caller that resolves a drop zone.
+  const draggedIndex = doc.nodes[draggedId]?.parentId === parentId ? siblings.indexOf(draggedId) : -1;
+  if (draggedIndex !== -1 && draggedIndex < index) index -= 1;
+
+  return { parentId, index };
+}
