@@ -9,6 +9,15 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown active-draft persistence.** Autosave snapshots now include
+  the text currently visible in the editing textarea before Enter, Escape or blur commits the
+  editing session. The snapshot-only overlay keeps one undo group per session and avoids
+  per-keypress layout, while `visibilitychange` and `pagehide` flush the latest draft and
+  unresolved writes receive the spec-bounded unload warning. Evidence: focused persistence and
+  storage tests, 437/437 repository tests, a clean Mapdown production build, and real-browser
+  recovery after both a settled debounced save and a refresh roughly 100ms after typing. Only
+  the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown production interaction gates.** Completes Steps 15–17:
   a searchable Help/Command Center generated from the executable keymap and command registry;
   platform-aware shortcuts, disabled-command explanations, focus trapping and restoration;

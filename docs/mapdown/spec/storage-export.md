@@ -102,6 +102,12 @@ A save is scheduled after:
 - import;
 - document-title change.
 
+> **Amendment (2026-08-04):** “text change update” includes the visible draft in an active
+> editing surface, before Enter, Escape or blur commits the editing session to document history.
+> Autosave snapshots MUST include that draft without creating per-keystroke undo entries or
+> forcing per-keystroke layout. The UI MUST NOT report “Saved on this device” for a snapshot
+> that is older than the visible draft.
+
 Viewport changes MAY be saved separately at a lower frequency.
 
 ### 5.2 Debounce
