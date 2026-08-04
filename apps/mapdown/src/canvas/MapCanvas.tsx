@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_TYPOGRAPHY, type Connector, type LayoutResult, type NodeBox } from "../layout/layout";
+import type { Connector, LayoutResult, NodeBox } from "../layout/layout";
 import {
   getNode,
   subtreeIds,
@@ -70,7 +70,7 @@ const Node = memo(function Node({
   const tokens = roleTokens(theme, box.depth);
   const { size, weight } = roleTypography(theme, box.depth);
   const { lineHeight } = theme.typography;
-  const { paddingX, paddingY } = DEFAULT_TYPOGRAPHY;
+  const { paddingX, paddingY } = tokens;
   const accessibleLabel = [
     box.lines.join(" ").trim() || theme.nodes.emptyPlaceholderText,
     `level ${box.depth + 1}`,
@@ -111,9 +111,22 @@ const Node = memo(function Node({
         height={box.height}
         rx={tokens.radius}
         fill={tokens.background}
-        stroke={selected ? theme.interaction.selectedOutline : tokens.border}
-        strokeWidth={selected ? theme.interaction.selectedOutlineWidth : tokens.borderWidth}
+        stroke={tokens.border}
+        strokeWidth={tokens.borderWidth}
       />
+      {selected && (
+        <rect
+          x={box.x - 3}
+          y={box.y - 3}
+          width={box.width + 6}
+          height={box.height + 6}
+          rx={tokens.radius + 3}
+          fill="none"
+          stroke={theme.interaction.selectedOutline}
+          strokeWidth={theme.interaction.selectedOutlineWidth}
+          pointerEvents="none"
+        />
+      )}
       <text
         x={box.x + paddingX}
         y={box.y + paddingY + (size * lineHeight) / 2}
@@ -190,6 +203,7 @@ function CollapseControl({
         r={theme.controls.collapseSize / 2}
         fill={theme.controls.collapseBackground}
         stroke={theme.controls.collapseBorder}
+        strokeWidth={1.25}
       />
       {box.collapsed ? (
         <text

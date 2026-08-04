@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapCanvas } from "../canvas/MapCanvas";
-import { chooseSideForNewBranch, layout } from "../layout/layout";
+import { chooseSideForNewBranch, layout, layoutOptionsForTheme } from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
 import { sanitizeFilename } from "../markdown/escape";
 import {
@@ -52,6 +52,7 @@ import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
 import { documentWithDraft } from "./draft-persistence";
+import { ToolbarMenu } from "./ToolbarMenu";
 
 /**
  * The editing state machine of `interaction.md`, wired to the model, layout and canvas.
@@ -113,11 +114,12 @@ export function Editor() {
   const selection = history.selection;
   const mode: EditorMode = editing ? "node-editing" : "node-selected";
 
+  const theme = useMemo(() => themeById(doc.theme.themeId), [doc.theme.themeId]);
   // Layout is derived, never state. §19 forbids a full-document rerender per keystroke, and
   // keeping geometry out of React is the mechanism — this recomputes only when the document
-  // revision changes, and the canvas memoises per node.
-  const result = useMemo(() => layout(doc), [doc]);
-  const theme = useMemo(() => themeById(doc.theme.themeId), [doc.theme.themeId]);
+  // revision changes, and the canvas memoises per node. Measurement consumes the same role
+  // typography the SVG renderer does, so a larger root label cannot overflow its measured box.
+  const result = useMemo(() => layout(doc, layoutOptionsForTheme(theme)), [doc, theme]);
 
   // Focus after render, not from inside a handler: the textarea only exists once `editing` has
   // been committed to state, so focusing any earlier finds nothing.
@@ -348,7 +350,13 @@ export function Editor() {
         (command.type === "CreateSibling" && command.anchorId === state.doc.rootId);
       const withSide: Command =
         willBeFirstLevel && state.doc.layout.mode === "two-sided"
-          ? { ...command, side: chooseSideForNewBranch(state.doc) }
+          ? {
+              ...command,
+              side: chooseSideForNewBranch(
+                state.doc,
+                layoutOptionsForTheme(themeById(state.doc.theme.themeId))
+              )
+            }
           : command;
       const next = dispatch(state, withSide, { groupId, label });
       setHistory(next);
@@ -894,223 +902,357 @@ export function Editor() {
     };
   }, [editingBox, viewport, canvasSize]);
 
+  const hasSelectedArrangeActions =
+    selection !== null &&
+    (canMoveSide(doc, selection) ||
+      canReorder(doc, selection, "before-previous") ||
+      canReorder(doc, selection, "after-next") ||
+      (previousSiblingId(doc, selection) !== null &&
+        canReparent(doc, selection, previousSiblingId(doc, selection)!)) ||
+      (nextSiblingId(doc, selection) !== null &&
+        canReparent(doc, selection, nextSiblingId(doc, selection)!)));
+
   return (
     <div
-      style={{ display: "grid", gridTemplateRows: "auto auto 1fr auto", height: "100%", outline: "none" }}
+      className="editor-shell"
       onKeyDownCapture={onGlobalKeyDown}
     >
       <header
         data-help-background
         aria-hidden={helpMode ? true : undefined}
-        style={{
-          display: "flex",
-          gap: "0.5rem",
-          alignItems: "center",
-          flexWrap: "wrap",
-          padding: "0.5rem 0.75rem",
-          borderBottom: "1px solid var(--chrome-border)",
-          background: "var(--chrome-bg-raised)"
-        }}
+        className="app-toolbar"
       >
-        <strong style={{ marginRight: "auto" }}>Mapdown</strong>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={undoFromUi} disabled={!canUndo(history)}>
-          Undo
-        </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={redoFromUi} disabled={!canRedo(history)}>
-          Redo
-        </button>
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() =>
-            setHistory((state) => ({
-              ...state,
-              doc: {
-                ...state.doc,
-                layout: { mode: state.doc.layout.mode === "right" ? "two-sided" : "right" },
-                revision: state.doc.revision + 1
-              }
-            }))
-          }
-        >
-          {doc.layout.mode === "right" ? "Two-sided" : "Right-only"}
-        </button>
-        {selection && canMoveSide(doc, selection) && (
+        <div className="brand-lockup" aria-label="Mapdown">
+          <span className="brand-mark" aria-hidden="true">
+            M
+          </span>
+          <strong>Mapdown</strong>
+        </div>
+
+        <div className="history-controls" role="group" aria-label="History">
           <button
+            type="button"
+            className="toolbar-control history-button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              setHistory((state) =>
-                dispatch(state, {
-                  type: "MoveFirstLevelBranchSide",
-                  nodeId: selection,
-                  side: getNode(state.doc, selection).side === "right" ? "left" : "right"
-                })
-              )
-            }
+            onClick={undoFromUi}
+            disabled={!canUndo(history)}
+            aria-label="Undo"
+            title="Undo"
           >
-            Move {getNode(doc, selection).side === "right" ? "left" : "right"}
+            <span className="history-icon" aria-hidden="true">↶</span>
+            <span className="history-label">Undo</span>
           </button>
-        )}
-        {/*
-          §7.2/§7.3's non-drag alternatives (accessibility.md §9, keyboard.md §14). Reorder also
-          has Alt+ArrowUp/Down; reparent does not get a direct shortcut (only Alt+ArrowUp/Down are
-          tested as safe from browser history navigation — see keymap.ts), so a menu/button is its
-          only path until step 15's Command Center replaces this row.
-        */}
-        {selection && canReorder(doc, selection, "before-previous") && (
           <button
+            type="button"
+            className="toolbar-control history-button"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              setHistory((state) => dispatch(state, { type: "ReorderNode", nodeId: selection, direction: "before-previous" }))
-            }
-            title="Move before previous sibling (Alt+↑)"
+            onClick={redoFromUi}
+            disabled={!canRedo(history)}
+            aria-label="Redo"
+            title="Redo"
           >
-            ↑ Before
+            <span className="history-icon" aria-hidden="true">↷</span>
+            <span className="history-label">Redo</span>
           </button>
-        )}
-        {selection && canReorder(doc, selection, "after-next") && (
-          <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() =>
-              setHistory((state) => dispatch(state, { type: "ReorderNode", nodeId: selection, direction: "after-next" }))
-            }
-            title="Move after next sibling (Alt+↓)"
-          >
-            ↓ After
-          </button>
-        )}
-        {selection &&
-          previousSiblingId(doc, selection) &&
-          canReparent(doc, selection, previousSiblingId(doc, selection)!) && (
+        </div>
+
+        <nav className="toolbar-actions" aria-label="Map tools">
+          <ToolbarMenu label="Arrange">
+            <p className="toolbar-popover-label">Map layout</p>
             <button
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                const parentId = previousSiblingId(doc, selection);
-                if (parentId) setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: selection, parentId }));
-              }}
-              title="Move as child of previous sibling"
+              type="button"
+              className="menu-action"
+              data-close-menu
+              onClick={() =>
+                setHistory((state) => ({
+                  ...state,
+                  doc: {
+                    ...state.doc,
+                    layout: {
+                      mode: state.doc.layout.mode === "right" ? "two-sided" : "right"
+                    },
+                    revision: state.doc.revision + 1
+                  }
+                }))
+              }
             >
-              ⇥ Into prev
+              <span>
+                {doc.layout.mode === "right" ? "Use two-sided layout" : "Use right-only layout"}
+              </span>
+              <small>{doc.layout.mode === "right" ? "Balance first-level branches" : "Flow every branch right"}</small>
             </button>
-          )}
-        {selection && nextSiblingId(doc, selection) && canReparent(doc, selection, nextSiblingId(doc, selection)!) && (
+
+            {hasSelectedArrangeActions && (
+              <>
+                <div className="menu-divider" />
+                <p className="toolbar-popover-label">Selected node</p>
+              </>
+            )}
+            {selection && canMoveSide(doc, selection) && (
+              <button
+                type="button"
+                className="menu-action"
+                data-close-menu
+                onClick={() =>
+                  setHistory((state) =>
+                    dispatch(state, {
+                      type: "MoveFirstLevelBranchSide",
+                      nodeId: selection,
+                      side: getNode(state.doc, selection).side === "right" ? "left" : "right"
+                    })
+                  )
+                }
+              >
+                <span>Move branch {getNode(doc, selection).side === "right" ? "left" : "right"}</span>
+                <small>Keep this first-level branch on the other side</small>
+              </button>
+            )}
+            {selection && canReorder(doc, selection, "before-previous") && (
+              <button
+                type="button"
+                className="menu-action"
+                data-close-menu
+                onClick={() =>
+                  setHistory((state) =>
+                    dispatch(state, {
+                      type: "ReorderNode",
+                      nodeId: selection,
+                      direction: "before-previous"
+                    })
+                  )
+                }
+              >
+                <span>Move before previous</span>
+                <small>Alt + ↑</small>
+              </button>
+            )}
+            {selection && canReorder(doc, selection, "after-next") && (
+              <button
+                type="button"
+                className="menu-action"
+                data-close-menu
+                onClick={() =>
+                  setHistory((state) =>
+                    dispatch(state, {
+                      type: "ReorderNode",
+                      nodeId: selection,
+                      direction: "after-next"
+                    })
+                  )
+                }
+              >
+                <span>Move after next</span>
+                <small>Alt + ↓</small>
+              </button>
+            )}
+            {selection &&
+              previousSiblingId(doc, selection) &&
+              canReparent(doc, selection, previousSiblingId(doc, selection)!) && (
+                <button
+                  type="button"
+                  className="menu-action"
+                  data-close-menu
+                  onClick={() => {
+                    const parentId = previousSiblingId(doc, selection);
+                    if (parentId) {
+                      setHistory((state) =>
+                        dispatch(state, { type: "ReparentNode", nodeId: selection, parentId })
+                      );
+                    }
+                  }}
+                >
+                  <span>Move into previous</span>
+                  <small>Make it the previous sibling’s child</small>
+                </button>
+              )}
+            {selection &&
+              nextSiblingId(doc, selection) &&
+              canReparent(doc, selection, nextSiblingId(doc, selection)!) && (
+                <button
+                  type="button"
+                  className="menu-action"
+                  data-close-menu
+                  onClick={() => {
+                    const parentId = nextSiblingId(doc, selection);
+                    if (parentId) {
+                      setHistory((state) =>
+                        dispatch(state, {
+                          type: "ReparentNode",
+                          nodeId: selection,
+                          parentId,
+                          index: 0
+                        })
+                      );
+                    }
+                  }}
+                >
+                  <span>Move into next</span>
+                  <small>Make it the next sibling’s first child</small>
+                </button>
+              )}
+          </ToolbarMenu>
+
+          <ToolbarMenu label="View" align="end">
+            <button
+              type="button"
+              className="menu-action"
+              data-close-menu
+              onClick={() => setViewport(fitMap(result.bounds, canvasSize))}
+            >
+              <span>Fit map</span>
+              <small>Show the whole document</small>
+            </button>
+            <button
+              type="button"
+              className="menu-action"
+              data-close-menu
+              onClick={() => {
+                const box = selection ? result.boxes[selection] : result.boxes[doc.rootId];
+                if (box) setViewport((v) => centerOn(v, box));
+              }}
+            >
+              <span>Centre selection</span>
+              <small>Pan without changing zoom</small>
+            </button>
+            <div className="menu-divider" />
+            <div className="zoom-controls" role="group" aria-label="Zoom">
+              <button
+                type="button"
+                aria-label="Zoom out"
+                onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
+              >
+                −
+              </button>
+              <output>{zoomPercent(viewport)}</output>
+              <button
+                type="button"
+                aria-label="Zoom in"
+                onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
+              >
+                +
+              </button>
+            </div>
+          </ToolbarMenu>
+
+          <ToolbarMenu label="Style" align="end">
+            <p className="toolbar-popover-label">Document theme</p>
+            <div className="theme-options">
+              {THEMES.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className="theme-option"
+                  aria-pressed={doc.theme.themeId === entry.id}
+                  data-close-menu
+                  onClick={() => {
+                    setHistory((state) => ({
+                      ...state,
+                      doc: {
+                        ...state.doc,
+                        theme: { ...state.doc.theme, themeId: entry.id },
+                        revision: state.doc.revision + 1
+                      }
+                    }));
+                    setAnnouncement(`Theme changed to ${entry.name}.`);
+                  }}
+                >
+                  <span
+                    className="theme-swatch"
+                    style={{
+                      background: entry.canvas.background,
+                      borderColor: entry.nodes.root.background
+                    }}
+                    aria-hidden="true"
+                  />
+                  <span>{entry.name}</span>
+                  <span className="theme-check" aria-hidden="true">
+                    {doc.theme.themeId === entry.id ? "✓" : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="menu-divider" />
+            <button
+              type="button"
+              className="menu-action menu-action--toggle"
+              aria-pressed={doc.theme.branchColorMode === "by-first-level-branch"}
+              data-close-menu
+              onClick={() =>
+                setHistory((state) => ({
+                  ...state,
+                  doc: {
+                    ...state.doc,
+                    theme: {
+                      ...state.doc.theme,
+                      branchColorMode:
+                        state.doc.theme.branchColorMode === "single"
+                          ? "by-first-level-branch"
+                          : "single"
+                    },
+                    revision: state.doc.revision + 1
+                  }
+                }))
+              }
+            >
+              <span>Colour first-level branches</span>
+              <small>
+                {doc.theme.branchColorMode === "single" ? "Off" : "On"}
+              </small>
+            </button>
+          </ToolbarMenu>
+
+          <ToolbarMenu label="File" align="end">
+            <button
+              type="button"
+              className="menu-action"
+              data-close-menu
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <span>Open Markdown…</span>
+              <small>Replace the current canvas after confirmation</small>
+            </button>
+            <div className="menu-divider" />
+            <p className="toolbar-popover-label">Export</p>
+            <button type="button" className="menu-action" data-close-menu onClick={download}>
+              <span>Markdown</span>
+              <small>Editable source</small>
+            </button>
+            <button type="button" className="menu-action" data-close-menu onClick={downloadSvg}>
+              <span>SVG</span>
+              <small>Scalable vector image</small>
+            </button>
+            <button
+              type="button"
+              className="menu-action"
+              data-close-menu
+              onClick={() => void downloadPng()}
+            >
+              <span>PNG</span>
+              <small>High-resolution bitmap</small>
+            </button>
+          </ToolbarMenu>
+
           <button
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              const parentId = nextSiblingId(doc, selection);
-              if (parentId) {
-                setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: selection, parentId, index: 0 }));
-              }
-            }}
-            title="Move as child of next sibling"
+            ref={helpButtonRef}
+            type="button"
+            className="toolbar-control"
+            onClick={() => openHelp("help")}
+            title="Help and shortcuts (Command or Control plus /)"
           >
-            ⇥ Into next
+            Help
           </button>
-        )}
-        <select
-          value={doc.theme.themeId}
-          onMouseDown={(e) => e.preventDefault()}
-          onChange={(event) =>
-            setHistory((state) => ({
-              ...state,
-              doc: {
-                ...state.doc,
-                theme: { ...state.doc.theme, themeId: event.target.value },
-                revision: state.doc.revision + 1
-              }
-            }))
-          }
-          aria-label="Theme"
-        >
-          {THEMES.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.name}
-            </option>
-          ))}
-        </select>
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() =>
-            setHistory((state) => ({
-              ...state,
-              doc: {
-                ...state.doc,
-                theme: {
-                  ...state.doc.theme,
-                  branchColorMode:
-                    state.doc.theme.branchColorMode === "single" ? "by-first-level-branch" : "single"
-                },
-                revision: state.doc.revision + 1
-              }
-            }))
-          }
-        >
-          {doc.theme.branchColorMode === "single" ? "Branch colours" : "One colour"}
-        </button>
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setViewport(fitMap(result.bounds, canvasSize))}
-          title="Fit map"
-        >
-          Fit
-        </button>
-        <button
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => {
-            const box = selection ? result.boxes[selection] : result.boxes[doc.rootId];
-            if (box) setViewport((v) => centerOn(v, box));
-          }}
-          title="Centre the selected node"
-        >
-          Centre
-        </button>
-        <button
-          aria-label="Zoom out"
-          title="Zoom out"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
-        >
-          −
-        </button>
-        <button
-          aria-label="Zoom in"
-          title="Zoom in"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
-        >
-          +
-        </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={download}>
-          Markdown
-        </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={downloadSvg}>
-          SVG
-        </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={() => void downloadPng()}>
-          PNG
-        </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
-          Open
-        </button>
+        </nav>
+
         <input
           ref={fileInputRef}
-          className="sr-only"
+          hidden
           type="file"
-          tabIndex={-1}
           accept=".md,.markdown,text/markdown,text/plain"
-          aria-label="Open Markdown file"
           onChange={(event) => {
             const file = event.target.files?.[0];
             if (file) void openMarkdown(file);
           }}
         />
-        <button
-          ref={helpButtonRef}
-          type="button"
-          onClick={() => openHelp("help")}
-          title="Help and shortcuts (Command or Control plus /)"
-        >
-          Help
-        </button>
       </header>
 
       {notice && (
@@ -1118,18 +1260,10 @@ export function Editor() {
           data-help-background
           aria-hidden={helpMode ? true : undefined}
           role="status"
-          style={{
-            padding: "0.5rem 0.75rem",
-            background: "#fff8e1",
-            color: "#5c4813",
-            borderBottom: "1px solid #e8d9a0",
-            fontSize: "13px",
-            display: "flex",
-            gap: "0.75rem"
-          }}
+          className="editor-notice"
         >
           <span>{notice}</span>
-          <button onClick={() => setNotice(null)} style={{ marginLeft: "auto" }}>
+          <button type="button" onClick={() => setNotice(null)}>
             Dismiss
           </button>
         </div>
@@ -1144,6 +1278,7 @@ export function Editor() {
         aria-activedescendant={selection ? `map-node-${selection}` : undefined}
         tabIndex={0}
         onKeyDown={onKeyDown}
+        className="editor-surface"
         style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
       >
         <MapCanvas
@@ -1170,6 +1305,7 @@ export function Editor() {
         {editing && editingBox && (
           <textarea
             ref={inputRef}
+            className="editing-field"
             value={editing.draft}
             onChange={(event) =>
               setEditing((current) => (current ? { ...current, draft: event.target.value } : current))
@@ -1183,19 +1319,7 @@ export function Editor() {
               position: "absolute",
               left: `${editorRect.left}%`,
               top: `${editorRect.top}%`,
-              width: `${editorRect.width}%`,
-              transform: "translateY(-50%)",
-              padding: "0.3rem 0.5rem",
-              font: "inherit",
-              fontSize: "14px",
-              lineHeight: 1.45,
-              border: "2px solid var(--chrome-accent)",
-              borderRadius: "6px",
-              background: "var(--chrome-bg-raised)",
-              color: "var(--chrome-text)",
-              resize: "none",
-              outline: "none",
-              boxSizing: "border-box"
+              width: `${editorRect.width}%`
             }}
             rows={1}
           />
@@ -1205,27 +1329,18 @@ export function Editor() {
       <footer
         data-help-background
         aria-hidden={helpMode ? true : undefined}
-        style={{
-          padding: "0.4rem 0.75rem",
-          borderTop: "1px solid var(--chrome-border)",
-          color: "var(--chrome-text-muted)",
-          fontSize: "12px",
-          display: "flex",
-          gap: "1rem"
-        }}
+        className="editor-statusbar"
       >
-        <span>
+        <span className="status-shortcuts">
           {Object.keys(doc.nodes).length} nodes · Enter = sibling · Tab = child · Shift+Tab =
           promote · Space = collapse · F2 = rename
         </span>
-        <span>{zoomPercent(viewport)}</span>
+        <span className="status-zoom">{zoomPercent(viewport)}</span>
         <span
           role="status"
           aria-live="polite"
-          style={{
-            marginLeft: "auto",
-            color: status.kind === "failed" ? "#d94f4f" : "var(--chrome-text-muted)"
-          }}
+          className="save-status"
+          data-kind={status.kind}
         >
           {saveStatusLabel(status)}
         </span>

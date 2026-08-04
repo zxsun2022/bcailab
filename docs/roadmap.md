@@ -31,7 +31,7 @@ The owner additionally authorized two Mapdown stabilization checkpoints on 2026-
   included in the debounced local snapshot before the editing session commits; direct refresh
   inside and after the debounce window must restore it; the saved indicator must track the
   visible draft; typing must retain one undo group and must not trigger per-keypress layout.
-- **Visual polish — authorized, next separate checkpoint.** Reduce the top-level toolbar to a
+- **Visual polish — in_review.** Reduce the top-level toolbar to a
   clear 6–7-control information hierarchy without losing commands; establish primary,
   secondary and quiet control styles; replace the unstyled theme picker; distinguish selection
   from node type; improve connector and collapse-control legibility; and establish consistent

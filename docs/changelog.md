@@ -9,6 +9,16 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown visual-polish checkpoint.** Replaced fifteen equal-weight
+  toolbar controls with seven top-level actions and grouped Arrange, View, Style and File
+  popovers; added theme previews, clear action hierarchy, restrained chrome tokens, responsive
+  mobile panels, status treatment and deterministic Escape/focus restoration. Selection now
+  uses a separate outer ring, connectors and collapse badges are more legible, and layout plus
+  fallback export measure the same root/level typography the canvas renders. Evidence: 439/439
+  tests, clean production build, no browser console errors, desktop and 375px mobile menu/focus
+  checks, and visual QA on the 72-node Chinese fixture. Only the owner may mark this checkpoint
+  accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown active-draft persistence.** Autosave snapshots now include
   the text currently visible in the editing textarea before Enter, Escape or blur commits the
   editing session. The snapshot-only overlay keeps one undo group per session and avoids

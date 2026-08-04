@@ -16,23 +16,25 @@
   color-scheme: light dark;
 
   /* Neutrals */
-  --chrome-bg: #ffffff;
-  --chrome-bg-sunken: #f6f7f8;
+  --chrome-bg: #f7f8fa;
+  --chrome-bg-sunken: #f0f2f5;
   --chrome-bg-raised: #ffffff;
-  --chrome-border: #e3e5e8;
-  --chrome-border-strong: #c8ccd1;
-  --chrome-text: #1c1e21;
-  --chrome-text-muted: #61666d;
+  --chrome-border: #e2e5e9;
+  --chrome-border-strong: #c7ccd3;
+  --chrome-text: #20242a;
+  --chrome-text-muted: #68707b;
 
   /*
    * One accent. C-01: this hue is reserved for chrome and MUST stay out of every document
    * theme's branch palette, or a selected node becomes indistinguishable from a blue branch.
    */
-  --chrome-accent: #2f6feb;
+  --chrome-accent: #315fbd;
   --chrome-accent-text: #ffffff;
-  --chrome-focus-ring: #2f6feb;
+  --chrome-focus-ring: #315fbd;
 
-  --chrome-radius: 6px;
+  --chrome-radius: 8px;
+  --chrome-radius-large: 12px;
+  --chrome-shadow-menu: 0 14px 36px rgb(24 32 45 / 14%), 0 2px 8px rgb(24 32 45 / 8%);
   --chrome-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
 }
@@ -54,6 +56,7 @@
     --chrome-accent: #5b8def;
     --chrome-accent-text: #10131a;
     --chrome-focus-ring: #5b8def;
+    --chrome-shadow-menu: 0 18px 44px rgb(0 0 0 / 42%), 0 2px 8px rgb(0 0 0 / 30%);
   }
 }
 
@@ -79,7 +82,7 @@ body {
 
 :focus-visible {
   outline: 2px solid var(--chrome-focus-ring);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 button,
@@ -90,6 +93,26 @@ select {
 
 button {
   min-height: 32px;
+  padding: 0.38rem 0.68rem;
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--chrome-radius);
+  background: var(--chrome-bg-raised);
+  color: var(--chrome-text);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--chrome-border-strong);
+  background: var(--chrome-bg-sunken);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.42;
 }
 
 .sr-only {
@@ -102,6 +125,449 @@ button {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ---------- Editor workspace ---------- */
+
+.editor-shell {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: 100%;
+  outline: none;
+  background: var(--chrome-bg);
+}
+
+.app-toolbar {
+  position: relative;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 54px;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--chrome-border);
+  background: color-mix(in srgb, var(--chrome-bg-raised) 94%, transparent);
+  box-shadow: 0 1px 0 rgb(20 27 38 / 3%);
+  grid-row: 1;
+}
+
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.58rem;
+  min-width: 0;
+  letter-spacing: -0.015em;
+}
+
+.brand-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 9px;
+  background: var(--chrome-text);
+  color: var(--chrome-bg-raised);
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 9%);
+}
+
+.brand-lockup strong {
+  overflow: hidden;
+  font-size: 0.96rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+}
+
+.history-controls,
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.history-controls {
+  padding-right: 0.55rem;
+  border-right: 1px solid var(--chrome-border);
+}
+
+.toolbar-control {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.36rem 0.62rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--chrome-text-muted);
+  font-size: 0.84rem;
+  font-weight: 560;
+  white-space: nowrap;
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease,
+    transform 80ms ease;
+}
+
+.toolbar-control:hover:not(:disabled),
+.toolbar-menu[open] > .toolbar-summary {
+  border-color: var(--chrome-border);
+  background: var(--chrome-bg-sunken);
+  color: var(--chrome-text);
+}
+
+.history-button {
+  min-width: 34px;
+  padding-inline: 0.5rem;
+}
+
+.history-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.history-label {
+  font-size: 0.8rem;
+}
+
+.toolbar-menu {
+  position: relative;
+}
+
+.toolbar-menu summary {
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toolbar-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.toolbar-chevron {
+  margin-top: -0.1rem;
+  color: var(--chrome-text-muted);
+  font-size: 0.62rem;
+  transition: transform 120ms ease;
+}
+
+.toolbar-menu[open] .toolbar-chevron {
+  transform: rotate(180deg);
+}
+
+.toolbar-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  z-index: 40;
+  display: grid;
+  width: min(300px, calc(100vw - 1.5rem));
+  padding: 0.42rem;
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--chrome-radius-large);
+  background: var(--chrome-bg-raised);
+  box-shadow: var(--chrome-shadow-menu);
+  animation: toolbar-popover-in 120ms ease-out;
+}
+
+.toolbar-menu--end .toolbar-popover {
+  right: 0;
+  left: auto;
+}
+
+@keyframes toolbar-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toolbar-popover-label {
+  margin: 0;
+  padding: 0.48rem 0.58rem 0.3rem;
+  color: var(--chrome-text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.menu-action,
+.theme-option {
+  width: 100%;
+  min-height: 42px;
+  border-color: transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.menu-action {
+  display: grid;
+  gap: 0.03rem;
+  align-items: center;
+  padding: 0.48rem 0.58rem;
+}
+
+.menu-action span {
+  font-size: 0.86rem;
+  font-weight: 570;
+}
+
+.menu-action small {
+  overflow: hidden;
+  color: var(--chrome-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.menu-action--toggle {
+  grid-template-columns: 1fr auto;
+}
+
+.menu-action--toggle small {
+  padding: 0.14rem 0.4rem;
+  border-radius: 999px;
+  background: var(--chrome-bg-sunken);
+  font-weight: 650;
+}
+
+.menu-divider {
+  height: 1px;
+  margin: 0.35rem 0.45rem;
+  background: var(--chrome-border);
+}
+
+.zoom-controls {
+  display: grid;
+  grid-template-columns: 38px 1fr 38px;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.45rem 0.35rem;
+}
+
+.zoom-controls button {
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.zoom-controls output {
+  color: var(--chrome-text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.theme-options {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.theme-option {
+  display: grid;
+  grid-template-columns: 26px 1fr 18px;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.84rem;
+}
+
+.theme-option[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--chrome-accent) 10%, var(--chrome-bg-raised));
+  color: var(--chrome-text);
+}
+
+.theme-swatch {
+  width: 24px;
+  height: 18px;
+  border: 5px solid;
+  border-radius: 5px;
+  box-shadow: inset 0 0 0 1px rgb(127 127 127 / 26%);
+}
+
+.theme-check {
+  color: var(--chrome-accent);
+  font-weight: 750;
+  text-align: center;
+}
+
+.editor-notice {
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #ead9a6;
+  background: #fff9e8;
+  color: #634f16;
+  font-size: 0.8rem;
+  grid-row: 2;
+}
+
+.editor-notice button {
+  min-height: 28px;
+  margin-left: auto;
+  padding-block: 0.18rem;
+  border-color: rgb(99 79 22 / 22%);
+  background: transparent;
+  color: inherit;
+}
+
+.editor-surface {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgb(20 27 38 / 3%);
+  grid-row: 3;
+}
+
+.editor-surface:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--chrome-focus-ring);
+}
+
+.editing-field {
+  box-sizing: border-box;
+  padding: 0.34rem 0.56rem;
+  transform: translateY(-50%);
+  resize: none;
+  border: 2px solid var(--chrome-accent);
+  border-radius: var(--chrome-radius);
+  outline: none;
+  background: var(--chrome-bg-raised);
+  box-shadow: 0 4px 16px rgb(22 31 45 / 16%);
+  color: var(--chrome-text);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.editor-statusbar {
+  z-index: 10;
+  display: flex;
+  min-height: 30px;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.32rem 0.75rem;
+  border-top: 1px solid var(--chrome-border);
+  background: var(--chrome-bg-raised);
+  color: var(--chrome-text-muted);
+  font-size: 0.72rem;
+  grid-row: 4;
+}
+
+.status-shortcuts {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.status-zoom {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.save-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.38rem;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.save-status:not(:empty)::before {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6d9674;
+  content: "";
+}
+
+.save-status[data-kind="unsaved"]::before,
+.save-status[data-kind="saving"]::before {
+  background: #b68b3c;
+}
+
+.save-status[data-kind="failed"] {
+  color: #b33b3b;
+}
+
+.save-status[data-kind="failed"]::before {
+  background: #b33b3b;
+}
+
+@media (max-width: 760px) {
+  .app-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.45rem 0.65rem;
+    padding: 0.48rem 0.6rem 0.55rem;
+  }
+
+  .history-controls {
+    border-right: 0;
+    padding-right: 0;
+  }
+
+  .toolbar-actions {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    gap: 0.16rem;
+  }
+
+  .toolbar-menu {
+    position: static;
+  }
+
+  .toolbar-popover,
+  .toolbar-menu--end .toolbar-popover {
+    top: 100%;
+    right: 0.6rem;
+    left: 0.6rem;
+    width: auto;
+  }
+
+  .toolbar-control {
+    min-height: 32px;
+    padding-inline: 0.52rem;
+  }
+
+  .history-label {
+    display: none;
+  }
+
+  .editor-statusbar {
+    gap: 0.55rem;
+  }
+}
+
+@media (max-width: 460px) {
+  .brand-lockup strong {
+    font-size: 0.9rem;
+  }
+
+  .toolbar-actions {
+    justify-content: space-between;
+  }
+
+  .toolbar-control {
+    font-size: 0.78rem;
+  }
+
+  .toolbar-summary {
+    gap: 0.22rem;
+  }
+
+  .status-shortcuts {
+    max-width: 48vw;
+  }
 }
 
 .help-backdrop {

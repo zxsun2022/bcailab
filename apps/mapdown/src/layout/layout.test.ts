@@ -3,7 +3,15 @@ import kepanSource from "../fixtures/kepan.md?raw";
 import { importMarkdown } from "../markdown/parse";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
-import { DEFAULT_SPACING, DEFAULT_TYPOGRAPHY, diffLayouts, layout, rootCentre } from "./layout";
+import { MINIMAL_LIGHT } from "../theme/presets";
+import {
+  DEFAULT_SPACING,
+  DEFAULT_TYPOGRAPHY,
+  diffLayouts,
+  layout,
+  layoutOptionsForTheme,
+  rootCentre
+} from "./layout";
 import { clearMeasurementCache, measureNode, measurementCacheSize, wrapText } from "./measure";
 
 beforeEach(() => {
@@ -314,5 +322,36 @@ describe("§4.4 — measurement caching", () => {
     const b = measureNode("暇满难得", { ...DEFAULT_TYPOGRAPHY, fontSize: 20 });
     expect(measurementCacheSize()).toBe(2);
     expect(b.width).toBeGreaterThan(a.width);
+  });
+
+  it("measures root and descendant roles with their rendered typography", () => {
+    let doc = createDocument("WWWWWWWW");
+    doc = applyCommand(doc, {
+      type: "CreateChild",
+      parentId: doc.rootId,
+      text: "WWWWWWWW"
+    }).doc;
+    const childId = getNode(doc, doc.rootId).childIds[0]!;
+
+    const result = layout(doc, {
+      typography: (depth) => ({
+        ...DEFAULT_TYPOGRAPHY,
+        fontSize: depth === 0 ? 20 : 12,
+        fontWeight: depth === 0 ? 700 : 400
+      })
+    });
+
+    expect(result.boxes[doc.rootId]!.width).toBeGreaterThan(result.boxes[childId]!.width);
+    expect(result.boxes[doc.rootId]!.height).toBeGreaterThan(result.boxes[childId]!.height);
+  });
+
+  it("uses the selected theme's rendered root metrics", () => {
+    const doc = createDocument("Root");
+    const result = layout(doc, layoutOptionsForTheme(MINIMAL_LIGHT));
+
+    expect(result.boxes[doc.rootId]!.height).toBeCloseTo(
+      MINIMAL_LIGHT.typography.rootFontSize * MINIMAL_LIGHT.typography.lineHeight +
+        MINIMAL_LIGHT.nodes.root.paddingY * 2
+    );
   });
 });

@@ -124,3 +124,11 @@ imply something about the application frame, which is meaningless.
 - Fonts are Layer B and must be a system stack (`spec/theme.md` §5). No web font: it would be
   either an external dependency in the exported SVG, which is forbidden, or an embedding-and-
   licensing problem.
+- The production toolbar exposes seven top-level controls. Its popovers, spacing, focus
+  treatment, status indicator and responsive rules are Layer A. Theme preview swatches may read
+  Layer B literals, but changing the document theme must not let those values style the chrome.
+- Selection is drawn as a separate outer ring with a transparent gap. It does not replace the
+  node’s own border, alter box dimensions or enter image export.
+- Layout measurement consumes the active theme’s root, level-1 and default font/padding metrics.
+  Fallback SVG/PNG layout uses the same mapping, so a rendered type hierarchy cannot overflow a
+  box measured with the old default typography.
