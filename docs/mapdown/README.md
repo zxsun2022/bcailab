@@ -1,12 +1,15 @@
 # Mapdown
 
-**Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, Phase 2 in progress.
+**Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, and Phase 2
+implementation complete in review. The production build is live; only the owner can mark the
+roadmap checkpoint accepted.
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
 a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
 semantics. **434 tests.**
 
-**Home:** `apps/mapdown`; deploys to `map.bcailab.com` (Pages project **not yet created**).
+**Home:** `apps/mapdown`; deployed by the Git-connected `mapdown` Pages project at
+[map.bcailab.com](https://map.bcailab.com).
 
 ```bash
 pnpm --filter mapdown dev      # http://localhost:5174
@@ -40,9 +43,8 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 16 | Accessibility hardening | ✅ semantic tree order/metadata, live feedback, single canvas tab stop, reduced motion, 44px coarse-pointer targets |
 | 17 | Performance and regression pass | ✅ import limits, lazy CommonMark loading, browser regression pass and [performance baseline](performance.md) |
 
-The only remaining Phase 2 delivery task is to **create the Cloudflare Pages project**
-(D-03 has the exact settings, including the build watch paths that stop every push triggering
-two builds).
+Phase 2 has no remaining implementation or deployment task. The production checkpoint remains
+`in_review` until the owner accepts it.
 
 ## How this codebase is worked on
 
