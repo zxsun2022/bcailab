@@ -52,6 +52,11 @@ const Node = memo(function Node({ box, theme, selected, onSelect, onToggleCollap
     <g
       onPointerDown={(event) => {
         event.stopPropagation();
+        // The browser's own default action for a mousedown/pointerdown is to move focus to the
+        // clicked element or, since none of the SVG content here is focusable, to blur to body —
+        // and it runs *after* this handler, so without preventDefault it wins over the surface's
+        // own `.focus()` call in `onSelect`. Same reason the toolbar buttons below do this.
+        event.preventDefault();
         onSelect(box.nodeId);
       }}
       style={{ cursor: "default" }}
@@ -125,6 +130,9 @@ function CollapseControl({
         // Without this the click would fall through to the node and enter selection/editing —
         // `vision.md` §9 lists that exact confusion as a product regression.
         event.stopPropagation();
+        // See the Node handler above: without this the browser's default focus/blur action
+        // fires after `onToggle` and undoes the surface's own `.focus()` call.
+        event.preventDefault();
         onToggle(box.nodeId);
       }}
       style={{ cursor: "pointer" }}
@@ -247,6 +255,10 @@ export function MapCanvas({
    */
   const onPointerDown = useCallback((event: React.PointerEvent<SVGSVGElement>) => {
     if (event.button !== 0 && event.button !== 1) return;
+    // See the Node handler above: nothing in the SVG is a focusable target, so without this the
+    // browser's default action blurs focus to body between this event and the `onSelectNone`
+    // call on pointer-up that is meant to keep it on the surface.
+    event.preventDefault();
     drag.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false };
     event.currentTarget.setPointerCapture(event.pointerId);
   }, []);

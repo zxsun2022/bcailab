@@ -1,4 +1,4 @@
-import { canPromote } from "../model/commands";
+import { canPromote, canReorder } from "../model/commands";
 import { getNode, visibleNodes, type MindMapDocument, type NodeId } from "../model/types";
 
 /**
@@ -26,6 +26,7 @@ export type EditorAction =
   | { type: "toggle-collapse" }
   | { type: "collapse" }
   | { type: "expand" }
+  | { type: "reorder"; direction: "before-previous" | "after-next" }
   | { type: "undo" }
   | { type: "redo" }
   | { type: "none" };
@@ -129,6 +130,16 @@ export function resolveKey(
         // the node, however empty it is.
         return { type: "none" };
     }
+  }
+
+  // §14 (keyboard.md) — the direct shortcuts for §7.3 sibling reordering. Listed as optional
+  // there specifically because Alt+Arrow risks colliding with browser history navigation on some
+  // platforms; ArrowUp/ArrowDown (unlike Left/Right) are not that binding on any tested browser,
+  // and Command Center/menu access — the mandatory alternative — covers the same action either
+  // way, so a keymap test here is a real check, not the only line of defense.
+  if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+    const direction = event.key === "ArrowUp" ? "before-previous" : "after-next";
+    return canReorder(doc, selection, direction) ? { type: "reorder", direction } : { type: "none" };
   }
 
   switch (event.key) {

@@ -28,7 +28,7 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 7 | Local save and recovery | ✅ `src/storage/` |
 | 8 | Markdown import/export | ✅ `src/markdown/` — real CommonMark parser landed, D-14 |
 | 9 | Two-sided sticky branches | ✅ |
-| 10 | **Drag/drop and accessible move commands** | ❌ not started |
+| 10 | Drag/drop and accessible move commands | 🟡 keyboard/menu path done (`ReorderNode`/`ReparentNode`, Alt+↑/↓, toolbar buttons); pointer drag-and-drop not started |
 | 11 | Pan / zoom / fit | ✅ `src/canvas/viewport.ts` |
 | 12 | Theme tokens and presets | ✅ `src/theme/` |
 | 13 | SVG export | ✅ `src/export/svg.ts` |

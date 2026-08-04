@@ -129,6 +129,45 @@ describe("undo and redo", () => {
   });
 });
 
+describe("Alt+Arrow sibling reordering (§7.3, keyboard.md §14)", () => {
+  it("maps Alt+ArrowUp to before-previous and Alt+ArrowDown to after-next", () => {
+    const { doc, ids } = fixture();
+    expect(resolveKey(doc, ids["a2"]!, "node-selected", key("ArrowUp", { altKey: true }))).toEqual({
+      type: "reorder",
+      direction: "before-previous"
+    });
+    expect(resolveKey(doc, ids["a1"]!, "node-selected", key("ArrowDown", { altKey: true }))).toEqual({
+      type: "reorder",
+      direction: "after-next"
+    });
+  });
+
+  it("resolves to nothing at the ends of the sibling list, rather than throwing", () => {
+    const { doc, ids } = fixture();
+    expect(resolveKey(doc, ids["a1"]!, "node-selected", key("ArrowUp", { altKey: true }))).toEqual({
+      type: "none"
+    });
+    expect(resolveKey(doc, ids["a2"]!, "node-selected", key("ArrowDown", { altKey: true }))).toEqual({
+      type: "none"
+    });
+  });
+
+  it("does not shadow plain ArrowUp/ArrowDown navigation", () => {
+    const { doc, ids } = fixture();
+    expect(resolveKey(doc, ids["a1"]!, "node-selected", key("ArrowDown"))).toEqual({
+      type: "navigate",
+      to: ids["a2"]
+    });
+  });
+
+  it("is inert in editing mode — Alt+Arrow is left to the browser/IME there", () => {
+    const { doc, ids } = fixture();
+    expect(resolveKey(doc, ids["a1"]!, "node-editing", key("ArrowUp", { altKey: true }))).toEqual({
+      type: "none"
+    });
+  });
+});
+
 describe("navigation over the visible projection (§10)", () => {
   it("moves into children on ArrowRight and to the parent on ArrowLeft", () => {
     const { doc, ids } = fixture();

@@ -14,7 +14,14 @@ import {
   type EditorHistory
 } from "../model/history";
 import { createDocument, getNode, type NodeId } from "../model/types";
-import { canMoveSide, type Command } from "../model/commands";
+import {
+  canMoveSide,
+  canReorder,
+  canReparent,
+  nextSiblingId,
+  previousSiblingId,
+  type Command
+} from "../model/commands";
 import { THEMES, themeById } from "../theme/presets";
 import { useImeGuard } from "./useImeGuard";
 import {
@@ -344,6 +351,13 @@ export function Editor() {
           setEditing(null);
           setHistory({ ...committed, selection: action.to });
           break;
+
+        case "reorder":
+          if (selection) {
+            setHistory(dispatch(committed, { type: "ReorderNode", nodeId: selection, direction: action.direction }));
+          }
+          setEditing(null);
+          break;
       }
     },
     [doc, selection, mode, editing, history, commitDraft, cancelEdit, createAndEdit]
@@ -460,6 +474,62 @@ export function Editor() {
             Move {getNode(doc, selection).side === "right" ? "left" : "right"}
           </button>
         )}
+        {/*
+          §7.2/§7.3's non-drag alternatives (accessibility.md §9, keyboard.md §14). Reorder also
+          has Alt+ArrowUp/Down; reparent does not get a direct shortcut (only Alt+ArrowUp/Down are
+          tested as safe from browser history navigation — see keymap.ts), so a menu/button is its
+          only path until step 15's Command Center replaces this row.
+        */}
+        {selection && canReorder(doc, selection, "before-previous") && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setHistory((state) => dispatch(state, { type: "ReorderNode", nodeId: selection, direction: "before-previous" }))
+            }
+            title="Move before previous sibling (Alt+↑)"
+          >
+            ↑ Before
+          </button>
+        )}
+        {selection && canReorder(doc, selection, "after-next") && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setHistory((state) => dispatch(state, { type: "ReorderNode", nodeId: selection, direction: "after-next" }))
+            }
+            title="Move after next sibling (Alt+↓)"
+          >
+            ↓ After
+          </button>
+        )}
+        {selection &&
+          previousSiblingId(doc, selection) &&
+          canReparent(doc, selection, previousSiblingId(doc, selection)!) && (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const parentId = previousSiblingId(doc, selection);
+                if (parentId) setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: selection, parentId }));
+              }}
+              title="Move as child of previous sibling"
+            >
+              ⇥ Into prev
+            </button>
+          )}
+        {selection && nextSiblingId(doc, selection) && canReparent(doc, selection, nextSiblingId(doc, selection)!) && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const parentId = nextSiblingId(doc, selection);
+              if (parentId) {
+                setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: selection, parentId, index: 0 }));
+              }
+            }}
+            title="Move as child of next sibling"
+          >
+            ⇥ Into next
+          </button>
+        )}
         <select
           value={doc.theme.themeId}
           onMouseDown={(e) => e.preventDefault()}
@@ -569,18 +639,28 @@ export function Editor() {
               setEditing(null);
             }
             setHistory((state) => ({ ...state, selection: id }));
+            // A click on an SVG node is not itself a focusable target, so without this the
+            // browser's default click-blur behaviour leaves nothing focused (or leaves focus
+            // wherever Tab order last put it, e.g. a toolbar button) — every keyboard command
+            // this step adds, and every one Phase 1 already had, then goes nowhere. The mount
+            // effect only refocuses the surface on an editing-session transition, which a plain
+            // selection click is not. Found the same way as Phase 1's version of this bug: by
+            // checking `document.activeElement` after a real click, not by reading the code.
+            surfaceRef.current?.focus();
           }}
           onSelectNone={() => {
             if (editing) {
               setHistory((state) => commitDraft(state, editing));
               setEditing(null);
             }
+            surfaceRef.current?.focus();
           }}
-          onToggleCollapse={(id) =>
+          onToggleCollapse={(id) => {
             setHistory((state) =>
               dispatch(state, { type: "SetCollapsed", nodeId: id, collapsed: !getNode(state.doc, id).collapsed })
-            )
-          }
+            );
+            surfaceRef.current?.focus();
+          }}
         />
 
         {/*
