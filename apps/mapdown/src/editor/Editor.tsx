@@ -15,7 +15,9 @@ import {
 } from "../model/history";
 import { createDocument, getNode, type NodeId } from "../model/types";
 import {
+  canDelete,
   canMoveSide,
+  canPromote,
   canReorder,
   canReparent,
   nextSiblingId,
@@ -47,6 +49,8 @@ import {
 import { exportSvg } from "../export/svg";
 import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
+import { COMMANDS } from "./command-registry";
+import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
 
 /**
  * The editing state machine of `interaction.md`, wired to the model, layout and canvas.
@@ -83,12 +87,17 @@ export function Editor() {
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
   const [notice, setNotice] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState("");
   const [restored, setRestored] = useState(false);
   const store = useMemo(() => createStore(), []);
   const [viewport, setViewport] = useState<Viewport>(IDENTITY);
   const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
+  const [helpMode, setHelpMode] = useState<"help" | "search" | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const helpButtonRef = useRef<HTMLButtonElement>(null);
+  const helpInvokerRef = useRef<HTMLElement | null>(null);
   const editingRef = useRef<EditingState | null>(editing);
   const guard = useImeGuard();
   editingRef.current = editing;
@@ -114,8 +123,15 @@ export function Editor() {
    * .activeElement` after a keypress rather than by reading the code.
    */
   useEffect(() => {
-    if (!editing) surfaceRef.current?.focus();
-  }, [editing]);
+    if (!editing && !helpMode) surfaceRef.current?.focus();
+  }, [editing, helpMode]);
+
+  useEffect(() => {
+    const elements = document.querySelectorAll<HTMLElement>("[data-help-background]");
+    for (const element of elements) {
+      (element as HTMLElement & { inert: boolean }).inert = helpMode !== null;
+    }
+  }, [helpMode]);
 
   useEffect(() => {
     if (!editing) return;
@@ -226,6 +242,29 @@ export function Editor() {
     []
   );
 
+  const openHelp = useCallback(
+    (nextMode: "help" | "search") => {
+      helpInvokerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : helpButtonRef.current;
+      const session = editingRef.current;
+      if (session) {
+        setHistory((state) => commitDraft(state, session));
+        setEditing(null);
+      }
+      setHelpMode(nextMode);
+    },
+    [commitDraft]
+  );
+
+  const closeHelp = useCallback(() => {
+    setHelpMode(null);
+    requestAnimationFrame(() => {
+      const target = helpInvokerRef.current;
+      if (target?.isConnected) target.focus();
+      else surfaceRef.current?.focus();
+    });
+  }, []);
+
   /**
    * Escape exits the editing session. It does **not** discard what was typed.
    *
@@ -293,7 +332,7 @@ export function Editor() {
         metaKey: event.metaKey,
         ctrlKey: event.ctrlKey,
         altKey: event.altKey
-      });
+      }, result);
 
       if (action.type === "none") return;
       event.preventDefault();
@@ -398,7 +437,25 @@ export function Editor() {
           break;
       }
     },
-    [doc, selection, mode, editing, history, commitDraft, cancelEdit, createAndEdit]
+    [doc, selection, mode, editing, history, result, commitDraft, cancelEdit, createAndEdit]
+  );
+
+  const onGlobalKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      const primary = event.metaKey || event.ctrlKey;
+      if (helpMode) return;
+      if (primary && event.key === "/") {
+        event.preventDefault();
+        openHelp("help");
+        return;
+      }
+      if (primary && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openHelp("search");
+        return;
+      }
+    },
+    [helpMode, openHelp]
   );
 
   const onKeyDown = useCallback(
@@ -440,6 +497,45 @@ export function Editor() {
     setNotice(scaleReductionMessage(png));
     save(png.dataUrl, "png");
   }, [doc, save]);
+
+  const openMarkdown = useCallback(async (file: File) => {
+    if (
+      !window.confirm(
+        "Open this Markdown file as a new map? Your current map remains saved in this browser."
+      )
+    ) {
+      return;
+    }
+    try {
+      const { importMarkdown } = await import("../markdown/parse");
+      const imported = importMarkdown(await file.text());
+      if (!imported.ok) {
+        setNotice(
+          `Could not open ${file.name}${imported.line ? ` at line ${imported.line}` : ""}: ${imported.error}`
+        );
+        setAnnouncement("Markdown import failed. The current map was not changed.");
+        return;
+      }
+      const title = file.name.replace(/\.(md|markdown)$/i, "") || imported.doc.title;
+      const nextDoc = { ...imported.doc, title };
+      setEditing(null);
+      setHistory(createHistory(nextDoc, nextDoc.rootId));
+      setViewport(IDENTITY);
+      setNotice(
+        imported.warnings.length > 0
+          ? `Opened ${file.name} with ${imported.warnings.length} ${imported.warnings.length === 1 ? "warning" : "warnings"}. ${imported.warnings[0]!.detail}`
+          : `Opened ${file.name}.`
+      );
+      setAnnouncement(
+        `Markdown imported${imported.warnings.length > 0 ? ` with ${imported.warnings.length} warnings` : ""}.`
+      );
+    } catch {
+      setNotice(`Could not read ${file.name}. The current map was not changed.`);
+      setAnnouncement("Markdown import failed. The current map was not changed.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
 
   /**
    * Canvas callbacks stay stable while a textarea draft changes. Without this, every keystroke
@@ -500,6 +596,7 @@ export function Editor() {
     setHistory((state) =>
       dispatch(state, { type: "ReparentNode", nodeId: id, parentId, index })
     );
+    setAnnouncement("Branch moved.");
     surfaceRef.current?.focus();
   }, []);
 
@@ -507,7 +604,12 @@ export function Editor() {
     setHistory((state) =>
       dispatch(state, { type: "MoveFirstLevelBranchSide", nodeId: id, side })
     );
+    setAnnouncement(`Branch moved to the ${side} side.`);
     surfaceRef.current?.focus();
+  }, []);
+
+  const announceInvalidDrop = useCallback(() => {
+    setAnnouncement("Invalid move target. The branch was not moved.");
   }, []);
 
   const undoFromUi = useCallback(() => {
@@ -524,6 +626,217 @@ export function Editor() {
     setHistory((state) => redo(state));
     surfaceRef.current?.focus();
   }, []);
+
+  const executeRegisteredCommand = useCallback(
+    (id: string) => {
+      const selected = history.selection;
+      const committed = editing ? commitDraft(history, editing) : history;
+      setHelpMode(null);
+      helpInvokerRef.current = null;
+
+      switch (id) {
+        case "edit": {
+          if (!selected) break;
+          sessionCounter += 1;
+          const text = getNode(committed.doc, selected).text;
+          setHistory(committed);
+          setEditing({
+            nodeId: selected,
+            draft: text,
+            originalText: text,
+            selectAllOnFocus: true,
+            isNewNode: false,
+            groupId: `edit-${sessionCounter}`
+          });
+          return;
+        }
+        case "create-sibling":
+          if (selected) createAndEdit(committed, { type: "CreateSibling", anchorId: selected }, "New sibling");
+          return;
+        case "create-child":
+          if (selected) createAndEdit(committed, { type: "CreateChild", parentId: selected }, "New child");
+          return;
+        case "promote":
+          if (selected) setHistory(dispatch(committed, { type: "PromoteNode", nodeId: selected }));
+          break;
+        case "delete":
+          if (selected) setHistory(dispatch(committed, { type: "DeleteSubtree", nodeId: selected }));
+          setAnnouncement("Branch deleted. Undo is available.");
+          break;
+        case "root":
+          setHistory({ ...committed, selection: committed.doc.rootId });
+          break;
+        case "toggle-collapse":
+          if (selected) {
+            const nextCollapsed = !getNode(committed.doc, selected).collapsed;
+            setHistory(
+              dispatch(committed, {
+                type: "SetCollapsed",
+                nodeId: selected,
+                collapsed: nextCollapsed
+              })
+            );
+            setAnnouncement(nextCollapsed ? "Branch collapsed." : "Branch expanded.");
+          }
+          break;
+        case "reorder-before":
+          if (selected) setHistory(dispatch(committed, { type: "ReorderNode", nodeId: selected, direction: "before-previous" }));
+          break;
+        case "reorder-after":
+          if (selected) setHistory(dispatch(committed, { type: "ReorderNode", nodeId: selected, direction: "after-next" }));
+          break;
+        case "reparent-previous": {
+          const parentId = selected ? previousSiblingId(committed.doc, selected) : null;
+          if (selected && parentId) setHistory(dispatch(committed, { type: "ReparentNode", nodeId: selected, parentId }));
+          break;
+        }
+        case "reparent-next": {
+          const parentId = selected ? nextSiblingId(committed.doc, selected) : null;
+          if (selected && parentId) {
+            setHistory(dispatch(committed, { type: "ReparentNode", nodeId: selected, parentId, index: 0 }));
+          }
+          break;
+        }
+        case "move-side":
+          if (selected) {
+            const node = getNode(committed.doc, selected);
+            setHistory(
+              dispatch(committed, {
+                type: "MoveFirstLevelBranchSide",
+                nodeId: selected,
+                side: node.side === "right" ? "left" : "right"
+              })
+            );
+          }
+          break;
+        case "undo":
+          setHistory(undo(committed));
+          break;
+        case "redo":
+          setHistory(redo(committed));
+          break;
+        case "fit":
+          setHistory(committed);
+          setViewport(fitMap(result.bounds, canvasSize));
+          break;
+        case "center": {
+          setHistory(committed);
+          const box = selected ? result.boxes[selected] : result.boxes[committed.doc.rootId];
+          if (box) setViewport((current) => centerOn(current, box));
+          break;
+        }
+        case "toggle-layout":
+          setHistory({
+            ...committed,
+            doc: {
+              ...committed.doc,
+              layout: { mode: committed.doc.layout.mode === "right" ? "two-sided" : "right" },
+              revision: committed.doc.revision + 1
+            }
+          });
+          break;
+        case "open-markdown":
+          setHistory(committed);
+          fileInputRef.current?.click();
+          break;
+        case "export-markdown":
+          setHistory(committed);
+          download();
+          setAnnouncement("Markdown export prepared.");
+          break;
+        case "export-svg":
+          setHistory(committed);
+          downloadSvg();
+          setAnnouncement("SVG export prepared.");
+          break;
+        case "export-png":
+          setHistory(committed);
+          void downloadPng();
+          break;
+        default:
+          setHistory(committed);
+          break;
+      }
+
+      setEditing(null);
+      requestAnimationFrame(() => surfaceRef.current?.focus());
+    },
+    [
+      canvasSize,
+      commitDraft,
+      createAndEdit,
+      download,
+      downloadPng,
+      downloadSvg,
+      editing,
+      history,
+      result
+    ]
+  );
+
+  const runtimeCommands = useMemo<RuntimeCommand[]>(() => {
+    const selected = selection;
+    const node = selected ? doc.nodes[selected] : null;
+    const reasonFor = (id: string): string | null => {
+      switch (id) {
+        case "edit":
+        case "create-sibling":
+        case "create-child":
+          return selected ? null : "Select a node first.";
+        case "promote":
+          return selected && canPromote(doc, selected)
+            ? null
+            : "The root and first-level branches cannot be promoted.";
+        case "delete":
+          return selected && canDelete(doc, selected) ? null : "The root cannot be deleted.";
+        case "navigate":
+          return "Choose a direction with the arrow keys on the canvas.";
+        case "root":
+          return selected === doc.rootId ? "The root is already selected." : null;
+        case "toggle-collapse":
+          return node && node.childIds.length > 0 ? null : "A leaf has no children to collapse.";
+        case "reorder-before":
+          return selected && canReorder(doc, selected, "before-previous")
+            ? null
+            : "There is no previous sibling.";
+        case "reorder-after":
+          return selected && canReorder(doc, selected, "after-next")
+            ? null
+            : "There is no next sibling.";
+        case "reparent-previous": {
+          const target = selected ? previousSiblingId(doc, selected) : null;
+          return selected && target && canReparent(doc, selected, target)
+            ? null
+            : "There is no valid previous sibling to move into.";
+        }
+        case "reparent-next": {
+          const target = selected ? nextSiblingId(doc, selected) : null;
+          return selected && target && canReparent(doc, selected, target)
+            ? null
+            : "There is no valid next sibling to move into.";
+        }
+        case "move-side":
+          return selected && canMoveSide(doc, selected)
+            ? null
+            : "Only first-level branches in two-sided layout can change side.";
+        case "undo":
+          return canUndo(history) ? null : "There is nothing to undo.";
+        case "redo":
+          return canRedo(history) ? null : "There is nothing to redo.";
+        case "help":
+        case "command-center":
+          return "Help and commands are already open.";
+        default:
+          return null;
+      }
+    };
+
+    return COMMANDS.map((command) => ({
+      ...command,
+      disabledReason: reasonFor(command.id),
+      execute: () => executeRegisteredCommand(command.id)
+    }));
+  }, [doc, executeRegisteredCommand, history, selection]);
 
   const editingBox = editing ? result.boxes[editing.nodeId] : null;
 
@@ -543,16 +856,17 @@ export function Editor() {
 
   return (
     <div
-      ref={surfaceRef}
       style={{ display: "grid", gridTemplateRows: "auto auto 1fr auto", height: "100%", outline: "none" }}
-      onKeyDown={onKeyDown}
-      tabIndex={-1}
+      onKeyDownCapture={onGlobalKeyDown}
     >
       <header
+        data-help-background
+        aria-hidden={helpMode ? true : undefined}
         style={{
           display: "flex",
           gap: "0.5rem",
           alignItems: "center",
+          flexWrap: "wrap",
           padding: "0.5rem 0.75rem",
           borderBottom: "1px solid var(--chrome-border)",
           background: "var(--chrome-bg-raised)"
@@ -709,10 +1023,20 @@ export function Editor() {
         >
           Centre
         </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}>
+        <button
+          aria-label="Zoom out"
+          title="Zoom out"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
+        >
           −
         </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}>
+        <button
+          aria-label="Zoom in"
+          title="Zoom in"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
+        >
           +
         </button>
         <button onMouseDown={(e) => e.preventDefault()} onClick={download}>
@@ -724,10 +1048,35 @@ export function Editor() {
         <button onMouseDown={(e) => e.preventDefault()} onClick={() => void downloadPng()}>
           PNG
         </button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}>
+          Open
+        </button>
+        <input
+          ref={fileInputRef}
+          className="sr-only"
+          type="file"
+          tabIndex={-1}
+          accept=".md,.markdown,text/markdown,text/plain"
+          aria-label="Open Markdown file"
+          onChange={(event) => {
+            const file = event.target.files?.[0];
+            if (file) void openMarkdown(file);
+          }}
+        />
+        <button
+          ref={helpButtonRef}
+          type="button"
+          onClick={() => openHelp("help")}
+          title="Help and shortcuts (Command or Control plus /)"
+        >
+          Help
+        </button>
       </header>
 
       {notice && (
         <div
+          data-help-background
+          aria-hidden={helpMode ? true : undefined}
           role="status"
           style={{
             padding: "0.5rem 0.75rem",
@@ -746,7 +1095,17 @@ export function Editor() {
         </div>
       )}
 
-      <div style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}>
+      <div
+        ref={surfaceRef}
+        data-help-background
+        aria-hidden={helpMode ? true : undefined}
+        role="tree"
+        aria-label="Mind map editor"
+        aria-activedescendant={selection ? `map-node-${selection}` : undefined}
+        tabIndex={0}
+        onKeyDown={onKeyDown}
+        style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
+      >
         <MapCanvas
           doc={doc}
           theme={theme}
@@ -760,6 +1119,7 @@ export function Editor() {
           onToggleCollapse={toggleCollapse}
           onReparent={reparentNode}
           onMoveSide={moveBranchSide}
+          onInvalidDrop={announceInvalidDrop}
         />
 
         {/*
@@ -803,6 +1163,8 @@ export function Editor() {
       </div>
 
       <footer
+        data-help-background
+        aria-hidden={helpMode ? true : undefined}
         style={{
           padding: "0.4rem 0.75rem",
           borderTop: "1px solid var(--chrome-border)",
@@ -818,6 +1180,8 @@ export function Editor() {
         </span>
         <span>{zoomPercent(viewport)}</span>
         <span
+          role="status"
+          aria-live="polite"
           style={{
             marginLeft: "auto",
             color: status.kind === "failed" ? "#d94f4f" : "var(--chrome-text-muted)"
@@ -825,7 +1189,22 @@ export function Editor() {
         >
           {saveStatusLabel(status)}
         </span>
+        {status.kind === "failed" && (
+          <button type="button" onClick={download}>
+            Export Markdown
+          </button>
+        )}
+        <span className="sr-only" role="status" aria-live="polite">
+          {announcement}
+        </span>
       </footer>
+      {helpMode && (
+        <HelpCenter
+          mode={helpMode}
+          commands={runtimeCommands}
+          onClose={closeHelp}
+        />
+      )}
     </div>
   );
 }

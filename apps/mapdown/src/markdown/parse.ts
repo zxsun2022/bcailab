@@ -44,6 +44,15 @@ export type ImportResult =
   | { ok: true; doc: MindMapDocument; warnings: ImportWarning[] }
   | { ok: false; error: string; line?: number };
 
+export const IMPORT_LIMITS = {
+  bytes: 5 * 1024 * 1024,
+  nodes: 10_000,
+  depth: 100,
+  labelCodePoints: 10_000
+} as const;
+
+class ImportLimitError extends Error {}
+
 interface FrontMatter {
   layout?: "right" | "two-sided";
   theme?: string;
@@ -172,8 +181,9 @@ function itemLabelAndChildren(
   const parts: string[] = [];
   const lists: CommonMarkNode[] = [];
   const blocks = children(item);
+  const paragraphCount = blocks.filter((block) => block.type === "paragraph").length;
 
-  if (blocks.length > 1) {
+  if (paragraphCount > 1) {
     warnings.push({
       category: "continuation-merged",
       line: sourceLine(item, bodyStart),
@@ -206,8 +216,13 @@ function convertList(
   parentId: NodeId,
   nodes: Record<NodeId, MindMapNode>,
   bodyStart: number,
-  warnings: ImportWarning[]
+  warnings: ImportWarning[],
+  depth: number,
+  budget: { nodes: number }
 ): void {
+  if (depth > IMPORT_LIMITS.depth) {
+    throw new ImportLimitError(`The outline exceeds the maximum depth of ${IMPORT_LIMITS.depth}.`);
+  }
   for (const item of children(list)) {
     if (item.type !== "item") continue;
 
@@ -220,15 +235,34 @@ function convertList(
     }
 
     const { text, lists } = itemLabelAndChildren(item, bodyStart, warnings);
+    if ([...text].length > IMPORT_LIMITS.labelCodePoints) {
+      throw new ImportLimitError(
+        `A node label exceeds the maximum of ${IMPORT_LIMITS.labelCodePoints.toLocaleString()} characters.`
+      );
+    }
+    budget.nodes += 1;
+    if (budget.nodes > IMPORT_LIMITS.nodes) {
+      throw new ImportLimitError(
+        `The outline exceeds the maximum of ${IMPORT_LIMITS.nodes.toLocaleString()} nodes.`
+      );
+    }
     const id = newNodeId();
     nodes[id] = createNode({ id, parentId, text: normalizeText(text) });
     nodes[parentId]!.childIds.push(id);
 
-    for (const nested of lists) convertList(nested, id, nodes, bodyStart, warnings);
+    for (const nested of lists) {
+      convertList(nested, id, nodes, bodyStart, warnings, depth + 1, budget);
+    }
   }
 }
 
 export function importMarkdown(source: string): ImportResult {
+  if (new TextEncoder().encode(source).byteLength > IMPORT_LIMITS.bytes) {
+    return {
+      ok: false,
+      error: `This file exceeds the ${IMPORT_LIMITS.bytes / 1024 / 1024} MB import limit.`
+    };
+  }
   // §10.1–§10.2 — strip a BOM and normalise line endings before anything else looks at the text.
   const text = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
   const lines = text.split("\n");
@@ -285,7 +319,14 @@ export function importMarkdown(source: string): ImportResult {
   }
 
   const rootHeading = topLevel[rootIndex]!;
-  const rootText = normalizeText(flattenInline(rootHeading));
+  const rawRootText = flattenInline(rootHeading);
+  if ([...rawRootText].length > IMPORT_LIMITS.labelCodePoints) {
+    return {
+      ok: false,
+      error: `The root label exceeds the maximum of ${IMPORT_LIMITS.labelCodePoints.toLocaleString()} characters.`
+    };
+  }
+  const rootText = normalizeText(rawRootText);
   const rootId = newNodeId();
   const nodes: Record<NodeId, MindMapNode> = {
     [rootId]: createNode({ id: rootId, text: rootText })
@@ -295,9 +336,17 @@ export function importMarkdown(source: string): ImportResult {
   // Content of any other block type (a stray paragraph, a block quote, a second heading level
   // that is not level-1) is not part of this format's mapping and is silently ignored, matching
   // the pre-D-14 reader's behaviour for any line that was not a list item.
-  for (let i = rootIndex + 1; i < topLevel.length; i++) {
-    const node = topLevel[i]!;
-    if (node.type === "list") convertList(node, rootId, nodes, bodyStart, warnings);
+  try {
+    const budget = { nodes: 1 };
+    for (let i = rootIndex + 1; i < topLevel.length; i++) {
+      const node = topLevel[i]!;
+      if (node.type === "list") {
+        convertList(node, rootId, nodes, bodyStart, warnings, 1, budget);
+      }
+    }
+  } catch (error) {
+    if (error instanceof ImportLimitError) return { ok: false, error: error.message };
+    throw error;
   }
 
   // §10.12 — first-level nodes get a side; deeper nodes must not have one.

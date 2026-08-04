@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
+import { layout } from "../layout/layout";
 import { navigateFrom, resolveKey, type KeyEvent } from "./keymap";
 
 beforeEach(() => resetIdCounterForTests());
@@ -176,10 +177,46 @@ describe("Alt+Arrow sibling reordering (§7.3, keyboard.md §14)", () => {
 });
 
 describe("navigation over the visible projection (§10)", () => {
+  it("returns directly to the root on Home", () => {
+    const { doc, ids } = fixture();
+    expect(resolveKey(doc, ids["a1"]!, "node-selected", key("Home"))).toEqual({
+      type: "navigate",
+      to: doc.rootId
+    });
+  });
+
   it("moves into children on ArrowRight and to the parent on ArrowLeft", () => {
     const { doc, ids } = fixture();
     expect(navigateFrom(doc, ids["a"]!, "ArrowRight")).toBe(ids["a1"]);
     expect(navigateFrom(doc, ids["a1"]!, "ArrowLeft")).toBe(ids["a"]);
+  });
+
+  it("mirrors inward/outward arrows on the left and chooses a side from the root", () => {
+    const { doc, ids } = fixture();
+    const twoSided = {
+      ...doc,
+      layout: { mode: "two-sided" as const }
+    };
+    const withLeft = applyCommand(twoSided, {
+      type: "MoveFirstLevelBranchSide",
+      nodeId: ids["a"]!,
+      side: "left"
+    }).doc;
+
+    expect(navigateFrom(withLeft, ids["a"]!, "ArrowLeft")).toBe(ids["a1"]);
+    expect(navigateFrom(withLeft, ids["a1"]!, "ArrowRight")).toBe(ids["a"]);
+    expect(navigateFrom(withLeft, withLeft.rootId, "ArrowLeft", layout(withLeft))).toBe(ids["a"]);
+    expect(navigateFrom(withLeft, withLeft.rootId, "ArrowRight", layout(withLeft))).toBe(ids["b"]);
+  });
+
+  it("uses layout geometry for visual up/down navigation", () => {
+    const { doc, ids } = fixture();
+    const geometry = layout(doc);
+    const below = navigateFrom(doc, ids["a1"]!, "ArrowDown", geometry);
+    expect(below).not.toBeNull();
+    const from = geometry.boxes[ids["a1"]!]!;
+    const to = geometry.boxes[below!]!;
+    expect(to.y + to.height / 2).toBeGreaterThan(from.y + from.height / 2);
   });
 
   it("moves between siblings on ArrowDown and ArrowUp", () => {

@@ -47,11 +47,11 @@ returns, so neither needs an IA change.
 - **Mapdown — Phase 1 merged, Phase 2 in progress.** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, deploying to `map.bcailab.com`. The editor works:
   keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
-  Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit.
-  **Progress table and what is left: `docs/mapdown/README.md`.** Remaining Phase 2 work is
-  the Help/Command Center, accessibility hardening,
-  a performance/regression pass, and creating the second
-  Cloudflare Pages project (D-03 has the settings). Read `docs/mapdown/decisions.md` before
+  Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit,
+  searchable Help/Command Center, and accessible tree semantics.
+  **Progress table and what is left: `docs/mapdown/README.md`.** The remaining Phase 2
+  delivery task is creating the second Cloudflare Pages project (D-03 has the settings).
+  Read `docs/mapdown/decisions.md` before
   reopening any settled question — it has fifteen records, several of which correct an earlier
   mistake of mine and say so.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
