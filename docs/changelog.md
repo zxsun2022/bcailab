@@ -9,6 +9,16 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown Phase 2 checkpoint — layout, export, parser and move
+  interaction.** Adds sticky two-sided branches, document themes, pan/zoom/fit, SVG/PNG export,
+  a real CommonMark parser with a mutation check that proves escaping is parser-visible, and
+  the complete Step 10 move path. Pointer dragging now has a label/subtree-count preview,
+  before/after/inside and cross-root side targets, patterned invalid feedback, a 4px threshold,
+  Escape/pointer-cancel safety, and bounded edge autopan; keyboard and toolbar alternatives
+  expose the same semantic move commands. Evidence: 425/425 tests, clean production build, and
+  browser regression checks for threshold, valid reorder, invalid no-op, cancel, preview and
+  cross-root side movement. Only the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown Phase 1 semantic editor (PR #26).** The review candidate
   contains the document model and ten enforced tree invariants, pure invertible commands,
   session-grouped undo/redo, right-only variable-size layout, keyboard-first editing with IME

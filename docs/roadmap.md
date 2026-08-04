@@ -44,21 +44,16 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
-- **Mapdown — Phase 1 in review; Phase 2 authorized and in progress.** A
-  static, local-first, keyboard-first Markdown mind-map editor: the semantic document is an
-  ordered tree, the map is a projection of it, and everything exports to standard Markdown, SVG
-  and PNG with no account and no server. Three-phase business plan confirmed by the owner:
-  (1) fully free static tool, (2) local document history in IndexedDB, (3) optional bcailab
-  accounts for cloud-saved maps, with paid tiers reserved for AI features and heavy use — free
-  users keep the large majority of functionality. It lives in this repo as `apps/mapdown` and
-  deploys as a **second** Cloudflare Pages project to `map.bcailab.com`; it inherits the
-  account system but none of the Studio's visual language. The v1.0 specification, the decision
-  log and the token-layering rules are in `docs/mapdown/`; start at `docs/mapdown/README.md`,
-  and read `decisions.md` before reopening any settled question. Phase 0 cleared the three
-  architectural risks; Phase 1's semantic editor is PR #26. Phase 2 is the public-MVP scope in
-  `spec/phases.md` §4. A real 科判 outline remains the regression fixture (D-12).
-  URL-fragment sharing is approved for after Phase 1, with two constraints that cannot be
-  retrofitted (D-11).
+- **Mapdown — Phase 1 merged, Phase 2 in progress.** A static, local-first, keyboard-first
+  Markdown mind-map editor at `apps/mapdown`, deploying to `map.bcailab.com`. The editor works:
+  keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
+  Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit.
+  **Progress table and what is left: `docs/mapdown/README.md`.** Remaining Phase 2 work is
+  the Help/Command Center, accessibility hardening,
+  a performance/regression pass, and creating the second
+  Cloudflare Pages project (D-03 has the settings). Read `docs/mapdown/decisions.md` before
+  reopening any settled question — it has fifteen records, several of which correct an earlier
+  mistake of mine and say so.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop

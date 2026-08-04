@@ -1,5 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { applyCommand, canDelete, canPromote, type Command } from "./commands";
+import {
+  applyCommand,
+  canDelete,
+  canPromote,
+  canReorder,
+  canReparent,
+  nextSiblingId,
+  previousSiblingId,
+  resolveDropTarget,
+  type Command
+} from "./commands";
 import { checkInvariants } from "./invariants";
 import {
   createDocument,
@@ -8,7 +18,8 @@ import {
   resetIdCounterForTests,
   visibleNodes,
   walk,
-  type MindMapDocument
+  type MindMapDocument,
+  type NodeId
 } from "./types";
 
 /**
@@ -195,6 +206,195 @@ describe("PromoteNode (§7.1, §7.5)", () => {
     expect(walk(back)).toEqual(walk(doc));
     expect(getNode(back, ids["a1"]!).side).toBeNull();
     expectValid(back);
+  });
+});
+
+/** Builds `root → p(w, x, y, z)` — four same-level siblings, for move tests. */
+function fourSiblings() {
+  let doc = createDocument("root");
+  const ids: Record<string, string> = { root: doc.rootId };
+  const run = (command: Command, name: string) => {
+    const result = applyCommand(doc, command);
+    doc = result.doc;
+    ids[name] = result.selection;
+  };
+  run({ type: "CreateChild", parentId: doc.rootId, text: "p" }, "p");
+  run({ type: "CreateChild", parentId: ids["p"]!, text: "w" }, "w");
+  run({ type: "CreateSibling", anchorId: ids["w"]!, text: "x" }, "x");
+  run({ type: "CreateSibling", anchorId: ids["x"]!, text: "y" }, "y");
+  run({ type: "CreateSibling", anchorId: ids["y"]!, text: "z" }, "z");
+  return { doc, ids };
+}
+
+const names = (doc: MindMapDocument, ids: NodeId[]) => ids.map((id) => getNode(doc, id).text);
+
+describe("ReorderNode (§7.3)", () => {
+  it("swaps with the previous or next sibling", () => {
+    const { doc, ids } = fourSiblings();
+    const before = applyCommand(doc, {
+      type: "ReorderNode",
+      nodeId: ids["y"]!,
+      direction: "before-previous"
+    }).doc;
+    expect(names(before, getNode(before, ids["p"]!).childIds)).toEqual(["w", "y", "x", "z"]);
+
+    const after = applyCommand(doc, {
+      type: "ReorderNode",
+      nodeId: ids["x"]!,
+      direction: "after-next"
+    }).doc;
+    expect(names(after, getNode(after, ids["p"]!).childIds)).toEqual(["w", "y", "x", "z"]);
+    expectValid(after);
+  });
+
+  it("lands exactly when moving forward at the end", () => {
+    const { doc, ids } = fourSiblings();
+    const { doc: next } = applyCommand(doc, {
+      type: "ReorderNode",
+      nodeId: ids["y"]!,
+      direction: "after-next"
+    });
+    expect(names(next, getNode(next, ids["p"]!).childIds)).toEqual(["w", "x", "z", "y"]);
+    expectValid(next);
+  });
+
+  it("round-trips through its inverse", () => {
+    const { doc, ids } = fourSiblings();
+    const moved = applyCommand(doc, {
+      type: "ReorderNode",
+      nodeId: ids["x"]!,
+      direction: "after-next"
+    });
+    expect(walk(applyCommand(moved.doc, moved.inverse).doc)).toEqual(walk(doc));
+  });
+
+  it("guards the ends and exposes adjacent sibling ids", () => {
+    const { doc, ids } = fourSiblings();
+    expect(canReorder(doc, ids["w"]!, "before-previous")).toBe(false);
+    expect(canReorder(doc, ids["z"]!, "after-next")).toBe(false);
+    expect(canReorder(doc, ids["x"]!, "before-previous")).toBe(true);
+    expect(previousSiblingId(doc, ids["x"]!)).toBe(ids["w"]);
+    expect(nextSiblingId(doc, ids["x"]!)).toBe(ids["y"]);
+  });
+});
+
+describe("ReparentNode (§7.2, accessibility.md §9)", () => {
+  it("defaults to the last child and honours an explicit index", () => {
+    const { doc, ids } = fixture();
+    const last = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: ids["b"]!,
+      parentId: ids["a"]!
+    }).doc;
+    expect(getNode(last, ids["a"]!).childIds).toEqual([ids["a1"], ids["a2"], ids["b"]]);
+
+    const first = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: ids["b"]!,
+      parentId: ids["a"]!,
+      index: 0
+    }).doc;
+    expect(getNode(first, ids["a"]!).childIds).toEqual([ids["b"], ids["a1"], ids["a2"]]);
+    expectValid(first);
+  });
+
+  it("moves within one parent without overshooting", () => {
+    const { doc, ids } = fourSiblings();
+    const { doc: next } = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: ids["w"]!,
+      parentId: ids["p"]!,
+      index: 3
+    });
+    expect(names(next, getNode(next, ids["p"]!).childIds)).toEqual(["x", "y", "z", "w"]);
+  });
+
+  it("moves the whole subtree and normalizes first-level side state", () => {
+    const { doc, ids } = fixture();
+    const grandchild = applyCommand(doc, {
+      type: "CreateChild",
+      parentId: ids["a1"]!,
+      text: "deep"
+    });
+    const moved = applyCommand(grandchild.doc, {
+      type: "ReparentNode",
+      nodeId: ids["a1"]!,
+      parentId: ids["b"]!
+    }).doc;
+    expect(getNode(moved, grandchild.selection).parentId).toBe(ids["a1"]);
+
+    const promoted = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: ids["a2"]!,
+      parentId: doc.rootId
+    }).doc;
+    expect(getNode(promoted, ids["a2"]!).side).not.toBeNull();
+    const demoted = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: ids["b"]!,
+      parentId: ids["a"]!
+    }).doc;
+    expect(getNode(demoted, ids["b"]!).side).toBeNull();
+  });
+
+  it("rejects self, descendant, and root moves", () => {
+    const { doc, ids } = fixture();
+    expect(canReparent(doc, ids["a"]!, ids["a"]!)).toBe(false);
+    expect(canReparent(doc, ids["a"]!, ids["a1"]!)).toBe(false);
+    expect(canReparent(doc, doc.rootId, ids["a"]!)).toBe(false);
+    expect(canReparent(doc, ids["a1"]!, ids["a"]!)).toBe(true);
+  });
+
+  it("round-trips through its inverse", () => {
+    const { doc, ids } = fixture();
+    const moved = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: ids["a1"]!,
+      parentId: ids["b"]!
+    });
+    expect(walk(applyCommand(moved.doc, moved.inverse).doc)).toEqual(walk(doc));
+  });
+});
+
+describe("resolveDropTarget (§7.2, §7.3 drag-and-drop)", () => {
+  it("resolves inside and cross-parent before/after positions", () => {
+    const { doc, ids } = fixture();
+    expect(resolveDropTarget(doc, ids["b"]!, ids["a"]!, "inside")).toEqual({
+      parentId: ids["a"],
+      index: 2
+    });
+    expect(resolveDropTarget(doc, ids["b"]!, ids["a1"]!, "before")).toEqual({
+      parentId: ids["a"],
+      index: 0
+    });
+    expect(resolveDropTarget(doc, ids["b"]!, ids["a1"]!, "after")).toEqual({
+      parentId: ids["a"],
+      index: 1
+    });
+  });
+
+  it("corrects same-parent indices in both directions", () => {
+    const { doc, ids } = fourSiblings();
+    expect(resolveDropTarget(doc, ids["w"]!, ids["z"]!, "after")).toEqual({
+      parentId: ids["p"],
+      index: 3
+    });
+    expect(resolveDropTarget(doc, ids["z"]!, ids["w"]!, "before")).toEqual({
+      parentId: ids["p"],
+      index: 0
+    });
+  });
+
+  it("rejects invalid targets while allowing an inside-root drop", () => {
+    const { doc, ids } = fixture();
+    expect(resolveDropTarget(doc, ids["a"]!, ids["a"]!, "inside")).toBeNull();
+    expect(resolveDropTarget(doc, ids["a"]!, ids["a1"]!, "inside")).toBeNull();
+    expect(resolveDropTarget(doc, ids["a"]!, doc.rootId, "before")).toBeNull();
+    expect(resolveDropTarget(doc, ids["a"]!, "missing", "inside")).toBeNull();
+    expect(resolveDropTarget(doc, ids["a1"]!, doc.rootId, "inside")).toEqual({
+      parentId: doc.rootId,
+      index: 2
+    });
   });
 });
 

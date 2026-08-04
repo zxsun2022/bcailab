@@ -83,25 +83,15 @@ body {
 }
 
 /*
- * Layer B preview — the Minimal Light document theme, the one Phase 1 ships (phases.md §3).
+ * Layer B — document themes — deliberately does NOT live here.
  *
- * These are document tokens, not chrome: they describe the map itself and must survive into an
- * exported SVG as literal values. They live here only until the theme system lands in Phase 2,
- * at which point they become data in the document model rather than CSS. Keeping them visually
- * separate from the Layer A block above is the point — see docs/mapdown/design-tokens.md.
+ * Node, connector, branch and collapse-badge tokens are plain data in src/theme/presets.ts,
+ * because the SVG exporter reads the same values the renderer does and an exported file may
+ * carry no external dependency (storage-export.md §12.3). A CSS custom property renders fine in
+ * the browser and exports unstyled — see docs/mapdown/decisions.md D-05, and the test that
+ * asserts no theme value matches /var\(|--/.
+ *
+ * Everything above this line is Layer A: application chrome only, which never appears in an
+ * export and follows the viewer's light/dark preference independently of the document theme
+ * (C-02 in docs/mapdown/design-tokens.md).
  */
-:root {
-  --canvas-bg: #ffffff;
-  --node-fill: #ffffff;
-  --node-stroke: #c8ccd1;
-  --node-text: #1c1e21;
-  --node-root-fill: #2f6feb;
-  --node-root-text: #ffffff;
-  /* C-01: selection is a ring, not a fill colour, so it can never be confused with a branch
-     colour once branch palettes arrive. */
-  --node-selected-stroke: #2f6feb;
-  --connector: #b9bec6;
-  --control-fill: #ffffff;
-  --control-stroke: #c8ccd1;
-  --control-text: #61666d;
-}

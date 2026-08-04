@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MapCanvas, viewBoxBounds } from "../canvas/MapCanvas";
-import { layout } from "../layout/layout";
+import { MapCanvas } from "../canvas/MapCanvas";
+import { chooseSideForNewBranch, layout } from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
 import { sanitizeFilename } from "../markdown/escape";
 import {
@@ -14,7 +14,15 @@ import {
   type EditorHistory
 } from "../model/history";
 import { createDocument, getNode, type NodeId } from "../model/types";
-import type { Command } from "../model/commands";
+import {
+  canMoveSide,
+  canReorder,
+  canReparent,
+  nextSiblingId,
+  previousSiblingId,
+  type Command
+} from "../model/commands";
+import { THEMES, themeById } from "../theme/presets";
 import { useImeGuard } from "./useImeGuard";
 import {
   createAutosave,
@@ -25,6 +33,19 @@ import {
   type SaveStatus
 } from "../storage/autosave";
 import { createStore, recallLastDocument } from "../storage/store";
+import {
+  IDENTITY,
+  centerOn,
+  fitMap,
+  revealSelection,
+  visibleRect,
+  zoomPercent,
+  zoomToCenter,
+  type Viewport,
+  type ViewportSize
+} from "../canvas/viewport";
+import { exportSvg } from "../export/svg";
+import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 
 /**
@@ -64,6 +85,8 @@ export function Editor() {
   const [notice, setNotice] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
   const store = useMemo(() => createStore(), []);
+  const [viewport, setViewport] = useState<Viewport>(IDENTITY);
+  const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const editingRef = useRef<EditingState | null>(editing);
@@ -78,6 +101,7 @@ export function Editor() {
   // keeping geometry out of React is the mechanism — this recomputes only when the document
   // revision changes, and the canvas memoises per node.
   const result = useMemo(() => layout(doc), [doc]);
+  const theme = useMemo(() => themeById(doc.theme.themeId), [doc.theme.themeId]);
 
   // Focus after render, not from inside a handler: the textarea only exists once `editing` has
   // been committed to state, so focusing any earlier finds nothing.
@@ -176,6 +200,19 @@ export function Editor() {
     autosaveRef.current?.schedule(history.doc, history.selection);
   }, [history.doc, history.selection, restored]);
 
+  /**
+   * §12.5 — bring the selection into view by panning as little as possible.
+   *
+   * Keyed on the selection, not on the document: re-running this per keystroke is exactly the
+   * "recentre the entire map after each edit" the section forbids. `revealSelection` returns
+   * the identical object when nothing needs to move, so an already-visible node re-renders
+   * nothing at all.
+   */
+  useEffect(() => {
+    setViewport((current) => revealSelection(current, canvasSize, result, history.selection));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately not on `result`
+  }, [history.selection, canvasSize]);
+
   /** Writes the draft into the document as part of the session's undo group. */
   const commitDraft = useCallback(
     (state: EditorHistory, session: EditingState): EditorHistory => {
@@ -224,7 +261,17 @@ export function Editor() {
     (state: EditorHistory, command: Command, label: string) => {
       sessionCounter += 1;
       const groupId = `new-${sessionCounter}`;
-      const next = dispatch(state, command, { groupId, label });
+      // §7.2 defines the side in terms of measured subtree heights, which is layout's knowledge.
+      // The editor is the one layer that has both, so it is where the two meet.
+      const willBeFirstLevel =
+        (command.type === "CreateChild" && command.parentId === state.doc.rootId) ||
+        (command.type === "CreateSibling" && state.doc.nodes[command.anchorId]?.parentId === state.doc.rootId) ||
+        (command.type === "CreateSibling" && command.anchorId === state.doc.rootId);
+      const withSide: Command =
+        willBeFirstLevel && state.doc.layout.mode === "two-sided"
+          ? { ...command, side: chooseSideForNewBranch(state.doc) }
+          : command;
+      const next = dispatch(state, withSide, { groupId, label });
       setHistory(next);
       setEditing({
         nodeId: next.selection!,
@@ -342,6 +389,13 @@ export function Editor() {
           setEditing(null);
           setHistory({ ...committed, selection: action.to });
           break;
+
+        case "reorder":
+          if (selection) {
+            setHistory(dispatch(committed, { type: "ReorderNode", nodeId: selection, direction: action.direction }));
+          }
+          setEditing(null);
+          break;
       }
     },
     [doc, selection, mode, editing, history, commitDraft, cancelEdit, createAndEdit]
@@ -358,16 +412,34 @@ export function Editor() {
     [guard, runAction]
   );
 
-  const download = useCallback(() => {
-    const markdown = exportMarkdown(doc);
-    const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+  const save = useCallback((data: string | Blob, extension: string) => {
+    const url = typeof data === "string" ? data : URL.createObjectURL(data);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${sanitizeFilename(doc.title)}.md`;
+    anchor.download = `${sanitizeFilename(doc.title)}.${extension}`;
     anchor.click();
-    URL.revokeObjectURL(url);
-  }, [doc]);
+    if (typeof data !== "string") URL.revokeObjectURL(url);
+  }, [doc.title]);
+
+  const download = useCallback(() => {
+    save(new Blob([exportMarkdown(doc)], { type: "text/markdown;charset=utf-8" }), "md");
+  }, [doc, save]);
+
+  const downloadSvg = useCallback(() => {
+    // The layout the canvas is already showing, so the file and the screen cannot disagree.
+    const { svg } = exportSvg(doc, {}, result);
+    save(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }), "svg");
+  }, [doc, result, save]);
+
+  const downloadPng = useCallback(async () => {
+    const png = await exportPng(doc, { scale: 2 });
+    if (!png.ok) {
+      setNotice(png.reason);
+      return;
+    }
+    setNotice(scaleReductionMessage(png));
+    save(png.dataUrl, "png");
+  }, [doc, save]);
 
   /**
    * Canvas callbacks stay stable while a textarea draft changes. Without this, every keystroke
@@ -424,6 +496,20 @@ export function Editor() {
     surfaceRef.current?.focus();
   }, []);
 
+  const reparentNode = useCallback((id: NodeId, parentId: NodeId, index: number) => {
+    setHistory((state) =>
+      dispatch(state, { type: "ReparentNode", nodeId: id, parentId, index })
+    );
+    surfaceRef.current?.focus();
+  }, []);
+
+  const moveBranchSide = useCallback((id: NodeId, side: "left" | "right") => {
+    setHistory((state) =>
+      dispatch(state, { type: "MoveFirstLevelBranchSide", nodeId: id, side })
+    );
+    surfaceRef.current?.focus();
+  }, []);
+
   const undoFromUi = useCallback(() => {
     const session = editingRef.current;
     setEditing(null);
@@ -447,15 +533,13 @@ export function Editor() {
    */
   const editorRect = useMemo(() => {
     if (!editingBox) return { left: 0, top: 0, width: 0 };
-    const { minX, minY, maxX, maxY } = viewBoxBounds(result.bounds);
-    const spanX = maxX - minX;
-    const spanY = maxY - minY;
+    const rect = visibleRect(viewport, canvasSize);
     return {
-      left: ((editingBox.x - minX) / spanX) * 100,
-      top: ((editingBox.y + editingBox.height / 2 - minY) / spanY) * 100,
-      width: (editingBox.width / spanX) * 100
+      left: ((editingBox.x - rect.minX) / rect.width) * 100,
+      top: ((editingBox.y + editingBox.height / 2 - rect.minY) / rect.height) * 100,
+      width: (editingBox.width / rect.width) * 100
     };
-  }, [editingBox, result.bounds]);
+  }, [editingBox, viewport, canvasSize]);
 
   return (
     <div
@@ -481,7 +565,165 @@ export function Editor() {
         <button onMouseDown={(e) => e.preventDefault()} onClick={redoFromUi} disabled={!canRedo(history)}>
           Redo
         </button>
-        <button onMouseDown={(e) => e.preventDefault()} onClick={download}>Export Markdown</button>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            setHistory((state) => ({
+              ...state,
+              doc: {
+                ...state.doc,
+                layout: { mode: state.doc.layout.mode === "right" ? "two-sided" : "right" },
+                revision: state.doc.revision + 1
+              }
+            }))
+          }
+        >
+          {doc.layout.mode === "right" ? "Two-sided" : "Right-only"}
+        </button>
+        {selection && canMoveSide(doc, selection) && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setHistory((state) =>
+                dispatch(state, {
+                  type: "MoveFirstLevelBranchSide",
+                  nodeId: selection,
+                  side: getNode(state.doc, selection).side === "right" ? "left" : "right"
+                })
+              )
+            }
+          >
+            Move {getNode(doc, selection).side === "right" ? "left" : "right"}
+          </button>
+        )}
+        {/*
+          §7.2/§7.3's non-drag alternatives (accessibility.md §9, keyboard.md §14). Reorder also
+          has Alt+ArrowUp/Down; reparent does not get a direct shortcut (only Alt+ArrowUp/Down are
+          tested as safe from browser history navigation — see keymap.ts), so a menu/button is its
+          only path until step 15's Command Center replaces this row.
+        */}
+        {selection && canReorder(doc, selection, "before-previous") && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setHistory((state) => dispatch(state, { type: "ReorderNode", nodeId: selection, direction: "before-previous" }))
+            }
+            title="Move before previous sibling (Alt+↑)"
+          >
+            ↑ Before
+          </button>
+        )}
+        {selection && canReorder(doc, selection, "after-next") && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() =>
+              setHistory((state) => dispatch(state, { type: "ReorderNode", nodeId: selection, direction: "after-next" }))
+            }
+            title="Move after next sibling (Alt+↓)"
+          >
+            ↓ After
+          </button>
+        )}
+        {selection &&
+          previousSiblingId(doc, selection) &&
+          canReparent(doc, selection, previousSiblingId(doc, selection)!) && (
+            <button
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const parentId = previousSiblingId(doc, selection);
+                if (parentId) setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: selection, parentId }));
+              }}
+              title="Move as child of previous sibling"
+            >
+              ⇥ Into prev
+            </button>
+          )}
+        {selection && nextSiblingId(doc, selection) && canReparent(doc, selection, nextSiblingId(doc, selection)!) && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              const parentId = nextSiblingId(doc, selection);
+              if (parentId) {
+                setHistory((state) => dispatch(state, { type: "ReparentNode", nodeId: selection, parentId, index: 0 }));
+              }
+            }}
+            title="Move as child of next sibling"
+          >
+            ⇥ Into next
+          </button>
+        )}
+        <select
+          value={doc.theme.themeId}
+          onMouseDown={(e) => e.preventDefault()}
+          onChange={(event) =>
+            setHistory((state) => ({
+              ...state,
+              doc: {
+                ...state.doc,
+                theme: { ...state.doc.theme, themeId: event.target.value },
+                revision: state.doc.revision + 1
+              }
+            }))
+          }
+          aria-label="Theme"
+        >
+          {THEMES.map((entry) => (
+            <option key={entry.id} value={entry.id}>
+              {entry.name}
+            </option>
+          ))}
+        </select>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() =>
+            setHistory((state) => ({
+              ...state,
+              doc: {
+                ...state.doc,
+                theme: {
+                  ...state.doc.theme,
+                  branchColorMode:
+                    state.doc.theme.branchColorMode === "single" ? "by-first-level-branch" : "single"
+                },
+                revision: state.doc.revision + 1
+              }
+            }))
+          }
+        >
+          {doc.theme.branchColorMode === "single" ? "Branch colours" : "One colour"}
+        </button>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => setViewport(fitMap(result.bounds, canvasSize))}
+          title="Fit map"
+        >
+          Fit
+        </button>
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => {
+            const box = selection ? result.boxes[selection] : result.boxes[doc.rootId];
+            if (box) setViewport((v) => centerOn(v, box));
+          }}
+          title="Centre the selected node"
+        >
+          Centre
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}>
+          −
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}>
+          +
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={download}>
+          Markdown
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={downloadSvg}>
+          SVG
+        </button>
+        <button onMouseDown={(e) => e.preventDefault()} onClick={() => void downloadPng()}>
+          PNG
+        </button>
       </header>
 
       {notice && (
@@ -504,13 +746,20 @@ export function Editor() {
         </div>
       )}
 
-      <div style={{ position: "relative", background: "var(--canvas-bg)", overflow: "hidden" }}>
+      <div style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}>
         <MapCanvas
+          doc={doc}
+          theme={theme}
           layout={result}
+          viewport={viewport}
+          onViewport={setViewport}
+          onSize={setCanvasSize}
           selection={selection}
           onSelect={selectNode}
           onSelectNone={selectNone}
           onToggleCollapse={toggleCollapse}
+          onReparent={reparentNode}
+          onMoveSide={moveBranchSide}
         />
 
         {/*
@@ -567,6 +816,7 @@ export function Editor() {
           {Object.keys(doc.nodes).length} nodes · Enter = sibling · Tab = child · Shift+Tab =
           promote · Space = collapse · F2 = rename
         </span>
+        <span>{zoomPercent(viewport)}</span>
         <span
           style={{
             marginLeft: "auto",

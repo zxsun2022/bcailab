@@ -1,5 +1,5 @@
 import { measureNode, type Typography } from "./measure";
-import { getNode, type MindMapDocument, type NodeId } from "../model/types";
+import { getNode, type BranchSide, type MindMapDocument, type NodeId } from "../model/types";
 
 /**
  * Right-only automatic layout, per `layout-engine.md` §6 and §8.
@@ -49,6 +49,8 @@ export interface NodeBox {
   width: number;
   height: number;
   depth: number;
+  /** The side this node renders on. Root reports "right" in right-only mode; see §10. */
+  side: BranchSide;
   lines: string[];
   /** §5 — retained so a collapsed badge can show its direct-child count without a tree walk. */
   directChildCount: number;
@@ -111,6 +113,43 @@ function childBlockHeight(
   return total;
 }
 
+/**
+ * §7.2 — which side a new first-level branch should take.
+ *
+ * Lives here rather than in the command layer because the rule is defined in terms of *visible
+ * aggregate subtree heights*, which is layout's knowledge. The command layer accepts a side and
+ * has its own deterministic fallback, so the two layers stay separable: commands never import
+ * layout.
+ *
+ * The assignment is sticky (§7.2.5) — computed once, persisted, and never revised to rebalance.
+ */
+export function chooseSideForNewBranch(
+  doc: MindMapDocument,
+  options: LayoutOptions = {}
+): BranchSide {
+  const typography = options.typography ?? DEFAULT_TYPOGRAPHY;
+  const spacing = options.spacing ?? DEFAULT_SPACING;
+  const measured = measureTree(doc, typography, spacing);
+  const firstLevel = getNode(doc, doc.rootId).childIds;
+
+  const aggregate = (side: BranchSide) =>
+    firstLevel
+      .filter((id) => getNode(doc, id).side === side)
+      .reduce((sum, id) => sum + (measured[id]?.subtreeHeight ?? 0), 0);
+
+  const left = aggregate("left");
+  const right = aggregate("right");
+  if (right < left) return "right";
+  if (left < right) return "left";
+
+  // §7.2.3 tie-break: first branch right, second left, then alternate from the most recently
+  // assigned side. Deterministic, which vision.md §4.10 requires of the whole engine.
+  const assigned = firstLevel.map((id) => getNode(doc, id).side).filter((s): s is BranchSide => s !== null);
+  const last = assigned.at(-1);
+  if (!last) return "right";
+  return last === "right" ? "left" : "right";
+}
+
 /** Pass 1 — §8 measure. */
 function measureTree(
   doc: MindMapDocument,
@@ -136,26 +175,53 @@ function measureTree(
   return out;
 }
 
-export function layout(doc: MindMapDocument, options: LayoutOptions = {}): LayoutResult {
-  const typography = options.typography ?? DEFAULT_TYPOGRAPHY;
-  const spacing = options.spacing ?? DEFAULT_SPACING;
+/**
+ * §10.3 — a horizontal-tangent cubic between two boxes, so the curve leaves the parent's
+ * outward edge and arrives at the child's inward edge flat. Works unchanged on both sides
+ * because "outward" and "inward" already encode the direction.
+ */
+function connect(
+  boxes: Record<NodeId, NodeBox>,
+  connectors: Connector[],
+  fromId: NodeId,
+  toId: NodeId
+): void {
+  const from = boxes[fromId]!;
+  const to = boxes[toId]!;
+  const x1 = from.outwardEdgeX;
+  const y1 = from.y + from.height / 2;
+  const x2 = to.inwardEdgeX;
+  const y2 = to.y + to.height / 2;
+  const midX = (x1 + x2) / 2;
+  connectors.push({ fromId, toId, path: { x1, y1, c1x: midX, c1y: y1, c2x: midX, c2y: y2, x2, y2 } });
+}
 
-  const measured = measureTree(doc, typography, spacing);
-  const boxes: Record<NodeId, NodeBox> = {};
-  const order: NodeId[] = [];
-  const connectors: Connector[] = [];
-
-  const rootMeasured = measured[doc.rootId]!;
-
-  /**
-   * `top` is the top of this node's *subtree span*, not of the node box. The node is centred
-   * within that span, which is what makes a parent sit level with the middle of its children
-   * rather than with the first one (§6.2).
-   */
-  const place = (id: NodeId, left: number, top: number, depth: number) => {
+/**
+ * Builds the recursive placer shared by both layout modes.
+ *
+ * `dir` is +1 for the right side and -1 for the left. `anchorX` is the edge the node grows
+ * *away* from, so a caller never has to know which end of the box it is handing over.
+ *
+ * §7.5 is the rule that survives the sign flip: within a side, siblings still render
+ * top-to-bottom in semantic order. Left-side arrays are **not** reversed merely because the
+ * geometry extends leftward — that would make the map disagree with its own Markdown.
+ */
+function makePlacer(
+  doc: MindMapDocument,
+  measured: Record<NodeId, Measured>,
+  spacing: LayoutSpacing,
+  boxes: Record<NodeId, NodeBox>,
+  order: NodeId[],
+  connectors: Connector[]
+) {
+  const place = (id: NodeId, anchorX: number, top: number, depth: number, dir: 1 | -1, side: BranchSide) => {
     const node = getNode(doc, id);
     const m = measured[id]!;
+    // `top` is the top of this node's *subtree span*, not of its box: the node is centred
+    // within that span, which is what makes a parent sit level with the middle of its children
+    // rather than with the first one (§6.2).
     const y = top + (m.subtreeHeight - m.height) / 2;
+    const left = dir === 1 ? anchorX : anchorX - m.width;
 
     boxes[id] = {
       nodeId: id,
@@ -164,48 +230,44 @@ export function layout(doc: MindMapDocument, options: LayoutOptions = {}): Layou
       width: m.width,
       height: m.height,
       depth,
+      side,
       lines: m.lines,
       directChildCount: node.childIds.length,
       collapsed: node.collapsed,
-      outwardEdgeX: left + m.width,
-      inwardEdgeX: left
+      // Outward is away from the root: the right edge on the right, the left edge on the left.
+      outwardEdgeX: dir === 1 ? left + m.width : left,
+      inwardEdgeX: dir === 1 ? left : left + m.width
     };
     order.push(id);
 
     const childIds = layoutChildren(doc, id);
     if (childIds.length === 0) return;
 
-    // §6.1 — edge-based placement, with the collapse lane reserved so hover never resizes.
-    const childLeft = left + m.width + spacing.collapseLane + spacing.horizontalGap;
+    // §6.1 / §7.4 — edge-based placement in whichever direction this side runs, with the
+    // collapse lane reserved so hover never resizes a node.
+    const childAnchor =
+      dir === 1
+        ? left + m.width + spacing.collapseLane + spacing.horizontalGap
+        : left - spacing.collapseLane - spacing.horizontalGap;
     const block = childBlockHeight(doc, childIds, measured, spacing);
     let cursor = top + (m.subtreeHeight - block) / 2;
 
     for (let i = 0; i < childIds.length; i++) {
       const childId = childIds[i]!;
-      place(childId, childLeft, cursor, depth + 1);
-
-      // §10.3 — a horizontal-tangent cubic, so the curve leaves and arrives flat.
-      const parentBox = boxes[id]!;
-      const childBox = boxes[childId]!;
-      const x1 = parentBox.outwardEdgeX;
-      const y1 = parentBox.y + parentBox.height / 2;
-      const x2 = childBox.inwardEdgeX;
-      const y2 = childBox.y + childBox.height / 2;
-      const midX = (x1 + x2) / 2;
-      connectors.push({
-        fromId: id,
-        toId: childId,
-        path: { x1, y1, c1x: midX, c1y: y1, c2x: midX, c2y: y2, x2, y2 }
-      });
-
+      place(childId, childAnchor, cursor, depth + 1, dir, side);
+      connect(boxes, connectors, id, childId);
       cursor += measured[childId]!.subtreeHeight + gapAfter(doc, childIds, i, spacing);
     }
   };
+  return place;
+}
 
-  // §3 — the root *centre* is the origin. `place` takes the top of the subtree span, so the
-  // offset is half the span, and the node ends up centred on zero regardless of tree shape.
-  place(doc.rootId, -rootMeasured.width / 2, -rootMeasured.subtreeHeight / 2, 0);
-
+function finish(
+  doc: MindMapDocument,
+  boxes: Record<NodeId, NodeBox>,
+  order: NodeId[],
+  connectors: Connector[]
+): LayoutResult {
   const all = Object.values(boxes);
   return {
     revision: doc.revision,
@@ -219,6 +281,30 @@ export function layout(doc: MindMapDocument, options: LayoutOptions = {}): Layou
       maxY: Math.max(...all.map((b) => b.y + b.height))
     }
   };
+}
+
+function layoutRightOnly(doc: MindMapDocument, options: LayoutOptions = {}): LayoutResult {
+  const typography = options.typography ?? DEFAULT_TYPOGRAPHY;
+  const spacing = options.spacing ?? DEFAULT_SPACING;
+
+  const measured = measureTree(doc, typography, spacing);
+  const boxes: Record<NodeId, NodeBox> = {};
+  const order: NodeId[] = [];
+  const connectors: Connector[] = [];
+  const rootMeasured = measured[doc.rootId]!;
+
+  // §3 — the root *centre* is the origin. `place` takes the top of the subtree span, so the
+  // offset is half the span, and the node ends up centred on zero whatever the tree's shape.
+  makePlacer(doc, measured, spacing, boxes, order, connectors)(
+    doc.rootId,
+    -rootMeasured.width / 2,
+    -rootMeasured.subtreeHeight / 2,
+    0,
+    1,
+    "right"
+  );
+
+  return finish(doc, boxes, order, connectors);
 }
 
 /** The §3 invariant, exposed so tests and a development build can assert it directly. */
@@ -247,4 +333,76 @@ export function diffLayouts(
     }
   }
   return { shared: shared.length, moved, maxShift };
+}
+
+/**
+ * §7 — two-sided layout.
+ *
+ * First-level branches are partitioned by their **persisted** side (§7.1); descendants inherit
+ * it. Each side's block is centred on the root centre, which §3 fixes at the origin — so a
+ * branch growing on one side does not translate the other, and §7.6 and §11.5 hold together.
+ * (Phase 0 spike 3 got that wrong by centring on the combined extent instead; see its Finding 2.)
+ */
+function layoutTwoSided(doc: MindMapDocument, options: LayoutOptions = {}): LayoutResult {
+  const typography = options.typography ?? DEFAULT_TYPOGRAPHY;
+  const spacing = options.spacing ?? DEFAULT_SPACING;
+
+  const measured = measureTree(doc, typography, spacing);
+  const boxes: Record<NodeId, NodeBox> = {};
+  const order: NodeId[] = [];
+  const connectors: Connector[] = [];
+  const rootMeasured = measured[doc.rootId]!;
+  const root = getNode(doc, doc.rootId);
+
+  // §3 — root centre at the origin.
+  boxes[doc.rootId] = {
+    nodeId: doc.rootId,
+    x: -rootMeasured.width / 2,
+    y: -rootMeasured.height / 2,
+    width: rootMeasured.width,
+    height: rootMeasured.height,
+    depth: 0,
+    side: "right",
+    lines: rootMeasured.lines,
+    directChildCount: root.childIds.length,
+    collapsed: false,
+    outwardEdgeX: rootMeasured.width / 2,
+    inwardEdgeX: -rootMeasured.width / 2
+  };
+  order.push(doc.rootId);
+
+  const place = makePlacer(doc, measured, spacing, boxes, order, connectors);
+
+  for (const side of ["right", "left"] as const) {
+    const dir = side === "right" ? 1 : -1;
+    // §7.1 + §7.5 — filter to the side, preserving semantic order. No reversal.
+    const ids = layoutChildren(doc, doc.rootId).filter((id) => getNode(doc, id).side === side);
+    if (ids.length === 0) continue;
+
+    let block = 0;
+    for (let i = 0; i < ids.length; i++) {
+      block += measured[ids[i]!]!.subtreeHeight + gapAfter(doc, ids, i, spacing);
+    }
+
+    const anchorX =
+      dir === 1
+        ? rootMeasured.width / 2 + spacing.collapseLane + spacing.horizontalGap
+        : -rootMeasured.width / 2 - spacing.collapseLane - spacing.horizontalGap;
+
+    // Each side is centred on the root centre independently, which is what keeps the sides
+    // from moving each other.
+    let cursor = -block / 2;
+    for (let i = 0; i < ids.length; i++) {
+      place(ids[i]!, anchorX, cursor, 1, dir, side);
+      connect(boxes, connectors, doc.rootId, ids[i]!);
+      cursor += measured[ids[i]!]!.subtreeHeight + gapAfter(doc, ids, i, spacing);
+    }
+  }
+
+  return finish(doc, boxes, order, connectors);
+}
+
+/** Dispatches on the document's own layout mode, so callers never choose. */
+export function layout(doc: MindMapDocument, options: LayoutOptions = {}): LayoutResult {
+  return doc.layout.mode === "two-sided" ? layoutTwoSided(doc, options) : layoutRightOnly(doc, options);
 }
