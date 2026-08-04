@@ -39,23 +39,16 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 returns, so neither needs an IA change.
 
 ## Next
-- **Mapdown — new product, specification landed 2026-08-01, implementation not scoped.** A
-  static, local-first, keyboard-first Markdown mind-map editor: the semantic document is an
-  ordered tree, the map is a projection of it, and everything exports to standard Markdown, SVG
-  and PNG with no account and no server. Three-phase business plan confirmed by the owner:
-  (1) fully free static tool, (2) local document history in IndexedDB, (3) optional bcailab
-  accounts for cloud-saved maps, with paid tiers reserved for AI features and heavy use — free
-  users keep the large majority of functionality. It lives in this repo as `apps/mapdown` and
-  deploys as a **second** Cloudflare Pages project to `map.bcailab.com`; it inherits the
-  account system but none of the Studio's visual language. The v1.0 specification, the decision
-  log and the token-layering rules are in `docs/mapdown/`; start at `docs/mapdown/README.md`,
-  and read `decisions.md` before reopening any settled question. **Entry point is Phase 0**
-  (`docs/mapdown/spec/phases.md`): disposable spikes for Chinese IME inside canvas text editing,
-  variable-size tidy-tree layout, and CJK-safe SVG export — the three places the whole product
-  can fail. A real 科判 outline is the fixture for those spikes, because it is the only material
-  that stresses all three at once (D-12). URL-fragment sharing is approved for after Phase 1,
-  with two constraints that cannot be retrofitted (D-11). Scoping any of this into an iteration
-  is the owner's call, not an implementer's.
+- **Mapdown — Phase 1 shipped, Phase 2 in progress.** A static, local-first, keyboard-first
+  Markdown mind-map editor at `apps/mapdown`, deploying to `map.bcailab.com`. The editor works:
+  keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
+  Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit. 393 tests.
+  **Progress table and what is left: `docs/mapdown/README.md`.** Remaining Phase 2 work is
+  drag-and-drop plus accessible move commands, the Help/Command Center, accessibility hardening,
+  a performance pass, swapping in a real CommonMark parser (D-14), and creating the second
+  Cloudflare Pages project (D-03 has the settings). Read `docs/mapdown/decisions.md` before
+  reopening any settled question — it has fifteen records, several of which correct an earlier
+  mistake of mine and say so.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop

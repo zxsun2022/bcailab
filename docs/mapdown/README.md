@@ -1,26 +1,61 @@
 # Mapdown
 
-**Status:** **Phase 0 complete** — all three spikes run, no architectural blocker, no open
-decision. There is still no editor.
-**Home:** `apps/mapdown` in this monorepo; deploys to `map.bcailab.com` (Pages project not yet
-created).
+**Status (2026-08-03):** Phase 0 complete, **Phase 1 complete**, Phase 2 in progress.
+The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
+export, local autosave and recovery, pan/zoom/fit. **393 tests.**
+
+**Home:** `apps/mapdown`; deploys to `map.bcailab.com` (Pages project **not yet created**).
 
 ```bash
 pnpm --filter mapdown dev      # http://localhost:5174
 pnpm --filter mapdown build    # tsc --noEmit && vite build -> dist/
+pnpm test                      # whole repo, includes apps/mapdown/src/**
 ```
 
-Vite + React SPA on **TypeScript 7** (D-04, D-13). No server, no Cloudflare bindings, and no
-dependency on `@bcailab/ui` — Mapdown owns its own chrome tokens in `src/styles/` (D-05).
+Vite + React SPA on **TypeScript 7** (D-04, D-13). No server, no Cloudflare bindings, no
+dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` (D-05).
 
-Mapdown is a browser-based, keyboard-first mind-map editor whose semantic source is a
-Markdown tree. Its promise: open the site, build a structured map immediately, let the
-application own the geometry, and export the whole thing as standard Markdown or a
-high-quality image. No account, no server, no lock-in.
+## Progress against `spec/phases.md` §12
 
-It is a **separate product** from English Studio. It shares this repo's infrastructure and
-(eventually) its accounts, but shares none of its branding or visual system. See
-`decisions.md` D-05.
+| # | Step | State |
+|---|---|---|
+| 1 | Data invariants and commands | ✅ `src/model/` |
+| 2 | Right-only layout with measured text | ✅ `src/layout/` |
+| 3 | Selection / editing / IME | ✅ `src/editor/` |
+| 4 | Keyboard creation and navigation | ✅ `src/editor/keymap.ts` |
+| 5 | History | ✅ `src/model/history.ts` |
+| 6 | Collapse visible projection | ✅ |
+| 7 | Local save and recovery | ✅ `src/storage/` |
+| 8 | Markdown import/export | ✅ `src/markdown/` — but see D-14 |
+| 9 | Two-sided sticky branches | ✅ |
+| 10 | **Drag/drop and accessible move commands** | ❌ not started |
+| 11 | Pan / zoom / fit | ✅ `src/canvas/viewport.ts` |
+| 12 | Theme tokens and presets | ✅ `src/theme/` |
+| 13 | SVG export | ✅ `src/export/svg.ts` |
+| 14 | PNG export | ✅ `src/export/png.ts` |
+| 15 | **Help / Command Center** | ❌ not started |
+| 16 | **Accessibility hardening** | ❌ not started |
+| 17 | **Performance and regression pass** | ❌ not started |
+
+Also outstanding for Phase 2: **swap in a real CommonMark parser** (D-14 — it carries a
+specific instruction for whoever does it), and **create the Cloudflare Pages project** (D-03
+has the exact settings, including the build watch paths that stop every push triggering two
+builds).
+
+## How this codebase is worked on
+
+Two habits are worth continuing, because most of the real defects found so far came from them
+rather than from writing more tests:
+
+**Mutation-check anything load-bearing.** Break the rule on purpose and confirm tests go red.
+This caught a whole tautological test suite (D-14), a layout assertion whose fixture made the
+mutation a no-op, and several claims that only looked verified.
+
+**Drive the browser for anything involving React, focus or the DOM.** Six real bugs in Phase 1
+were invisible to unit tests: the editor surface never held keyboard focus, side effects inside
+a state updater, a StrictMode-disposed autosave that never came back, Escape discarding typed
+work, a viewport that lost most of a fast drag, and a root node offering a collapse control the
+model refuses to honour.
 
 ## Where to start
 
