@@ -9,6 +9,16 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown production deployment (D-03).** Created the
+  Git-connected `mapdown` Cloudflare Pages project from the shared repository, with `main`
+  production builds rooted at `apps/mapdown`, the documented monorepo build command, and an
+  app-local Wrangler output configuration. Bound `map.bcailab.com` and narrowed build watch
+  paths to `apps/mapdown/*` + `packages/*`; the existing web project is independently narrowed
+  to `apps/web/*` + `packages/*`. Evidence: both Pages checks pass, the production deployment
+  for merge commit `7c69722` is active, Cloudflare lists the custom domain, and the live HTTPS
+  URL returns HTTP/2 200 with the current Mapdown assets. Only the owner may mark this
+  checkpoint accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown production interaction gates.** Completes Steps 15–17:
   a searchable Help/Command Center generated from the executable keymap and command registry;
   platform-aware shortcuts, disabled-command explanations, focus trapping and restoration;
