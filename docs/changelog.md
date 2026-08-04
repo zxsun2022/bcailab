@@ -16,7 +16,9 @@ make the final transition; see `AGENTS.md`.
   recovery. Pre-landing review added production-backend IndexedDB coverage, direct IME guard
   boundary tests, stable canvas callbacks so typing does not reconcile every SVG node, correct
   F2 selection and editing-session undo behavior, and a recovery failure path that cannot
-  permanently disable later saves. Evidence: 283/283 tests and a clean production build. Only
+  permanently disable later saves. Final review also closed restored-session ID collisions,
+  cross-session snapshot overwrites, selection clearing, and abandoned empty-node handling.
+  Evidence: 287/287 tests, a clean production build, and browser regression checks. Only
   the owner may change this entry from `in_review` to accepted/shipped.
 
 - 2026-07-30 — **Streaming translation output.** `/translate` no longer waits for the whole

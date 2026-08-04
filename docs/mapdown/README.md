@@ -1,7 +1,7 @@
 # Mapdown
 
 **Status (2026-08-04):** Phase 0 complete; **Phase 1 in review in PR #26**. The keyboard-first
-semantic editor, right-only layout, canonical Markdown and local recovery work, with 283 tests.
+semantic editor, right-only layout, canonical Markdown and local recovery work, with 287 tests.
 Only the owner marks the phase accepted/shipped.
 **Home:** `apps/mapdown` in this monorepo; deploys to `map.bcailab.com` (Pages project not yet
 created).

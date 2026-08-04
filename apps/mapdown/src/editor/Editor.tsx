@@ -227,7 +227,7 @@ export function Editor() {
       const next = dispatch(state, command, { groupId, label });
       setHistory(next);
       setEditing({
-        nodeId: next.selection,
+        nodeId: next.selection!,
         draft: "",
         originalText: "",
         selectAllOnFocus: false,
@@ -289,6 +289,13 @@ export function Editor() {
         case "commit-edit":
         case "create-sibling": {
           const anchor = editing?.nodeId ?? selection;
+          if (
+            editing?.isNewNode &&
+            editing.draft.trim() === "" &&
+            getNode(committed.doc, editing.nodeId).childIds.length === 0
+          ) {
+            break;
+          }
           if (anchor) createAndEdit(committed, { type: "CreateSibling", anchorId: anchor }, "New sibling");
           break;
         }
@@ -301,6 +308,11 @@ export function Editor() {
 
         case "cancel-edit":
           cancelEdit();
+          break;
+
+        case "clear-selection":
+          setEditing(null);
+          setHistory({ ...committed, selection: null });
           break;
 
         case "promote":
@@ -366,7 +378,14 @@ export function Editor() {
     (id: NodeId) => {
       const session = editingRef.current;
       setHistory((state) => {
-        const committed = session && session.nodeId !== id ? commitDraft(state, session) : state;
+        const committed =
+          session && session.nodeId !== id
+            ? session.isNewNode &&
+              session.draft.trim() === "" &&
+              getNode(state.doc, session.nodeId).childIds.length === 0
+              ? dropLastEntry(state)
+              : commitDraft(state, session)
+            : state;
         return { ...committed, selection: id };
       });
       if (session && session.nodeId !== id) setEditing(null);
@@ -378,8 +397,18 @@ export function Editor() {
   const selectNone = useCallback(() => {
     const session = editingRef.current;
     if (session) {
-      setHistory((state) => commitDraft(state, session));
+      setHistory((state) => {
+        const committed =
+          session.isNewNode &&
+          session.draft.trim() === "" &&
+          getNode(state.doc, session.nodeId).childIds.length === 0
+            ? dropLastEntry(state)
+            : commitDraft(state, session);
+        return { ...committed, selection: null };
+      });
       setEditing(null);
+    } else {
+      setHistory((state) => ({ ...state, selection: null }));
     }
     surfaceRef.current?.focus();
   }, [commitDraft]);

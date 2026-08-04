@@ -54,7 +54,7 @@ export interface AutosaveOptions {
   onStatus: (status: SaveStatus) => void;
   debounceMs?: number;
   now?: () => number;
-  newSnapshotId?: () => string;
+  newSnapshotId?: (document: MindMapDocument) => string;
 }
 
 let snapshotSeq = 0;
@@ -77,7 +77,13 @@ export function createAutosave(options: AutosaveOptions): Autosave {
     onStatus,
     debounceMs = DEBOUNCE_MS,
     now = () => Date.now(),
-    newSnapshotId = () => `s${++snapshotSeq}`
+    newSnapshotId = (document) => {
+      const nonce =
+        typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+          ? crypto.randomUUID()
+          : `${Date.now().toString(36)}-${++snapshotSeq}`;
+      return `${document.id}-${nonce}`;
+    }
   } = options;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -92,7 +98,12 @@ export function createAutosave(options: AutosaveOptions): Autosave {
     if (!job || disposed) return;
 
     onStatus({ kind: "saving" });
-    const snapshot = makeSnapshot(job.document, job.selection, newSnapshotId(), now());
+    const snapshot = makeSnapshot(
+      job.document,
+      job.selection,
+      newSnapshotId(job.document),
+      now()
+    );
 
     try {
       // 1. Write under a new id. The previous snapshot is untouched and still pointed at.

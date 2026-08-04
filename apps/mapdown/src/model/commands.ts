@@ -302,10 +302,20 @@ export function applyCommand(doc: MindMapDocument, command: Command): CommandRes
       result = renameNode(doc, command.nodeId, command.text);
       break;
     case "CreateSibling":
-      result = createSibling(doc, command.anchorId, command.newNodeId ?? newNodeId(), command.text ?? "");
+      result = createSibling(
+        doc,
+        command.anchorId,
+        command.newNodeId ?? newNodeId(doc.nodes),
+        command.text ?? ""
+      );
       break;
     case "CreateChild":
-      result = createChild(doc, command.parentId, command.newNodeId ?? newNodeId(), command.text ?? "");
+      result = createChild(
+        doc,
+        command.parentId,
+        command.newNodeId ?? newNodeId(doc.nodes),
+        command.text ?? ""
+      );
       break;
     case "DeleteSubtree":
       result = deleteSubtree(doc, command.nodeId);

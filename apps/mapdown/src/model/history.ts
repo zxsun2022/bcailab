@@ -32,7 +32,7 @@ export interface EditorHistory {
   doc: MindMapDocument;
   past: HistoryEntry[];
   future: HistoryEntry[];
-  selection: NodeId;
+  selection: NodeId | null;
 }
 
 export interface DispatchOptions {
@@ -41,8 +41,13 @@ export interface DispatchOptions {
   label?: string;
 }
 
-export function createHistory(doc: MindMapDocument, selection?: NodeId): EditorHistory {
-  return { doc, past: [], future: [], selection: selection ?? doc.rootId };
+export function createHistory(doc: MindMapDocument, selection?: NodeId | null): EditorHistory {
+  return {
+    doc,
+    past: [],
+    future: [],
+    selection: selection === undefined ? doc.rootId : selection
+  };
 }
 
 let entrySeq = 0;
@@ -112,7 +117,7 @@ export function dropLastEntry(state: EditorHistory): EditorHistory {
     doc,
     past: state.past.slice(0, -1),
     future: state.future,
-    selection: entry.beforeSelection ?? doc.rootId
+    selection: entry.beforeSelection
   };
 }
 
@@ -133,7 +138,7 @@ export function undo(state: EditorHistory): EditorHistory {
     doc,
     past: state.past.slice(0, -1),
     future: [entry, ...state.future],
-    selection: entry.beforeSelection ?? doc.rootId
+    selection: entry.beforeSelection
   };
 }
 

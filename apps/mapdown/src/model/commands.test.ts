@@ -98,6 +98,22 @@ describe("CreateChild (§6.2)", () => {
     expect(getNode(next, ids["a"]!).collapsed).toBe(false);
     expect(visibleNodes(next)).toContain(selection);
   });
+
+  it("skips ids already present after restoring a document", () => {
+    const { doc } = fixture();
+    const existingIds = Object.keys(doc.nodes);
+    resetIdCounterForTests();
+
+    const { doc: next, selection } = applyCommand(doc, {
+      type: "CreateChild",
+      parentId: doc.rootId,
+      text: "restored-session child"
+    });
+
+    expect(existingIds).not.toContain(selection);
+    expect(Object.keys(next.nodes)).toHaveLength(existingIds.length + 1);
+    expectValid(next);
+  });
 });
 
 describe("DeleteSubtree (§8.1, §8.2)", () => {

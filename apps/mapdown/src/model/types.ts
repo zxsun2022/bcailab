@@ -66,9 +66,13 @@ let counter = 0;
  * deterministic sequence keeps tests and exported snapshots reproducible, and nothing in the
  * spec requires unguessable ids.
  */
-export function newNodeId(): NodeId {
-  counter += 1;
-  return `n${counter}`;
+export function newNodeId(existing?: Readonly<Record<NodeId, unknown>>): NodeId {
+  let candidate: NodeId;
+  do {
+    counter += 1;
+    candidate = `n${counter}`;
+  } while (existing?.[candidate] !== undefined);
+  return candidate;
 }
 
 export function resetIdCounterForTests(): void {
