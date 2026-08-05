@@ -9,7 +9,7 @@ import {
   walk,
   type MindMapDocument
 } from "../model/types";
-import { escapeLabel, sanitizeFilename, unescapeLabel } from "./escape";
+import { escapeLabel, exportFilename, sanitizeFilename, unescapeLabel } from "./escape";
 import { IMPORT_LIMITS, importMarkdown } from "./parse";
 import { exportMarkdown } from "./serialize";
 
@@ -383,5 +383,10 @@ describe("export filename (storage-export.md §11.3)", () => {
 
   it("keeps CJK titles intact", () => {
     expect(sanitizeFilename("前行引导文 科判")).toBe("前行引导文 科判");
+  });
+
+  it("names downloads from the root label with a safe fallback", () => {
+    expect(exportFilename('根/节点: "草稿"', "md")).toBe("根 节点 草稿.md");
+    expect(exportFilename("   ", ".svg")).toBe("mind-map.svg");
   });
 });

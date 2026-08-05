@@ -6,7 +6,7 @@ import { useCallback, useRef } from "react";
  * Promoted from the Phase 0 spike (spikes/01-ime-canvas-editing-20260802.md) unchanged. The
  * spike page under src/spikes/ is disposable; this is not.
  *
- * The problem this exists for: in Mapdown, Enter creates a sibling and Tab creates a child.
+ * The problem this exists for: in Mapdown, Enter commits editing and Tab creates a child.
  * Both are also how a Chinese IME confirms a candidate. Firing the command while the user is
  * only confirming 拼音 would create a spurious node on nearly every word typed.
  *

@@ -491,6 +491,65 @@ permitted by `storage-export.md` §5.3.
 
 ---
 
+## D-17 — Enter commits in editing mode and creates only in selected mode
+
+**Decided 2026-08-04** by the owner after using the deployed editor.
+
+**Decision.** Enter has exactly one primary action per mode:
+
+- in Node Editing, Enter commits the current draft and returns to Node Selected;
+- in Node Selected, Enter creates a sibling and starts editing it;
+- on a selected root, the creation action produces a first-level child;
+- on a newly created empty leaf still being edited, Enter is a no-op so it cannot multiply
+  empty nodes;
+- during IME composition, Enter remains owned by the IME.
+
+**Why.** The former implementation had distinct `commit-edit` and `create-sibling` keymap
+actions but merged both into one execution branch. That made the apparent state model
+misleading and made an ordinary save key also mutate structure. Separating commit from create
+keeps each keypress attributable to one state transition and lets users review a node before
+adding the next.
+
+**Consequence.** Fast sibling creation becomes a deliberate two-key sequence after typing:
+Enter saves, then Enter creates. Tab remains the direct commit-and-create-child editing command.
+The consolidated transition table lives in `state-machine.md`.
+
+---
+
+## D-18 — Download filenames use the root label
+
+**Decided 2026-08-04** by the owner after the deployed editor downloaded files as `untitled`.
+
+**Decision.** Markdown, SVG and PNG downloads use the sanitized current root-node label as
+their basename. If the root is being edited, the active visible draft is used. An empty or
+filesystem-reserved root label falls back to `mind-map`.
+
+**Why.** The internal document title is initialized or imported but has no editing surface, so
+it can remain `Untitled` while the visible map has a meaningful name. The root label is the
+identity users see and control.
+
+**Not changed.** Imported filename and front-matter title may still populate document metadata.
+This decision changes download naming, not Markdown content or import semantics.
+
+---
+
+## D-19 — Primary+0 resets canvas zoom to 100%
+
+**Decided 2026-08-04** by the owner.
+
+**Decision.** `⌘0` on Apple platforms and `Ctrl+0` on Windows/Linux reset Mapdown canvas zoom
+to 100% while the editor shell is active. The current viewport centre is preserved. The
+shortcut works in Node Selected and Node Editing, but an open modal retains keyboard priority.
+
+**Why.** Actual size is a standard recovery point after wheel, pinch or Fit. Preserving the
+centre avoids turning a zoom reset into an unrelated pan. Viewport changes remain outside the
+document and semantic undo history.
+
+**Boundary.** Mapdown does not intercept `Primary++` or `Primary+-`; those remain browser
+page-zoom controls. The View menu and Command Center expose the same 100% action.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

@@ -2,8 +2,8 @@
 
 **Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, and Phase 2
 implementation complete in review. The production build is live; only the owner can mark the
-roadmap checkpoint accepted. The P0 active-draft persistence and visual-polish stabilization
-checkpoints are also in owner review. **439 tests.**
+roadmap checkpoint accepted. The stabilization checkpoints are also in owner review.
+**443 tests.**
 The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
 export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
 a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
@@ -90,6 +90,7 @@ should not be casually reopened during implementation.
 |---|---|---|
 | `decisions.md` | this repo | living document — append as decisions are made |
 | `design-tokens.md` | this repo | living document |
+| `state-machine.md` | this repo | living executable interaction table |
 | `spec/` | upstream baseline v1.0 | frozen; amend only through `decisions.md` |
 
 `spec/` is a versioned artifact that entered the repo on 2026-08-01. Two editorial changes were

@@ -19,7 +19,7 @@ interface HelpCenterProps {
 const HELP_TOPICS = [
   {
     title: "Getting started",
-    body: "Select the root and type. Enter creates a sibling, Tab creates a child, Shift+Tab promotes, arrows navigate after editing, and Space collapses a branch."
+    body: "Select a node and type. Enter saves while editing; press Enter again after editing to create a sibling. Tab creates a child, Shift+Tab promotes, arrows navigate after editing, and Space collapses a branch."
   },
   {
     title: "Select versus edit",

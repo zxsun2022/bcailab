@@ -52,8 +52,9 @@ export function App() {
           Spike 1 — Chinese IME in canvas text editing
         </h1>
         <p style={{ color: "var(--chrome-text-muted)", marginTop: 0 }}>
-          Enter creates a sibling and Tab creates a child — and both are how an IME confirms a
-          candidate. This compares three editing surfaces under one guard.
+          This historical spike tested Enter and Tab as editing commands that can also confirm
+          an IME candidate. The production editor now uses Enter to commit and Tab to create a
+          child; the same guard still protects both.
         </p>
         <ImeSpike />
       </main>

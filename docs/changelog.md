@@ -9,6 +9,20 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-04 — **in_review: Mapdown interaction-state clarification.** Split the execution
+  paths that the keymap already called `commit-edit` and `create-sibling`: Enter in an active
+  textarea now commits only and returns the same node to selected mode, while a later Enter
+  creates exactly one sibling/root child. A newly created empty leaf remains protected from
+  repeated-Enter accumulation. Added the consolidated four-axis interaction state table and
+  amended the product, interaction, keyboard, Help, acceptance and phase specifications.
+  Markdown, SVG and PNG downloads now use the sanitized visible root label rather than the
+  inaccessible internal document title. `⌘0`/`Ctrl+0`, the View menu and Command Center reset
+  canvas zoom to 100% without moving the viewport centre or entering history. Evidence: 443/443
+  repository tests, clean Mapdown production build, and browser checks proving node counts
+  `1 → 1 → 2` across edit-Enter then selected-Enter, empty-node count stability, editing
+  preserved across a `156% → 100%` reset, generated Help discovery and zero console warnings.
+  Only the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown live-editing correctness.** Fixed the production path where
   Enter correctly committed a label and created the next empty node, but clicking away let the
   canvas selection handler and textarea blur both cancel that empty session; the second

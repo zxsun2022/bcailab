@@ -41,7 +41,7 @@ export interface KeyEvent {
 
 export interface ShortcutDefinition {
   commandId: string;
-  category: "Create and edit" | "Navigate" | "Branches" | "History" | "Help";
+  category: "Create and edit" | "Navigate" | "Branches" | "History" | "View" | "Help";
   keys: string[];
   accessibleKeys: string;
   context: string;
@@ -55,7 +55,7 @@ export interface ShortcutDefinition {
  */
 export const SHORTCUTS: ShortcutDefinition[] = [
   { commandId: "edit", category: "Create and edit", keys: ["F2"], accessibleKeys: "F2", context: "Node selected", searchKeys: ["f2", "type"] },
-  { commandId: "create-sibling", category: "Create and edit", keys: ["Enter"], accessibleKeys: "Enter", context: "Canvas", searchKeys: ["enter", "return"] },
+  { commandId: "create-sibling", category: "Create and edit", keys: ["Enter"], accessibleKeys: "Enter", context: "Node selected, not editing", searchKeys: ["enter", "return"] },
   { commandId: "create-child", category: "Create and edit", keys: ["Tab"], accessibleKeys: "Tab", context: "Canvas", searchKeys: ["tab"] },
   { commandId: "promote", category: "Create and edit", keys: ["Shift", "Tab"], accessibleKeys: "Shift plus Tab", context: "Non-first-level node", searchKeys: ["shift tab", "outdent"] },
   { commandId: "delete", category: "Create and edit", keys: ["Delete"], accessibleKeys: "Delete or Backspace", context: "Node selected, not editing", searchKeys: ["delete", "backspace"] },
@@ -66,6 +66,7 @@ export const SHORTCUTS: ShortcutDefinition[] = [
   { commandId: "reorder-after", category: "Branches", keys: ["Alt", "↓"], accessibleKeys: "Alt plus Arrow Down", context: "Movable sibling", searchKeys: ["alt arrow down"] },
   { commandId: "undo", category: "History", keys: ["Primary", "Z"], accessibleKeys: "Command or Control plus Z", context: "Application", searchKeys: ["cmd z", "command z", "ctrl z", "control z"] },
   { commandId: "redo", category: "History", keys: ["Primary", "Shift", "Z"], accessibleKeys: "Command or Control plus Shift plus Z", context: "Application", searchKeys: ["cmd shift z", "ctrl shift z", "control y"] },
+  { commandId: "reset-zoom", category: "View", keys: ["Primary", "0"], accessibleKeys: "Command or Control plus 0", context: "Application", searchKeys: ["cmd 0", "command 0", "ctrl 0", "100 percent", "actual size"] },
   { commandId: "help", category: "Help", keys: ["Primary", "/"], accessibleKeys: "Command or Control plus Slash", context: "Application", searchKeys: ["cmd slash", "ctrl slash"] },
   { commandId: "command-center", category: "Help", keys: ["Primary", "K"], accessibleKeys: "Command or Control plus K", context: "Application", searchKeys: ["cmd k", "ctrl k"] }
 ];
@@ -190,8 +191,8 @@ export function resolveKey(
   if (mode === "node-editing") {
     switch (event.key) {
       case "Enter":
-        // §6.1 — Enter commits and creates a sibling in one motion; that is the core writing
-        // loop, so it is deliberately not "commit, then press Enter again".
+        // D-17 — editing Enter commits only. A second Enter in node-selected mode is the
+        // deliberate structural command that creates a sibling.
         return { type: "commit-edit" };
       case "Escape":
         return { type: "cancel-edit" };

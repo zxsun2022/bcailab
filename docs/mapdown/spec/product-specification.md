@@ -57,7 +57,7 @@ On first launch, the app MUST create a starter document with:
 
 - one root node;
 - root text selected or ready for immediate replacement;
-- a short, nonintrusive hint such as “Type a topic, press Enter for a sibling, Tab for a child.”
+- a short, nonintrusive hint such as “Type a topic, press Enter to save, then Enter again for a sibling.”
 
 The starter hint MUST disappear after the user performs relevant actions and MUST not become document content.
 
@@ -186,7 +186,7 @@ Typing while selected SHOULD replace the existing text only when the typed input
 
 Editing exits when:
 
-- `Enter` commits and creates a sibling;
+- `Enter` commits the current node and returns to node-selected mode;
 - `Escape` exits according to the editing rules;
 - the user clicks another node;
 - the user clicks blank canvas;
@@ -205,19 +205,23 @@ When the user starts typing while a node is selected but not editing:
 
 When the user clicks into text, the caret MUST be placed at the closest character position.
 
-Double-clicking SHOULD select all node text rather than a single word, because node labels are generally short and the operation is primarily for rapid replacement.
+Double-clicking enters editing with the caret after the existing label so writing can continue.
+`F2` remains the explicit select-all replacement command.
+
+> **Amendment (2026-08-04):** D-17 separates text commit from structural creation. Enter while
+> editing commits only; Enter while selected creates a sibling. It also records the owner-approved
+> double-click continuation behavior already implemented during live-editing stabilization.
 
 ## 6. Node creation
 
 ### 6.1 Create sibling
 
-`Enter` in node mode or text-edit mode MUST:
+`Enter` in node-selected mode MUST:
 
-1. commit the current text;
-2. create a new node immediately after the current node in sibling order;
-3. assign the same parent;
-4. assign a stable first-level side if applicable;
-5. select and enter editing on the new node.
+1. create a new node immediately after the current node in sibling order;
+2. assign the same parent;
+3. assign a stable first-level side if applicable;
+4. select and enter editing on the new node.
 
 When the current node is the root, `Enter` creates a new first-level child after the last first-level child.
 
@@ -234,14 +238,15 @@ On the root, `Tab` is behaviorally equivalent to creating a first-level child.
 
 ### 6.3 Empty-node continuation
 
-If a newly created node is empty and the user presses `Enter` again:
+If a newly created node is empty and the user presses `Enter` while it is still being edited:
 
-- the app SHOULD keep one empty node and move it according to the ordinary sibling-creation rule only if doing so remains understandable;
+- the app SHOULD keep that one empty node in editing;
 - it MUST avoid accumulating multiple unintended empty siblings.
 
 The normative simplification for MVP is:
 
-> If the current node was newly created, remains empty, and has no children, pressing `Enter` keeps that node in place and does not create another empty sibling.
+> If the current node was newly created, remains empty, and has no children, pressing `Enter`
+> keeps that node in place and in editing; it does not create another empty sibling.
 
 A brief visual or audible no-op feedback MAY be provided.
 

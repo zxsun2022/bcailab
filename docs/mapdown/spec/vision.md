@@ -192,7 +192,7 @@ The product SHOULD optimize for:
 
 A first-time user should be able to discover within one minute that:
 
-- Enter creates the next topic;
+- Enter saves an active edit, then creates the next topic when pressed from node-selected mode;
 - Tab creates a subtopic;
 - nodes can be selected and edited directly;
 - branches can be collapsed;
