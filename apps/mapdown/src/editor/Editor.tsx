@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapCanvas } from "../canvas/MapCanvas";
 import { chooseSideForNewBranch, layout, layoutOptionsForTheme } from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
-import { sanitizeFilename } from "../markdown/escape";
+import { exportFilename } from "../markdown/escape";
 import {
   canRedo,
   canUndo,
@@ -39,6 +39,7 @@ import {
   IDENTITY,
   centerOn,
   fitMap,
+  resetZoom,
   revealSelection,
   visibleRect,
   zoomPercent,
@@ -432,9 +433,7 @@ export function Editor() {
           break;
         }
 
-        case "commit-edit":
-        case "create-sibling": {
-          const anchor = editing?.nodeId ?? selection;
+        case "commit-edit": {
           if (
             editing?.isNewNode &&
             editing.draft.trim() === "" &&
@@ -442,7 +441,15 @@ export function Editor() {
           ) {
             break;
           }
-          if (anchor) createAndEdit(committed, { type: "CreateSibling", anchorId: anchor }, "New sibling");
+          setHistory(committed);
+          closeEditing();
+          break;
+        }
+
+        case "create-sibling": {
+          if (selection) {
+            createAndEdit(history, { type: "CreateSibling", anchorId: selection }, "New sibling");
+          }
           break;
         }
 
@@ -525,6 +532,10 @@ export function Editor() {
         openHelp("search");
         return;
       }
+      if (primary && event.key === "0") {
+        event.preventDefault();
+        setViewport(resetZoom);
+      }
     },
     [helpMode, openHelp]
   );
@@ -544,10 +555,10 @@ export function Editor() {
     const url = typeof data === "string" ? data : URL.createObjectURL(data);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `${sanitizeFilename(doc.title)}.${extension}`;
+    anchor.download = exportFilename(getNode(previewDoc, previewDoc.rootId).text, extension);
     anchor.click();
     if (typeof data !== "string") URL.revokeObjectURL(url);
-  }, [doc.title]);
+  }, [previewDoc]);
 
   const download = useCallback(() => {
     save(
@@ -821,6 +832,10 @@ export function Editor() {
           if (box) setViewport((current) => centerOn(current, box));
           break;
         }
+        case "reset-zoom":
+          setHistory(committed);
+          setViewport(resetZoom);
+          break;
         case "toggle-layout":
           setHistory({
             ...committed,
@@ -1164,6 +1179,15 @@ export function Editor() {
               <span>Centre selection</span>
               <small>Pan without changing zoom</small>
             </button>
+            <button
+              type="button"
+              className="menu-action"
+              data-close-menu
+              onClick={() => setViewport(resetZoom)}
+            >
+              <span>Reset zoom to 100%</span>
+              <small>Actual size · Command or Control + 0</small>
+            </button>
             <div className="menu-divider" />
             <div className="zoom-controls" role="group" aria-label="Zoom">
               <button
@@ -1384,8 +1408,8 @@ export function Editor() {
         className="editor-statusbar"
       >
         <span className="status-shortcuts">
-          {Object.keys(doc.nodes).length} nodes · Enter = sibling · Tab = child · Shift+Tab =
-          promote · Space = collapse · F2 = rename
+          {Object.keys(doc.nodes).length} nodes · Enter = save / next sibling · Tab = child ·
+          Shift+Tab = promote · Space = collapse · F2 = rename
         </span>
         <span className="status-zoom">{zoomPercent(viewport)}</span>
         <span

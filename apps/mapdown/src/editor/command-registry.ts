@@ -51,6 +51,7 @@ export const COMMANDS: CommandDefinition[] = [
   definition("redo", "Redo", "Redo the latest undone semantic change.", "History", ["history", "重做"]),
   definition("fit", "Fit map", "Show every visible node in the viewport.", "View", ["zoom", "viewport", "适应"]),
   definition("center", "Center selection", "Center the selected node, or the root when none is selected.", "View", ["viewport", "root", "居中"]),
+  definition("reset-zoom", "Reset zoom to 100%", "Return the canvas to actual size without changing its centre.", "View", ["zoom", "actual size", "100 percent", "缩放", "原始大小"]),
   definition("toggle-layout", "Toggle layout", "Switch between right-only and two-sided layout.", "View", ["two sided", "right only", "布局", "双侧"]),
   definition("open-markdown", "Open Markdown", "Import a Markdown outline as a new local map.", "Files", ["import", "file", "open", "导入", "打开"]),
   definition("export-markdown", "Export Markdown", "Download the complete semantic tree, including collapsed descendants.", "Files", ["save", "download", "markdown", "导出"]),

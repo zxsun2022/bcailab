@@ -71,6 +71,9 @@ an inline `> **Amendment (date)**` note at the point of change and a matching re
 | D-08 | `theme.md` §10, §10.1 | Normative — toolbar tokens removed from `ControlTokens` |
 | D-09 | `markdown-format.md` §14.3 | Presentation — rule restated, unchanged |
 | D-16 | `storage-export.md` §5.1 | Normative — active text drafts included in autosave snapshots |
+| D-17 | `product-specification.md` §§5–6; `interaction.md` §§4, 6, 9; `keyboard.md` §4 | Normative — editing Enter commits only; selected Enter creates |
+| D-18 | `storage-export.md` §11.3 | Normative — downloads are named from the root label |
+| D-19 | `keyboard.md` §10 | Normative — `Primary+0` resets canvas zoom to 100% |
 
 ## 4. Normative product decisions
 
@@ -80,7 +83,7 @@ The following decisions are fixed for version 1.0 unless changed through a recor
 2. Nodes contain plain text only.
 3. Manual line breaks inside a node are not supported in MVP; text wraps visually.
 4. Clicking a node selects it; text input or a second text-area click enters editing.
-5. `Enter` creates a sibling; on the root it creates a first-level node.
+5. `Enter` commits while editing; when the node is selected, it creates a sibling or a first-level node from the root.
 6. `Tab` creates a child.
 7. `Shift+Tab` promotes the selected node by one level.
 8. Deleting a node deletes its full subtree and is undoable.

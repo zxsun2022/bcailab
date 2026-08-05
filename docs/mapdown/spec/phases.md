@@ -322,7 +322,7 @@ The following version-1.0 decisions should not be casually reopened during imple
 - plain text only;
 - no manual node line breaks;
 - click selects before editing;
-- Enter sibling/root child;
+- Enter commits in editing mode and creates a sibling/root child in selected mode;
 - Tab child;
 - Shift+Tab promote;
 - stable first-level side;

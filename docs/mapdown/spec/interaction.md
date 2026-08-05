@@ -140,7 +140,7 @@ Transitions:
 
 | Event | Next state | Effect |
 |---|---|---|
-| Enter, not composing | Node Editing on new node | Commit; create sibling |
+| Enter, not composing | Node Selected | Commit current node only |
 | Tab, not composing | Node Editing on new node | Commit; create child |
 | Shift+Tab, not composing | Node Selected | Commit; promote node; keep selection |
 | Escape | Node Selected or previous selection | Cancel new empty node or exit editing |
@@ -235,9 +235,9 @@ Double-clicking the text region:
 
 - selects the node if necessary;
 - enters editing;
-- selects all node text.
+- places the caret after the existing text.
 
-The app deliberately overrides ordinary word-only double-click selection for rapid node replacement. Triple-click behavior MAY use platform defaults.
+`F2` is the explicit select-all replacement path. Triple-click behavior MAY use platform defaults.
 
 ### 5.5 Click collapse control
 
@@ -349,8 +349,17 @@ A future “Paste as outline” command may parse multiple nodes, but ordinary p
 When not in IME composition:
 
 - commit current text;
-- create sibling according to product rules;
-- enter editing on the new node.
+- exit the textarea;
+- keep the committed node selected;
+- do not create a sibling.
+
+Creating a sibling is the meaning of a separate Enter in Node Selected mode. A newly created
+empty leaf is the one exception: editing Enter is a no-op and keeps that node in editing so
+repeated keypresses cannot accumulate empty siblings.
+
+> **Amendment (2026-08-04):** D-17 separates commit from create. The previous one-key
+> commit-and-create loop made the same key perform two state transitions and hid the selected
+> state between them.
 
 Manual newline insertion is not supported in MVP, so `Shift+Enter` SHOULD either:
 
@@ -453,7 +462,8 @@ The app should keep focus on the same empty node and provide subtle no-op feedba
 
 ## 9. Structural shortcut resolution during editing
 
-The editor deliberately supports Enter/Tab structural creation even while text editing. Therefore priority resolution is:
+The editor supports documented editing commands, including commit-only Enter and structural
+Tab/Shift+Tab, while text editing. Therefore priority resolution is:
 
 1. Modal/menu focus rules;
 2. IME composition;
@@ -467,6 +477,7 @@ Examples:
 - `ArrowLeft` while editing moves the caret.
 - `Cmd+ArrowLeft` follows text-field platform semantics.
 - `Delete` while editing deletes characters.
+- `Enter` while editing commits only; a later Enter in node-selected mode creates a sibling.
 - `Tab` while editing commits and creates a child, because node labels do not use tab characters.
 - `Cmd+Z` while editing invokes application history, but should feel equivalent to undoing the editing session.
 

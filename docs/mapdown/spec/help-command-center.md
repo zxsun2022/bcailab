@@ -79,7 +79,7 @@ On narrow screens, categories become tabs, accordions, or a back-navigation list
 Concise workflow:
 
 1. Click/select the root and type.
-2. Enter creates a sibling/first-level topic.
+2. Enter saves while editing; press Enter again after editing to create a sibling/first-level topic.
 3. Tab creates a child.
 4. Shift+Tab promotes a node.
 5. Arrow keys navigate after leaving text editing.

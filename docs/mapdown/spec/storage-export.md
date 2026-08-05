@@ -274,10 +274,10 @@ It excludes:
 
 ### 11.3 Download filename
 
-Default:
+Default for Markdown, SVG and PNG downloads:
 
 ```text
-<sanitized-document-title>.md
+<sanitized-root-node-label>.<format-extension>
 ```
 
 Sanitization MUST:
@@ -285,7 +285,14 @@ Sanitization MUST:
 - remove filesystem-forbidden characters;
 - collapse repeated whitespace;
 - avoid reserved Windows filenames;
-- use a fallback such as `mind-map.md` when title is empty.
+- use a fallback such as `mind-map.md` when the root label is empty.
+
+The active root draft is used when the root is currently being edited, so the visible map name
+and the downloaded filename cannot disagree.
+
+> **Amendment (2026-08-04):** D-18 uses the root label rather than internal document title for
+> download names. The root is the map identity users can see and edit; document title may remain
+> the imported filename and is not otherwise editable in the current UI.
 
 ### 11.4 Save feedback
 

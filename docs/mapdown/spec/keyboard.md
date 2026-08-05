@@ -38,7 +38,7 @@ A shortcut listed for a lower-priority context does not run when a higher-priori
 
 | Key | Node selected | Node editing | Root behavior | Notes |
 |---|---|---|---|---|
-| `Enter` | Create sibling | Commit and create sibling | Create first-level child | Suppressed during IME composition |
+| `Enter` | Create sibling | Commit only; keep node selected | Create first-level child when selected | Suppressed during IME composition |
 | `Tab` | Create child | Commit and create child | Create first-level child | Prevent browser focus traversal only when node context is active |
 | `Shift+Tab` | Promote one level | Commit and promote | No action | First-level node cannot promote |
 | `Delete` | Delete subtree | Delete text forward | Root protected | Structural only outside editing |
@@ -46,6 +46,10 @@ A shortcut listed for a lower-priority context does not run when a higher-priori
 | `F2` | Edit and select all | Native/no-op | Edit root | Show only when supported |
 | Printable input | Replace and edit | Insert text | Replace and edit | Includes IME-produced text |
 | `Escape` | Clear selection | Exit editing/cancel empty new node | Same | Also closes menus/modals first |
+
+> **Amendment (2026-08-04):** D-17 makes Enter mode-dependent: editing Enter commits and exits,
+> while selected-node Enter creates the sibling/root child. A newly created empty leaf remains
+> in editing as a no-op so repeated Enter cannot accumulate empty nodes.
 
 ## 5. Navigation model
 
@@ -211,7 +215,11 @@ Recommended MVP shortcuts:
 | `Primary+1` | Fit visible map |
 | `Primary+2` | Center selected node or root |
 
-Because browsers reserve `Primary+0`, `Primary++`, and `Primary+-` for page zoom, implementation must decide whether interception is reliable and desirable.
+Mapdown intercepts `Primary+0` inside the editor shell to reset canvas zoom to 100%. It does
+not intercept `Primary++` or `Primary+-`, which remain browser page-zoom commands.
+
+> **Amendment (2026-08-04):** D-19 makes `Primary+0` the implemented canvas actual-size
+> shortcut. It preserves the viewport centre and does not enter semantic history.
 
 Preferred conflict-minimizing alternatives:
 

@@ -115,7 +115,8 @@ The project SHOULD maintain:
 ### 4.2 Enter/Tab behavior
 
 - Enter outside editing creates sibling.
-- Enter inside editing commits and creates sibling.
+- Enter inside editing commits only and leaves the same node selected.
+- A second Enter after that commit creates exactly one sibling.
 - Enter on root creates first-level node.
 - Tab creates child from selected node.
 - Tab inside editing commits and creates child.
@@ -137,7 +138,7 @@ The project SHOULD maintain:
 - Enter during Pinyin composition does not create sibling.
 - Tab during composition does not create child.
 - `compositionend` commits text.
-- Enter after composition end creates sibling exactly once.
+- A deliberate Enter after composition end commits editing exactly once and creates no sibling.
 - Undo treats the edit coherently.
 
 ### 4.5 Modal/focus

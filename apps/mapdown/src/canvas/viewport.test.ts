@@ -10,6 +10,7 @@ import {
   isVisible,
   pan,
   revealNode,
+  resetZoom,
   screenToDocument,
   visibleRect,
   zoomAbout,
@@ -87,6 +88,15 @@ describe("§12.2 — zoom", () => {
   it("reports a readable percentage for the status area (§2.1)", () => {
     expect(zoomPercent(IDENTITY)).toBe("100%");
     expect(zoomPercent({ scale: 0.25, centerX: 0, centerY: 0 })).toBe("25%");
+  });
+
+  it("resets to 100% without moving the viewport centre", () => {
+    expect(resetZoom({ scale: 2.5, centerX: 42, centerY: -17 })).toEqual({
+      scale: 1,
+      centerX: 42,
+      centerY: -17
+    });
+    expect(resetZoom(IDENTITY)).toBe(IDENTITY);
   });
 });
 

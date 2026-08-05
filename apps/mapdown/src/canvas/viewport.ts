@@ -103,6 +103,12 @@ export function zoomToCenter(viewport: Viewport, factor: number): Viewport {
   return { ...viewport, scale: clampScale(viewport.scale * factor) };
 }
 
+/** Return to actual size without changing the document point at the viewport centre. */
+export function resetZoom(viewport: Viewport): Viewport {
+  if (viewport.scale === 1) return viewport;
+  return { ...viewport, scale: 1 };
+}
+
 /**
  * §12.3 — show every visible node with comfortable margins.
  *

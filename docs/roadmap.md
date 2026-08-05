@@ -25,7 +25,7 @@ and **in_review**, not accepted until the owner makes that transition. Its accep
 are `docs/mapdown/spec/phases.md` §4 plus the scenario matrix in
 `docs/mapdown/spec/testing-acceptance.md`.
 
-The owner additionally authorized two Mapdown stabilization checkpoints on 2026-08-04:
+The owner additionally authorized three Mapdown stabilization checkpoints on 2026-08-04:
 
 - **P0 active-draft persistence — in_review.** Text visible in the editing textarea must be
   included in the debounced local snapshot before the editing session commits; direct refresh
@@ -42,6 +42,12 @@ The owner additionally authorized two Mapdown stabilization checkpoints on 2026-
   chrome spacing, typography and focus treatment. Keep chrome visuals out of document themes
   and exported SVG/PNG. Before increasing node typography, align layout measurement with
   rendered font metrics. Verify desktop, tablet, mobile, keyboard and reduced-motion behavior.
+- **Interaction-state clarification — in_review.** Editing Enter must commit only and return
+  the same node to selected mode; selected-mode Enter must create exactly one sibling/root
+  child; a new empty leaf must not multiply on repeated Enter. The state machine must be
+  recorded as an event/guard/action/next-state table. Markdown, SVG and PNG downloads must use
+  the sanitized current root label with a safe fallback. `⌘0`/`Ctrl+0` must restore canvas zoom
+  to 100% without changing viewport centre, document content or semantic history.
 
 The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see
 `docs/changelog.md`).
@@ -70,7 +76,7 @@ returns, so neither needs an IA change.
   All seventeen implementation steps and D-03 deployment are complete with evidence in
   `docs/mapdown/README.md` and `docs/changelog.md`; owner acceptance is the remaining roadmap
   transition, while the authorized stabilization checkpoints above continue separately. Read
-  `docs/mapdown/decisions.md` before reopening any settled question — it has sixteen records,
+  `docs/mapdown/decisions.md` before reopening any settled question — it has nineteen records,
   several of which correct an earlier
   mistake of mine and say so.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every

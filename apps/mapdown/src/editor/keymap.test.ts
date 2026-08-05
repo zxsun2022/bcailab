@@ -91,9 +91,10 @@ describe("node mode (§6, §7, §8)", () => {
 });
 
 describe("editing mode (§5.3, §8.3)", () => {
-  it("commits and creates a sibling on Enter", () => {
+  it("maps Enter to commit-only instead of the selected-mode sibling action", () => {
     const { doc, ids } = fixture();
     expect(resolveKey(doc, ids["a"]!, "node-editing", key("Enter"))).toEqual({ type: "commit-edit" });
+    expect(resolveKey(doc, ids["a"]!, "node-selected", key("Enter"))).toEqual({ type: "create-sibling" });
   });
 
   it("creates a child on Tab without leaving text behind", () => {

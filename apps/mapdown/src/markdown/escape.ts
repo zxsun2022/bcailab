@@ -70,3 +70,8 @@ export function sanitizeFilename(title: string, fallback = "mind-map"): string {
   if (cleaned === "" || WINDOWS_RESERVED.test(cleaned)) return fallback;
   return cleaned;
 }
+
+/** Build a safe download name from the root label, which is the map's visible identity. */
+export function exportFilename(rootText: string, extension: string): string {
+  return `${sanitizeFilename(rootText)}.${extension.replace(/^\.+/, "")}`;
+}
