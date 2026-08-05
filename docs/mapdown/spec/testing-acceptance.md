@@ -107,7 +107,7 @@ The project SHOULD maintain:
 
 - First click selects without caret.
 - Second text click enters editing at caret.
-- Double-click enters editing and selects all.
+- Double-click enters editing with the caret after the existing text.
 - F2 enters editing/selects all.
 - Typing on selected node replaces text.
 - Arrow keys navigate nodes outside editing and caret inside editing.
