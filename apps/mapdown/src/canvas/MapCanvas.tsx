@@ -57,6 +57,28 @@ interface NodeProps {
   onNodePointerDown: (id: NodeId, event: React.PointerEvent<SVGGElement>) => void;
 }
 
+/**
+ * Layout rebuilds every box object on every run, so a reference comparison would defeat the
+ * memo entirely and re-render the whole map on each keystroke. Compare the box by value — the
+ * fields that actually drive rendering — plus the primitive props and the stable callbacks.
+ */
+function sameBox(a: NodeBox, b: NodeBox): boolean {
+  return (
+    a.nodeId === b.nodeId &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.width === b.width &&
+    a.height === b.height &&
+    a.depth === b.depth &&
+    a.side === b.side &&
+    a.directChildCount === b.directChildCount &&
+    a.collapsed === b.collapsed &&
+    a.outwardEdgeX === b.outwardEdgeX &&
+    a.inwardEdgeX === b.inwardEdgeX &&
+    a.lines.join("\u0000") === b.lines.join("\u0000")
+  );
+}
+
 const Node = memo(function Node({
   box,
   theme,
@@ -162,6 +184,19 @@ const Node = memo(function Node({
       )}
     </g>
   );
+}, (prev, next) => {
+  return (
+    sameBox(prev.box, next.box) &&
+    prev.theme === next.theme &&
+    prev.selected === next.selected &&
+    prev.dragging === next.dragging &&
+    prev.positionInSet === next.positionInSet &&
+    prev.setSize === next.setSize &&
+    prev.onSelect === next.onSelect &&
+    prev.onEdit === next.onEdit &&
+    prev.onToggleCollapse === next.onToggleCollapse &&
+    prev.onNodePointerDown === next.onNodePointerDown
+  );
 });
 
 /**
@@ -244,6 +279,21 @@ function CollapseControl({
   );
 }
 
+function sameConnector(a: Connector, b: Connector): boolean {
+  return (
+    a.fromId === b.fromId &&
+    a.toId === b.toId &&
+    a.path.x1 === b.path.x1 &&
+    a.path.y1 === b.path.y1 &&
+    a.path.c1x === b.path.c1x &&
+    a.path.c1y === b.path.c1y &&
+    a.path.c2x === b.path.c2x &&
+    a.path.c2y === b.path.c2y &&
+    a.path.x2 === b.path.x2 &&
+    a.path.y2 === b.path.y2
+  );
+}
+
 const Edge = memo(function Edge({
   connector,
   color,
@@ -264,6 +314,13 @@ const Edge = memo(function Edge({
       strokeWidth={width}
       opacity={opacity}
     />
+  );
+}, (prev, next) => {
+  return (
+    sameConnector(prev.connector, next.connector) &&
+    prev.color === next.color &&
+    prev.width === next.width &&
+    prev.opacity === next.opacity
   );
 });
 

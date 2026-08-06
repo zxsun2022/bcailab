@@ -178,6 +178,17 @@ export function wrapText(text: string, typography: Typography): string[] {
 /* ---------- cache ---------- */
 
 const cache = new Map<string, Measurement>();
+/** §4.4 — the cache exists to make typing cheap, not to grow forever with every draft string. */
+const MAX_CACHE_ENTRIES = 2000;
+
+function remember(key: string, measurement: Measurement): Measurement {
+  if (cache.size >= MAX_CACHE_ENTRIES) {
+    const oldest = cache.keys().next().value;
+    if (oldest !== undefined) cache.delete(oldest);
+  }
+  cache.set(key, measurement);
+  return measurement;
+}
 
 function cacheKey(text: string, t: Typography): string {
   return `${t.fontSize}|${t.fontWeight}|${t.lineHeight}|${t.maxWidth}|${t.paddingX}|${t.paddingY}|${text}`;
@@ -200,8 +211,7 @@ export function measureNode(text: string, typography: Typography): Measurement {
     lines
   };
 
-  cache.set(key, measurement);
-  return measurement;
+  return remember(key, measurement);
 }
 
 export function clearMeasurementCache(): void {
