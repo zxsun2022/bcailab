@@ -360,6 +360,15 @@ Switching right-only ↔ two-sided:
 
 No semantic hierarchy changes.
 
+> **Amendment (2026-08-05):** D-20 — a right-only map stores a placeholder `"right"` side on
+> every first-level branch, so a literal reading of rule 2 renders two-sided mode identically
+> to right-only and the toggle reads as broken. When entering two-sided layout, first-level
+> branches that all share one side (which by construction is never a real choice) are
+> rebalanced once by the §7.2 measured-height rule in semantic order; once branches exist on
+> both sides the arrangement is treated as a user choice and preserved verbatim. A mode switch
+> is one undoable document-view command whose inverse restores the previous mode and every
+> stored side.
+
 ## 13. Navigation geometry
 
 The layout output SHOULD provide efficient neighbor lookup.
