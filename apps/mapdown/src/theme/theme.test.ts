@@ -20,7 +20,7 @@ function withBranches(count: number, mode: "single" | "by-first-level-branch"): 
   for (let i = 0; i < count; i++) {
     const branch = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: `B${i}` });
     doc = branch.doc;
-    doc = applyCommand(doc, { type: "CreateChild", parentId: branch.selection, text: `${i}-child` }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: branch.selection!, text: `${i}-child` }).doc;
   }
   return doc;
 }

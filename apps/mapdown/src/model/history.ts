@@ -22,7 +22,7 @@ export interface HistoryEntry {
   forward: Command[];
   inverse: Command[];
   beforeSelection: NodeId | null;
-  afterSelection: NodeId;
+  afterSelection: NodeId | null;
   category: CommandCategory;
   /** Entries sharing a group id merge into one undo step. */
   groupId: string | null;
@@ -65,6 +65,8 @@ export function dispatch(
   const result = applyCommand(state.doc, command);
   const label = options.label ?? command.type;
   const previous = state.past.at(-1);
+  // Presentation commands report `selection: null` to mean "do not move the selection".
+  const nextSelection = result.selection ?? state.selection;
 
   // Merge into the previous entry when the caller says it is the same session. The merged
   // entry keeps the *original* inverse, which is what makes one undo restore the text from
@@ -77,14 +79,14 @@ export function dispatch(
       ...previous,
       forward: [...previous.forward, result.resolved],
       inverse: [result.inverse, ...previous.inverse],
-      afterSelection: result.selection,
+      afterSelection: nextSelection,
       category: previous.category === "structure" ? "structure" : result.category
     };
     return {
       doc: result.doc,
       past: [...state.past.slice(0, -1), merged],
       future: [],
-      selection: result.selection
+      selection: nextSelection
     };
   }
 
@@ -94,7 +96,7 @@ export function dispatch(
     forward: [result.resolved],
     inverse: [result.inverse],
     beforeSelection: state.selection,
-    afterSelection: result.selection,
+    afterSelection: nextSelection,
     category: result.category,
     groupId: options.groupId ?? null
   };
@@ -103,7 +105,7 @@ export function dispatch(
     doc: result.doc,
     past: [...state.past, entry],
     future: [],
-    selection: result.selection
+    selection: nextSelection
   };
 }
 

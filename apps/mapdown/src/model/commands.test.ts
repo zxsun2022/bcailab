@@ -36,7 +36,7 @@ function fixture() {
   const run = (command: Command, name?: string) => {
     const result = applyCommand(doc, command);
     doc = result.doc;
-    if (name) ids[name] = result.selection;
+    if (name) ids[name] = result.selection!;
   };
   run({ type: "CreateChild", parentId: doc.rootId, text: "a" }, "a");
   run({ type: "CreateChild", parentId: ids["a"]!, text: "a1" }, "a1");
@@ -79,7 +79,7 @@ describe("CreateSibling (§6.1)", () => {
   it("creates a first-level child when the anchor is the root, since the root has no siblings", () => {
     const { doc, ids } = fixture();
     const { doc: next, selection } = applyCommand(doc, { type: "CreateSibling", anchorId: doc.rootId, text: "c" });
-    expect(getNode(next, selection).parentId).toBe(doc.rootId);
+    expect(getNode(next, selection!).parentId).toBe(doc.rootId);
     expect(getNode(next, doc.rootId).childIds.at(-1)).toBe(selection);
     expect(ids["root"]).toBe(doc.rootId);
     expectValid(next);
@@ -178,7 +178,7 @@ describe("PromoteNode (§7.1, §7.5)", () => {
   it("carries the whole subtree with it", () => {
     const { doc, ids } = fixture();
     const withGrandchild = applyCommand(doc, { type: "CreateChild", parentId: ids["a1"]!, text: "deep" });
-    const deepId = withGrandchild.selection;
+    const deepId = withGrandchild.selection!;
     const { doc: next } = applyCommand(withGrandchild.doc, { type: "PromoteNode", nodeId: ids["a1"]! });
     expect(getNode(next, deepId).parentId).toBe(ids["a1"]);
     expectValid(next);
@@ -216,7 +216,7 @@ function fourSiblings() {
   const run = (command: Command, name: string) => {
     const result = applyCommand(doc, command);
     doc = result.doc;
-    ids[name] = result.selection;
+    ids[name] = result.selection!;
   };
   run({ type: "CreateChild", parentId: doc.rootId, text: "p" }, "p");
   run({ type: "CreateChild", parentId: ids["p"]!, text: "w" }, "w");
@@ -321,7 +321,7 @@ describe("ReparentNode (§7.2, accessibility.md §9)", () => {
       nodeId: ids["a1"]!,
       parentId: ids["b"]!
     }).doc;
-    expect(getNode(moved, grandchild.selection).parentId).toBe(ids["a1"]);
+    expect(getNode(moved, grandchild.selection!).parentId).toBe(ids["a1"]);
 
     const promoted = applyCommand(doc, {
       type: "ReparentNode",
@@ -455,5 +455,114 @@ describe("invariants are enforced, not assumed (§5)", () => {
   it("every command in this suite left a valid tree", () => {
     const { doc } = fixture();
     expectValid(doc);
+  });
+});
+
+describe("ReparentNode keeps a first-level branch's side (§7.1/§11.1)", () => {
+  it("preserves the stored side when reordering a first-level branch through a drag drop", () => {
+    let doc = createDocument("root");
+    doc = { ...doc, layout: { mode: "two-sided" } };
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a", side: "right" }).doc;
+    const a = doc.nodes[doc.rootId]!.childIds[0]!;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "b", side: "right" }).doc;
+    const b = doc.nodes[doc.rootId]!.childIds[1]!;
+
+    // Drag path: a first-level branch dropped after its sibling resolves to ReparentNode.
+    const { doc: next } = applyCommand(doc, {
+      type: "ReparentNode",
+      nodeId: a,
+      parentId: doc.rootId,
+      index: 1
+    });
+    expect(getNode(next, doc.rootId).childIds).toEqual([b, a]);
+    // Regression: this used to reassign a fresh default side and flip the branch to "left".
+    expect(getNode(next, a).side).toBe("right");
+    expectValid(next);
+  });
+
+  it("still clears the side when a first-level branch is demoted", () => {
+    let doc = createDocument("root");
+    doc = { ...doc, layout: { mode: "two-sided" } };
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a", side: "left" }).doc;
+    const a = doc.nodes[doc.rootId]!.childIds[0]!;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "b" }).doc;
+    const b = doc.nodes[doc.rootId]!.childIds[1]!;
+
+    const { doc: next } = applyCommand(doc, { type: "ReparentNode", nodeId: a, parentId: b });
+    expect(getNode(next, a).side).toBeNull();
+    expectValid(next);
+  });
+});
+
+describe("SetLayoutMode (§12 — undoable document-view command)", () => {
+  it("applies supplied sides when entering two-sided layout", () => {
+    let doc = createDocument("root");
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a" }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "b" }).doc;
+    const [a, b] = doc.nodes[doc.rootId]!.childIds;
+    const { doc: next } = applyCommand(doc, {
+      type: "SetLayoutMode",
+      mode: "two-sided",
+      sides: { [a!]: "left", [b!]: "right" }
+    });
+    expect(next.layout.mode).toBe("two-sided");
+    expect(getNode(next, a!).side).toBe("left");
+    expect(getNode(next, b!).side).toBe("right");
+    expectValid(next);
+  });
+
+  it("falls back to a deterministic alternating assignment without supplied sides", () => {
+    let doc = createDocument("root");
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a" }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "b" }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "c" }).doc;
+    const ids = doc.nodes[doc.rootId]!.childIds;
+    const { doc: next } = applyCommand(doc, { type: "SetLayoutMode", mode: "two-sided" });
+    expect(ids.map((id) => getNode(next, id).side)).toEqual(["right", "left", "right"]);
+    expectValid(next);
+  });
+
+  it("undo restores the previous mode and the exact previous sides", () => {
+    let doc = createDocument("root");
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a" }).doc;
+    const a = doc.nodes[doc.rootId]!.childIds[0]!;
+    const switched = applyCommand(doc, {
+      type: "SetLayoutMode",
+      mode: "two-sided",
+      sides: { [a]: "left" }
+    });
+    expect(getNode(switched.doc, a).side).toBe("left");
+
+    const back = applyCommand(switched.doc, switched.inverse).doc;
+    expect(back.layout.mode).toBe("right");
+    expect(getNode(back, a).side).toBe("right");
+    expectValid(back);
+
+    const again = applyCommand(back, switched.resolved).doc;
+    expect(again.layout.mode).toBe("two-sided");
+    expect(getNode(again, a).side).toBe("left");
+  });
+
+  it("keeps selection untouched (selection: null)", () => {
+    const { doc } = fixture();
+    const { selection } = applyCommand(doc, { type: "SetLayoutMode", mode: "two-sided" });
+    expect(selection).toBeNull();
+  });
+});
+
+describe("presentation commands are undoable (§12, theme.md §14, theme.md §8)", () => {
+  it("theme changes undo and redo", () => {
+    const doc = createDocument("root");
+    const changed = applyCommand(doc, { type: "SetTheme", themeId: "dark" });
+    expect(changed.doc.theme.themeId).toBe("dark");
+    expect(applyCommand(changed.doc, changed.inverse).doc.theme.themeId).toBe("minimal-light");
+    expect(applyCommand(changed.doc, changed.resolved).doc.theme.themeId).toBe("dark");
+  });
+
+  it("branch-colour mode changes undo and redo", () => {
+    const doc = createDocument("root");
+    const changed = applyCommand(doc, { type: "SetBranchColorMode", mode: "by-first-level-branch" });
+    expect(changed.doc.theme.branchColorMode).toBe("by-first-level-branch");
+    expect(applyCommand(changed.doc, changed.inverse).doc.theme.branchColorMode).toBe("single");
   });
 });

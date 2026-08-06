@@ -185,6 +185,46 @@ export function chooseSideForNewBranch(
   return last === "right" ? "left" : "right";
 }
 
+/**
+ * §12 (amended) — the first-level side assignments to apply when entering two-sided layout.
+ *
+ * Right-only mode stores a placeholder `"right"` on every first-level branch, so a naive mode
+ * switch renders the map exactly as before and reads as "nothing happened". When every
+ * first-level branch shares one side there has never been a real side choice to preserve, so
+ * they are rebalanced by the §7.2 measured-height rule (greedy, semantic order, height ties
+ * alternate). Once branches exist on both sides the arrangement is treated as a user choice and
+ * an empty map is returned — the caller then keeps every stored side verbatim.
+ */
+export function planTwoSidedSides(
+  doc: MindMapDocument,
+  options: LayoutOptions = {}
+): Record<NodeId, BranchSide | null> {
+  const firstLevel = getNode(doc, doc.rootId).childIds;
+  if (firstLevel.length === 0) return {};
+
+  const distinct = new Set(firstLevel.map((id) => getNode(doc, id).side));
+  if (distinct.size > 1) return {};
+
+  const typography = options.typography ?? DEFAULT_TYPOGRAPHY;
+  const spacing = options.spacing ?? DEFAULT_SPACING;
+  const measured = measureTree(doc, typography, spacing);
+
+  const aggregate = { left: 0, right: 0 };
+  let last: BranchSide | null = null;
+  const sides: Record<NodeId, BranchSide> = {};
+  for (const id of firstLevel) {
+    const height = measured[id]?.subtreeHeight ?? 0;
+    let side: BranchSide;
+    if (aggregate.right < aggregate.left) side = "right";
+    else if (aggregate.left < aggregate.right) side = "left";
+    else side = !last ? "right" : last === "right" ? "left" : "right";
+    sides[id] = side;
+    aggregate[side] += height;
+    last = side;
+  }
+  return sides;
+}
+
 /** Pass 1 — §8 measure. */
 function measureTree(
   doc: MindMapDocument,

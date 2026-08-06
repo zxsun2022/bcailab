@@ -1,5 +1,5 @@
 import { checkInvariants } from "../model/invariants";
-import type { MindMapDocument, NodeId } from "../model/types";
+import { SCHEMA_VERSION, type MindMapDocument, type NodeId } from "../model/types";
 import {
   checksumOf,
   makeSnapshot,
@@ -205,14 +205,25 @@ export async function recoverDocument(
       skipped++;
       continue;
     }
-    const intact =
+    const treeIntact =
       snapshot.checksum === checksumOf(snapshot.document) &&
       checkInvariants(snapshot.document).length === 0;
+    // A snapshot written by a future schema version cannot be trusted to mean what this build
+    // thinks it means; treat it like a torn write and fall back to an earlier point.
+    const versionSupported = snapshot.schemaVersion === SCHEMA_VERSION;
 
-    if (intact) {
+    if (treeIntact && versionSupported) {
+      // Checksum and invariants cover the tree, not the selection pointer; a torn write could
+      // leave a dangling id that would crash the first structural command after recovery.
+      const selectedNodeId =
+        snapshot.selectedNodeId !== null && snapshot.document.nodes[snapshot.selectedNodeId]
+          ? snapshot.selectedNodeId
+          : snapshot.document.rootId;
+      const restored =
+        selectedNodeId === snapshot.selectedNodeId ? snapshot : { ...snapshot, selectedNodeId };
       return skipped === 0
-        ? { kind: "restored", snapshot }
-        : { kind: "restored-earlier", snapshot, skipped };
+        ? { kind: "restored", snapshot: restored }
+        : { kind: "restored-earlier", snapshot: restored, skipped };
     }
     skipped++;
   }

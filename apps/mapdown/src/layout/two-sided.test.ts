@@ -11,7 +11,7 @@ import {
   type BranchSide,
   type MindMapDocument
 } from "../model/types";
-import { chooseSideForNewBranch, diffLayouts, layout, rootCentre } from "./layout";
+import { chooseSideForNewBranch, diffLayouts, layout, planTwoSidedSides, rootCentre } from "./layout";
 import { clearMeasurementCache } from "./measure";
 
 beforeEach(() => {
@@ -30,7 +30,7 @@ function branches(count: number): MindMapDocument {
     const branch = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: `Branch ${i}` });
     doc = branch.doc;
     for (const label of ["a", "b"]) {
-      doc = applyCommand(doc, { type: "CreateChild", parentId: branch.selection, text: `${i}${label}` }).doc;
+      doc = applyCommand(doc, { type: "CreateChild", parentId: branch.selection!, text: `${i}${label}` }).doc;
     }
   }
   return doc;
@@ -124,8 +124,8 @@ describe("§7.2 — side assignment is deterministic and sticky", () => {
     const second = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "two" });
     doc = second.doc;
 
-    expect(sideOf(doc, first.selection)).toBe("right");
-    expect(sideOf(doc, second.selection)).toBe("left");
+    expect(sideOf(doc, first.selection!)).toBe("right");
+    expect(sideOf(doc, second.selection!)).toBe("left");
   });
 
   it("chooses the shorter side by measured subtree height", () => {
@@ -133,7 +133,7 @@ describe("§7.2 — side assignment is deterministic and sticky", () => {
     const heavy = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "heavy" });
     doc = heavy.doc;
     for (let i = 0; i < 5; i++) {
-      doc = applyCommand(doc, { type: "CreateChild", parentId: heavy.selection, text: `child ${i}` }).doc;
+      doc = applyCommand(doc, { type: "CreateChild", parentId: heavy.selection!, text: `child ${i}` }).doc;
     }
     const light = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "light", side: "left" });
     doc = light.doc;
@@ -273,5 +273,52 @@ describe("mode switching preserves content (§11.3)", () => {
       }
     }
     expect(overlaps).toBe(0);
+  });
+});
+
+describe("§12 (amended) — entering two-sided layout balances an all-one-side map", () => {
+  it("returns a balanced side map for a right-only placeholder document", () => {
+    let doc = createDocument("Root");
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a" }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "b" }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "c" }).doc;
+
+    const sides = planTwoSidedSides(doc);
+    const ids = doc.nodes[doc.rootId]!.childIds;
+    expect(ids.map((id) => sides[id])).toEqual(["right", "left", "right"]);
+  });
+
+  it("weighs subtree heights rather than sibling counts", () => {
+    // One tall branch and two short branches: the tall branch owns one side alone.
+    let doc = createDocument("Root");
+    const tall = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "tall" });
+    doc = tall.doc;
+    for (let i = 0; i < 8; i++) {
+      doc = applyCommand(doc, { type: "CreateChild", parentId: tall.selection!, text: `t${i}` }).doc;
+    }
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "s1" }).doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "s2" }).doc;
+
+    const sides = planTwoSidedSides(doc);
+    const [tallId, s1, s2] = doc.nodes[doc.rootId]!.childIds;
+    expect(sides[tallId!]).toBe("right");
+    expect(sides[s1!]).toBe("left");
+    expect(sides[s2!]).toBe("left");
+  });
+
+  it("returns an empty map when branches already sit on both sides", () => {
+    let doc = twoSided(createDocument("Root"));
+    const first = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "a" });
+    doc = first.doc;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: "b" }).doc;
+
+    // In two-sided mode creation alternates sides, so this map is already a user arrangement.
+    expect(planTwoSidedSides(doc)).toEqual({});
+    expect(planTwoSidedSides({ ...doc, layout: { mode: "right" } })).toEqual({});
+  });
+
+  it("leaves a one-branch document alone", () => {
+    const doc = createDocument("Root");
+    expect(planTwoSidedSides(doc)).toEqual({});
   });
 });
