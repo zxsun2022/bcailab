@@ -49,6 +49,22 @@ The owner additionally authorized three Mapdown stabilization checkpoints on 202
   the sanitized current root label with a safe fallback. `⌘0`/`Ctrl+0` must restore canvas zoom
   to 100% without changing viewport centre, document content or semantic history.
 
+The owner authorized a fourth Mapdown checkpoint on 2026-08-06:
+
+- **Canvas affordances — authorized, not started.** Four independent items, each shippable
+  alone. (a) Move the zoom control out of the status bar and View menu into a floating
+  bottom-left capsule (− percent +), where clicking the percentage restores 100%; the View
+  menu keeps its entries. (b) Show a dismissable hint line on an untouched empty map naming
+  the two authoring keys (Enter = sibling, Tab = child); it must disappear once the map has
+  any content beyond the root and must never appear in an export. (c) Choose the initial
+  document theme from the system colour scheme — light systems open Minimal Light, dark
+  systems open Dark — as an **initial value only**: once the user picks a theme, or a stored
+  document carries one, the system preference is ignored for that document. (d) Give nodes a
+  hover treatment distinct from both the selected and the editing state. Acceptance for all
+  four: chrome visuals stay out of document themes and exported SVG/PNG; keyboard and
+  screen-reader behaviour is unchanged; verified at desktop, tablet and mobile widths and
+  under reduced-motion.
+
 The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see
 `docs/changelog.md`).
 
