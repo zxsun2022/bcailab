@@ -22,7 +22,7 @@ function fixture() {
   const run = (command: Parameters<typeof applyCommand>[1], name: string) => {
     const result = applyCommand(doc, command);
     doc = result.doc;
-    ids[name] = result.selection;
+    ids[name] = result.selection!;
   };
   run({ type: "CreateChild", parentId: doc.rootId, text: "a" }, "a");
   run({ type: "CreateChild", parentId: ids["a"]!, text: "a1" }, "a1");

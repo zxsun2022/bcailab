@@ -25,7 +25,7 @@ function build(labels: [string, number][]): MindMapDocument {
   for (const [text, depth] of labels.slice(1)) {
     const result = applyCommand(doc, { type: "CreateChild", parentId: atDepth[depth - 1]!, text });
     doc = result.doc;
-    atDepth[depth] = result.selection;
+    atDepth[depth] = result.selection!;
     atDepth.length = depth + 1;
   }
   return doc;

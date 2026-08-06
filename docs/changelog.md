@@ -9,6 +9,24 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-05 — **in_review: Mapdown layout-switch and editing-fidelity fixes.** The Arrange
+  layout toggle now visibly balances first-level branches when entering two-sided mode from
+  the right-only placeholder state (all branches share one side), and presents as two
+  selected-state options (Right-only / Two-sided) like the Document theme picker instead of a
+  single toggle. Layout-mode, theme and branch-colour changes are now single undoable
+  presentation commands that keep the selection and restore the exact previous mode, sides and
+  theme on undo. Dragging a first-level branch to reorder it no longer silently flips its side.
+  The editing textarea uses the node role's theme typography (root 16px/600, first level
+  14px/500) instead of a fixed 14px, so a label no longer visibly shrinks while editing. Node
+  and connector memoization now compares box/path geometry by value, restoring the intended
+  single-node re-render while typing, and the text-measurement cache is bounded. Recovery
+  rejects snapshots declaring a future schema version and sanitizes a dangling stored
+  selection. Evidence: 458/458 repository tests (15 new), clean Mapdown typecheck/build, and
+  browser QA showing Alpha/Gamma on the right and Beta on the left after switching
+  (x=751/748 vs 475), undo returning Beta to the right, and editing font metrics 16px/600 and
+  14px/500 matching the rendered roles. Only the owner may mark this checkpoint
+  accepted/shipped.
+
 - 2026-08-04 — **in_review: Mapdown interaction-state clarification.** Split the execution
   paths that the keymap already called `commit-edit` and `create-sibling`: Enter in an active
   textarea now commits only and returns the same node to selected mode, while a later Enter

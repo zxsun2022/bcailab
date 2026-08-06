@@ -550,6 +550,41 @@ page-zoom controls. The View menu and Command Center expose the same 100% action
 
 ---
 
+## D-20 — Mode-switch balancing and undoable presentation commands
+
+**Decided 2026-08-05** by the owner after the deployed editor's layout toggle appeared to do
+nothing.
+
+**Decision.** Three behaviour changes, all undoable:
+
+1. Switching right-only → two-sided balances first-level branches by the §7.2 measured-height
+   rule (semantic order, height ties alternate) when every first-level branch shares one side —
+   the placeholder state right-only mode stores by construction. A mixed arrangement is a user
+   choice and is preserved verbatim. Switching back to right-only keeps stored sides, so a
+   later switch restores the balanced arrangement.
+2. Layout-mode, theme and branch-colour changes are single undoable presentation commands
+   (`SetLayoutMode`, `SetTheme`, `SetBranchColorMode`). Undo restores the exact previous mode,
+   sides and selection; the selection never moves on a presentation command.
+3. Reparenting a first-level branch keeps its stored side. The drag path previously resolved to
+   `ReparentNode` with a null side, and `normalizeSides` then reassigned a fresh default — a
+   drag reorder of two all-right branches silently flipped the branch to the left while the
+   keyboard `ReorderNode` path preserved it.
+
+**Why.** Right-only mode assigns `"right"` to every new first-level branch because §11.1 keeps
+the stored assignment across mode switches; a literal switch therefore produced a map visually
+identical to right-only. The user's reported "layout switch does nothing" is that placeholder,
+not a broken button. Balancing only the all-one-side case keeps the toggle visibly meaningful
+without ever moving a branch the user has actually placed. theme.md §14 already requires one
+undoable presentation command per theme selection; the layout toggle now satisfies the same
+rule for document view state instead of bypassing history.
+
+**Boundary.** A deliberate all-one-side arrangement built *in two-sided mode* is still treated
+as a placeholder if the user switches to right-only and back; §17.5 remains the layout
+engine's contract for rendering such a map. Recovery additionally rejects snapshots with an
+unsupported schema version and sanitizes a dangling stored selection to the root.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

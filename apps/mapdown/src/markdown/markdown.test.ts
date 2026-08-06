@@ -41,7 +41,7 @@ function build(labels: [string, number][]): MindMapDocument {
     const parent = atDepth[depth - 1]!;
     const result = applyCommand(doc, { type: "CreateChild", parentId: parent, text });
     doc = result.doc;
-    atDepth[depth] = result.selection;
+    atDepth[depth] = result.selection!;
     atDepth.length = depth + 1;
   }
   return doc;

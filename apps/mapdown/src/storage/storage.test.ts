@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { applyCommand } from "../model/commands";
-import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
+import {
+  createDocument,
+  getNode,
+  resetIdCounterForTests,
+  SCHEMA_VERSION,
+  type MindMapDocument
+} from "../model/types";
 import {
   createAutosave,
   recoverDocument,
@@ -223,6 +229,42 @@ describe("§6 — recovery validates before it activates", () => {
 
   it("reports nothing stored for a document that was never saved", async () => {
     expect((await recoverDocument(new MemoryStore(), "never-saved")).kind).toBe("nothing-stored");
+  });
+
+  it("falls back when the newest snapshot declares a future schema version", async () => {
+    const { store, autosave } = harness();
+    const doc = docWith(["v1"]);
+    autosave.schedule(doc, null);
+    await autosave.flush();
+
+    const newer = { ...doc, revision: 2 };
+    autosave.schedule(newer, null);
+    await autosave.flush();
+    const ids = await store.listSnapshotIds(doc.id);
+    store.corrupt(ids.at(-1)!, (snapshot) => {
+      snapshot.schemaVersion = SCHEMA_VERSION + 1;
+    });
+
+    const outcome = await recoverDocument(store, doc.id);
+    expect(outcome.kind).toBe("restored-earlier");
+  });
+
+  it("sanitizes a dangling stored selection instead of activating it", async () => {
+    const { store, autosave } = harness();
+    const doc = docWith(["a"]);
+    autosave.schedule(doc, doc.rootId);
+    await autosave.flush();
+
+    const ids = await store.listSnapshotIds(doc.id);
+    store.corrupt(ids.at(-1)!, (snapshot) => {
+      snapshot.selectedNodeId = "node-that-does-not-exist";
+    });
+
+    const outcome = await recoverDocument(store, doc.id);
+    expect(outcome.kind).toBe("restored");
+    if (outcome.kind === "restored") {
+      expect(outcome.snapshot.selectedNodeId).toBe(doc.rootId);
+    }
   });
 });
 

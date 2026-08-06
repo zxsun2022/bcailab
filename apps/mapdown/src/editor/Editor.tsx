@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapCanvas } from "../canvas/MapCanvas";
-import { chooseSideForNewBranch, layout, layoutOptionsForTheme } from "../layout/layout";
+import {
+  chooseSideForNewBranch,
+  layout,
+  layoutOptionsForTheme,
+  planTwoSidedSides
+} from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
 import { exportFilename } from "../markdown/escape";
 import {
@@ -699,6 +704,22 @@ export function Editor() {
     surfaceRef.current?.focus();
   }, []);
 
+  /**
+   * §12 — layout-mode switch as one undoable command. Entering two-sided layout balances
+   * first-level branches when they all share one side (a right-only placeholder, never a real
+   * choice); a mixed arrangement is kept verbatim.
+   */
+  const applyLayoutMode = useCallback((mode: "right" | "two-sided") => {
+    setHistory((state) => {
+      if (state.doc.layout.mode === mode) return state;
+      const sides =
+        mode === "two-sided"
+          ? planTwoSidedSides(state.doc, layoutOptionsForTheme(themeById(state.doc.theme.themeId)))
+          : undefined;
+      return dispatch(state, { type: "SetLayoutMode", mode, sides });
+    });
+  }, []);
+
   const reparentNode = useCallback((id: NodeId, parentId: NodeId, index: number) => {
     setHistory((state) =>
       dispatch(state, { type: "ReparentNode", nodeId: id, parentId, index })
@@ -836,16 +857,18 @@ export function Editor() {
           setHistory(committed);
           setViewport(resetZoom);
           break;
-        case "toggle-layout":
-          setHistory({
-            ...committed,
-            doc: {
-              ...committed.doc,
-              layout: { mode: committed.doc.layout.mode === "right" ? "two-sided" : "right" },
-              revision: committed.doc.revision + 1
-            }
-          });
+        case "toggle-layout": {
+          const mode = committed.doc.layout.mode === "right" ? "two-sided" : "right";
+          const sides =
+            mode === "two-sided"
+              ? planTwoSidedSides(
+                  committed.doc,
+                  layoutOptionsForTheme(themeById(committed.doc.theme.themeId))
+                )
+              : undefined;
+          setHistory(dispatch(committed, { type: "SetLayoutMode", mode, sides }));
           break;
+        }
         case "open-markdown":
           setHistory(committed);
           fileInputRef.current?.click();
@@ -951,6 +974,23 @@ export function Editor() {
   }, [doc, executeRegisteredCommand, history, selection]);
 
   const editingBox = editing ? result.boxes[editing.nodeId] : null;
+  // The overlaid textarea must use the same role typography as the node it covers, or an
+  // edited root label visibly shrinks the moment editing starts.
+  const editingDepth = editingBox?.depth ?? 0;
+  const editingNodeTokens =
+    editingDepth === 0 ? theme.nodes.root : editingDepth === 1 ? theme.nodes.level1 : theme.nodes.default;
+  const editingFontSize =
+    editingDepth === 0
+      ? theme.typography.rootFontSize
+      : editingDepth === 1
+        ? theme.typography.level1FontSize
+        : theme.typography.nodeFontSize;
+  const editingFontWeight =
+    editingDepth === 0
+      ? theme.typography.rootFontWeight
+      : editingDepth === 1
+        ? theme.typography.level1FontWeight
+        : theme.typography.nodeFontWeight;
 
   /**
    * The overlaid textarea has to sit exactly on its node box. Both are derived from the same
@@ -1024,28 +1064,40 @@ export function Editor() {
         <nav className="toolbar-actions" aria-label="Map tools">
           <ToolbarMenu label="Arrange">
             <p className="toolbar-popover-label">Map layout</p>
-            <button
-              type="button"
-              className="menu-action"
-              data-close-menu
-              onClick={() =>
-                setHistory((state) => ({
-                  ...state,
-                  doc: {
-                    ...state.doc,
-                    layout: {
-                      mode: state.doc.layout.mode === "right" ? "two-sided" : "right"
-                    },
-                    revision: state.doc.revision + 1
-                  }
-                }))
-              }
-            >
-              <span>
-                {doc.layout.mode === "right" ? "Use two-sided layout" : "Use right-only layout"}
-              </span>
-              <small>{doc.layout.mode === "right" ? "Balance first-level branches" : "Flow every branch right"}</small>
-            </button>
+            <div className="layout-options" role="group" aria-label="Map layout">
+              <button
+                type="button"
+                className="theme-option layout-option"
+                aria-pressed={doc.layout.mode === "right"}
+                data-close-menu
+                onClick={() => applyLayoutMode("right")}
+              >
+                <span className="layout-swatch" aria-hidden="true">→</span>
+                <span className="layout-option-label">
+                  <span>Right-only</span>
+                  <small>Every branch flows right</small>
+                </span>
+                <span className="theme-check" aria-hidden="true">
+                  {doc.layout.mode === "right" ? "✓" : ""}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="theme-option layout-option"
+                aria-pressed={doc.layout.mode === "two-sided"}
+                data-close-menu
+                onClick={() => applyLayoutMode("two-sided")}
+              >
+                <span className="layout-swatch" aria-hidden="true">⇄</span>
+                <span className="layout-option-label">
+                  <span>Two-sided</span>
+                  <small>Balance first-level branches</small>
+                </span>
+                <span className="theme-check" aria-hidden="true">
+                  {doc.layout.mode === "two-sided" ? "✓" : ""}
+                </span>
+              </button>
+            </div>
 
             {hasSelectedArrangeActions && (
               <>
@@ -1219,14 +1271,11 @@ export function Editor() {
                   aria-pressed={doc.theme.themeId === entry.id}
                   data-close-menu
                   onClick={() => {
-                    setHistory((state) => ({
-                      ...state,
-                      doc: {
-                        ...state.doc,
-                        theme: { ...state.doc.theme, themeId: entry.id },
-                        revision: state.doc.revision + 1
-                      }
-                    }));
+                    setHistory((state) =>
+                      state.doc.theme.themeId === entry.id
+                        ? state
+                        : dispatch(state, { type: "SetTheme", themeId: entry.id })
+                    );
                     setAnnouncement(`Theme changed to ${entry.name}.`);
                   }}
                 >
@@ -1252,20 +1301,15 @@ export function Editor() {
               aria-pressed={doc.theme.branchColorMode === "by-first-level-branch"}
               data-close-menu
               onClick={() =>
-                setHistory((state) => ({
-                  ...state,
-                  doc: {
-                    ...state.doc,
-                    theme: {
-                      ...state.doc.theme,
-                      branchColorMode:
-                        state.doc.theme.branchColorMode === "single"
-                          ? "by-first-level-branch"
-                          : "single"
-                    },
-                    revision: state.doc.revision + 1
-                  }
-                }))
+                setHistory((state) =>
+                  dispatch(state, {
+                    type: "SetBranchColorMode",
+                    mode:
+                      state.doc.theme.branchColorMode === "single"
+                        ? "by-first-level-branch"
+                        : "single"
+                  })
+                )
               }
             >
               <span>Colour first-level branches</span>
@@ -1395,7 +1439,11 @@ export function Editor() {
               left: `${editorRect.left}%`,
               top: `${editorRect.top}%`,
               width: `${editorRect.width}%`,
-              height: `${editorRect.height}%`
+              height: `${editorRect.height}%`,
+              fontFamily: theme.typography.fontFamily,
+              fontSize: editingFontSize,
+              fontWeight: editingFontWeight,
+              padding: `${editingNodeTokens.paddingY}px ${editingNodeTokens.paddingX}px`
             }}
             rows={1}
           />

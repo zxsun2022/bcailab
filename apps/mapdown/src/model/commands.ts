@@ -46,6 +46,17 @@ export type Command =
   | { type: "SetCollapsed"; nodeId: NodeId; collapsed: boolean }
   | { type: "MoveFirstLevelBranchSide"; nodeId: NodeId; side: BranchSide }
   /**
+   * §12 — layout-mode switch as one undoable document-view command. `sides` lets the editor
+   * (the layer with measured heights) supply exact first-level side assignments when entering
+   * two-sided layout; omitted, the command falls back to a deterministic alternating pattern so
+   * the command layer stays layout-free. The resolved form always carries the applied sides.
+   */
+  | { type: "SetLayoutMode"; mode: "right" | "two-sided"; sides?: Record<NodeId, BranchSide | null> }
+  /** theme.md §14 — a theme selection is one undoable presentation command. */
+  | { type: "SetTheme"; themeId: string }
+  /** theme.md §8 — branch-colour mode is one undoable presentation command. */
+  | { type: "SetBranchColorMode"; mode: "single" | "by-first-level-branch" }
+  /**
    * §7.3 — swap the node with its immediate previous or next sibling. The keyboard/menu
    * alternative to dragging between sibling positions.
    */
@@ -88,8 +99,12 @@ export interface CommandResult {
    */
   resolved: Command;
   inverse: Command;
-  /** Where selection should land after the command, per each command's rules. */
-  selection: NodeId;
+  /**
+   * Where selection should land after the command, per each command's rules. `null` means
+   * "keep the current selection" — used by presentation commands (layout mode, theme, branch
+   * colour) that must not move the user's focus.
+   */
+  selection: NodeId | null;
   category: CommandCategory;
 }
 
@@ -367,9 +382,102 @@ function reparentNode(
 ): CommandResult {
   const target = getNode(doc, parentId);
   const targetIndex = index ?? target.childIds.length;
-  // §7.4 — deeper than first level, side is not the caller's to set; `moveNode` normalises it to
-  // null unless `parentId` is the root, in which case it assigns a fresh default.
-  return moveNode(doc, nodeId, parentId, targetIndex, null);
+  const node = getNode(doc, nodeId);
+  // §7.4 — deeper than first level, side is not the caller's to set. Staying first-level keeps
+  // the stored side: a drag reorder of a first-level branch must not be silently re-sided by
+  // the fresh-default assignment in `moveNode`/`normalizeSides` (verified regression: it used
+  // to flip a right-side branch to left when reordering two all-right branches).
+  const side = parentId === doc.rootId ? node.side : null;
+  return moveNode(doc, nodeId, parentId, targetIndex, side);
+}
+
+/**
+ * §12 — one undoable layout-mode switch.
+ *
+ * The inverse carries the previous mode **and** every first-level side, so undo restores the
+ * exact arrangement rather than merely the mode string.
+ */
+function setLayoutMode(
+  doc: MindMapDocument,
+  mode: "right" | "two-sided",
+  sides?: Record<NodeId, BranchSide | null>
+): CommandResult {
+  const previousMode = doc.layout.mode;
+  const firstLevel = getNode(doc, doc.rootId).childIds;
+  const previousSides: Record<NodeId, BranchSide | null> = {};
+  for (const id of firstLevel) previousSides[id] = getNode(doc, id).side;
+
+  const nodes = cloneNodes(doc);
+  if (sides === undefined && mode === "two-sided") {
+    // Layout-free fallback for direct command-layer callers: a right-only placeholder map is
+    // all "right", so start from a clean slate and alternate from the top.
+    for (const id of firstLevel) nodes[id]!.side = null;
+  }
+  if (sides) {
+    for (const id of firstLevel) {
+      if (id in sides) nodes[id]!.side = sides[id] ?? null;
+    }
+  }
+
+  const appliedSides: Record<NodeId, BranchSide | null> = {};
+  if (mode === "two-sided") {
+    // Every first-level node must render on one side or the other. Callers that know measured
+    // heights supply a balanced map; ids they did not mention (or that were null) get the
+    // deterministic alternating fill.
+    let last: BranchSide | null = null;
+    for (const id of firstLevel) {
+      const current = nodes[id]!.side;
+      if (current !== null) {
+        last = current;
+        appliedSides[id] = current;
+        continue;
+      }
+      const next: BranchSide = !last ? "right" : last === "right" ? "left" : "right";
+      nodes[id]!.side = next;
+      last = next;
+      appliedSides[id] = next;
+    }
+  } else {
+    for (const id of firstLevel) {
+      if (nodes[id]!.side === null) nodes[id]!.side = "right";
+      appliedSides[id] = nodes[id]!.side;
+    }
+  }
+  normalizeSides(doc, nodes);
+
+  return {
+    doc: { ...doc, layout: { mode }, nodes, revision: doc.revision + 1 },
+    resolved: { type: "SetLayoutMode", mode, sides: appliedSides },
+    inverse: { type: "SetLayoutMode", mode: previousMode, sides: previousSides },
+    selection: null,
+    category: "presentation"
+  };
+}
+
+/** theme.md §14 — one undoable presentation command per selection. */
+function setTheme(doc: MindMapDocument, themeId: string): CommandResult {
+  const previous = doc.theme.themeId;
+  return {
+    doc: { ...doc, theme: { ...doc.theme, themeId }, revision: doc.revision + 1 },
+    resolved: { type: "SetTheme", themeId },
+    inverse: { type: "SetTheme", themeId: previous },
+    selection: null,
+    category: "presentation"
+  };
+}
+
+function setBranchColorMode(
+  doc: MindMapDocument,
+  mode: "single" | "by-first-level-branch"
+): CommandResult {
+  const previous = doc.theme.branchColorMode;
+  return {
+    doc: { ...doc, theme: { ...doc.theme, branchColorMode: mode }, revision: doc.revision + 1 },
+    resolved: { type: "SetBranchColorMode", mode },
+    inverse: { type: "SetBranchColorMode", mode: previous },
+    selection: null,
+    category: "presentation"
+  };
 }
 
 /** §7.7 — leaves normalise to expanded, and the root can never collapse. */
@@ -466,6 +574,15 @@ export function applyCommand(doc: MindMapDocument, command: Command): CommandRes
       break;
     case "MoveFirstLevelBranchSide":
       result = moveFirstLevelBranchSide(doc, command.nodeId, command.side);
+      break;
+    case "SetLayoutMode":
+      result = setLayoutMode(doc, command.mode, command.sides);
+      break;
+    case "SetTheme":
+      result = setTheme(doc, command.themeId);
+      break;
+    case "SetBranchColorMode":
+      result = setBranchColorMode(doc, command.mode);
       break;
   }
 

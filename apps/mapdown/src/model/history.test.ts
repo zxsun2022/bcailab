@@ -62,6 +62,21 @@ describe("undo and redo basics", () => {
 
     expect(state.selection).toBeNull();
   });
+
+  it("keeps the current selection when a presentation command reports selection: null", () => {
+    const doc = startedDoc();
+    let state = createHistory(doc);
+    state = dispatch(state, { type: "CreateChild", parentId: doc.rootId, text: "a" });
+    const selected = state.selection!;
+
+    state = dispatch(state, { type: "SetLayoutMode", mode: "two-sided" });
+    expect(state.selection).toBe(selected);
+
+    state = undo(state);
+    expect(state.selection).toBe(selected);
+    state = redo(state);
+    expect(state.selection).toBe(selected);
+  });
 });
 
 describe("§8.2 — typing coalesces into one entry", () => {
