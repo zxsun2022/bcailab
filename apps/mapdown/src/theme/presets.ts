@@ -13,11 +13,11 @@ import type { MindMapTheme, NodeStyleTokens } from "./types";
 
 const TYPOGRAPHY = {
   fontFamily: FONT_STACK,
-  rootFontSize: 16,
+  rootFontSize: 18,
   rootFontWeight: 600,
-  level1FontSize: 14,
+  level1FontSize: 15,
   level1FontWeight: 500,
-  nodeFontSize: 14,
+  nodeFontSize: 13,
   nodeFontWeight: 400,
   lineHeight: 1.45
 };
@@ -41,7 +41,7 @@ export const MINIMAL_LIGHT: MindMapTheme = {
   canvas: { background: "#ffffff", exportBackground: "#ffffff" },
   typography: TYPOGRAPHY,
   nodes: {
-    root: node({ background: "#1c1e21", text: "#ffffff", border: "#1c1e21", radius: 8 }),
+    root: node({ background: "#1c1e21", text: "#ffffff", border: "#1c1e21", radius: 8, paddingY: 10 }),
     level1: node({ background: "#f6f7f8", text: "#1c1e21", border: "#c8ccd1" }),
     default: node({ background: "#ffffff", text: "#1c1e21", border: "#d8dce1" }),
     emptyPlaceholderText: "Untitled"
@@ -81,7 +81,7 @@ export const SOFT_BRANCHES: MindMapTheme = {
   canvas: { background: "#fdfdfc", exportBackground: "#fdfdfc" },
   typography: TYPOGRAPHY,
   nodes: {
-    root: node({ background: "#3c3a36", text: "#ffffff", border: "#3c3a36", radius: 10 }),
+    root: node({ background: "#3c3a36", text: "#ffffff", border: "#3c3a36", radius: 10, paddingY: 10 }),
     level1: node({ background: "#ffffff", text: "#2b2a27", border: "#ded9d0", radius: 10 }),
     default: node({ background: "#ffffff", text: "#2b2a27", border: "#e6e2da", radius: 10 }),
     emptyPlaceholderText: "Untitled"
@@ -122,7 +122,7 @@ export const BUSINESS: MindMapTheme = {
   typography: TYPOGRAPHY,
   nodes: {
     // §12.3 — squarer cards, restrained blue-grey, and it must print well on white.
-    root: node({ background: "#1f3a5f", text: "#ffffff", border: "#1f3a5f", radius: 3 }),
+    root: node({ background: "#1f3a5f", text: "#ffffff", border: "#1f3a5f", radius: 3, paddingY: 10 }),
     level1: node({ background: "#eef2f7", text: "#12263f", border: "#a9bdd4", radius: 3 }),
     default: node({ background: "#ffffff", text: "#12263f", border: "#c3d0e0", radius: 3 }),
     emptyPlaceholderText: "Untitled"
@@ -163,7 +163,7 @@ export const DARK: MindMapTheme = {
   canvas: { background: "#16181c", exportBackground: "#16181c" },
   typography: TYPOGRAPHY,
   nodes: {
-    root: node({ background: "#e8eaed", text: "#16181c", border: "#e8eaed", radius: 8 }),
+    root: node({ background: "#e8eaed", text: "#16181c", border: "#e8eaed", radius: 8, paddingY: 10 }),
     level1: node({ background: "#24272c", text: "#e8eaed", border: "#3a3f46" }),
     default: node({ background: "#1f2226", text: "#e8eaed", border: "#33383f" }),
     emptyPlaceholderText: "Untitled"

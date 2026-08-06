@@ -112,6 +112,11 @@ interface NodeLevelTokens {
 
 MVP SHOULD distinguish root, first-level nodes, and deeper nodes. It SHOULD NOT require unique styling for every depth.
 
+The type hierarchy is fixed at exactly three tiers: root > first level > every deeper node.
+Node type size MUST NOT keep decreasing with depth beyond the default tier (depth is
+unbounded, so a per-depth step makes deep outlines unreadable), and the smallest tier MUST
+stay legible for CJK at common zoom levels — the shipped presets floor it at 13px (D-21).
+
 ## 7. Connector tokens
 
 ```ts

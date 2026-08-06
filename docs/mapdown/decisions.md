@@ -585,6 +585,37 @@ unsupported schema version and sanitizes a dangling stored selection to the root
 
 ---
 
+## D-21 — Type hierarchy is three fixed tiers with a 13px floor
+
+**Decided 2026-08-06** by the owner as step 2 of the Theme differentiation checkpoint
+(the type scale lands first, on its own).
+
+**Decision.** Node hierarchy is expressed through exactly three typography tiers, shared by
+all four presets through the single `TYPOGRAPHY` constant in `presets.ts`:
+
+| Tier | Size | Weight |
+|---|---|---|
+| root | 18px | 600 |
+| first level | 15px | 500 |
+| every deeper node (depth ≥ 2) | 13px | 400 |
+
+`lineHeight` stays 1.45 across all tiers. The four presets' root `paddingY` rises from 8 to
+10 so an 18px label is not cramped; `paddingX` is unchanged. Measurement now derives these
+metrics from the same `roles.ts` helpers (`roleTokens` / `roleTypography`) as the canvas
+renderer, the editing overlay and the exporter, so a type change can never desynchronize the
+measured box from the rendered and edited text again — the class of bug c55276c.
+
+**Why.** Hierarchy should be readable at a glance rather than inferred from indentation, so
+the tiers differ in size, not only weight. Depth is unbounded, so a per-depth step would
+shrink deep outlines into unreadability; the three-tier shape of `roles.ts` is the ceiling,
+not a starting point. 13px is the readability floor for CJK text at common zoom levels, and
+nothing may drop below it for hierarchy's sake.
+
+**Boundary.** Shape-language differentiation between presets remains the Theme
+differentiation checkpoint's later work; this decision only fixes the shared type scale.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

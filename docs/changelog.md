@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-06 — **in_review: Mapdown three-tier type scale (Theme differentiation, step 2).**
+  Node hierarchy is now expressed through type size, not indentation alone: the shared
+  `TYPOGRAPHY` constant in `presets.ts` moves to root 18px/600, first level 15px/500, and
+  every deeper node 13px/400, with line height fixed at 1.45. The four presets' root
+  `paddingY` rises to 10 so the 18px label is not cramped. The scale stays at exactly three
+  tiers — depth ≥ 2 clamps to 13px, never decreasing further — and 13px is the CJK legibility
+  floor. `layoutOptionsForTheme()` now derives measurement from the same `roles.ts`
+  `roleTokens`/`roleTypography` helpers as the canvas renderer, editing overlay and exporter,
+  closing the duplicate-derivation class of bug c55276c. Spec: `spec/theme.md` §6 states the
+  three-tier / no-per-depth-step / 13px-floor contract; `decisions.md` records D-21.
+  Evidence: 462/462 repository tests (2 new: measurement-vs-renderer role parity across all
+  four themes and depths, and the three-tier hierarchy with floor plus root padding), clean
+  Mapdown typecheck/build, expected box metrics recomputed from the tokens
+  (root height 18×1.45 + 2×10 = 46.1), and browser QA at 50%/100%/200% zoom showing the
+  editing textarea font/padding matches its covered node at every scale. Only the owner may
+  mark this checkpoint accepted/shipped.
+
 - 2026-08-06 — **in_review: Mapdown two-sided connector mirror fix.** In two-sided layout the
   root's single stored `outwardEdgeX` always pointed at the right edge, so a left first-level
   connector started at the root's right edge, spanned the whole root, and placed its bézier

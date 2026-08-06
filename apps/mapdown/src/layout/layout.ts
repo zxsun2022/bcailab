@@ -1,5 +1,6 @@
 import { measureNode, type Typography } from "./measure";
 import { getNode, type BranchSide, type MindMapDocument, type NodeId } from "../model/types";
+import { roleTokens, roleTypography } from "../theme/roles";
 import type { MindMapTheme } from "../theme/types";
 
 /**
@@ -82,25 +83,21 @@ export interface LayoutOptions {
   spacing?: LayoutSpacing;
 }
 
-/** Keep measurement and rendered theme roles on the same font, padding and spacing contract. */
+/**
+ * Keep measurement and rendered theme roles on the same font, padding and spacing contract.
+ *
+ * The per-depth role resolution deliberately comes from `roles.ts` — the same helper the
+ * canvas renderer, the editing overlay and the exporter use — so measurement can never drift
+ * from rendering again (the old inline ternaries caused the weight-mismatch bug c55276c).
+ */
 export function layoutOptionsForTheme(theme: MindMapTheme): LayoutOptions {
   return {
     typography: (depth) => {
-      const role =
-        depth === 0 ? theme.nodes.root : depth === 1 ? theme.nodes.level1 : theme.nodes.default;
+      const role = roleTokens(theme, depth);
+      const { size, weight } = roleTypography(theme, depth);
       return {
-        fontSize:
-          depth === 0
-            ? theme.typography.rootFontSize
-            : depth === 1
-              ? theme.typography.level1FontSize
-              : theme.typography.nodeFontSize,
-        fontWeight:
-          depth === 0
-            ? theme.typography.rootFontWeight
-            : depth === 1
-              ? theme.typography.level1FontWeight
-              : theme.typography.nodeFontWeight,
+        fontSize: size,
+        fontWeight: weight,
         lineHeight: theme.typography.lineHeight,
         maxWidth: role.maxWidth,
         paddingX: role.paddingX,
