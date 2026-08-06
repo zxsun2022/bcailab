@@ -99,7 +99,7 @@ export function layoutOptionsForTheme(theme: MindMapTheme): LayoutOptions {
           depth === 0
             ? theme.typography.rootFontWeight
             : depth === 1
-              ? theme.typography.nodeFontWeight
+              ? theme.typography.level1FontWeight
               : theme.typography.nodeFontWeight,
         lineHeight: theme.typography.lineHeight,
         maxWidth: role.maxWidth,

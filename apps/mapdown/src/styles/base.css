@@ -468,20 +468,19 @@ button:disabled {
   box-shadow: inset 0 0 0 2px var(--chrome-focus-ring);
 }
 
+/*
+ * The editing textarea is a document-theme overlay, not chrome (design-tokens.md §2): its
+ * fill, text, padding, radius and font are set inline from the covered node's role tokens and
+ * scaled by viewport.scale. The highlight ring is a box-shadow drawn *outside* the box, so it
+ * never consumes content width. Nothing here may reference a chrome token.
+ */
 .editing-field {
   box-sizing: border-box;
-  padding: 0.34rem 0.56rem;
+  margin: 0;
   transform: translateY(-50%);
   resize: none;
-  border: 2px solid var(--chrome-accent);
-  border-radius: var(--chrome-radius);
+  border: none;
   outline: none;
-  background: var(--chrome-bg-raised);
-  box-shadow: 0 4px 16px rgb(22 31 45 / 16%);
-  color: var(--chrome-text);
-  font: inherit;
-  font-size: 14px;
-  line-height: 1.45;
 }
 
 .editor-statusbar {

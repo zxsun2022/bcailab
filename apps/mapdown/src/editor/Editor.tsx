@@ -30,6 +30,7 @@ import {
   type Command
 } from "../model/commands";
 import { THEMES, themeById } from "../theme/presets";
+import { roleTokens, roleTypography } from "../theme/roles";
 import { useImeGuard } from "./useImeGuard";
 import {
   createAutosave,
@@ -87,6 +88,14 @@ interface EditingState {
 }
 
 let sessionCounter = 0;
+
+/**
+ * Screen px of extra content width the editing field keeps over the measured layout width.
+ * canvas measureText and the browser's own text layout differ by subpixel amounts; the node
+ * box has zero tolerance by design, so the textarea takes the margin out of its own right
+ * padding. The box itself stays pixel-identical to the node box.
+ */
+const EDITING_SAFETY_MARGIN = 2;
 
 export function Editor() {
   const [history, setHistory] = useState<EditorHistory>(() =>
@@ -974,23 +983,11 @@ export function Editor() {
   }, [doc, executeRegisteredCommand, history, selection]);
 
   const editingBox = editing ? result.boxes[editing.nodeId] : null;
-  // The overlaid textarea must use the same role typography as the node it covers, or an
-  // edited root label visibly shrinks the moment editing starts.
+  // The overlaid textarea must use the same role tokens and typography as the node it covers,
+  // or an edited label visibly shrinks or recolours the moment editing starts.
   const editingDepth = editingBox?.depth ?? 0;
-  const editingNodeTokens =
-    editingDepth === 0 ? theme.nodes.root : editingDepth === 1 ? theme.nodes.level1 : theme.nodes.default;
-  const editingFontSize =
-    editingDepth === 0
-      ? theme.typography.rootFontSize
-      : editingDepth === 1
-        ? theme.typography.level1FontSize
-        : theme.typography.nodeFontSize;
-  const editingFontWeight =
-    editingDepth === 0
-      ? theme.typography.rootFontWeight
-      : editingDepth === 1
-        ? theme.typography.level1FontWeight
-        : theme.typography.nodeFontWeight;
+  const editingNodeTokens = roleTokens(theme, editingDepth);
+  const { size: editingFontSize, weight: editingFontWeight } = roleTypography(theme, editingDepth);
 
   /**
    * The overlaid textarea has to sit exactly on its node box. Both are derived from the same
@@ -1006,6 +1003,20 @@ export function Editor() {
       height: (editingBox.height / rect.height) * 100
     };
   }, [editingBox, viewport, canvasSize]);
+
+  /**
+   * The textarea box follows the node box in screen pixels through the percentage mapping
+   * above; every metric the textarea carries (font, padding, radius, ring) is a document unit
+   * from the theme and must be multiplied by viewport.scale to land on the same screen pixels
+   * as the SVG (document × scale = screen px).
+   */
+  const editingScale = viewport.scale;
+  const editingFontSizePx = editingFontSize * editingScale;
+  const editingPaddingY = editingNodeTokens.paddingY * editingScale;
+  const editingPaddingX = editingNodeTokens.paddingX * editingScale;
+  const editingRadius = editingNodeTokens.radius * editingScale;
+  const editingRingWidth = 2 * editingScale;
+  const editingRightPadding = Math.max(editingPaddingX - EDITING_SAFETY_MARGIN, 0);
 
   const hasSelectedArrangeActions =
     selection !== null &&
@@ -1441,9 +1452,14 @@ export function Editor() {
               width: `${editorRect.width}%`,
               height: `${editorRect.height}%`,
               fontFamily: theme.typography.fontFamily,
-              fontSize: editingFontSize,
+              fontSize: editingFontSizePx,
               fontWeight: editingFontWeight,
-              padding: `${editingNodeTokens.paddingY}px ${editingNodeTokens.paddingX}px`
+              lineHeight: theme.typography.lineHeight,
+              padding: `${editingPaddingY}px ${editingRightPadding}px ${editingPaddingY}px ${editingPaddingX}px`,
+              background: editingNodeTokens.background,
+              color: editingNodeTokens.text,
+              borderRadius: editingRadius,
+              boxShadow: `0 0 0 ${editingRingWidth}px ${theme.interaction.editingOutline}, 0 4px 16px rgb(22 31 45 / 16%)`
             }}
             rows={1}
           />

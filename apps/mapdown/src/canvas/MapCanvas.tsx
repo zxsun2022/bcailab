@@ -11,7 +11,8 @@ import {
 import { resolveDropTarget, type DropZone } from "../model/commands";
 import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
-import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
+import { roleTokens, roleTypography } from "../theme/roles";
+import type { MindMapTheme } from "../theme/types";
 import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
 
 /**
@@ -28,20 +29,6 @@ import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
  * so what is on screen and what lands in a file cannot diverge (theme.md §2.7). A `var(--x)`
  * here would render fine and export unstyled — see D-05.
  */
-
-/** §6 — root, first level, and everything deeper. Not a style per depth. */
-function roleTokens(theme: MindMapTheme, depth: number): NodeStyleTokens {
-  if (depth === 0) return theme.nodes.root;
-  if (depth === 1) return theme.nodes.level1;
-  return theme.nodes.default;
-}
-
-function roleTypography(theme: MindMapTheme, depth: number) {
-  const t = theme.typography;
-  if (depth === 0) return { size: t.rootFontSize, weight: t.rootFontWeight };
-  if (depth === 1) return { size: t.level1FontSize, weight: t.level1FontWeight };
-  return { size: t.nodeFontSize, weight: t.nodeFontWeight };
-}
 
 interface NodeProps {
   box: NodeBox;

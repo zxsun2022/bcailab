@@ -354,4 +354,12 @@ describe("§4.4 — measurement caching", () => {
         MINIMAL_LIGHT.nodes.root.paddingY * 2
     );
   });
+
+  it("measures first-level nodes with the rendered level1 font weight, not the default", () => {
+    const options = layoutOptionsForTheme(MINIMAL_LIGHT);
+    const level1 = typeof options.typography === "function" ? options.typography(1) : options.typography;
+
+    expect(level1?.fontWeight).toBe(MINIMAL_LIGHT.typography.level1FontWeight);
+    expect(level1?.fontWeight).not.toBe(MINIMAL_LIGHT.typography.nodeFontWeight);
+  });
 });
