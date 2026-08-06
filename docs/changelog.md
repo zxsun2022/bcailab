@@ -9,6 +9,27 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-05 — **in_review: Mapdown editing-state fidelity.** The editing textarea now overlays
+  its node exactly: the highlight ring is a box-shadow drawn *outside* the box instead of a
+  2px border that consumed 4px of content width, so two full-width CJK characters ("一二",
+  28px of text in a 52px box) no longer wrap into two lines. Fill, text, corner radius and
+  typography come from the covered node's role tokens through a shared `roleTokens` /
+  `roleTypography` helper that the canvas renderer also uses, so dark system chrome can no
+  longer bleed into a light map (the ring alone uses the theme's `editingOutline`). Every
+  metric the textarea carries — font size, padding, radius, ring width — is multiplied by
+  `viewport.scale`, keeping editing pixel-identical to the node at any zoom. First-level nodes
+  are now measured with the rendered `level1FontWeight` (500) instead of the default 400, so
+  layout and rendering agree on box width. The textarea keeps a 2px screen safety margin in
+  its own right padding, absorbing canvas-measure vs browser-layout subpixel differences
+  without enlarging the node box. Spec: `spec/theme.md` §9 and `design-tokens.md` now state
+  the editing-overlay contract. Evidence: 459/459 repository tests (1 new), clean Mapdown
+  typecheck/build, and browser QA at 100%/50%/200% showing textarea-vs-SVG getBoundingClientRect
+  deltas ≤ 0.01px, no unexpected wrap for 「一二」, 16 CJK chars (248px, below the 260 maxWidth)
+  or mixed CJK/Latin, root 16px/600 and first-level 14px/500 matching the rendered roles, and
+  all four themes matching node fill/text under simulated dark chrome (Minimal Light
+  #f6f7f8/#1c1e21, Soft Branch Colors #ffffff/#2b2a27, Business #eef2f7/#12263f, Dark
+  #24272c/#e8eaed). Only the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-05 — **in_review: Mapdown layout-switch and editing-fidelity fixes.** The Arrange
   layout toggle now visibly balances first-level branches when entering two-sided mode from
   the right-only placeholder state (all branches share one side), and presents as two

@@ -182,7 +182,12 @@ Requirements:
 - keyboard focus ring is visible and meets accessibility contrast expectations;
 - invalid drop differs through shape/icon/pattern as well as color where possible;
 - interaction outlines do not alter node box dimensions;
-- interaction tokens are excluded from normal image export.
+- interaction tokens are excluded from normal image export;
+- the editing control overlays the node it is editing: its fill and text MUST come from the
+  covered node's role tokens (`background` / `text`), its corner radius from the same tokens'
+  `radius`, and its typography from the same role (`theme.md` §5), so a node looks identical
+  while being edited; the editing highlight ring is the only element drawn with
+  `editingOutline`, and it is rendered outside the node box so node dimensions never change.
 
 ## 10. Collapse-control tokens
 
