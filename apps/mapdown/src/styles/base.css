@@ -398,6 +398,41 @@ button:disabled {
   text-align: center;
 }
 
+.layout-options {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.layout-option {
+  grid-template-columns: 26px 1fr 18px;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.84rem;
+}
+
+.layout-option-label {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.layout-option-label > span {
+  font-size: 0.84rem;
+  font-weight: 570;
+}
+
+.layout-option-label small {
+  color: var(--chrome-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.3;
+}
+
+.layout-swatch {
+  color: var(--chrome-text-muted);
+  font-size: 1rem;
+  text-align: center;
+}
+
 .editor-notice {
   z-index: 10;
   display: flex;
