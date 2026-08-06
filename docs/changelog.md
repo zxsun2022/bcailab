@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-06 — **in_review: Mapdown two-sided connector mirror fix.** In two-sided layout the
+  root's single stored `outwardEdgeX` always pointed at the right edge, so a left first-level
+  connector started at the root's right edge, spanned the whole root, and placed its bézier
+  control points at that long span's midpoint — the left curve then did not mirror the right
+  one (the opaque root rect hid the crossing segment). `connect()` now picks the root edge
+  facing each child by comparing the child's inward edge with the root centre, and only for
+  the root (depth 0): non-root nodes keep their stored outward edge and `layoutRightOnly` is
+  untouched, so right-only geometry is byte-identical. Spec `spec/layout-engine.md` §10.1/§10.2
+  now states that the root has two outward edges — one per side — in two-sided mode, and each
+  root connector MUST leave the edge facing its branch. Evidence: 460/460 repository tests
+  (1 new regression test asserting the four path x coordinates of a left branch's connector
+  strictly mirror a mirrored right branch's about x = 0, with the left connector starting at
+  the root's left edge), clean Mapdown typecheck/build, and headless-Chrome pixel QA: node
+  rects and connector curves render as exact horizontal mirrors (an original-vs-mirrored SVG
+  render differs only in glyph antialiasing), and the before/after pixel diff is confined to
+  the visible left connector region. Only the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-05 — **in_review: Mapdown editing-state fidelity.** The editing textarea now overlays
   its node exactly: the highlight ring is a box-shadow drawn *outside* the box instead of a
   2px border that consumed 4px of content width, so two full-width CJK characters ("一二",

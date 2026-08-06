@@ -11,7 +11,14 @@ import {
   type BranchSide,
   type MindMapDocument
 } from "../model/types";
-import { chooseSideForNewBranch, diffLayouts, layout, planTwoSidedSides, rootCentre } from "./layout";
+import {
+  chooseSideForNewBranch,
+  diffLayouts,
+  layout,
+  planTwoSidedSides,
+  rootCentre,
+  type Connector
+} from "./layout";
 import { clearMeasurementCache } from "./measure";
 
 beforeEach(() => {
@@ -95,6 +102,41 @@ describe("§7.4 — left-side hierarchy extends toward negative x", () => {
         expect(box.inwardEdgeX).toBe(box.x);
       }
     }
+  });
+});
+
+describe("§10 — root connectors mirror across the two sides", () => {
+  it("starts each root→first-level connector on the edge facing its branch", () => {
+    // Two identical first-level branches at mirrored positions: the first is assigned right,
+    // the second left (§7.2.3), and both carry identically sized children.
+    const doc = branches(2);
+    const result = layout(doc);
+
+    const root = result.boxes[doc.rootId]!;
+    const right = result.connectors.find(
+      (c) => c.fromId === doc.rootId && result.boxes[c.toId]!.side === "right"
+    )!;
+    const left = result.connectors.find(
+      (c) => c.fromId === doc.rootId && result.boxes[c.toId]!.side === "left"
+    )!;
+
+    // Regression: the left connector must leave the root's *left* edge. A single stored
+    // outward edge (the right edge) made it span the whole root and broke the mirror.
+    expect(left.path.x1).toBe(root.x);
+    expect(right.path.x1).toBe(root.x + root.width);
+
+    // The branches are identical and sit on the same vertical line, so every x coordinate of
+    // the two paths must be a strict mirror about x = 0 — same magnitude, opposite sign —
+    // with matching y coordinates.
+    const xs = (connector: Connector) => [
+      connector.path.x1,
+      connector.path.c1x,
+      connector.path.c2x,
+      connector.path.x2
+    ];
+    expect(xs(left)).toEqual(xs(right).map((x) => -x));
+    expect(left.path.y1).toBe(right.path.y1);
+    expect(left.path.y2).toBe(right.path.y2);
   });
 });
 

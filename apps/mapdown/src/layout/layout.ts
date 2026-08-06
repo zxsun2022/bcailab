@@ -252,9 +252,10 @@ function measureTree(
 }
 
 /**
- * §10.3 — a horizontal-tangent cubic between two boxes, so the curve leaves the parent's
+ * §10.1 — a horizontal-tangent cubic between two boxes, so the curve leaves the parent's
  * outward edge and arrives at the child's inward edge flat. Works unchanged on both sides
- * because "outward" and "inward" already encode the direction.
+ * because "outward" and "inward" already encode the direction — except for the root in
+ * two-sided mode, which faces both sides at once (§10.2).
  */
 function connect(
   boxes: Record<NodeId, NodeBox>,
@@ -264,7 +265,13 @@ function connect(
 ): void {
   const from = boxes[fromId]!;
   const to = boxes[toId]!;
-  const x1 = from.outwardEdgeX;
+  // Only the root straddles both sides in two-sided mode; its stored outwardEdgeX is a single
+  // value (the right edge), so it cannot face a left first-level branch. Every other node has
+  // exactly one outward side, so its stored edge remains the source of truth. Pick the root
+  // edge facing this child by comparing the child's inward edge with the root centre — the
+  // horizontal gap guarantees the comparison is strict on either side.
+  const fromCentreX = from.x + from.width / 2;
+  const x1 = from.depth === 0 && to.inwardEdgeX < fromCentreX ? from.x : from.outwardEdgeX;
   const y1 = from.y + from.height / 2;
   const x2 = to.inwardEdgeX;
   const y2 = to.y + to.height / 2;

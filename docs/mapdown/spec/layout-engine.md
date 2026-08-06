@@ -284,7 +284,7 @@ MVP uses smooth curved connectors.
 
 Recommended cubic Bézier path:
 
-- start at parent outward-edge center;
+- start at parent outward-edge center (the root has two — one per side — in two-sided mode, §10.2);
 - end at child inward-edge center;
 - controls extend along branch direction by a proportion of horizontal gap;
 - path remains monotonic in X where practical.
@@ -292,6 +292,13 @@ Recommended cubic Bézier path:
 ### 10.2 Root connectors
 
 Each first-level branch receives its branch color according to theme.
+
+Every non-root node has exactly one outward edge, facing away from the root. The root is the
+exception: in two-sided mode it faces both sides at once, so it has two outward edges — the
+right edge for right-side first-level branches and the left edge for left-side ones. Each
+root connector MUST leave the edge facing its branch; a connector that always starts from one
+stored edge spans the whole root for the opposite side and breaks the left/right mirror
+symmetry (the root rect also hides the crossing segment).
 
 Root connector origins MAY be distributed slightly along root edge if necessary, but should visually emerge from a coherent root area.
 
