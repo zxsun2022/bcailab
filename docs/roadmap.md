@@ -49,7 +49,7 @@ The owner additionally authorized three Mapdown stabilization checkpoints on 202
   the sanitized current root label with a safe fallback. `⌘0`/`Ctrl+0` must restore canvas zoom
   to 100% without changing viewport centre, document content or semantic history.
 
-The owner authorized a fourth Mapdown checkpoint on 2026-08-06:
+The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
 
 - **Canvas affordances — authorized, not started.** Four independent items, each shippable
   alone. (a) Move the zoom control out of the status bar and View menu into a floating
@@ -64,6 +64,30 @@ The owner authorized a fourth Mapdown checkpoint on 2026-08-06:
   four: chrome visuals stay out of document themes and exported SVG/PNG; keyboard and
   screen-reader behaviour is unchanged; verified at desktop, tablet and mobile widths and
   under reduced-motion.
+- **Theme differentiation — authorized, not started.** The four presets read as hue variants
+  of one design because the branch palette reaches only connector strokes: `branchColorFor()`
+  is consumed for stroke colour alone, so node fills always come from a single per-role token
+  and no theme can look structurally different from another. Three ordered steps, each
+  shippable alone.
+  1. **Palette reaches the nodes.** In `by-first-level-branch` mode the branch colour must
+     drive first-level node fill as well as connector stroke, with node text switched to the
+     accessible contrast partner of that fill. Descendants follow the theme's existing
+     `descendantTintPolicy`. Acceptance: every palette colour in every preset yields node text
+     at WCAG AA or better against its own fill; `single` mode renders exactly as it does today;
+     SVG and PNG exports carry the fills as literals.
+  2. **Presets differ in shape language, not only hue.** Give the presets genuinely distinct
+     node geometry — corner radius, border presence and weight, padding density, and root
+     treatment — instead of today's near-identical `node()` defaults. The typography scale
+     belongs to this step. Acceptance: the four presets are distinguishable in a grayscale
+     screenshot.
+  3. **Split the theme into two orthogonal fields — shape language × palette.** Acceptance:
+     Markdown front matter carries both fields; a document written with the current single
+     `themeId` still opens and maps onto the pair; the picker presents the two axes separately.
+- **Sequencing constraint (owner, 2026-08-06): step 3 must land before any Mapdown publish or
+  share-URL feature.** The theme id is persisted in Markdown front matter, so it becomes a
+  public contract the moment a published URL carries it; splitting the field is close to free
+  now and requires format migration plus back-compatibility afterwards. Publish is not yet on
+  this roadmap — when it is added, this constraint applies to it.
 
 The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see
 `docs/changelog.md`).
