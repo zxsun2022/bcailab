@@ -24,7 +24,11 @@ make the final transition; see `AGENTS.md`.
   personalities (Slate, Soft Spectrum, Corporate, Night Glow, Ember, Glacier, Forest, Mono,
   Vivid, Earth); Soft Spectrum, Corporate and Night Glow keep their shipped hexes. Legacy
   `theme: X` documents still open and map onto `(shape: X, palette: X's default)`, and local
-  snapshot recovery normalises the same way. The Style picker presents Shape and Palette as
+  snapshot recovery normalises the same way. Review added the two recovery regression tests
+  that path was missing and found a defect through them: `normalizeThemeSelection()` threw on
+  a stored document with no `theme` key at all, inside the one function whose contract is to
+  survive malformed stored data — every other check in `recoverDocument` degrades to an
+  earlier snapshot rather than throwing. Absent input now falls back like any unknown id. The Style picker presents Shape and Palette as
   two groups (with a mobile-scrollable popover for the 14 options), and shape/palette changes
   are separate undoable commands (`SetShape`/`SetPalette`). Spec: `spec/theme.md`
   §3/§8/§12/§14/§18/§19 and `spec/markdown-format.md` §2/§7.1/§15/§16 rewritten;

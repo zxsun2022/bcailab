@@ -358,13 +358,25 @@ export function initialThemeSelection(prefersDark: boolean): ThemeSelection {
  * Step 3 back-compat: a legacy single `theme: X` key maps onto `(shape: X, palette: X's
  * default)`; explicit `shape` / `palette` keys win per-axis when present. Unknown ids fall
  * back to defaults, matching §7.3.
+ *
+ * "Untrusted" includes *absent*. `recoverDocument` calls this on a document read back from
+ * IndexedDB, and that is the one code path whose whole job is to survive malformed stored
+ * data — every other check there degrades to an earlier snapshot rather than throwing. A
+ * truncated record with no `theme` at all must fall back like any unknown id, not take
+ * recovery down with a TypeError.
  */
-export function normalizeThemeSelection(input: {
-  themeId?: unknown;
-  shapeId?: unknown;
-  paletteId?: unknown;
-  branchColorMode?: unknown;
-}): ThemeSelection {
+export function normalizeThemeSelection(
+  input:
+    | {
+        themeId?: unknown;
+        shapeId?: unknown;
+        paletteId?: unknown;
+        branchColorMode?: unknown;
+      }
+    | null
+    | undefined
+): ThemeSelection {
+  input = input && typeof input === "object" ? input : {};
   const legacy =
     typeof input.themeId === "string" && isKnownShapeId(input.themeId) ? input.themeId : null;
   const requestedShape =
