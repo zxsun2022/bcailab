@@ -29,9 +29,10 @@ import {
   previousSiblingId,
   type Command
 } from "../model/commands";
-import { THEMES, themeById } from "../theme/presets";
+import { THEMES, themeById, themeIdForSystemScheme } from "../theme/presets";
 import { nodeFillAndTextFor } from "../theme/branch-colors";
 import { roleTokens, roleTypography } from "../theme/roles";
+import { shouldShowAuthoringHint } from "./affordances";
 import { useImeGuard } from "./useImeGuard";
 import {
   createAutosave,
@@ -97,11 +98,33 @@ let sessionCounter = 0;
  * padding. The box itself stays pixel-identical to the node box.
  */
 const EDITING_SAFETY_MARGIN = 2;
+/** Canvas affordances (b) — where the hint dismissal is remembered. */
+const HINT_DISMISSED_KEY = "mapdown:authoring-hint-dismissed";
+
+/**
+ * Canvas affordances (c) — the starter document's theme, read once at creation. A stored
+ * document restores its own theme and a user pick overrides it, so the system preference is
+ * strictly an initial value.
+ */
+function systemThemeId(): string {
+  const prefersDark =
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false;
+  return themeIdForSystemScheme(prefersDark);
+}
 
 export function Editor() {
   const [history, setHistory] = useState<EditorHistory>(() =>
-    createHistory(createDocument("New map"))
+    createHistory({
+      ...createDocument("New map"),
+      theme: { themeId: systemThemeId(), branchColorMode: "single" }
+    })
   );
+  const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
+    if (typeof localStorage === "undefined") return false;
+    return localStorage.getItem(HINT_DISMISSED_KEY) === "1";
+  });
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
   const [notice, setNotice] = useState<string | null>(null);
@@ -1255,24 +1278,6 @@ export function Editor() {
               <span>Reset zoom to 100%</span>
               <small>Actual size · Command or Control + 0</small>
             </button>
-            <div className="menu-divider" />
-            <div className="zoom-controls" role="group" aria-label="Zoom">
-              <button
-                type="button"
-                aria-label="Zoom out"
-                onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
-              >
-                −
-              </button>
-              <output>{zoomPercent(viewport)}</output>
-              <button
-                type="button"
-                aria-label="Zoom in"
-                onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
-              >
-                +
-              </button>
-            </div>
           </ToolbarMenu>
 
           <ToolbarMenu label="Style" align="end">
@@ -1402,72 +1407,119 @@ export function Editor() {
         </div>
       )}
 
-      <div
-        ref={surfaceRef}
-        data-help-background
-        aria-hidden={helpMode ? true : undefined}
-        role="tree"
-        aria-label="Mind map editor"
-        aria-activedescendant={selection ? `map-node-${selection}` : undefined}
-        tabIndex={0}
-        onKeyDown={onKeyDown}
-        className="editor-surface"
-        style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
-      >
-        <MapCanvas
-          doc={previewDoc}
-          theme={theme}
-          layout={result}
-          viewport={viewport}
-          onViewport={setViewport}
-          onSize={setCanvasSize}
-          selection={selection}
-          onSelect={selectNode}
-          onEdit={editNodeAtEnd}
-          onSelectNone={selectNone}
-          onToggleCollapse={toggleCollapse}
-          onReparent={reparentNode}
-          onMoveSide={moveBranchSide}
-          onInvalidDrop={announceInvalidDrop}
-        />
+      <div className="canvas-frame">
+        <div
+          ref={surfaceRef}
+          data-help-background
+          aria-hidden={helpMode ? true : undefined}
+          role="tree"
+          aria-label="Mind map editor"
+          aria-activedescendant={selection ? `map-node-${selection}` : undefined}
+          tabIndex={0}
+          onKeyDown={onKeyDown}
+          className="editor-surface"
+          style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
+        >
+          <MapCanvas
+            doc={previewDoc}
+            theme={theme}
+            layout={result}
+            viewport={viewport}
+            onViewport={setViewport}
+            onSize={setCanvasSize}
+            selection={selection}
+            onSelect={selectNode}
+            onEdit={editNodeAtEnd}
+            onSelectNone={selectNone}
+            onToggleCollapse={toggleCollapse}
+            onReparent={reparentNode}
+            onMoveSide={moveBranchSide}
+            onInvalidDrop={announceInvalidDrop}
+          />
 
         {/*
           The overlaid textarea from spike 1. It is a real form control, so the IME takes its
           well-trodden path; the cost is keeping it aligned with the node box, which is why it
           is positioned from the layout result rather than from the DOM.
         */}
-        {editing && editingBox && (
-          <textarea
-            ref={inputRef}
-            className="editing-field"
-            value={editing.draft}
-            onChange={(event) =>
-              setEditing((current) => (current ? { ...current, draft: event.target.value } : current))
-            }
-            onCompositionStart={guard.onCompositionStart}
-            onCompositionEnd={guard.onCompositionEnd}
-            // Blur and Escape now mean the same thing: end the session, keep the text, and
-            // drop the node only if it was new and never got any.
-            onBlur={cancelEdit}
-            style={{
-              position: "absolute",
-              left: `${editorRect.left}%`,
-              top: `${editorRect.top}%`,
-              width: `${editorRect.width}%`,
-              height: `${editorRect.height}%`,
-              fontFamily: theme.typography.fontFamily,
-              fontSize: editingFontSizePx,
-              fontWeight: editingFontWeight,
-              lineHeight: theme.typography.lineHeight,
-              padding: `${editingPaddingY}px ${editingRightPadding}px ${editingPaddingY}px ${editingPaddingX}px`,
-              background: editingNodeColors.background,
-              color: editingNodeColors.text,
-              borderRadius: editingRadius,
-              boxShadow: `0 0 0 ${editingRingWidth}px ${theme.interaction.editingOutline}, 0 4px 16px rgb(22 31 45 / 16%)`
-            }}
-            rows={1}
-          />
+          {editing && editingBox && (
+            <textarea
+              ref={inputRef}
+              className="editing-field"
+              value={editing.draft}
+              onChange={(event) =>
+                setEditing((current) => (current ? { ...current, draft: event.target.value } : current))
+              }
+              onCompositionStart={guard.onCompositionStart}
+              onCompositionEnd={guard.onCompositionEnd}
+              // Blur and Escape now mean the same thing: end the session, keep the text, and
+              // drop the node only if it was new and never got any.
+              onBlur={cancelEdit}
+              style={{
+                position: "absolute",
+                left: `${editorRect.left}%`,
+                top: `${editorRect.top}%`,
+                width: `${editorRect.width}%`,
+                height: `${editorRect.height}%`,
+                fontFamily: theme.typography.fontFamily,
+                fontSize: editingFontSizePx,
+                fontWeight: editingFontWeight,
+                lineHeight: theme.typography.lineHeight,
+                padding: `${editingPaddingY}px ${editingRightPadding}px ${editingPaddingY}px ${editingPaddingX}px`,
+                background: editingNodeColors.background,
+                color: editingNodeColors.text,
+                borderRadius: editingRadius,
+                boxShadow: `0 0 0 ${editingRingWidth}px ${theme.interaction.editingOutline}, 0 4px 16px rgb(22 31 45 / 16%)`
+              }}
+              rows={1}
+            />
+          )}
+        </div>
+
+        {shouldShowAuthoringHint(doc, hintDismissed) && (
+          <p role="note" className="canvas-hint">
+            <span>Enter = sibling · Tab = child</span>
+            <button
+              type="button"
+              aria-label="Dismiss hint"
+              onClick={() => {
+                setHintDismissed(true);
+                try {
+                  localStorage.setItem(HINT_DISMISSED_KEY, "1");
+                } catch {
+                  // Blocked storage must not surface an error for a one-line hint.
+                }
+              }}
+            >
+              ×
+            </button>
+          </p>
         )}
+
+        <div className="zoom-capsule" role="group" aria-label="Zoom">
+          <button
+            type="button"
+            aria-label="Zoom out"
+            onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="zoom-capsule-percent"
+            aria-label="Reset zoom to 100%"
+            onClick={() => setViewport(resetZoom)}
+          >
+            {zoomPercent(viewport)}
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom in"
+            onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <footer
@@ -1479,7 +1531,6 @@ export function Editor() {
           {Object.keys(doc.nodes).length} nodes · Enter = save / next sibling · Tab = child ·
           Shift+Tab = promote · Space = collapse · F2 = rename
         </span>
-        <span className="status-zoom">{zoomPercent(viewport)}</span>
         <span
           role="status"
           aria-live="polite"

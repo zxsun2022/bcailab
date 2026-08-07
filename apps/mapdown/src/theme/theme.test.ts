@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
 import { accessibleTextFor, blendHex, branchColorFor, connectorColorFor, nodeFillAndTextFor } from "./branch-colors";
-import { BUSINESS, DARK, MINIMAL_LIGHT, SOFT_BRANCHES, THEMES, themeById } from "./presets";
+import { BUSINESS, DARK, MINIMAL_LIGHT, SOFT_BRANCHES, THEMES, themeById, themeIdForSystemScheme } from "./presets";
 import { roleTokens } from "./roles";
 import { contrastRatio, type MindMapTheme } from "./types";
 
@@ -85,6 +85,11 @@ describe("§13 — the four required presets exist", () => {
       [t.canvas.background, t.nodes.default.radius, t.nodes.default.background, t.nodes.root.background].join("|");
     expect(new Set(THEMES.map(signature)).size).toBe(THEMES.length);
     expect(new Set(THEMES.map((t) => t.nodes.default.radius)).size).toBeGreaterThan(1);
+  });
+
+  it("maps the system colour scheme onto the initial theme (Canvas affordances c)", () => {
+    expect(themeIdForSystemScheme(false)).toBe(MINIMAL_LIGHT.id);
+    expect(themeIdForSystemScheme(true)).toBe(DARK.id);
   });
 
   it("differs in shape language, not only hue — the D-22 grayscale signature", () => {

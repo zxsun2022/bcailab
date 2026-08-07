@@ -36,6 +36,9 @@ interface NodeProps {
   /** Theme differentiation step 1 — the rendered fill/text, branch-aware in by-first-level mode. */
   fill: string;
   text: string;
+  /** Canvas affordances (d) — hovered, so the node can draw a treatment distinct from selection. */
+  hovered: boolean;
+  onHover: (id: NodeId | null) => void;
   selected: boolean;
   /** §7.2/§7.3 — dimmed while it is the node being dragged, so the drop indicator reads clearly. */
   dragging: boolean;
@@ -74,6 +77,8 @@ const Node = memo(function Node({
   theme,
   fill,
   text,
+  hovered,
+  onHover,
   selected,
   dragging,
   positionInSet,
@@ -123,6 +128,8 @@ const Node = memo(function Node({
         event.preventDefault();
         onEdit(box.nodeId);
       }}
+      onPointerEnter={() => onHover(box.nodeId)}
+      onPointerLeave={() => onHover(null)}
       style={{ cursor: "default", opacity: dragging ? 0.4 : 1 }}
     >
       <rect
@@ -135,6 +142,25 @@ const Node = memo(function Node({
         stroke={tokens.border}
         strokeWidth={tokens.borderWidth}
       />
+      {/*
+        Canvas affordances (d) — an *inset* ring, so hover never reads as selection (selection
+        is the outer ring with a gap) and cannot be confused with editing (the textarea ring).
+        Purely decorative: no hit target, no aria, and it does not alter the box dimensions.
+      */}
+      {hovered && !selected && !dragging && (
+        <rect
+          x={box.x + 2}
+          y={box.y + 2}
+          width={box.width - 4}
+          height={box.height - 4}
+          rx={Math.max(0, tokens.radius - 2)}
+          fill="none"
+          stroke={theme.interaction.hoverOutline}
+          strokeWidth={1}
+          pointerEvents="none"
+          aria-hidden="true"
+        />
+      )}
       {selected && (
         <rect
           x={box.x - 3}
@@ -182,6 +208,8 @@ const Node = memo(function Node({
     prev.theme === next.theme &&
     prev.fill === next.fill &&
     prev.text === next.text &&
+    prev.hovered === next.hovered &&
+    prev.onHover === next.onHover &&
     prev.selected === next.selected &&
     prev.dragging === next.dragging &&
     prev.positionInSet === next.positionInSet &&
@@ -587,6 +615,7 @@ export const MapCanvas = memo(function MapCanvas({
   } | null>(null);
   const dropPreviewRef = useRef<DropPreview | null>(null);
   const autopanFrame = useRef<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<NodeId | null>(null);
   const [draggingId, setDraggingId] = useState<NodeId | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
@@ -915,6 +944,8 @@ export const MapCanvas = memo(function MapCanvas({
             theme={theme}
             fill={fill}
             text={text}
+            hovered={id === hoveredId}
+            onHover={setHoveredId}
             selected={id === selection}
             dragging={id === draggingId}
             positionInSet={siblings.indexOf(id) + 1}

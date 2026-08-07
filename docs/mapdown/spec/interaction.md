@@ -42,6 +42,11 @@ Pressed
 
 Hover is independent of selection.
 
+Node hover MUST have a treatment distinct from selection and editing: an inset ring in the
+theme's `hoverOutline` that reads differently from the outer selection ring and from the
+editing textarea ring, does not alter the node box dimensions, and is suppressed while the
+node is selected or being dragged (Canvas affordances, D-23).
+
 ### 2.4 Visibility state
 
 ```text
@@ -599,6 +604,13 @@ Recommended behavior:
 ### 12.4 Fit and center animation
 
 Fit/center MAY animate briefly, but MUST respect reduced-motion preferences.
+
+### 12.5 Zoom controls
+
+Zoom is exposed through a floating capsule at the bottom-left of the canvas: Zoom out
+(−), the current percentage, and Zoom in (+). Clicking the percentage restores 100% without
+moving the viewport centre. The View menu keeps its Fit map, Centre selection and Reset zoom
+to 100% entries, and `Primary+0` continues to reset zoom from the keyboard.
 
 ## 13. Focus management
 

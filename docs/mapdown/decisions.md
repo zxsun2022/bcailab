@@ -652,6 +652,43 @@ it stays gated on the publish sequencing constraint.
 
 ---
 
+## D-23 — Canvas affordances: zoom capsule, authoring hint, system initial theme, node hover
+
+**Decided 2026-08-06** by the owner (roadmap checkpoint, four independent items, one commit).
+
+**Decision.**
+
+1. **Floating zoom capsule.** Zoom out (−) / current percentage / zoom in (+) live in a
+   floating capsule at the canvas's bottom-left. Clicking the percentage restores 100% without
+   moving the viewport centre. The status-bar percentage and the View menu's inline zoom
+   controls are removed; the View menu keeps Fit map, Centre selection and Reset zoom to 100%,
+   and `Primary+0` is unchanged.
+2. **Authoring hint.** An empty, undismissed map shows a one-line hint naming the two
+   authoring keys (Enter = sibling, Tab = child), dismissible and remembered in localStorage.
+   It disappears the moment the map has any content beyond the root, and it can never reach an
+   export because it is chrome, not SVG content.
+3. **System initial theme.** A fresh document's starter theme follows the system colour
+   scheme (light → Minimal Light, dark → Dark), read once at creation. A stored document
+   restores its own theme and a user pick overrides it, so the preference is strictly an
+   initial value and never overrides anything the user or a document has decided.
+4. **Node hover treatment.** Nodes draw an inset ring in `hoverOutline` — distinct from the
+   outer selection ring and from the editing textarea ring — suppressed while the node is
+   selected or dragged, with no hit target, and never altering box geometry.
+
+**Why.** The zoom percentage belongs in a corner capsule next to the map it describes, which
+is the design-tool convention, and it frees the status bar for save state. The empty-map hint
+lowers the barrier for first-time keyboard authoring without touching returning users. A
+local-first tool is expected to match the OS colour scheme out of the box, and "initial value
+only" keeps that from ever fighting a stored or user-chosen theme. Hover distinctness is what
+`interaction.md` §2.3 already demands — "Hover is independent of selection" — and the three
+states must read differently, which the inset-vs-outer-vs-textarea ring geometry guarantees.
+
+**Boundary.** All four are Layer A chrome or interaction tokens, so nothing enters document
+themes or exports. Keyboard and screen-reader behaviour is unchanged: `Primary+0`, canvas
+`+`/`-`/`0`, the tree's ARIA structure, and the collapse control all stay as they were.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

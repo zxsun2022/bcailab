@@ -204,6 +204,15 @@ export const THEMES: MindMapTheme[] = [MINIMAL_LIGHT, SOFT_BRANCHES, BUSINESS, D
 
 export const DEFAULT_THEME_ID = MINIMAL_LIGHT.id;
 
+/**
+ * Canvas affordances (c) — the initial theme for a *fresh* document follows the system colour
+ * scheme. Initial value only: a stored document keeps its own theme and a user pick wins, so
+ * this is read once, at document creation.
+ */
+export function themeIdForSystemScheme(prefersDark: boolean): string {
+  return prefersDark ? DARK.id : MINIMAL_LIGHT.id;
+}
+
 /** §7.3 — an unknown theme id falls back to the default rather than failing the document. */
 export function themeById(id: string): MindMapTheme {
   return THEMES.find((theme) => theme.id === id) ?? MINIMAL_LIGHT;

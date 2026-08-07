@@ -23,10 +23,11 @@ The application MUST contain:
 2. **Canvas viewport**
    - rendered mind map;
    - pan and zoom surface;
+   - floating bottom-left zoom capsule (− / percentage / +) where clicking the percentage
+     restores 100%;
    - selection and editing overlays.
 3. **Status area**
    - local-save status;
-   - current zoom percentage or accessible equivalent;
    - optional transient operation feedback.
 4. **Modal or popover surfaces**
    - Help and Command Center;

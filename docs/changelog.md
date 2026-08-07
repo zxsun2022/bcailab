@@ -9,6 +9,29 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-06 — **in_review: Mapdown Canvas affordances.** Four independent items. (a) Zoom
+  now lives in a floating bottom-left capsule (− / percentage / +); clicking the percentage
+  restores 100% without moving the viewport centre. The status-bar percentage and the View
+  menu's inline zoom controls are gone; the View menu keeps Fit map, Centre selection and
+  Reset zoom to 100%, and `Primary+0` still works. (b) An empty, undismissed map shows a
+  dismissible one-line hint ("Enter = sibling · Tab = child") that disappears the moment the
+  map gains any content beyond the root and can never appear in an export; dismissal is
+  remembered in localStorage. (c) A fresh document's starter theme follows the system colour
+  scheme (light → Minimal Light, dark → Dark), strictly as an initial value — a stored
+  document or a user pick always wins. (d) Nodes draw an inset hover ring in `hoverOutline`,
+  distinct from the outer selection ring and the editing textarea ring, suppressed while
+  selected or dragged, with no hit target and no geometry change. All four are chrome or
+  interaction tokens, so exports and document themes are untouched; the canvas frame was
+  wrapped so the capsule and hint sit outside the ARIA tree role. Spec:
+  `spec/product-specification.md` §2.1 and `spec/interaction.md` §2.3/§12.5 updated;
+  `decisions.md` records D-23. Evidence: 476/476 repository tests (4 new:
+  `themeIdForSystemScheme` mapping, hint show/disappear/dismiss rules), clean Mapdown
+  typecheck/build, and browser QA at 375/768/1280 px widths plus dark-system and
+  reduced-motion emulation: capsule percent click resets to 100%, hint dismisses and stays
+  dismissed, hover ring appears on pointer enter and never with selection, ⌘0 still resets,
+  and the fresh starter renders the system-appropriate theme. Only the owner may mark this
+  checkpoint accepted/shipped.
+
 - 2026-08-06 — **in_review: Mapdown Theme differentiation steps 1–2.** Step 1 — the branch
   palette reaches the nodes: in `by-first-level-branch` mode the first-level node fill is the
   branch colour (previously it tinted connector strokes only), and node text is switched to
