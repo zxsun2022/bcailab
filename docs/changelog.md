@@ -17,8 +17,9 @@ make the final transition; see `AGENTS.md`.
   tiers — depth ≥ 2 clamps to 13px, never decreasing further — and 13px is the CJK legibility
   floor. `layoutOptionsForTheme()` now derives measurement from the same `roles.ts`
   `roleTokens`/`roleTypography` helpers as the canvas renderer, editing overlay and exporter,
-  closing the duplicate-derivation class of bug c55276c. Spec: `spec/theme.md` §6 states the
-  three-tier / no-per-depth-step / 13px-floor contract; `decisions.md` records D-21.
+  and the SVG exporter's local copies of those helpers were removed in the same pass —
+  closing the duplicate-derivation class of bug c55276c repo-wide. Spec: `spec/theme.md` §6
+  states the three-tier / no-per-depth-step / 13px-floor contract; `decisions.md` records D-21.
   Evidence: 462/462 repository tests (2 new: measurement-vs-renderer role parity across all
   four themes and depths, and the three-tier hierarchy with floor plus root padding), clean
   Mapdown typecheck/build, expected box metrics recomputed from the tokens

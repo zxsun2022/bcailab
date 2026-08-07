@@ -7,7 +7,8 @@ import {
 import { escapeXml } from "./xml";
 import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
 import { themeById } from "../theme/presets";
-import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
+import { roleTokens, roleTypography } from "../theme/roles";
+import type { MindMapTheme } from "../theme/types";
 import { getNode, type MindMapDocument } from "../model/types";
 
 /**
@@ -39,19 +40,6 @@ export interface SvgExport {
   svg: string;
   width: number;
   height: number;
-}
-
-function roleTokens(theme: MindMapTheme, depth: number): NodeStyleTokens {
-  if (depth === 0) return theme.nodes.root;
-  if (depth === 1) return theme.nodes.level1;
-  return theme.nodes.default;
-}
-
-function roleTypography(theme: MindMapTheme, depth: number) {
-  const t = theme.typography;
-  if (depth === 0) return { size: t.rootFontSize, weight: t.rootFontWeight };
-  if (depth === 1) return { size: t.level1FontSize, weight: t.level1FontWeight };
-  return { size: t.nodeFontSize, weight: t.nodeFontWeight };
 }
 
 const round = (value: number) => Number(value.toFixed(2));
