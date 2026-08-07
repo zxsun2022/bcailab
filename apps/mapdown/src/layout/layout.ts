@@ -1,5 +1,6 @@
 import { measureNode, type Typography } from "./measure";
 import { getNode, type BranchSide, type MindMapDocument, type NodeId } from "../model/types";
+import { roleTokens, roleTypography } from "../theme/roles";
 import type { MindMapTheme } from "../theme/types";
 
 /**
@@ -82,25 +83,21 @@ export interface LayoutOptions {
   spacing?: LayoutSpacing;
 }
 
-/** Keep measurement and rendered theme roles on the same font, padding and spacing contract. */
+/**
+ * Keep measurement and rendered theme roles on the same font, padding and spacing contract.
+ *
+ * The per-depth role resolution deliberately comes from `roles.ts` — the same helper the
+ * canvas renderer, the editing overlay and the exporter use — so measurement can never drift
+ * from rendering again (the old inline ternaries caused the weight-mismatch bug c55276c).
+ */
 export function layoutOptionsForTheme(theme: MindMapTheme): LayoutOptions {
   return {
     typography: (depth) => {
-      const role =
-        depth === 0 ? theme.nodes.root : depth === 1 ? theme.nodes.level1 : theme.nodes.default;
+      const role = roleTokens(theme, depth);
+      const { size, weight } = roleTypography(theme, depth);
       return {
-        fontSize:
-          depth === 0
-            ? theme.typography.rootFontSize
-            : depth === 1
-              ? theme.typography.level1FontSize
-              : theme.typography.nodeFontSize,
-        fontWeight:
-          depth === 0
-            ? theme.typography.rootFontWeight
-            : depth === 1
-              ? theme.typography.nodeFontWeight
-              : theme.typography.nodeFontWeight,
+        fontSize: size,
+        fontWeight: weight,
         lineHeight: theme.typography.lineHeight,
         maxWidth: role.maxWidth,
         paddingX: role.paddingX,
@@ -252,9 +249,10 @@ function measureTree(
 }
 
 /**
- * §10.3 — a horizontal-tangent cubic between two boxes, so the curve leaves the parent's
+ * §10.1 — a horizontal-tangent cubic between two boxes, so the curve leaves the parent's
  * outward edge and arrives at the child's inward edge flat. Works unchanged on both sides
- * because "outward" and "inward" already encode the direction.
+ * because "outward" and "inward" already encode the direction — except for the root in
+ * two-sided mode, which faces both sides at once (§10.2).
  */
 function connect(
   boxes: Record<NodeId, NodeBox>,
@@ -264,7 +262,13 @@ function connect(
 ): void {
   const from = boxes[fromId]!;
   const to = boxes[toId]!;
-  const x1 = from.outwardEdgeX;
+  // Only the root straddles both sides in two-sided mode; its stored outwardEdgeX is a single
+  // value (the right edge), so it cannot face a left first-level branch. Every other node has
+  // exactly one outward side, so its stored edge remains the source of truth. Pick the root
+  // edge facing this child by comparing the child's inward edge with the root centre — the
+  // horizontal gap guarantees the comparison is strict on either side.
+  const fromCentreX = from.x + from.width / 2;
+  const x1 = from.depth === 0 && to.inwardEdgeX < fromCentreX ? from.x : from.outwardEdgeX;
   const y1 = from.y + from.height / 2;
   const x2 = to.inwardEdgeX;
   const y2 = to.y + to.height / 2;

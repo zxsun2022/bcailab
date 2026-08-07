@@ -13,11 +13,11 @@ import type { MindMapTheme, NodeStyleTokens } from "./types";
 
 const TYPOGRAPHY = {
   fontFamily: FONT_STACK,
-  rootFontSize: 16,
+  rootFontSize: 18,
   rootFontWeight: 600,
-  level1FontSize: 14,
+  level1FontSize: 15,
   level1FontWeight: 500,
-  nodeFontSize: 14,
+  nodeFontSize: 13,
   nodeFontWeight: 400,
   lineHeight: 1.45
 };
@@ -41,9 +41,11 @@ export const MINIMAL_LIGHT: MindMapTheme = {
   canvas: { background: "#ffffff", exportBackground: "#ffffff" },
   typography: TYPOGRAPHY,
   nodes: {
-    root: node({ background: "#1c1e21", text: "#ffffff", border: "#1c1e21", radius: 8 }),
-    level1: node({ background: "#f6f7f8", text: "#1c1e21", border: "#c8ccd1" }),
-    default: node({ background: "#ffffff", text: "#1c1e21", border: "#d8dce1" }),
+    root: node({ background: "#1c1e21", text: "#ffffff", border: "#1c1e21", radius: 8, paddingY: 10 }),
+    // §13 — hairline-outlined rounded cards: the reference shape, every other preset varies
+    // one axis from it (radius, border weight, padding density).
+    level1: node({ background: "#f6f7f8", text: "#1c1e21", border: "#c8ccd1", radius: 6 }),
+    default: node({ background: "#ffffff", text: "#1c1e21", border: "#d8dce1", radius: 6 }),
     emptyPlaceholderText: "Untitled"
   },
   connectors: { width: 1.5, rootWidth: 2, opacity: 1, defaultColor: "#aab0b8" },
@@ -81,9 +83,10 @@ export const SOFT_BRANCHES: MindMapTheme = {
   canvas: { background: "#fdfdfc", exportBackground: "#fdfdfc" },
   typography: TYPOGRAPHY,
   nodes: {
-    root: node({ background: "#3c3a36", text: "#ffffff", border: "#3c3a36", radius: 10 }),
-    level1: node({ background: "#ffffff", text: "#2b2a27", border: "#ded9d0", radius: 10 }),
-    default: node({ background: "#ffffff", text: "#2b2a27", border: "#e6e2da", radius: 10 }),
+    // §13 — large-radius soft cards with roomier padding: the "rounded filled cards" language.
+    root: node({ background: "#3c3a36", text: "#ffffff", border: "#3c3a36", radius: 14, paddingX: 14, paddingY: 12 }),
+    level1: node({ background: "#ffffff", text: "#2b2a27", border: "#ded9d0", radius: 12, paddingX: 14, paddingY: 10 }),
+    default: node({ background: "#ffffff", text: "#2b2a27", border: "#e6e2da", radius: 10, paddingX: 14, paddingY: 10 }),
     emptyPlaceholderText: "Untitled"
   },
   connectors: { width: 1.7, rootWidth: 2.1, opacity: 1, defaultColor: "#b8b0a4" },
@@ -121,17 +124,19 @@ export const BUSINESS: MindMapTheme = {
   canvas: { background: "#ffffff", exportBackground: "#ffffff" },
   typography: TYPOGRAPHY,
   nodes: {
-    // §12.3 — squarer cards, restrained blue-grey, and it must print well on white.
-    root: node({ background: "#1f3a5f", text: "#ffffff", border: "#1f3a5f", radius: 3 }),
-    level1: node({ background: "#eef2f7", text: "#12263f", border: "#a9bdd4", radius: 3 }),
-    default: node({ background: "#ffffff", text: "#12263f", border: "#c3d0e0", radius: 3 }),
+    // §12.3/§13 — squared heavy-border cards with dense padding, restrained blue-grey, and it
+    // must print well on white. The palette swap #5a7f9e → #4a6f95 keeps that language while
+    // giving every fill a WCAG AA text partner (D-22).
+    root: node({ background: "#1f3a5f", text: "#ffffff", border: "#1f3a5f", radius: 2, borderWidth: 2, paddingX: 10, paddingY: 10 }),
+    level1: node({ background: "#eef2f7", text: "#12263f", border: "#a9bdd4", radius: 2, borderWidth: 2, paddingX: 10, paddingY: 7 }),
+    default: node({ background: "#ffffff", text: "#12263f", border: "#c3d0e0", radius: 2, borderWidth: 1.5, paddingX: 10, paddingY: 7 }),
     emptyPlaceholderText: "Untitled"
   },
   connectors: { width: 1.4, rootWidth: 1.8, opacity: 1, defaultColor: "#93abc4" },
   branches: {
     // Deliberately excludes the root fill (#1f3a5f) and the level-1 border: a branch colour
     // that is also a node colour makes a connector look like part of a box.
-    colors: ["#2f5580", "#3d6188", "#5a7f9e", "#4a6b52", "#6b5a4a", "#5f4a6b"],
+    colors: ["#2f5580", "#3d6188", "#4a6f95", "#4a6b52", "#6b5a4a", "#5f4a6b"],
     descendantTintPolicy: "same"
   },
   controls: {
@@ -163,9 +168,10 @@ export const DARK: MindMapTheme = {
   canvas: { background: "#16181c", exportBackground: "#16181c" },
   typography: TYPOGRAPHY,
   nodes: {
-    root: node({ background: "#e8eaed", text: "#16181c", border: "#e8eaed", radius: 8 }),
-    level1: node({ background: "#24272c", text: "#e8eaed", border: "#3a3f46" }),
-    default: node({ background: "#1f2226", text: "#e8eaed", border: "#33383f" }),
+    // §13 — medium-radius subtle-border cards on a dark canvas, with the strongest root.
+    root: node({ background: "#e8eaed", text: "#16181c", border: "#e8eaed", radius: 10, borderWidth: 1.5, paddingY: 10 }),
+    level1: node({ background: "#24272c", text: "#e8eaed", border: "#3a3f46", radius: 8 }),
+    default: node({ background: "#1f2226", text: "#e8eaed", border: "#33383f", radius: 6 }),
     emptyPlaceholderText: "Untitled"
   },
   connectors: { width: 1.5, rootWidth: 2, opacity: 1, defaultColor: "#5c636d" },
@@ -197,6 +203,15 @@ export const DARK: MindMapTheme = {
 export const THEMES: MindMapTheme[] = [MINIMAL_LIGHT, SOFT_BRANCHES, BUSINESS, DARK];
 
 export const DEFAULT_THEME_ID = MINIMAL_LIGHT.id;
+
+/**
+ * Canvas affordances (c) — the initial theme for a *fresh* document follows the system colour
+ * scheme. Initial value only: a stored document keeps its own theme and a user pick wins, so
+ * this is read once, at document creation.
+ */
+export function themeIdForSystemScheme(prefersDark: boolean): string {
+  return prefersDark ? DARK.id : MINIMAL_LIGHT.id;
+}
 
 /** §7.3 — an unknown theme id falls back to the default rather than failing the document. */
 export function themeById(id: string): MindMapTheme {

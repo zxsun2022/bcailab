@@ -10,8 +10,9 @@ import {
 } from "../model/types";
 import { resolveDropTarget, type DropZone } from "../model/commands";
 import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
-import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
-import type { MindMapTheme, NodeStyleTokens } from "../theme/types";
+import { branchColorFor, connectorColorFor, nodeFillAndTextFor } from "../theme/branch-colors";
+import { roleTokens, roleTypography } from "../theme/roles";
+import type { MindMapTheme } from "../theme/types";
 import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
 
 /**
@@ -29,23 +30,15 @@ import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
  * here would render fine and export unstyled — see D-05.
  */
 
-/** §6 — root, first level, and everything deeper. Not a style per depth. */
-function roleTokens(theme: MindMapTheme, depth: number): NodeStyleTokens {
-  if (depth === 0) return theme.nodes.root;
-  if (depth === 1) return theme.nodes.level1;
-  return theme.nodes.default;
-}
-
-function roleTypography(theme: MindMapTheme, depth: number) {
-  const t = theme.typography;
-  if (depth === 0) return { size: t.rootFontSize, weight: t.rootFontWeight };
-  if (depth === 1) return { size: t.level1FontSize, weight: t.level1FontWeight };
-  return { size: t.nodeFontSize, weight: t.nodeFontWeight };
-}
-
 interface NodeProps {
   box: NodeBox;
   theme: MindMapTheme;
+  /** Theme differentiation step 1 — the rendered fill/text, branch-aware in by-first-level mode. */
+  fill: string;
+  text: string;
+  /** Canvas affordances (d) — hovered, so the node can draw a treatment distinct from selection. */
+  hovered: boolean;
+  onHover: (id: NodeId | null) => void;
   selected: boolean;
   /** §7.2/§7.3 — dimmed while it is the node being dragged, so the drop indicator reads clearly. */
   dragging: boolean;
@@ -82,6 +75,10 @@ function sameBox(a: NodeBox, b: NodeBox): boolean {
 const Node = memo(function Node({
   box,
   theme,
+  fill,
+  text,
+  hovered,
+  onHover,
   selected,
   dragging,
   positionInSet,
@@ -131,6 +128,8 @@ const Node = memo(function Node({
         event.preventDefault();
         onEdit(box.nodeId);
       }}
+      onPointerEnter={() => onHover(box.nodeId)}
+      onPointerLeave={() => onHover(null)}
       style={{ cursor: "default", opacity: dragging ? 0.4 : 1 }}
     >
       <rect
@@ -139,10 +138,29 @@ const Node = memo(function Node({
         width={box.width}
         height={box.height}
         rx={tokens.radius}
-        fill={tokens.background}
+        fill={fill}
         stroke={tokens.border}
         strokeWidth={tokens.borderWidth}
       />
+      {/*
+        Canvas affordances (d) — an *inset* ring, so hover never reads as selection (selection
+        is the outer ring with a gap) and cannot be confused with editing (the textarea ring).
+        Purely decorative: no hit target, no aria, and it does not alter the box dimensions.
+      */}
+      {hovered && !selected && !dragging && (
+        <rect
+          x={box.x + 2}
+          y={box.y + 2}
+          width={box.width - 4}
+          height={box.height - 4}
+          rx={Math.max(0, tokens.radius - 2)}
+          fill="none"
+          stroke={theme.interaction.hoverOutline}
+          strokeWidth={1}
+          pointerEvents="none"
+          aria-hidden="true"
+        />
+      )}
       {selected && (
         <rect
           x={box.x - 3}
@@ -162,7 +180,7 @@ const Node = memo(function Node({
         fontFamily={theme.typography.fontFamily}
         fontSize={size}
         fontWeight={weight}
-        fill={tokens.text}
+        fill={text}
         dominantBaseline="central"
       >
         {box.lines.map((line, index) => (
@@ -188,6 +206,10 @@ const Node = memo(function Node({
   return (
     sameBox(prev.box, next.box) &&
     prev.theme === next.theme &&
+    prev.fill === next.fill &&
+    prev.text === next.text &&
+    prev.hovered === next.hovered &&
+    prev.onHover === next.onHover &&
     prev.selected === next.selected &&
     prev.dragging === next.dragging &&
     prev.positionInSet === next.positionInSet &&
@@ -593,6 +615,7 @@ export const MapCanvas = memo(function MapCanvas({
   } | null>(null);
   const dropPreviewRef = useRef<DropPreview | null>(null);
   const autopanFrame = useRef<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<NodeId | null>(null);
   const [draggingId, setDraggingId] = useState<NodeId | null>(null);
   const [dropPreview, setDropPreview] = useState<DropPreview | null>(null);
   const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
@@ -911,6 +934,7 @@ export const MapCanvas = memo(function MapCanvas({
       ))}
       {semanticOrder.map((id) => {
         const node = getNode(doc, id);
+        const { background: fill, text } = nodeFillAndTextFor(doc, theme, id, layout.boxes[id]!.depth);
         const siblings =
           node.parentId === null ? [id] : getNode(doc, node.parentId).childIds;
         return (
@@ -918,6 +942,10 @@ export const MapCanvas = memo(function MapCanvas({
             key={id}
             box={layout.boxes[id]!}
             theme={theme}
+            fill={fill}
+            text={text}
+            hovered={id === hoveredId}
+            onHover={setHoveredId}
             selected={id === selection}
             dragging={id === draggingId}
             positionInSet={siblings.indexOf(id) + 1}

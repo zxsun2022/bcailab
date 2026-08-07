@@ -585,6 +585,110 @@ unsupported schema version and sanitizes a dangling stored selection to the root
 
 ---
 
+## D-21 — Type hierarchy is three fixed tiers with a 13px floor
+
+**Decided 2026-08-06** by the owner as step 2 of the Theme differentiation checkpoint
+(the type scale lands first, on its own).
+
+**Decision.** Node hierarchy is expressed through exactly three typography tiers, shared by
+all four presets through the single `TYPOGRAPHY` constant in `presets.ts`:
+
+| Tier | Size | Weight |
+|---|---|---|
+| root | 18px | 600 |
+| first level | 15px | 500 |
+| every deeper node (depth ≥ 2) | 13px | 400 |
+
+`lineHeight` stays 1.45 across all tiers. The four presets' root `paddingY` rises from 8 to
+10 so an 18px label is not cramped; `paddingX` is unchanged. Measurement now derives these
+metrics from the same `roles.ts` helpers (`roleTokens` / `roleTypography`) as the canvas
+renderer, the editing overlay and the exporter, so a type change can never desynchronize the
+measured box from the rendered and edited text again — the class of bug c55276c.
+
+**Why.** Hierarchy should be readable at a glance rather than inferred from indentation, so
+the tiers differ in size, not only weight. Depth is unbounded, so a per-depth step would
+shrink deep outlines into unreadability; the three-tier shape of `roles.ts` is the ceiling,
+not a starting point. 13px is the readability floor for CJK text at common zoom levels, and
+nothing may drop below it for hierarchy's sake.
+
+**Boundary.** Shape-language differentiation between presets remains the Theme
+differentiation checkpoint's later work; this decision only fixes the shared type scale.
+
+---
+
+## D-22 — Theme differentiation steps 1 and 2: branch colour reaches the nodes, presets differ in shape
+
+**Decided 2026-08-06** by the owner.
+
+**Decision.** Two changes to the document themes:
+
+1. **The palette reaches the nodes.** In `by-first-level-branch` mode the branch colour drives
+   the first-level node fill (not just the connector stroke), and the node text is the
+   accessible partner of that fill — white or the near-black `#16181c`, whichever clears WCAG
+   AA. Descendants follow `descendantTintPolicy`: `same` themes keep the full branch fill;
+   `same-with-opacity` (Soft Branch Colors) blends the branch colour over the canvas at the
+   same 0.65 the connectors use, so the fill stays opaque and exports carry literals. `single`
+   mode and the root are untouched.
+2. **The presets differ in shape language.** Radius, border weight, padding density and root
+   treatment now vary per preset instead of the near-identical `node()` defaults: Minimal
+   Light is the hairline-outlined rounded reference; Soft Branch Colors is large-radius,
+   soft-bordered and roomier; Business is squared, heavier-bordered and denser; Dark is
+   medium-radius and subtle-bordered on a dark canvas. The four presets must remain
+   distinguishable in grayscale, asserted as a per-role shape signature in `theme.test.ts`.
+
+**Why.** Before this change the four presets were hue variants of one design: `branchColorFor`
+only fed connector strokes, so no theme could look structurally different. Step 1 is what
+makes the branch palette a first-class visual signal; step 2 is what separates the themes
+without hue. Text is switched to a per-fill contrast partner because saturated branch colours
+sit behind labels by design now — the guarantee is asserted for every palette colour in every
+preset instead of being left to theme authors.
+
+**Palette correction.** Business's `#5a7f9e` could not clear AA with either white or near-black
+(4.23 / 4.20), so it was replaced by `#4a6f95` (white text, 5.25). This keeps the restrained
+blue-grey Business language; the old hex was not a public contract yet.
+
+**Boundary.** The field split (shape language × palette, step 3) is deliberately not done here;
+it stays gated on the publish sequencing constraint.
+
+---
+
+## D-23 — Canvas affordances: zoom capsule, authoring hint, system initial theme, node hover
+
+**Decided 2026-08-06** by the owner (roadmap checkpoint, four independent items, one commit).
+
+**Decision.**
+
+1. **Floating zoom capsule.** Zoom out (−) / current percentage / zoom in (+) live in a
+   floating capsule at the canvas's bottom-left. Clicking the percentage restores 100% without
+   moving the viewport centre. The status-bar percentage and the View menu's inline zoom
+   controls are removed; the View menu keeps Fit map, Centre selection and Reset zoom to 100%,
+   and `Primary+0` is unchanged.
+2. **Authoring hint.** An empty, undismissed map shows a one-line hint naming the two
+   authoring keys (Enter = sibling, Tab = child), dismissible and remembered in localStorage.
+   It disappears the moment the map has any content beyond the root, and it can never reach an
+   export because it is chrome, not SVG content.
+3. **System initial theme.** A fresh document's starter theme follows the system colour
+   scheme (light → Minimal Light, dark → Dark), read once at creation. A stored document
+   restores its own theme and a user pick overrides it, so the preference is strictly an
+   initial value and never overrides anything the user or a document has decided.
+4. **Node hover treatment.** Nodes draw an inset ring in `hoverOutline` — distinct from the
+   outer selection ring and from the editing textarea ring — suppressed while the node is
+   selected or dragged, with no hit target, and never altering box geometry.
+
+**Why.** The zoom percentage belongs in a corner capsule next to the map it describes, which
+is the design-tool convention, and it frees the status bar for save state. The empty-map hint
+lowers the barrier for first-time keyboard authoring without touching returning users. A
+local-first tool is expected to match the OS colour scheme out of the box, and "initial value
+only" keeps that from ever fighting a stored or user-chosen theme. Hover distinctness is what
+`interaction.md` §2.3 already demands — "Hover is independent of selection" — and the three
+states must read differently, which the inset-vs-outer-vs-textarea ring geometry guarantees.
+
+**Boundary.** All four are Layer A chrome or interaction tokens, so nothing enters document
+themes or exports. Keyboard and screen-reader behaviour is unchanged: `Primary+0`, canvas
+`+`/`-`/`0`, the tree's ARIA structure, and the collapse control all stay as they were.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

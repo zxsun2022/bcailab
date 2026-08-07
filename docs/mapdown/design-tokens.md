@@ -129,6 +129,10 @@ imply something about the application frame, which is meaningless.
   Layer B literals, but changing the document theme must not let those values style the chrome.
 - Selection is drawn as a separate outer ring with a transparent gap. It does not replace the
   node’s own border, alter box dimensions or enter image export.
+- The editing textarea is a Layer B overlay: its fill, text, corner radius and typography come
+  from the covered node's role tokens (`spec/theme.md` §9), so dark chrome can never bleed into
+  a light map. Only its highlight ring is the theme's `editingOutline`, drawn outside the box
+  so it never consumes content width or changes the node's dimensions.
 - Layout measurement consumes the active theme’s root, level-1 and default font/padding metrics.
   Fallback SVG/PNG layout uses the same mapping, so a rendered type hierarchy cannot overflow a
   box measured with the old default typography.

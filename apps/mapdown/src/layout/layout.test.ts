@@ -3,7 +3,8 @@ import kepanSource from "../fixtures/kepan.md?raw";
 import { importMarkdown } from "../markdown/parse";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
-import { MINIMAL_LIGHT } from "../theme/presets";
+import { MINIMAL_LIGHT, THEMES } from "../theme/presets";
+import { roleTokens, roleTypography } from "../theme/roles";
 import {
   DEFAULT_SPACING,
   DEFAULT_TYPOGRAPHY,
@@ -353,5 +354,54 @@ describe("§4.4 — measurement caching", () => {
       MINIMAL_LIGHT.typography.rootFontSize * MINIMAL_LIGHT.typography.lineHeight +
         MINIMAL_LIGHT.nodes.root.paddingY * 2
     );
+  });
+
+  it("measures first-level nodes with the rendered level1 font weight, not the default", () => {
+    const options = layoutOptionsForTheme(MINIMAL_LIGHT);
+    const level1 = typeof options.typography === "function" ? options.typography(1) : options.typography;
+
+    expect(level1?.fontWeight).toBe(MINIMAL_LIGHT.typography.level1FontWeight);
+    expect(level1?.fontWeight).not.toBe(MINIMAL_LIGHT.typography.nodeFontWeight);
+  });
+
+  /**
+   * The c55276c regression, guarded structurally: the weight mismatch happened because the
+   * measurement path re-derived role tokens with its own ternaries. Both the renderer and
+   * the editing overlay read `roles.ts`; if measurement drifts again, this fails for every
+   * theme and depth instead of only the one fixture that happened to be measured.
+   */
+  it("measures with the same role typography and tokens the renderer and editor use", () => {
+    for (const theme of THEMES) {
+      const options = layoutOptionsForTheme(theme);
+      for (const depth of [0, 1, 2, 5]) {
+        const measured = typeof options.typography === "function" ? options.typography(depth) : options.typography;
+        const { size, weight } = roleTypography(theme, depth);
+        const tokens = roleTokens(theme, depth);
+        expect(measured, `${theme.id}/depth ${depth}`).toMatchObject({
+          fontSize: size,
+          fontWeight: weight,
+          lineHeight: theme.typography.lineHeight,
+          maxWidth: tokens.maxWidth,
+          paddingX: tokens.paddingX,
+          paddingY: tokens.paddingY
+        });
+      }
+    }
+  });
+
+  it("keeps the type hierarchy to three tiers with a 13px floor and the owner-approved root padding", () => {
+    for (const theme of THEMES) {
+      // Depth is unbounded, so everything from depth 2 down must clamp to the same size —
+      // never a per-depth step that would make deep outlines unreadable (D-21).
+      const sizes = [0, 1, 2, 3, 10].map((depth) => roleTypography(theme, depth).size);
+      expect(sizes[0]).toBeGreaterThan(sizes[1]!);
+      expect(sizes[1]).toBeGreaterThan(sizes[2]!);
+      expect(sizes.slice(2)).toEqual(Array(sizes.length - 2).fill(theme.typography.nodeFontSize));
+      expect(theme.typography.nodeFontSize).toBeGreaterThanOrEqual(13);
+      // D-21: the root grew to 18px, so no preset may drop below the 10px vertical padding
+      // that keeps it uncramped; D-22 varies density upward per preset (Soft Branch Colors
+      // uses 12).
+      expect(theme.nodes.root.paddingY).toBeGreaterThanOrEqual(10);
+    }
   });
 });

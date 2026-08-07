@@ -5,6 +5,7 @@ import { importMarkdown } from "../markdown/parse";
 import { exportMarkdown } from "../markdown/serialize";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
+import { accessibleTextFor, blendHex } from "../theme/branch-colors";
 import { THEMES } from "../theme/presets";
 import { MAX_CANVAS_AREA, pixelDimensions, resolveScale } from "./png";
 import { exportSvg } from "./svg";
@@ -194,6 +195,48 @@ describe("theme tokens reach the file (theme.md §2.7)", () => {
     const { svg } = exportSvg(kepan());
     expect(svg).toContain("PingFang SC");
     expect(svg).not.toMatch(/fonts\.googleapis|\.woff/);
+  });
+});
+
+describe("Theme differentiation step 1 — exports carry branch fills as literals", () => {
+  const soft = THEMES.find((t) => t.id === "soft-branches")!;
+
+  it("paints first-level and descendant fills from the palette in by-first-level mode", () => {
+    let doc: MindMapDocument = {
+      ...build([
+        ["Root", 0],
+        ["Alpha", 1],
+        ["Beta", 1]
+      ]),
+      theme: { themeId: soft.id, branchColorMode: "by-first-level-branch" }
+    };
+    // A depth-2 child so the same-with-opacity descendant fill is exercised too.
+    const alphaId = getNode(doc, doc.rootId).childIds[0]!;
+    doc = applyCommand(doc, { type: "CreateChild", parentId: alphaId, text: "grand" }).doc;
+
+    const { svg } = exportSvg(doc);
+    const [first, second] = soft.branches.colors;
+    expect(svg).toContain(`fill="${first}"`);
+    expect(svg).toContain(`fill="${accessibleTextFor(first!)}"`);
+    expect(svg).toContain(`fill="${second}"`);
+    expect(svg).toContain(`fill="${accessibleTextFor(second!)}"`);
+
+    const descendantFill = blendHex(first!, soft.canvas.background, 0.65);
+    expect(svg).toContain(`fill="${descendantFill}"`);
+    expect(svg).toContain(`fill="${accessibleTextFor(descendantFill)}"`);
+  });
+
+  it("keeps single-mode node fills exactly as the role tokens paint them", () => {
+    const doc: MindMapDocument = {
+      ...build([
+        ["Root", 0],
+        ["Alpha", 1]
+      ]),
+      theme: { themeId: soft.id, branchColorMode: "single" }
+    };
+    const { svg } = exportSvg(doc);
+    expect(svg).toContain(`fill="${soft.nodes.level1.background}"`);
+    expect(svg).toContain(`fill="${soft.nodes.level1.text}"`);
   });
 });
 

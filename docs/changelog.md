@@ -9,6 +9,113 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-06 — **in_review: Mapdown Canvas affordances.** Four independent items. (a) Zoom
+  now lives in a floating bottom-left capsule (− / percentage / +); clicking the percentage
+  restores 100% without moving the viewport centre. The status-bar percentage and the View
+  menu's inline zoom controls are gone; the View menu keeps Fit map, Centre selection and
+  Reset zoom to 100%, and `Primary+0` still works. (b) An empty, undismissed map shows a
+  dismissible one-line hint ("Enter = sibling · Tab = child") that disappears the moment the
+  map gains any content beyond the root and can never appear in an export; dismissal is
+  remembered in localStorage. (c) A fresh document's starter theme follows the system colour
+  scheme (light → Minimal Light, dark → Dark), strictly as an initial value — a stored
+  document or a user pick always wins. (d) Nodes draw an inset hover ring in `hoverOutline`,
+  distinct from the outer selection ring and the editing textarea ring, suppressed while
+  selected or dragged, with no hit target and no geometry change. All four are chrome or
+  interaction tokens, so exports and document themes are untouched; the canvas frame was
+  wrapped so the capsule and hint sit outside the ARIA tree role, and the frame — not the
+  surface alone — carries the help-background marking, so opening Help inerts the capsule and
+  hint along with the canvas rather than leaving two floating controls exposed to a virtual
+  cursor. Spec:
+  `spec/product-specification.md` §2.1 and `spec/interaction.md` §2.3/§12.5 updated;
+  `decisions.md` records D-23. Evidence: 476/476 repository tests (4 new:
+  `themeIdForSystemScheme` mapping, hint show/disappear/dismiss rules), clean Mapdown
+  typecheck/build, and browser QA at 375/768/1280 px widths plus dark-system and
+  reduced-motion emulation: capsule percent click resets to 100%, hint dismisses and stays
+  dismissed, hover ring appears on pointer enter and never with selection, ⌘0 still resets,
+  and the fresh starter renders the system-appropriate theme. Only the owner may mark this
+  checkpoint accepted/shipped.
+
+- 2026-08-06 — **in_review: Mapdown Theme differentiation steps 1–2.** Step 1 — the branch
+  palette reaches the nodes: in `by-first-level-branch` mode the first-level node fill is the
+  branch colour (previously it tinted connector strokes only), and node text is switched to
+  the accessible partner of that fill (white or `#16181c`, whichever clears WCAG AA).
+  Descendants follow `descendantTintPolicy`: `same` themes keep the full branch fill,
+  `same-with-opacity` (Soft Branch Colors) blends it over the canvas at the same 0.65 the
+  connectors use, keeping exports literal and solid. `single` mode and the root are untouched,
+  and the canvas renderer, SVG export and editing overlay all read one `nodeFillAndTextFor()`
+  helper, so a branch-coloured node and its editing textarea cannot disagree. Business's
+  `#5a7f9e` could not clear AA with either text candidate (4.23/4.20) and was replaced by
+  `#4a6f95` (white text, 5.25). Step 2 — shape language: the four presets now differ in
+  corner radius, border weight, padding density and root treatment (hairline rounded Minimal,
+  large-radius roomy Soft, squared heavy-border dense Business, medium-radius subtle-border
+  Dark) instead of hue variants. C-01 is restated: selection is a ring and the ring must not
+  coincide with a palette colour, now that branch colour reaches fills. Spec: `spec/theme.md`
+  §8.3/§13 restated; `decisions.md` records D-22. Evidence: 472/472 repository tests (10 new:
+  per-palette AA partners, same-with-opacity blend AA, first-level/descendant fills, root and
+  single-mode verbatim, D-22 grayscale shape signatures, export literals for branch and
+  blended fills), clean Mapdown typecheck/build, grayscale pixel QA showing all six theme
+  pairs clearly distinct (RMSE 0.24–0.79), rendered exports containing the expected branch
+  and blended fills, and browser QA: canvas shows `Alpha #6b7280/white` and
+  `Beta #8a7f6d/dark`, toggling branch colours off restores `#f6f7f8`, and the editing
+  textarea on a branch-coloured node matches its fill, text, 15px/500 and padding at
+  <0.01px alignment. Only the owner may mark this checkpoint accepted/shipped.
+
+- 2026-08-06 — **in_review: Mapdown three-tier type scale (Theme differentiation, step 2).**
+  Node hierarchy is now expressed through type size, not indentation alone: the shared
+  `TYPOGRAPHY` constant in `presets.ts` moves to root 18px/600, first level 15px/500, and
+  every deeper node 13px/400, with line height fixed at 1.45. The four presets' root
+  `paddingY` rises to 10 so the 18px label is not cramped. The scale stays at exactly three
+  tiers — depth ≥ 2 clamps to 13px, never decreasing further — and 13px is the CJK legibility
+  floor. `layoutOptionsForTheme()` now derives measurement from the same `roles.ts`
+  `roleTokens`/`roleTypography` helpers as the canvas renderer, editing overlay and exporter,
+  and the SVG exporter's local copies of those helpers were removed in the same pass —
+  closing the duplicate-derivation class of bug c55276c repo-wide. Spec: `spec/theme.md` §6
+  states the three-tier / no-per-depth-step / 13px-floor contract; `decisions.md` records D-21.
+  Evidence: 462/462 repository tests (2 new: measurement-vs-renderer role parity across all
+  four themes and depths, and the three-tier hierarchy with floor plus root padding), clean
+  Mapdown typecheck/build, expected box metrics recomputed from the tokens
+  (root height 18×1.45 + 2×10 = 46.1), and browser QA at 50%/100%/200% zoom showing the
+  editing textarea font/padding matches its covered node at every scale. Only the owner may
+  mark this checkpoint accepted/shipped.
+
+- 2026-08-06 — **in_review: Mapdown two-sided connector mirror fix.** In two-sided layout the
+  root's single stored `outwardEdgeX` always pointed at the right edge, so a left first-level
+  connector started at the root's right edge, spanned the whole root, and placed its bézier
+  control points at that long span's midpoint — the left curve then did not mirror the right
+  one (the opaque root rect hid the crossing segment). `connect()` now picks the root edge
+  facing each child by comparing the child's inward edge with the root centre, and only for
+  the root (depth 0): non-root nodes keep their stored outward edge and `layoutRightOnly` is
+  untouched, so right-only geometry is byte-identical. Spec `spec/layout-engine.md` §10.1/§10.2
+  now states that the root has two outward edges — one per side — in two-sided mode, and each
+  root connector MUST leave the edge facing its branch. Evidence: 460/460 repository tests
+  (1 new regression test asserting the four path x coordinates of a left branch's connector
+  strictly mirror a mirrored right branch's about x = 0, with the left connector starting at
+  the root's left edge), clean Mapdown typecheck/build, and headless-Chrome pixel QA: node
+  rects and connector curves render as exact horizontal mirrors (an original-vs-mirrored SVG
+  render differs only in glyph antialiasing), and the before/after pixel diff is confined to
+  the visible left connector region. Only the owner may mark this checkpoint accepted/shipped.
+
+- 2026-08-05 — **in_review: Mapdown editing-state fidelity.** The editing textarea now overlays
+  its node exactly: the highlight ring is a box-shadow drawn *outside* the box instead of a
+  2px border that consumed 4px of content width, so two full-width CJK characters ("一二",
+  28px of text in a 52px box) no longer wrap into two lines. Fill, text, corner radius and
+  typography come from the covered node's role tokens through a shared `roleTokens` /
+  `roleTypography` helper that the canvas renderer also uses, so dark system chrome can no
+  longer bleed into a light map (the ring alone uses the theme's `editingOutline`). Every
+  metric the textarea carries — font size, padding, radius, ring width — is multiplied by
+  `viewport.scale`, keeping editing pixel-identical to the node at any zoom. First-level nodes
+  are now measured with the rendered `level1FontWeight` (500) instead of the default 400, so
+  layout and rendering agree on box width. The textarea keeps a 2px screen safety margin in
+  its own right padding, absorbing canvas-measure vs browser-layout subpixel differences
+  without enlarging the node box. Spec: `spec/theme.md` §9 and `design-tokens.md` now state
+  the editing-overlay contract. Evidence: 459/459 repository tests (1 new), clean Mapdown
+  typecheck/build, and browser QA at 100%/50%/200% showing textarea-vs-SVG getBoundingClientRect
+  deltas ≤ 0.01px, no unexpected wrap for 「一二」, 16 CJK chars (248px, below the 260 maxWidth)
+  or mixed CJK/Latin, root 16px/600 and first-level 14px/500 matching the rendered roles, and
+  all four themes matching node fill/text under simulated dark chrome (Minimal Light
+  #f6f7f8/#1c1e21, Soft Branch Colors #ffffff/#2b2a27, Business #eef2f7/#12263f, Dark
+  #24272c/#e8eaed). Only the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-05 — **in_review: Mapdown layout-switch and editing-fidelity fixes.** The Arrange
   layout toggle now visibly balances first-level branches when entering two-sided mode from
   the right-only placeholder state (all branches share one side), and presents as two

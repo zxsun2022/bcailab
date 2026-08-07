@@ -29,7 +29,10 @@ import {
   previousSiblingId,
   type Command
 } from "../model/commands";
-import { THEMES, themeById } from "../theme/presets";
+import { THEMES, themeById, themeIdForSystemScheme } from "../theme/presets";
+import { nodeFillAndTextFor } from "../theme/branch-colors";
+import { roleTokens, roleTypography } from "../theme/roles";
+import { shouldShowAuthoringHint } from "./affordances";
 import { useImeGuard } from "./useImeGuard";
 import {
   createAutosave,
@@ -88,10 +91,40 @@ interface EditingState {
 
 let sessionCounter = 0;
 
+/**
+ * Screen px of extra content width the editing field keeps over the measured layout width.
+ * canvas measureText and the browser's own text layout differ by subpixel amounts; the node
+ * box has zero tolerance by design, so the textarea takes the margin out of its own right
+ * padding. The box itself stays pixel-identical to the node box.
+ */
+const EDITING_SAFETY_MARGIN = 2;
+/** Canvas affordances (b) — where the hint dismissal is remembered. */
+const HINT_DISMISSED_KEY = "mapdown:authoring-hint-dismissed";
+
+/**
+ * Canvas affordances (c) — the starter document's theme, read once at creation. A stored
+ * document restores its own theme and a user pick overrides it, so the system preference is
+ * strictly an initial value.
+ */
+function systemThemeId(): string {
+  const prefersDark =
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-color-scheme: dark)").matches
+      : false;
+  return themeIdForSystemScheme(prefersDark);
+}
+
 export function Editor() {
   const [history, setHistory] = useState<EditorHistory>(() =>
-    createHistory(createDocument("New map"))
+    createHistory({
+      ...createDocument("New map"),
+      theme: { themeId: systemThemeId(), branchColorMode: "single" }
+    })
   );
+  const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
+    if (typeof localStorage === "undefined") return false;
+    return localStorage.getItem(HINT_DISMISSED_KEY) === "1";
+  });
   const [editing, setEditing] = useState<EditingState | null>(null);
   const [status, setStatus] = useState<SaveStatus>({ kind: "idle" });
   const [notice, setNotice] = useState<string | null>(null);
@@ -974,23 +1007,14 @@ export function Editor() {
   }, [doc, executeRegisteredCommand, history, selection]);
 
   const editingBox = editing ? result.boxes[editing.nodeId] : null;
-  // The overlaid textarea must use the same role typography as the node it covers, or an
-  // edited root label visibly shrinks the moment editing starts.
+  // The overlaid textarea must use the same role tokens and typography as the node it covers,
+  // or an edited label visibly shrinks or recolours the moment editing starts.
   const editingDepth = editingBox?.depth ?? 0;
-  const editingNodeTokens =
-    editingDepth === 0 ? theme.nodes.root : editingDepth === 1 ? theme.nodes.level1 : theme.nodes.default;
-  const editingFontSize =
-    editingDepth === 0
-      ? theme.typography.rootFontSize
-      : editingDepth === 1
-        ? theme.typography.level1FontSize
-        : theme.typography.nodeFontSize;
-  const editingFontWeight =
-    editingDepth === 0
-      ? theme.typography.rootFontWeight
-      : editingDepth === 1
-        ? theme.typography.level1FontWeight
-        : theme.typography.nodeFontWeight;
+  const editingNodeTokens = roleTokens(theme, editingDepth);
+  // Theme differentiation step 1 — the fill can be a branch colour in by-first-level mode, so
+  // the textarea must read the same branch-aware colours the canvas paints.
+  const editingNodeColors = nodeFillAndTextFor(previewDoc, theme, editing?.nodeId ?? doc.rootId, editingDepth);
+  const { size: editingFontSize, weight: editingFontWeight } = roleTypography(theme, editingDepth);
 
   /**
    * The overlaid textarea has to sit exactly on its node box. Both are derived from the same
@@ -1006,6 +1030,20 @@ export function Editor() {
       height: (editingBox.height / rect.height) * 100
     };
   }, [editingBox, viewport, canvasSize]);
+
+  /**
+   * The textarea box follows the node box in screen pixels through the percentage mapping
+   * above; every metric the textarea carries (font, padding, radius, ring) is a document unit
+   * from the theme and must be multiplied by viewport.scale to land on the same screen pixels
+   * as the SVG (document × scale = screen px).
+   */
+  const editingScale = viewport.scale;
+  const editingFontSizePx = editingFontSize * editingScale;
+  const editingPaddingY = editingNodeTokens.paddingY * editingScale;
+  const editingPaddingX = editingNodeTokens.paddingX * editingScale;
+  const editingRadius = editingNodeTokens.radius * editingScale;
+  const editingRingWidth = 2 * editingScale;
+  const editingRightPadding = Math.max(editingPaddingX - EDITING_SAFETY_MARGIN, 0);
 
   const hasSelectedArrangeActions =
     selection !== null &&
@@ -1240,24 +1278,6 @@ export function Editor() {
               <span>Reset zoom to 100%</span>
               <small>Actual size · Command or Control + 0</small>
             </button>
-            <div className="menu-divider" />
-            <div className="zoom-controls" role="group" aria-label="Zoom">
-              <button
-                type="button"
-                aria-label="Zoom out"
-                onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
-              >
-                −
-              </button>
-              <output>{zoomPercent(viewport)}</output>
-              <button
-                type="button"
-                aria-label="Zoom in"
-                onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
-              >
-                +
-              </button>
-            </div>
           </ToolbarMenu>
 
           <ToolbarMenu label="Style" align="end">
@@ -1387,67 +1407,129 @@ export function Editor() {
         </div>
       )}
 
+      {/*
+        The frame — not just the surface — carries the help-background marking. The zoom
+        capsule and the authoring hint are the surface's *siblings*, so marking only the
+        surface left them outside the inert set: `Primary+/` would hide the canvas from
+        assistive technology and still expose two floating controls to a virtual cursor. The
+        backdrop and the dialog's focus trap happen to cover pointer and Tab today, which is
+        exactly why this was invisible — the marking has to be on the common ancestor.
+      */}
       <div
-        ref={surfaceRef}
+        className="canvas-frame"
         data-help-background
         aria-hidden={helpMode ? true : undefined}
-        role="tree"
-        aria-label="Mind map editor"
-        aria-activedescendant={selection ? `map-node-${selection}` : undefined}
-        tabIndex={0}
-        onKeyDown={onKeyDown}
-        className="editor-surface"
-        style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
       >
-        <MapCanvas
-          doc={previewDoc}
-          theme={theme}
-          layout={result}
-          viewport={viewport}
-          onViewport={setViewport}
-          onSize={setCanvasSize}
-          selection={selection}
-          onSelect={selectNode}
-          onEdit={editNodeAtEnd}
-          onSelectNone={selectNone}
-          onToggleCollapse={toggleCollapse}
-          onReparent={reparentNode}
-          onMoveSide={moveBranchSide}
-          onInvalidDrop={announceInvalidDrop}
-        />
+        <div
+          ref={surfaceRef}
+          role="tree"
+          aria-label="Mind map editor"
+          aria-activedescendant={selection ? `map-node-${selection}` : undefined}
+          tabIndex={0}
+          onKeyDown={onKeyDown}
+          className="editor-surface"
+          style={{ position: "relative", background: theme.canvas.background, overflow: "hidden" }}
+        >
+          <MapCanvas
+            doc={previewDoc}
+            theme={theme}
+            layout={result}
+            viewport={viewport}
+            onViewport={setViewport}
+            onSize={setCanvasSize}
+            selection={selection}
+            onSelect={selectNode}
+            onEdit={editNodeAtEnd}
+            onSelectNone={selectNone}
+            onToggleCollapse={toggleCollapse}
+            onReparent={reparentNode}
+            onMoveSide={moveBranchSide}
+            onInvalidDrop={announceInvalidDrop}
+          />
 
         {/*
           The overlaid textarea from spike 1. It is a real form control, so the IME takes its
           well-trodden path; the cost is keeping it aligned with the node box, which is why it
           is positioned from the layout result rather than from the DOM.
         */}
-        {editing && editingBox && (
-          <textarea
-            ref={inputRef}
-            className="editing-field"
-            value={editing.draft}
-            onChange={(event) =>
-              setEditing((current) => (current ? { ...current, draft: event.target.value } : current))
-            }
-            onCompositionStart={guard.onCompositionStart}
-            onCompositionEnd={guard.onCompositionEnd}
-            // Blur and Escape now mean the same thing: end the session, keep the text, and
-            // drop the node only if it was new and never got any.
-            onBlur={cancelEdit}
-            style={{
-              position: "absolute",
-              left: `${editorRect.left}%`,
-              top: `${editorRect.top}%`,
-              width: `${editorRect.width}%`,
-              height: `${editorRect.height}%`,
-              fontFamily: theme.typography.fontFamily,
-              fontSize: editingFontSize,
-              fontWeight: editingFontWeight,
-              padding: `${editingNodeTokens.paddingY}px ${editingNodeTokens.paddingX}px`
-            }}
-            rows={1}
-          />
+          {editing && editingBox && (
+            <textarea
+              ref={inputRef}
+              className="editing-field"
+              value={editing.draft}
+              onChange={(event) =>
+                setEditing((current) => (current ? { ...current, draft: event.target.value } : current))
+              }
+              onCompositionStart={guard.onCompositionStart}
+              onCompositionEnd={guard.onCompositionEnd}
+              // Blur and Escape now mean the same thing: end the session, keep the text, and
+              // drop the node only if it was new and never got any.
+              onBlur={cancelEdit}
+              style={{
+                position: "absolute",
+                left: `${editorRect.left}%`,
+                top: `${editorRect.top}%`,
+                width: `${editorRect.width}%`,
+                height: `${editorRect.height}%`,
+                fontFamily: theme.typography.fontFamily,
+                fontSize: editingFontSizePx,
+                fontWeight: editingFontWeight,
+                lineHeight: theme.typography.lineHeight,
+                padding: `${editingPaddingY}px ${editingRightPadding}px ${editingPaddingY}px ${editingPaddingX}px`,
+                background: editingNodeColors.background,
+                color: editingNodeColors.text,
+                borderRadius: editingRadius,
+                boxShadow: `0 0 0 ${editingRingWidth}px ${theme.interaction.editingOutline}, 0 4px 16px rgb(22 31 45 / 16%)`
+              }}
+              rows={1}
+            />
+          )}
+        </div>
+
+        {shouldShowAuthoringHint(doc, hintDismissed) && (
+          <p role="note" className="canvas-hint">
+            <span>Enter = sibling · Tab = child</span>
+            <button
+              type="button"
+              aria-label="Dismiss hint"
+              onClick={() => {
+                setHintDismissed(true);
+                try {
+                  localStorage.setItem(HINT_DISMISSED_KEY, "1");
+                } catch {
+                  // Blocked storage must not surface an error for a one-line hint.
+                }
+              }}
+            >
+              ×
+            </button>
+          </p>
         )}
+
+        <div className="zoom-capsule" role="group" aria-label="Zoom">
+          <button
+            type="button"
+            aria-label="Zoom out"
+            onClick={() => setViewport((v) => zoomToCenter(v, 1 / 1.25))}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="zoom-capsule-percent"
+            aria-label="Reset zoom to 100%"
+            onClick={() => setViewport(resetZoom)}
+          >
+            {zoomPercent(viewport)}
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom in"
+            onClick={() => setViewport((v) => zoomToCenter(v, 1.25))}
+          >
+            +
+          </button>
+        </div>
       </div>
 
       <footer
@@ -1459,7 +1541,6 @@ export function Editor() {
           {Object.keys(doc.nodes).length} nodes · Enter = save / next sibling · Tab = child ·
           Shift+Tab = promote · Space = collapse · F2 = rename
         </span>
-        <span className="status-zoom">{zoomPercent(viewport)}</span>
         <span
           role="status"
           aria-live="polite"
