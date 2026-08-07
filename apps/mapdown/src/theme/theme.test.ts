@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
-import { branchColorFor, connectorColorFor } from "./branch-colors";
+import { accessibleTextFor, blendHex, branchColorFor, connectorColorFor, nodeFillAndTextFor } from "./branch-colors";
 import { BUSINESS, DARK, MINIMAL_LIGHT, SOFT_BRANCHES, THEMES, themeById } from "./presets";
+import { roleTokens } from "./roles";
 import { contrastRatio, type MindMapTheme } from "./types";
 
 beforeEach(() => resetIdCounterForTests());
@@ -85,6 +86,23 @@ describe("§13 — the four required presets exist", () => {
     expect(new Set(THEMES.map(signature)).size).toBe(THEMES.length);
     expect(new Set(THEMES.map((t) => t.nodes.default.radius)).size).toBeGreaterThan(1);
   });
+
+  it("differs in shape language, not only hue — the D-22 grayscale signature", () => {
+    // Step 2's acceptance is that the four presets are distinguishable in grayscale, which
+    // hue-based signatures cannot prove. Radius, border weight, and padding density per role
+    // must all differ so a desaturated screenshot still separates the presets.
+    const shapeSignature = (t: (typeof THEMES)[number]) =>
+      (["root", "level1", "default"] as const)
+        .map(
+          (role) =>
+            `${t.nodes[role].radius}|${t.nodes[role].borderWidth}|${t.nodes[role].paddingX}|${t.nodes[role].paddingY}`
+        )
+        .join(";");
+    expect(new Set(THEMES.map(shapeSignature)).size).toBe(THEMES.length);
+    // The axes are genuinely in play, not one token doing all the work.
+    expect(new Set(THEMES.map((t) => t.nodes.level1.borderWidth)).size).toBeGreaterThan(1);
+    expect(new Set(THEMES.map((t) => t.nodes.default.paddingX)).size).toBeGreaterThan(1);
+  });
 });
 
 describe("§18 — contrast", () => {
@@ -128,21 +146,20 @@ describe("§18 — contrast", () => {
  */
 describe("C-01 — selection cannot be mistaken for a branch colour", () => {
   /*
-   * A ring-versus-branch *contrast* assertion was tried here and removed, because it demanded
-   * something the palettes cannot give and should not have to. On a dark theme the selection
-   * ring and the branch colours must both be light to read against a dark canvas, so their
-   * contrast with each other is necessarily low — that is a consequence of the canvas, not a
-   * defect.
-   *
-   * The guarantee C-01 actually needs is **structural**, and it is asserted below: branch
-   * colour lives on connectors and never touches a node's fill or border, so a coloured branch
-   * and a selected node are never drawn in the same place competing to mean the same thing.
+   * Theme differentiation step 1 (D-22) changed the premise this block was built on: branch
+   * colour now *is* a first-level node fill in by-first-level-branch mode. What C-01 still
+   * needs is that selection is expressed as a ring, never as a fill — so the ring colour must
+   * not read as a branch colour — and that the palette never collides with a role's base
+   * tokens (which is what a `single`-mode map still paints).
    */
   it.each(THEMES)("$name expresses selection as a ring, never as a fill", (theme) => {
     expect(theme.interaction.selectedOutlineWidth).toBeGreaterThan(0);
     expect(theme.interaction.selectedOutline).not.toBe(theme.nodes.default.background);
-    // Branch colour lives on connectors only. If it were also a node fill or border, a
-    // coloured branch and a selected node would be competing for the same pixels.
+    // With branch colour reaching node fills, the ring is the only selection signal, so it
+    // must never coincide with a palette colour.
+    expect(theme.branches.colors).not.toContain(theme.interaction.selectedOutline);
+    // The palette must also stay clear of the role tokens a single-mode map paints, so a
+    // coloured branch fill cannot be mistaken for a node that happens to use its base tokens.
     for (const role of ["root", "level1", "default"] as const) {
       expect(theme.branches.colors, `${theme.id}/${role} background`).not.toContain(
         theme.nodes[role].background
@@ -168,6 +185,69 @@ describe("C-01 — selection cannot be mistaken for a branch colour", () => {
       ].map((c) => c.toLowerCase());
       expect(onCanvas).not.toContain(CHROME_ACCENT_LIGHT);
       expect(onCanvas).not.toContain(CHROME_ACCENT_DARK);
+    }
+  });
+});
+
+describe("Theme differentiation step 1 — the branch palette reaches the nodes (§8.3)", () => {
+  it.each(THEMES)("$name gives every palette colour a WCAG AA text partner", (theme) => {
+    for (const colour of theme.branches.colors) {
+      const text = accessibleTextFor(colour);
+      expect(contrastRatio(colour, text), `${theme.id}/${colour} with ${text}`).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it("keeps same-with-opacity descendant fills at AA too", () => {
+    for (const theme of THEMES.filter((t) => t.branches.descendantTintPolicy === "same-with-opacity")) {
+      for (const colour of theme.branches.colors) {
+        const fill = blendHex(colour, theme.canvas.background, 0.65);
+        expect(
+          contrastRatio(fill, accessibleTextFor(fill)),
+          `${theme.id}/${colour} blended to ${fill}`
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
+  });
+
+  it("paints first-level fills with the branch colour and descendants per policy", () => {
+    const doc = withBranches(4, "by-first-level-branch");
+    const firstLevel = getNode(doc, doc.rootId).childIds;
+    for (const theme of THEMES) {
+      for (const [index, id] of firstLevel.entries()) {
+        const expected = theme.branches.colors[index % theme.branches.colors.length]!;
+        expect(nodeFillAndTextFor(doc, theme, id, 1).background, `${theme.id}/first-level ${index}`).toBe(expected);
+        for (const childId of getNode(doc, id).childIds) {
+          const expectedFill =
+            theme.branches.descendantTintPolicy === "same-with-opacity"
+              ? blendHex(expected, theme.canvas.background, 0.65)
+              : expected;
+          expect(nodeFillAndTextFor(doc, theme, childId, 2).background, `${theme.id}/descendant`).toBe(expectedFill);
+        }
+      }
+    }
+  });
+
+  it("never colours the root, and single mode returns the role tokens verbatim", () => {
+    for (const theme of THEMES) {
+      const branchDoc = withBranches(3, "by-first-level-branch");
+      expect(nodeFillAndTextFor(branchDoc, theme, branchDoc.rootId, 0)).toEqual({
+        background: theme.nodes.root.background,
+        text: theme.nodes.root.text
+      });
+
+      const singleDoc = withBranches(3, "single");
+      const ids: Array<[string, number]> = [[singleDoc.rootId, 0]];
+      for (const branchId of getNode(singleDoc, singleDoc.rootId).childIds) {
+        ids.push([branchId, 1]);
+        for (const childId of getNode(singleDoc, branchId).childIds) ids.push([childId, 2]);
+      }
+      for (const [id, depth] of ids) {
+        const tokens = roleTokens(theme, depth);
+        expect(nodeFillAndTextFor(singleDoc, theme, id, depth)).toEqual({
+          background: tokens.background,
+          text: tokens.text
+        });
+      }
     }
   });
 });

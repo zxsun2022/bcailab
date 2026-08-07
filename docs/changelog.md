@@ -9,6 +9,31 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-06 — **in_review: Mapdown Theme differentiation steps 1–2.** Step 1 — the branch
+  palette reaches the nodes: in `by-first-level-branch` mode the first-level node fill is the
+  branch colour (previously it tinted connector strokes only), and node text is switched to
+  the accessible partner of that fill (white or `#16181c`, whichever clears WCAG AA).
+  Descendants follow `descendantTintPolicy`: `same` themes keep the full branch fill,
+  `same-with-opacity` (Soft Branch Colors) blends it over the canvas at the same 0.65 the
+  connectors use, keeping exports literal and solid. `single` mode and the root are untouched,
+  and the canvas renderer, SVG export and editing overlay all read one `nodeFillAndTextFor()`
+  helper, so a branch-coloured node and its editing textarea cannot disagree. Business's
+  `#5a7f9e` could not clear AA with either text candidate (4.23/4.20) and was replaced by
+  `#4a6f95` (white text, 5.25). Step 2 — shape language: the four presets now differ in
+  corner radius, border weight, padding density and root treatment (hairline rounded Minimal,
+  large-radius roomy Soft, squared heavy-border dense Business, medium-radius subtle-border
+  Dark) instead of hue variants. C-01 is restated: selection is a ring and the ring must not
+  coincide with a palette colour, now that branch colour reaches fills. Spec: `spec/theme.md`
+  §8.3/§13 restated; `decisions.md` records D-22. Evidence: 472/472 repository tests (10 new:
+  per-palette AA partners, same-with-opacity blend AA, first-level/descendant fills, root and
+  single-mode verbatim, D-22 grayscale shape signatures, export literals for branch and
+  blended fills), clean Mapdown typecheck/build, grayscale pixel QA showing all six theme
+  pairs clearly distinct (RMSE 0.24–0.79), rendered exports containing the expected branch
+  and blended fills, and browser QA: canvas shows `Alpha #6b7280/white` and
+  `Beta #8a7f6d/dark`, toggling branch colours off restores `#f6f7f8`, and the editing
+  textarea on a branch-coloured node matches its fill, text, 15px/500 and padding at
+  <0.01px alignment. Only the owner may mark this checkpoint accepted/shipped.
+
 - 2026-08-06 — **in_review: Mapdown three-tier type scale (Theme differentiation, step 2).**
   Node hierarchy is now expressed through type size, not indentation alone: the shared
   `TYPOGRAPHY` constant in `presets.ts` moves to root 18px/600, first level 15px/500, and

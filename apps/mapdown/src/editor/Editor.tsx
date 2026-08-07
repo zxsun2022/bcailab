@@ -30,6 +30,7 @@ import {
   type Command
 } from "../model/commands";
 import { THEMES, themeById } from "../theme/presets";
+import { nodeFillAndTextFor } from "../theme/branch-colors";
 import { roleTokens, roleTypography } from "../theme/roles";
 import { useImeGuard } from "./useImeGuard";
 import {
@@ -987,6 +988,9 @@ export function Editor() {
   // or an edited label visibly shrinks or recolours the moment editing starts.
   const editingDepth = editingBox?.depth ?? 0;
   const editingNodeTokens = roleTokens(theme, editingDepth);
+  // Theme differentiation step 1 — the fill can be a branch colour in by-first-level mode, so
+  // the textarea must read the same branch-aware colours the canvas paints.
+  const editingNodeColors = nodeFillAndTextFor(previewDoc, theme, editing?.nodeId ?? doc.rootId, editingDepth);
   const { size: editingFontSize, weight: editingFontWeight } = roleTypography(theme, editingDepth);
 
   /**
@@ -1456,8 +1460,8 @@ export function Editor() {
               fontWeight: editingFontWeight,
               lineHeight: theme.typography.lineHeight,
               padding: `${editingPaddingY}px ${editingRightPadding}px ${editingPaddingY}px ${editingPaddingX}px`,
-              background: editingNodeTokens.background,
-              color: editingNodeTokens.text,
+              background: editingNodeColors.background,
+              color: editingNodeColors.text,
               borderRadius: editingRadius,
               boxShadow: `0 0 0 ${editingRingWidth}px ${theme.interaction.editingOutline}, 0 4px 16px rgb(22 31 45 / 16%)`
             }}

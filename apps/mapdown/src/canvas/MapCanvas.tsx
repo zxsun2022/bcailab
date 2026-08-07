@@ -10,7 +10,7 @@ import {
 } from "../model/types";
 import { resolveDropTarget, type DropZone } from "../model/commands";
 import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
-import { branchColorFor, connectorColorFor } from "../theme/branch-colors";
+import { branchColorFor, connectorColorFor, nodeFillAndTextFor } from "../theme/branch-colors";
 import { roleTokens, roleTypography } from "../theme/roles";
 import type { MindMapTheme } from "../theme/types";
 import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
@@ -33,6 +33,9 @@ import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
 interface NodeProps {
   box: NodeBox;
   theme: MindMapTheme;
+  /** Theme differentiation step 1 — the rendered fill/text, branch-aware in by-first-level mode. */
+  fill: string;
+  text: string;
   selected: boolean;
   /** §7.2/§7.3 — dimmed while it is the node being dragged, so the drop indicator reads clearly. */
   dragging: boolean;
@@ -69,6 +72,8 @@ function sameBox(a: NodeBox, b: NodeBox): boolean {
 const Node = memo(function Node({
   box,
   theme,
+  fill,
+  text,
   selected,
   dragging,
   positionInSet,
@@ -126,7 +131,7 @@ const Node = memo(function Node({
         width={box.width}
         height={box.height}
         rx={tokens.radius}
-        fill={tokens.background}
+        fill={fill}
         stroke={tokens.border}
         strokeWidth={tokens.borderWidth}
       />
@@ -149,7 +154,7 @@ const Node = memo(function Node({
         fontFamily={theme.typography.fontFamily}
         fontSize={size}
         fontWeight={weight}
-        fill={tokens.text}
+        fill={text}
         dominantBaseline="central"
       >
         {box.lines.map((line, index) => (
@@ -175,6 +180,8 @@ const Node = memo(function Node({
   return (
     sameBox(prev.box, next.box) &&
     prev.theme === next.theme &&
+    prev.fill === next.fill &&
+    prev.text === next.text &&
     prev.selected === next.selected &&
     prev.dragging === next.dragging &&
     prev.positionInSet === next.positionInSet &&
@@ -898,6 +905,7 @@ export const MapCanvas = memo(function MapCanvas({
       ))}
       {semanticOrder.map((id) => {
         const node = getNode(doc, id);
+        const { background: fill, text } = nodeFillAndTextFor(doc, theme, id, layout.boxes[id]!.depth);
         const siblings =
           node.parentId === null ? [id] : getNode(doc, node.parentId).childIds;
         return (
@@ -905,6 +913,8 @@ export const MapCanvas = memo(function MapCanvas({
             key={id}
             box={layout.boxes[id]!}
             theme={theme}
+            fill={fill}
+            text={text}
             selected={id === selection}
             dragging={id === draggingId}
             positionInSet={siblings.indexOf(id) + 1}

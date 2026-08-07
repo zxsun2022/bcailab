@@ -616,6 +616,42 @@ differentiation checkpoint's later work; this decision only fixes the shared typ
 
 ---
 
+## D-22 — Theme differentiation steps 1 and 2: branch colour reaches the nodes, presets differ in shape
+
+**Decided 2026-08-06** by the owner.
+
+**Decision.** Two changes to the document themes:
+
+1. **The palette reaches the nodes.** In `by-first-level-branch` mode the branch colour drives
+   the first-level node fill (not just the connector stroke), and the node text is the
+   accessible partner of that fill — white or the near-black `#16181c`, whichever clears WCAG
+   AA. Descendants follow `descendantTintPolicy`: `same` themes keep the full branch fill;
+   `same-with-opacity` (Soft Branch Colors) blends the branch colour over the canvas at the
+   same 0.65 the connectors use, so the fill stays opaque and exports carry literals. `single`
+   mode and the root are untouched.
+2. **The presets differ in shape language.** Radius, border weight, padding density and root
+   treatment now vary per preset instead of the near-identical `node()` defaults: Minimal
+   Light is the hairline-outlined rounded reference; Soft Branch Colors is large-radius,
+   soft-bordered and roomier; Business is squared, heavier-bordered and denser; Dark is
+   medium-radius and subtle-bordered on a dark canvas. The four presets must remain
+   distinguishable in grayscale, asserted as a per-role shape signature in `theme.test.ts`.
+
+**Why.** Before this change the four presets were hue variants of one design: `branchColorFor`
+only fed connector strokes, so no theme could look structurally different. Step 1 is what
+makes the branch palette a first-class visual signal; step 2 is what separates the themes
+without hue. Text is switched to a per-fill contrast partner because saturated branch colours
+sit behind labels by design now — the guarantee is asserted for every palette colour in every
+preset instead of being left to theme authors.
+
+**Palette correction.** Business's `#5a7f9e` could not clear AA with either white or near-black
+(4.23 / 4.20), so it was replaced by `#4a6f95` (white text, 5.25). This keeps the restrained
+blue-grey Business language; the old hex was not a public contract yet.
+
+**Boundary.** The field split (shape language × palette, step 3) is deliberately not done here;
+it stays gated on the publish sequencing constraint.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

@@ -161,9 +161,15 @@ Repeated colors are acceptable because colors are decorative and not unique iden
 
 ### 8.3 Contrast
 
-Branch colors must remain distinguishable from the canvas and node borders.
-
-For text, the theme should use high-contrast text colors rather than placing arbitrary saturated branch colors behind text unless contrast is guaranteed.
+In `by-first-level-branch` mode the branch colour drives the first-level node **fill** as well
+as the connector stroke, so text is placed on saturated fills by design. Each first-level
+fill MUST therefore carry the accessible partner of that fill (white or the theme's near-black,
+whichever clears WCAG AA 4.5:1), and every palette colour MUST have such a partner — asserted
+for every colour in every preset. Descendants follow `descendantTintPolicy`: `same` themes keep
+the full branch fill; `same-with-opacity` themes tint descendant fills at the same opacity
+their connectors use, blended over the canvas so exports stay literal and solid. In `single`
+mode no node fill changes. Branch colours must remain distinguishable from the canvas, node
+base borders, and the selection ring.
 
 ## 9. Interaction tokens
 
@@ -298,6 +304,13 @@ Allowed preset variation:
 - moderately squared business cards.
 
 A theme MUST use one coherent border language across the map, with root/level distinctions allowed.
+
+The four shipped presets map onto the allowed languages as follows (D-22): Minimal Light is
+the hairline-outlined rounded-card reference; Soft Branch Colors is the large-radius,
+soft-bordered, roomier card; Business is the moderately squared, heavier-border, denser card;
+Dark is the medium-radius, subtle-border card on a dark canvas. Radius, border weight and
+padding density may each vary per role, and every preset must stay distinguishable from every
+other in a grayscale screenshot — asserted as a shape signature in `theme.test.ts`.
 
 ## 14. Theme selector behavior
 

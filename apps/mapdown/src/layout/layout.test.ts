@@ -398,8 +398,10 @@ describe("§4.4 — measurement caching", () => {
       expect(sizes[1]).toBeGreaterThan(sizes[2]!);
       expect(sizes.slice(2)).toEqual(Array(sizes.length - 2).fill(theme.typography.nodeFontSize));
       expect(theme.typography.nodeFontSize).toBeGreaterThanOrEqual(13);
-      // The root grew to 18px, so the four presets give it two extra vertical padding pixels.
-      expect(theme.nodes.root.paddingY).toBe(10);
+      // D-21: the root grew to 18px, so no preset may drop below the 10px vertical padding
+      // that keeps it uncramped; D-22 varies density upward per preset (Soft Branch Colors
+      // uses 12).
+      expect(theme.nodes.root.paddingY).toBeGreaterThanOrEqual(10);
     }
   });
 });
