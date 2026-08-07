@@ -52,8 +52,9 @@ export type Command =
    * the command layer stays layout-free. The resolved form always carries the applied sides.
    */
   | { type: "SetLayoutMode"; mode: "right" | "two-sided"; sides?: Record<NodeId, BranchSide | null> }
-  /** theme.md §14 — a theme selection is one undoable presentation command. */
-  | { type: "SetTheme"; themeId: string }
+  /** theme.md §14 — each theme axis is its own undoable presentation command (D-24). */
+  | { type: "SetShape"; shapeId: string }
+  | { type: "SetPalette"; paletteId: string }
   /** theme.md §8 — branch-colour mode is one undoable presentation command. */
   | { type: "SetBranchColorMode"; mode: "single" | "by-first-level-branch" }
   /**
@@ -454,13 +455,25 @@ function setLayoutMode(
   };
 }
 
-/** theme.md §14 — one undoable presentation command per selection. */
-function setTheme(doc: MindMapDocument, themeId: string): CommandResult {
-  const previous = doc.theme.themeId;
+/** theme.md §14 / D-24 — one undoable presentation command per shape selection. */
+function setShape(doc: MindMapDocument, shapeId: string): CommandResult {
+  const previous = doc.theme.shapeId;
   return {
-    doc: { ...doc, theme: { ...doc.theme, themeId }, revision: doc.revision + 1 },
-    resolved: { type: "SetTheme", themeId },
-    inverse: { type: "SetTheme", themeId: previous },
+    doc: { ...doc, theme: { ...doc.theme, shapeId }, revision: doc.revision + 1 },
+    resolved: { type: "SetShape", shapeId },
+    inverse: { type: "SetShape", shapeId: previous },
+    selection: null,
+    category: "presentation"
+  };
+}
+
+/** theme.md §14 / D-24 — one undoable presentation command per palette selection. */
+function setPalette(doc: MindMapDocument, paletteId: string): CommandResult {
+  const previous = doc.theme.paletteId;
+  return {
+    doc: { ...doc, theme: { ...doc.theme, paletteId }, revision: doc.revision + 1 },
+    resolved: { type: "SetPalette", paletteId },
+    inverse: { type: "SetPalette", paletteId: previous },
     selection: null,
     category: "presentation"
   };
@@ -578,8 +591,11 @@ export function applyCommand(doc: MindMapDocument, command: Command): CommandRes
     case "SetLayoutMode":
       result = setLayoutMode(doc, command.mode, command.sides);
       break;
-    case "SetTheme":
-      result = setTheme(doc, command.themeId);
+    case "SetShape":
+      result = setShape(doc, command.shapeId);
+      break;
+    case "SetPalette":
+      result = setPalette(doc, command.paletteId);
       break;
     case "SetBranchColorMode":
       result = setBranchColorMode(doc, command.mode);

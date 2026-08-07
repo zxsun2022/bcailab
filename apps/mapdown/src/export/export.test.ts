@@ -5,8 +5,7 @@ import { importMarkdown } from "../markdown/parse";
 import { exportMarkdown } from "../markdown/serialize";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
-import { accessibleTextFor, blendHex } from "../theme/branch-colors";
-import { THEMES } from "../theme/presets";
+import { PALETTES, SHAPES, resolveTheme } from "../theme/presets";
 import { MAX_CANVAS_AREA, pixelDimensions, resolveScale } from "./png";
 import { exportSvg } from "./svg";
 import { escapeXml } from "./xml";
@@ -35,8 +34,11 @@ const kepan = () => {
 };
 
 describe("§12.3 / §12.6 — the file is self-contained and inert", () => {
-  it.each(THEMES)("$name emits no script, foreignObject or external reference", (theme) => {
-    const doc: MindMapDocument = { ...kepan(), theme: { themeId: theme.id, branchColorMode: "by-first-level-branch" } };
+  it.each(SHAPES)("$name emits no script, foreignObject or external reference", (shape) => {
+    const doc: MindMapDocument = {
+      ...kepan(),
+      theme: { shapeId: shape.id, paletteId: shape.defaultPaletteId, branchColorMode: "by-first-level-branch" }
+    };
     const { svg } = exportSvg(doc);
 
     expect(svg).not.toMatch(/<script/i);
@@ -161,7 +163,10 @@ describe("§12.1 / §12.2 — visible state, and only that", () => {
 
 describe("§12.4 — background", () => {
   it("paints the theme background by default", () => {
-    const doc: MindMapDocument = { ...kepan(), theme: { themeId: "dark", branchColorMode: "single" } };
+    const doc: MindMapDocument = {
+      ...kepan(),
+      theme: { shapeId: "dark", paletteId: "night-glow", branchColorMode: "single" }
+    };
     const { svg } = exportSvg(doc);
     expect(svg).toContain('fill="#16181c"');
   });
@@ -173,8 +178,12 @@ describe("§12.4 — background", () => {
 });
 
 describe("theme tokens reach the file (theme.md §2.7)", () => {
-  it.each(THEMES)("$name writes its own node and connector colours", (theme) => {
-    const doc: MindMapDocument = { ...kepan(), theme: { themeId: theme.id, branchColorMode: "single" } };
+  it.each(SHAPES)("$name writes its own node and connector colours", (shape) => {
+    const theme = resolveTheme(shape.id, shape.defaultPaletteId);
+    const doc: MindMapDocument = {
+      ...kepan(),
+      theme: { shapeId: shape.id, paletteId: shape.defaultPaletteId, branchColorMode: "single" }
+    };
     const { svg } = exportSvg(doc);
     expect(svg).toContain(theme.nodes.root.background);
     expect(svg).toContain(theme.nodes.default.border);
@@ -184,11 +193,11 @@ describe("theme tokens reach the file (theme.md §2.7)", () => {
   it("uses branch colours on connectors when that mode is on", () => {
     const doc: MindMapDocument = {
       ...kepan(),
-      theme: { themeId: "soft-branches", branchColorMode: "by-first-level-branch" }
+      theme: { shapeId: "soft-branches", paletteId: "soft-spectrum", branchColorMode: "by-first-level-branch" }
     };
     const { svg } = exportSvg(doc);
-    const palette = THEMES.find((t) => t.id === "soft-branches")!.branches.colors;
-    expect(palette.some((color) => svg.includes(color))).toBe(true);
+    const palette = resolveTheme("soft-branches", "soft-spectrum").branches;
+    expect(palette.entries.some((entry) => svg.includes(entry.fill))).toBe(true);
   });
 
   it("uses the system font stack, never a web font (§12.3)", () => {
@@ -198,32 +207,52 @@ describe("theme tokens reach the file (theme.md §2.7)", () => {
   });
 });
 
-describe("Theme differentiation step 1 — exports carry branch fills as literals", () => {
-  const soft = THEMES.find((t) => t.id === "soft-branches")!;
+describe("Theme differentiation steps 1 + 3 — exports carry the authored pairs as literals", () => {
+  const soft = resolveTheme("soft-branches", "soft-spectrum");
 
-  it("paints first-level and descendant fills from the palette in by-first-level mode", () => {
+  it("paints first-level fills from the authored palette pairs in by-first-level mode", () => {
     let doc: MindMapDocument = {
       ...build([
         ["Root", 0],
         ["Alpha", 1],
         ["Beta", 1]
       ]),
-      theme: { themeId: soft.id, branchColorMode: "by-first-level-branch" }
+      theme: { shapeId: "soft-branches", paletteId: "soft-spectrum", branchColorMode: "by-first-level-branch" }
     };
-    // A depth-2 child so the same-with-opacity descendant fill is exercised too.
+    // A depth-2 child so the D-24 XMind model is exercised too: deeper nodes carry no tint.
     const alphaId = getNode(doc, doc.rootId).childIds[0]!;
     doc = applyCommand(doc, { type: "CreateChild", parentId: alphaId, text: "grand" }).doc;
 
     const { svg } = exportSvg(doc);
-    const [first, second] = soft.branches.colors;
-    expect(svg).toContain(`fill="${first}"`);
-    expect(svg).toContain(`fill="${accessibleTextFor(first!)}"`);
-    expect(svg).toContain(`fill="${second}"`);
-    expect(svg).toContain(`fill="${accessibleTextFor(second!)}"`);
+    const [first, second] = soft.branches.entries;
+    expect(svg).toContain(`fill="${first!.fill}"`);
+    expect(svg).toContain(`fill="${first!.text}"`);
+    expect(svg).toContain(`fill="${second!.fill}"`);
+    expect(svg).toContain(`fill="${second!.text}"`);
 
-    const descendantFill = blendHex(first!, soft.canvas.background, 0.65);
-    expect(svg).toContain(`fill="${descendantFill}"`);
-    expect(svg).toContain(`fill="${accessibleTextFor(descendantFill)}"`);
+    // Deeper nodes fall back to the role tokens; only the connector carries the branch colour.
+    expect(svg).toContain(`fill="${soft.nodes.default.background}"`);
+    expect(svg).toContain(`fill="${soft.nodes.default.text}"`);
+  });
+
+  it("carries every palette's fills and authored text colours literally (one text per palette)", () => {
+    for (const palette of PALETTES) {
+      const doc: MindMapDocument = {
+        ...build([
+          ["Root", 0],
+          ...Array.from({ length: Math.min(palette.entries.length, 8) }, (_, index) => [`B${index}`, 1] as [string, number])
+        ]),
+        theme: { shapeId: "minimal-light", paletteId: palette.id, branchColorMode: "by-first-level-branch" }
+      };
+      const { svg } = exportSvg(doc);
+      for (const entry of palette.entries) {
+        expect(svg, `${palette.id}/${entry.fill}`).toContain(`fill="${entry.fill}"`);
+      }
+      // One text colour per palette means one literal per palette, never a per-fill choice.
+      const texts = new Set(palette.entries.map((entry) => entry.text));
+      expect(texts.size).toBe(1);
+      for (const text of texts) expect(svg).toContain(`fill="${text}"`);
+    }
   });
 
   it("keeps single-mode node fills exactly as the role tokens paint them", () => {
@@ -232,7 +261,7 @@ describe("Theme differentiation step 1 — exports carry branch fills as literal
         ["Root", 0],
         ["Alpha", 1]
       ]),
-      theme: { themeId: soft.id, branchColorMode: "single" }
+      theme: { shapeId: "soft-branches", paletteId: "soft-spectrum", branchColorMode: "single" }
     };
     const { svg } = exportSvg(doc);
     expect(svg).toContain(`fill="${soft.nodes.level1.background}"`);

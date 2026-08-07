@@ -1,10 +1,25 @@
+import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
-import { accessibleTextFor, blendHex, branchColorFor, connectorColorFor, nodeFillAndTextFor } from "./branch-colors";
-import { BUSINESS, DARK, MINIMAL_LIGHT, SOFT_BRANCHES, THEMES, themeById, themeIdForSystemScheme } from "./presets";
+import { branchColorFor, connectorColorFor, nodeFillAndTextFor } from "./branch-colors";
+import {
+  BUSINESS,
+  DARK,
+  MINIMAL_LIGHT,
+  PALETTES,
+  SHAPES,
+  SOFT_BRANCHES,
+  initialThemeSelection,
+  isKnownPaletteId,
+  isKnownShapeId,
+  normalizeThemeSelection,
+  paletteById,
+  resolveTheme,
+  shapeById
+} from "./presets";
 import { roleTokens } from "./roles";
-import { contrastRatio, type MindMapTheme } from "./types";
+import { contrastRatio, type MindMapTheme, type ShapeTokens } from "./types";
 
 beforeEach(() => resetIdCounterForTests());
 
@@ -12,11 +27,20 @@ beforeEach(() => resetIdCounterForTests());
 const CHROME_ACCENT_LIGHT = "#2f6feb";
 const CHROME_ACCENT_DARK = "#5b8def";
 
-function withBranches(count: number, mode: "single" | "by-first-level-branch"): MindMapDocument {
+/** Every resolved combo ships as a shape × its own default palette (the legacy pairings). */
+const DEFAULT_THEMES: MindMapTheme[] = SHAPES.map((shape) =>
+  resolveTheme(shape.id, shape.defaultPaletteId)
+);
+
+function withBranches(
+  count: number,
+  mode: "single" | "by-first-level-branch",
+  paletteId = "soft-spectrum"
+): MindMapDocument {
   let doc: MindMapDocument = {
     ...createDocument("Root"),
     layout: { mode: "two-sided" },
-    theme: { themeId: "soft-branches", branchColorMode: mode }
+    theme: { shapeId: "soft-branches", paletteId, branchColorMode: mode }
   };
   for (let i = 0; i < count; i++) {
     const branch = applyCommand(doc, { type: "CreateChild", parentId: doc.rootId, text: `B${i}` });
@@ -26,27 +50,20 @@ function withBranches(count: number, mode: "single" | "by-first-level-branch"): 
   return doc;
 }
 
-/** Every literal colour value in a theme, so a stray CSS variable cannot hide in a corner. */
-function colorValues(theme: MindMapTheme): string[] {
+/** Every literal colour value in a token set, so a stray CSS variable cannot hide in a corner. */
+function colorValues(value: unknown): string[] {
   const out: string[] = [];
-  const walk = (value: unknown) => {
-    if (typeof value === "string") out.push(value);
-    else if (value && typeof value === "object") Object.values(value).forEach(walk);
+  const walk = (entry: unknown) => {
+    if (typeof entry === "string") out.push(entry);
+    else if (entry && typeof entry === "object") Object.values(entry).forEach(walk);
   };
-  walk({
-    canvas: theme.canvas,
-    nodes: theme.nodes,
-    connectors: theme.connectors,
-    branches: theme.branches,
-    controls: theme.controls,
-    interaction: theme.interaction
-  });
+  walk(value);
   return out;
 }
 
 describe("themes are data, not CSS (D-05)", () => {
-  it.each(THEMES)("$name uses only literal values", (theme) => {
-    for (const value of colorValues(theme)) {
+  it.each(SHAPES)("shape $name uses only literal values", (shape) => {
+    for (const value of colorValues(shape)) {
       // A `var(--x)` here would render correctly in the browser and produce an unstyled export,
       // which is precisely the failure this rule exists to prevent.
       expect(value).not.toMatch(/var\(|--/);
@@ -54,64 +71,161 @@ describe("themes are data, not CSS (D-05)", () => {
     }
   });
 
-  it.each(THEMES)("$name has every colour as a resolvable hex", (theme) => {
-    const hexes = colorValues(theme).filter((v) => v.startsWith("#"));
+  it.each(PALETTES)("palette $name uses only literal values", (palette) => {
+    for (const entry of palette.entries) {
+      expect(entry.fill).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(entry.text).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+
+  it.each(SHAPES)("shape $name has every colour as a resolvable hex", (shape) => {
+    const hexes = colorValues(shape).filter((v) => v.startsWith("#"));
     expect(hexes.length).toBeGreaterThan(8);
     for (const hex of hexes) expect(hex).toMatch(/^#[0-9a-f]{3}([0-9a-f]{3})?$/i);
   });
 
   it("survives a JSON round trip, which is what serialising into an export requires", () => {
-    for (const theme of THEMES) {
-      expect(JSON.parse(JSON.stringify(theme))).toEqual(theme);
+    for (const shape of SHAPES) {
+      expect(JSON.parse(JSON.stringify(shape))).toEqual(shape);
+    }
+    for (const palette of PALETTES) {
+      expect(JSON.parse(JSON.stringify(palette))).toEqual(palette);
     }
   });
 });
 
-describe("§13 — the four required presets exist", () => {
-  it("ships Minimal Light, Soft Branch Colors, Business and Dark", () => {
-    expect(THEMES.map((t) => t.id)).toEqual(["minimal-light", "soft-branches", "business", "dark"]);
-    expect(THEMES.filter((t) => t.appearance === "dark")).toHaveLength(1);
+describe("D-24 — the theme is two orthogonal axes, not one id", () => {
+  it("ships four shapes and ten palettes", () => {
+    expect(SHAPES.map((s) => s.id)).toEqual(["minimal-light", "soft-branches", "business", "dark"]);
+    expect(SHAPES.filter((s) => s.appearance === "dark")).toHaveLength(1);
+    expect(PALETTES.map((p) => p.id)).toEqual([
+      "slate",
+      "soft-spectrum",
+      "corporate",
+      "night-glow",
+      "ember",
+      "glacier",
+      "forest",
+      "mono",
+      "vivid",
+      "earth"
+    ]);
+    // The legacy single-theme ids all still resolve as shape ids, so old documents map 1:1.
+    for (const shape of SHAPES) expect(isKnownShapeId(shape.id)).toBe(true);
+    expect(new Set(SHAPES.map((s) => s.defaultPaletteId)).size).toBe(SHAPES.length);
   });
 
-  it("falls back to the default for an unknown id rather than failing (§7.3)", () => {
-    expect(themeById("does-not-exist").id).toBe(MINIMAL_LIGHT.id);
-    expect(themeById("dark").id).toBe(DARK.id);
+  it("falls back to defaults for an unknown shape or palette rather than failing (§7.3)", () => {
+    expect(shapeById("does-not-exist").id).toBe(MINIMAL_LIGHT.id);
+    expect(shapeById("dark").id).toBe(DARK.id);
+    expect(paletteById("does-not-exist").id).toBe("slate");
+    expect(paletteById("night-glow").id).toBe("night-glow");
+    expect(isKnownShapeId("does-not-exist")).toBe(false);
+    expect(isKnownPaletteId("does-not-exist")).toBe(false);
   });
 
-  it("makes the presets visually distinct rather than hue variants (§12.5)", () => {
+  it("resolves a shape and palette into the theme the renderer reads", () => {
+    const theme = resolveTheme("business", "night-glow");
+    expect(theme.canvas).toEqual(BUSINESS.canvas);
+    expect(theme.nodes).toEqual(BUSINESS.nodes);
+    expect(theme.typography).toEqual(BUSINESS.typography);
+    expect(theme.branches.id).toBe("night-glow");
+    expect(theme.branches.entries).toEqual(resolveTheme("business", "night-glow").branches.entries);
+  });
+
+  it("falls an unknown palette back to the shape's own default so the map keeps its identity", () => {
+    const theme = resolveTheme("dark", "does-not-exist");
+    expect(theme.branches.id).toBe("night-glow");
+    const unknown = resolveTheme("does-not-exist", "does-not-exist");
+    expect(unknown.id).toBe(MINIMAL_LIGHT.id);
+    expect(unknown.branches.id).toBe(MINIMAL_LIGHT.defaultPaletteId);
+  });
+
+  it("maps the system colour scheme onto the initial selection (Canvas affordances c)", () => {
+    expect(initialThemeSelection(false)).toEqual({
+      shapeId: "minimal-light",
+      paletteId: "slate",
+      branchColorMode: "single"
+    });
+    expect(initialThemeSelection(true)).toEqual({
+      shapeId: "dark",
+      paletteId: "night-glow",
+      branchColorMode: "single"
+    });
+  });
+
+  it("maps a legacy single themeId onto its shape + default palette (step 3 back-compat)", () => {
+    expect(
+      normalizeThemeSelection({ themeId: "soft-branches", branchColorMode: "by-first-level-branch" })
+    ).toEqual({
+      shapeId: "soft-branches",
+      paletteId: "soft-spectrum",
+      branchColorMode: "by-first-level-branch"
+    });
+    expect(normalizeThemeSelection({ themeId: "dark" })).toEqual({
+      shapeId: "dark",
+      paletteId: "night-glow",
+      branchColorMode: "single"
+    });
+  });
+
+  it("lets an explicit axis win over the legacy theme, per axis", () => {
+    expect(normalizeThemeSelection({ themeId: "dark", shapeId: "business" })).toEqual({
+      shapeId: "business",
+      paletteId: "night-glow",
+      branchColorMode: "single"
+    });
+    expect(normalizeThemeSelection({ themeId: "dark", paletteId: "slate" })).toEqual({
+      shapeId: "dark",
+      paletteId: "slate",
+      branchColorMode: "single"
+    });
+  });
+
+  it("normalises unknown ids to defaults", () => {
+    expect(normalizeThemeSelection({ themeId: "bogus", branchColorMode: "nope" as never })).toEqual({
+      shapeId: "minimal-light",
+      paletteId: "slate",
+      branchColorMode: "single"
+    });
+    expect(normalizeThemeSelection({ shapeId: "business", paletteId: "bogus" })).toEqual({
+      shapeId: "business",
+      paletteId: "corporate",
+      branchColorMode: "single"
+    });
+  });
+});
+
+describe("§13 — the four required shape presets exist", () => {
+  it("makes the shapes visually distinct rather than hue variants (§12.5)", () => {
     // Not by canvas alone: Minimal Light and Business are both white-canvas by design and
     // differ in border language instead. §13 lists that as the sanctioned axis of variation.
-    const signature = (t: (typeof THEMES)[number]) =>
+    const signature = (t: ShapeTokens) =>
       [t.canvas.background, t.nodes.default.radius, t.nodes.default.background, t.nodes.root.background].join("|");
-    expect(new Set(THEMES.map(signature)).size).toBe(THEMES.length);
-    expect(new Set(THEMES.map((t) => t.nodes.default.radius)).size).toBeGreaterThan(1);
-  });
-
-  it("maps the system colour scheme onto the initial theme (Canvas affordances c)", () => {
-    expect(themeIdForSystemScheme(false)).toBe(MINIMAL_LIGHT.id);
-    expect(themeIdForSystemScheme(true)).toBe(DARK.id);
+    expect(new Set(SHAPES.map(signature)).size).toBe(SHAPES.length);
+    expect(new Set(SHAPES.map((t) => t.nodes.default.radius)).size).toBeGreaterThan(1);
   });
 
   it("differs in shape language, not only hue — the D-22 grayscale signature", () => {
-    // Step 2's acceptance is that the four presets are distinguishable in grayscale, which
+    // Step 2's acceptance is that the four shapes are distinguishable in grayscale, which
     // hue-based signatures cannot prove. Radius, border weight, and padding density per role
     // must all differ so a desaturated screenshot still separates the presets.
-    const shapeSignature = (t: (typeof THEMES)[number]) =>
+    const shapeSignature = (t: ShapeTokens) =>
       (["root", "level1", "default"] as const)
         .map(
           (role) =>
             `${t.nodes[role].radius}|${t.nodes[role].borderWidth}|${t.nodes[role].paddingX}|${t.nodes[role].paddingY}`
         )
         .join(";");
-    expect(new Set(THEMES.map(shapeSignature)).size).toBe(THEMES.length);
+    expect(new Set(SHAPES.map(shapeSignature)).size).toBe(SHAPES.length);
     // The axes are genuinely in play, not one token doing all the work.
-    expect(new Set(THEMES.map((t) => t.nodes.level1.borderWidth)).size).toBeGreaterThan(1);
-    expect(new Set(THEMES.map((t) => t.nodes.default.paddingX)).size).toBeGreaterThan(1);
+    expect(new Set(SHAPES.map((t) => t.nodes.level1.borderWidth)).size).toBeGreaterThan(1);
+    expect(new Set(SHAPES.map((t) => t.nodes.default.paddingX)).size).toBeGreaterThan(1);
   });
 });
 
 describe("§18 — contrast", () => {
-  it.each(THEMES)("$name meets AA for body text on every node role", (theme) => {
+  it.each(DEFAULT_THEMES)("$name meets AA for body text on every node role", (theme) => {
     for (const role of ["root", "level1", "default"] as const) {
       const tokens = theme.nodes[role];
       expect(
@@ -121,17 +235,17 @@ describe("§18 — contrast", () => {
     }
   });
 
-  it.each(THEMES)("$name keeps connectors visible against the canvas", (theme) => {
+  it.each(DEFAULT_THEMES)("$name keeps connectors visible against the canvas", (theme) => {
     expect(contrastRatio(theme.connectors.defaultColor, theme.canvas.background)).toBeGreaterThan(1.4);
   });
 
-  it.each(THEMES)("$name keeps the collapse badge readable", (theme) => {
+  it.each(DEFAULT_THEMES)("$name keeps the collapse badge readable", (theme) => {
     expect(
       contrastRatio(theme.controls.collapseText, theme.controls.collapseBackground)
     ).toBeGreaterThanOrEqual(4.5);
   });
 
-  it.each(THEMES)("$name gives selection a perceptible ring against the canvas", (theme) => {
+  it.each(DEFAULT_THEMES)("$name gives selection a perceptible ring against the canvas", (theme) => {
     expect(contrastRatio(theme.interaction.selectedOutline, theme.canvas.background)).toBeGreaterThan(3);
   });
 });
@@ -147,93 +261,114 @@ describe("§18 — contrast", () => {
  *
  * What C-01 actually protects is the user's ability to tell "this node is selected" from "this
  * branch happens to be coloured". On the canvas that contest is between `interaction
- * .selectedOutline` and `branches.colors`, so that is what is asserted here.
+ * .selectedOutline` and the palette fills, so that is what is asserted here — across every
+ * shape × palette combo, since a palette can now be paired with any shape.
  */
 describe("C-01 — selection cannot be mistaken for a branch colour", () => {
-  /*
-   * Theme differentiation step 1 (D-22) changed the premise this block was built on: branch
-   * colour now *is* a first-level node fill in by-first-level-branch mode. What C-01 still
-   * needs is that selection is expressed as a ring, never as a fill — so the ring colour must
-   * not read as a branch colour — and that the palette never collides with a role's base
-   * tokens (which is what a `single`-mode map still paints).
-   */
-  it.each(THEMES)("$name expresses selection as a ring, never as a fill", (theme) => {
-    expect(theme.interaction.selectedOutlineWidth).toBeGreaterThan(0);
-    expect(theme.interaction.selectedOutline).not.toBe(theme.nodes.default.background);
-    // With branch colour reaching node fills, the ring is the only selection signal, so it
-    // must never coincide with a palette colour.
-    expect(theme.branches.colors).not.toContain(theme.interaction.selectedOutline);
-    // The palette must also stay clear of the role tokens a single-mode map paints, so a
-    // coloured branch fill cannot be mistaken for a node that happens to use its base tokens.
-    for (const role of ["root", "level1", "default"] as const) {
-      expect(theme.branches.colors, `${theme.id}/${role} background`).not.toContain(
-        theme.nodes[role].background
-      );
-      expect(theme.branches.colors, `${theme.id}/${role} border`).not.toContain(
-        theme.nodes[role].border
-      );
-    }
+  it.each(SHAPES)("$name expresses selection as a ring, never as a fill", (shape) => {
+    expect(shape.interaction.selectedOutlineWidth).toBeGreaterThan(0);
+    expect(shape.interaction.selectedOutline).not.toBe(shape.nodes.default.background);
   });
 
-  it("keeps the chrome accent off the map entirely, which is why the above is the real test", () => {
-    for (const theme of THEMES) {
-      const onCanvas = [
-        theme.canvas.background,
-        theme.connectors.defaultColor,
-        theme.interaction.selectedOutline,
-        theme.interaction.keyboardFocusRing,
-        ...theme.branches.colors,
-        ...(["root", "level1", "default"] as const).flatMap((role) => [
-          theme.nodes[role].background,
-          theme.nodes[role].border
-        ])
-      ].map((c) => c.toLowerCase());
-      expect(onCanvas).not.toContain(CHROME_ACCENT_LIGHT);
-      expect(onCanvas).not.toContain(CHROME_ACCENT_DARK);
-    }
-  });
-});
-
-describe("Theme differentiation step 1 — the branch palette reaches the nodes (§8.3)", () => {
-  it.each(THEMES)("$name gives every palette colour a WCAG AA text partner", (theme) => {
-    for (const colour of theme.branches.colors) {
-      const text = accessibleTextFor(colour);
-      expect(contrastRatio(colour, text), `${theme.id}/${colour} with ${text}`).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  it("keeps same-with-opacity descendant fills at AA too", () => {
-    for (const theme of THEMES.filter((t) => t.branches.descendantTintPolicy === "same-with-opacity")) {
-      for (const colour of theme.branches.colors) {
-        const fill = blendHex(colour, theme.canvas.background, 0.65);
-        expect(
-          contrastRatio(fill, accessibleTextFor(fill)),
-          `${theme.id}/${colour} blended to ${fill}`
-        ).toBeGreaterThanOrEqual(4.5);
+  it("keeps every shape's ring and role tokens clear of every palette's fills", () => {
+    for (const shape of SHAPES) {
+      for (const palette of PALETTES) {
+        const fills = palette.entries.map((entry) => entry.fill);
+        // With branch colour reaching node fills, the ring is the only selection signal, so it
+        // must never coincide with a palette fill on any shape the palette can pair with.
+        expect(fills, `${shape.id} × ${palette.id} selectedOutline`).not.toContain(
+          shape.interaction.selectedOutline
+        );
+        // The palette must also stay clear of the role tokens a single-mode map paints, so a
+        // coloured branch fill cannot be mistaken for a node that happens to use its base tokens.
+        for (const role of ["root", "level1", "default"] as const) {
+          expect(fills, `${shape.id} × ${palette.id}/${role} background`).not.toContain(
+            shape.nodes[role].background
+          );
+          expect(fills, `${shape.id} × ${palette.id}/${role} border`).not.toContain(
+            shape.nodes[role].border
+          );
+        }
       }
     }
   });
 
-  it("paints first-level fills with the branch colour and descendants per policy", () => {
+  it("keeps the chrome accent off the map entirely, which is why the above is the real test", () => {
+    for (const shape of SHAPES) {
+      for (const palette of PALETTES) {
+        const onCanvas = [
+          shape.canvas.background,
+          shape.connectors.defaultColor,
+          shape.interaction.selectedOutline,
+          shape.interaction.keyboardFocusRing,
+          ...palette.entries.map((entry) => entry.fill),
+          ...(["root", "level1", "default"] as const).flatMap((role) => [
+            shape.nodes[role].background,
+            shape.nodes[role].border
+          ])
+        ].map((c) => c.toLowerCase());
+        expect(onCanvas, `${shape.id} × ${palette.id}`).not.toContain(CHROME_ACCENT_LIGHT);
+        expect(onCanvas, `${shape.id} × ${palette.id}`).not.toContain(CHROME_ACCENT_DARK);
+      }
+    }
+  });
+});
+
+describe("D-24 — palette entries are authored { fill, text } pairs, not runtime derivations (§8.3)", () => {
+  it.each(PALETTES)("$name: every entry clears WCAG AA 4.5:1 with its authored text", (palette) => {
+    for (const entry of palette.entries) {
+      expect(
+        contrastRatio(entry.text, entry.fill),
+        `${palette.id}/${entry.fill} with ${entry.text}`
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+  });
+
+  it.each(PALETTES)("$name: all entries share one text colour", (palette) => {
+    expect(new Set(palette.entries.map((entry) => entry.text)).size).toBe(1);
+  });
+
+  it.each(PALETTES)("$name: offers six to ten distinguishable fills", (palette) => {
+    expect(palette.entries.length).toBeGreaterThanOrEqual(6);
+    expect(palette.entries.length).toBeLessThanOrEqual(10);
+    const fills = palette.entries.map((entry) => entry.fill);
+    expect(new Set(fills).size).toBe(fills.length);
+  });
+
+  it("no runtime text picker survives — accessibleTextFor is deleted, not merely unused", () => {
+    const source = readFileSync(new URL("./branch-colors.ts", import.meta.url), "utf8");
+    expect(source).not.toContain("accessibleTextFor");
+    expect(source).not.toContain("blendHex");
+    expect(source).not.toContain("descendantTintPolicy");
+  });
+});
+
+describe("Theme differentiation step 1 + step 3 — branch fills come from the palette entry (§8.3)", () => {
+  it("paints first-level fills with the authored pair and returns deeper nodes to role tokens", () => {
     const doc = withBranches(4, "by-first-level-branch");
     const firstLevel = getNode(doc, doc.rootId).childIds;
-    for (const theme of THEMES) {
+    for (const shape of SHAPES) {
+      const theme = resolveTheme(shape.id, shape.defaultPaletteId);
       for (const [index, id] of firstLevel.entries()) {
-        const expected = theme.branches.colors[index % theme.branches.colors.length]!;
-        expect(nodeFillAndTextFor(doc, theme, id, 1).background, `${theme.id}/first-level ${index}`).toBe(expected);
+        const entry = theme.branches.entries[index % theme.branches.entries.length]!;
+        expect(nodeFillAndTextFor(doc, theme, id, 1), `${shape.id}/first-level ${index}`).toEqual({
+          background: entry.fill,
+          text: entry.text
+        });
+        // D-24 — the XMind model: deeper nodes carry no tint; only the connector is coloured.
         for (const childId of getNode(doc, id).childIds) {
-          const expectedFill =
-            theme.branches.descendantTintPolicy === "same-with-opacity"
-              ? blendHex(expected, theme.canvas.background, 0.65)
-              : expected;
-          expect(nodeFillAndTextFor(doc, theme, childId, 2).background, `${theme.id}/descendant`).toBe(expectedFill);
+          expect(
+            nodeFillAndTextFor(doc, theme, childId, 2),
+            `${shape.id}/descendant`
+          ).toEqual({ background: theme.nodes.default.background, text: theme.nodes.default.text });
         }
       }
     }
   });
 
   it("never colours the root, and single mode returns the role tokens verbatim", () => {
-    for (const theme of THEMES) {
+    for (const shape of SHAPES) {
+      const theme = resolveTheme(shape.id, shape.defaultPaletteId);
       const branchDoc = withBranches(3, "by-first-level-branch");
       expect(nodeFillAndTextFor(branchDoc, theme, branchDoc.rootId, 0)).toEqual({
         background: theme.nodes.root.background,
@@ -258,27 +393,27 @@ describe("Theme differentiation step 1 — the branch palette reaches the nodes 
 });
 
 describe("§8.2 — palette size and cycling", () => {
-  it.each(THEMES)("$name offers six to ten distinguishable colours", (theme) => {
-    expect(theme.branches.colors.length).toBeGreaterThanOrEqual(6);
-    expect(theme.branches.colors.length).toBeLessThanOrEqual(10);
-    expect(new Set(theme.branches.colors).size).toBe(theme.branches.colors.length);
-  });
-
-  it("cycles rather than running out", () => {
-    const doc = withBranches(SOFT_BRANCHES.branches.colors.length + 2, "by-first-level-branch");
+  it.each(PALETTES)("$name: cycling happens per palette", (palette) => {
+    const doc = withBranches(palette.entries.length + 2, "by-first-level-branch", palette.id);
     const firstLevel = getNode(doc, doc.rootId).childIds;
-    const palette = SOFT_BRANCHES.branches.colors;
+    const theme = resolveTheme("soft-branches", palette.id);
 
-    expect(branchColorFor(doc, SOFT_BRANCHES, firstLevel[palette.length]!)).toBe(palette[0]);
-    expect(branchColorFor(doc, SOFT_BRANCHES, firstLevel[palette.length + 1]!)).toBe(palette[1]);
+    expect(branchColorFor(doc, theme, firstLevel[palette.entries.length]!)).toBe(
+      palette.entries[0]!.fill
+    );
+    expect(branchColorFor(doc, theme, firstLevel[palette.entries.length + 1]!)).toBe(
+      palette.entries[1]!.fill
+    );
   });
 });
 
 describe("§8.1 — colour follows semantic order, not visual side", () => {
+  const soft = resolveTheme(SOFT_BRANCHES.id, "soft-spectrum");
+
   it("does not repaint a branch when it moves to the other side", () => {
     const doc = withBranches(4, "by-first-level-branch");
     const branchId = getNode(doc, doc.rootId).childIds[1]!;
-    const before = branchColorFor(doc, SOFT_BRANCHES, branchId);
+    const before = branchColorFor(doc, soft, branchId);
 
     const moved = applyCommand(doc, {
       type: "MoveFirstLevelBranchSide",
@@ -286,15 +421,15 @@ describe("§8.1 — colour follows semantic order, not visual side", () => {
       side: getNode(doc, branchId).side === "right" ? "left" : "right"
     }).doc;
 
-    expect(branchColorFor(moved, SOFT_BRANCHES, branchId)).toBe(before);
+    expect(branchColorFor(moved, soft, branchId)).toBe(before);
   });
 
   it("gives every descendant its first-level ancestor's colour", () => {
     const doc = withBranches(3, "by-first-level-branch");
     for (const branchId of getNode(doc, doc.rootId).childIds) {
-      const expected = branchColorFor(doc, SOFT_BRANCHES, branchId);
+      const expected = branchColorFor(doc, soft, branchId);
       for (const childId of getNode(doc, branchId).childIds) {
-        expect(branchColorFor(doc, SOFT_BRANCHES, childId)).toBe(expected);
+        expect(branchColorFor(doc, soft, childId)).toBe(expected);
       }
     }
   });
@@ -302,39 +437,39 @@ describe("§8.1 — colour follows semantic order, not visual side", () => {
   it("returns nothing in single mode, so connectors use the theme colour", () => {
     const doc = withBranches(3, "single");
     const branchId = getNode(doc, doc.rootId).childIds[0]!;
-    expect(branchColorFor(doc, SOFT_BRANCHES, branchId)).toBeNull();
-    expect(connectorColorFor(doc, SOFT_BRANCHES, branchId)).toBe(SOFT_BRANCHES.connectors.defaultColor);
+    expect(branchColorFor(doc, soft, branchId)).toBeNull();
+    expect(connectorColorFor(doc, soft, branchId)).toBe(soft.connectors.defaultColor);
   });
 
   it("never colours the root", () => {
     const doc = withBranches(2, "by-first-level-branch");
-    expect(branchColorFor(doc, SOFT_BRANCHES, doc.rootId)).toBeNull();
+    expect(branchColorFor(doc, soft, doc.rootId)).toBeNull();
   });
 
   it("keeps colours stable when an earlier branch is deleted only by its own index shift", () => {
     const doc = withBranches(4, "by-first-level-branch");
     const [, second, third] = getNode(doc, doc.rootId).childIds as [string, string, string];
-    const thirdBefore = branchColorFor(doc, SOFT_BRANCHES, third);
+    const thirdBefore = branchColorFor(doc, soft, third);
 
     const after = applyCommand(doc, { type: "DeleteSubtree", nodeId: second }).doc;
 
     // Deleting a sibling shifts later branches one slot down the palette. That is inherent to
     // index-based assignment and is recorded here as expected, not accidental: §8.2 says
     // colours are decorative and not identifiers.
-    expect(branchColorFor(after, SOFT_BRANCHES, third)).not.toBe(thirdBefore);
-    expect(branchColorFor(after, SOFT_BRANCHES, third)).toBe(SOFT_BRANCHES.branches.colors[1]);
+    expect(branchColorFor(after, soft, third)).not.toBe(thirdBefore);
+    expect(branchColorFor(after, soft, third)).toBe(soft.branches.entries[1]!.fill);
   });
 });
 
 describe("theme layout tokens stay within an ergonomic range (§11)", () => {
-  it.each(THEMES)("$name does not make a map wildly denser or sparser", (theme) => {
-    expect(theme.layout.parentChildGap).toBeGreaterThanOrEqual(32);
-    expect(theme.layout.parentChildGap).toBeLessThanOrEqual(72);
-    expect(theme.nodes.default.maxWidth).toBeGreaterThanOrEqual(200);
+  it.each(SHAPES)("$name does not make a map wildly denser or sparser", (shape) => {
+    expect(shape.layout.parentChildGap).toBeGreaterThanOrEqual(32);
+    expect(shape.layout.parentChildGap).toBeLessThanOrEqual(72);
+    expect(shape.nodes.default.maxWidth).toBeGreaterThanOrEqual(200);
   });
 
-  it("uses one font stack across all presets, so measurement stays comparable", () => {
-    expect(new Set(THEMES.map((t) => t.typography.fontFamily)).size).toBe(1);
+  it("uses one font stack across all shapes, so measurement stays comparable", () => {
+    expect(new Set(SHAPES.map((t) => t.typography.fontFamily)).size).toBe(1);
     expect(BUSINESS.typography.fontFamily).toContain("PingFang SC");
   });
 });

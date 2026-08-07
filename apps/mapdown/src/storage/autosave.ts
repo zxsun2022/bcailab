@@ -1,5 +1,6 @@
 import { checkInvariants } from "../model/invariants";
 import { SCHEMA_VERSION, type MindMapDocument, type NodeId } from "../model/types";
+import { normalizeThemeSelection } from "../theme/presets";
 import {
   checksumOf,
   makeSnapshot,
@@ -221,9 +222,17 @@ export async function recoverDocument(
           : snapshot.document.rootId;
       const restored =
         selectedNodeId === snapshot.selectedNodeId ? snapshot : { ...snapshot, selectedNodeId };
+      // D-24 — a snapshot written before the two-axis theme split carries `theme.themeId`.
+      // Normalise it the same way import does, so the legacy single-key theme maps onto its
+      // shape + palette pair instead of silently resetting to the defaults.
+      const document = {
+        ...restored.document,
+        theme: normalizeThemeSelection(restored.document.theme)
+      };
+      const normalized = { ...restored, document };
       return skipped === 0
-        ? { kind: "restored", snapshot: restored }
-        : { kind: "restored-earlier", snapshot: restored, skipped };
+        ? { kind: "restored", snapshot: normalized }
+        : { kind: "restored-earlier", snapshot: normalized, skipped };
     }
     skipped++;
   }

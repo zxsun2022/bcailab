@@ -266,6 +266,60 @@ describe("§6 — recovery validates before it activates", () => {
       expect(outcome.snapshot.selectedNodeId).toBe(doc.rootId);
     }
   });
+
+  /*
+   * D-24 — every device that ran a pre-split build has snapshots holding `theme.themeId`, and
+   * recovery is the only path that carries them into this build. `normalizeThemeSelection` is
+   * unit-tested and the Markdown import path is covered, but the IndexedDB path was not, which
+   * is the one an existing user actually takes on upgrade.
+   */
+  it("maps a legacy single-key theme in a stored snapshot onto its shape + palette pair", async () => {
+    const { store, autosave } = harness();
+    const doc = docWith(["a"]);
+    autosave.schedule(doc, doc.rootId);
+    await autosave.flush();
+
+    const ids = await store.listSnapshotIds(doc.id);
+    store.corrupt(ids.at(-1)!, (snapshot) => {
+      // Exactly what the pre-split build wrote: one `themeId`, no axes.
+      (snapshot.document as { theme: unknown }).theme = {
+        themeId: "business",
+        branchColorMode: "by-first-level-branch"
+      };
+    });
+
+    const outcome = await recoverDocument(store, doc.id);
+    expect(outcome.kind).toBe("restored");
+    if (outcome.kind === "restored") {
+      expect(outcome.snapshot.document.theme).toEqual({
+        shapeId: "business",
+        paletteId: "corporate",
+        branchColorMode: "by-first-level-branch"
+      });
+    }
+  });
+
+  it("falls back to the defaults when a stored snapshot carries no theme at all", async () => {
+    const { store, autosave } = harness();
+    const doc = docWith(["a"]);
+    autosave.schedule(doc, doc.rootId);
+    await autosave.flush();
+
+    const ids = await store.listSnapshotIds(doc.id);
+    store.corrupt(ids.at(-1)!, (snapshot) => {
+      delete (snapshot.document as { theme?: unknown }).theme;
+    });
+
+    const outcome = await recoverDocument(store, doc.id);
+    expect(outcome.kind).toBe("restored");
+    if (outcome.kind === "restored") {
+      expect(outcome.snapshot.document.theme).toEqual({
+        shapeId: "minimal-light",
+        paletteId: "slate",
+        branchColorMode: "single"
+      });
+    }
+  });
 });
 
 describe("round trip through storage", () => {

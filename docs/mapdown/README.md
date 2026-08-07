@@ -4,10 +4,10 @@
 implementation complete in review. The production build is live; only the owner can mark the
 roadmap checkpoint accepted. The stabilization checkpoints are also in owner review.
 **443 tests.**
-The editor works — keyboard-first authoring, two-sided layout, four themes, Markdown/SVG/PNG
-export, local autosave and recovery, pan/zoom/fit, drag-and-drop plus accessible move commands,
-a real CommonMark parser, searchable Help/Command Center, and hardened keyboard/screen-reader
-semantics.
+The editor works — keyboard-first authoring, two-sided layout, four shapes × ten palettes
+(the theme is a shape/palette pair, D-24), Markdown/SVG/PNG export, local autosave and
+recovery, pan/zoom/fit, drag-and-drop plus accessible move commands, a real CommonMark parser,
+searchable Help/Command Center, and hardened keyboard/screen-reader semantics.
 
 **Home:** `apps/mapdown`; deployed by the Git-connected `mapdown` Pages project at
 [map.bcailab.com](https://map.bcailab.com).

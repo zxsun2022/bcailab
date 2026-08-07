@@ -8,6 +8,7 @@ import {
   type MindMapNode,
   type NodeId
 } from "../model/types";
+import { isKnownPaletteId, isKnownShapeId, normalizeThemeSelection } from "../theme/presets";
 
 /**
  * Markdown import for the documented subset, per `markdown-format.md` §10.
@@ -32,6 +33,7 @@ export type WarningCategory =
   | "continuation-merged"
   | "unsupported-block-removed"
   | "unsupported-front-matter-key"
+  | "unsupported-theme-fallback"
   | "additional-heading-ignored";
 
 export interface ImportWarning {
@@ -55,6 +57,9 @@ class ImportLimitError extends Error {}
 
 interface FrontMatter {
   layout?: "right" | "two-sided";
+  /** Step 3 (D-24) — the two theme axes; `theme` remains for legacy single-key documents. */
+  shape?: string;
+  palette?: string;
   theme?: string;
   branchColors?: "single" | "by-first-level-branch";
   version?: number;
@@ -102,6 +107,30 @@ function parseFrontMatter(lines: string[]): { data: FrontMatter; warnings: Impor
         break;
       case "theme":
         if (value) data.theme = value;
+        break;
+      case "shape":
+        if (value) {
+          if (!isKnownShapeId(value)) {
+            warnings.push({
+              category: "unsupported-theme-fallback",
+              line: index + 2,
+              detail: `Unknown shape: ${value}. Using the default instead.`
+            });
+          }
+          data.shape = value;
+        }
+        break;
+      case "palette":
+        if (value) {
+          if (!isKnownPaletteId(value)) {
+            warnings.push({
+              category: "unsupported-theme-fallback",
+              line: index + 2,
+              detail: `Unknown palette: ${value}. Using the default instead.`
+            });
+          }
+          data.palette = value;
+        }
         break;
       case "branchColors":
         if (value === "single" || value === "by-first-level-branch") data.branchColors = value;
@@ -359,10 +388,15 @@ export function importMarkdown(source: string): ImportResult {
     rootId,
     nodes,
     layout: { mode: front.layout ?? "right" },
-    theme: {
-      themeId: front.theme ?? "minimal-light",
-      branchColorMode: front.branchColors ?? "single"
-    },
+    // D-24 — `theme` is the legacy single-key form; `shape` / `palette` are the two axes and
+    // win per-axis when both are present. `normalizeThemeSelection` maps legacy ids onto the
+    // pair and falls back to defaults for unknown values (§7.3).
+    theme: normalizeThemeSelection({
+      themeId: front.theme,
+      shapeId: front.shape,
+      paletteId: front.palette,
+      branchColorMode: front.branchColors
+    }),
     revision: 0
   };
 

@@ -21,7 +21,7 @@ A theme is a structured token set, not a loose stylesheet. Theme tokens must cov
 Conceptual schema:
 
 ```ts
-interface MindMapTheme {
+interface ShapeTokens {
   id: string;
   name: string;
   appearance: 'light' | 'dark';
@@ -29,12 +29,29 @@ interface MindMapTheme {
   typography: TypographyTokens;
   nodes: NodeLevelTokens;
   connectors: ConnectorTokens;
-  branches: BranchPaletteTokens;
   controls: ControlTokens;
   interaction: InteractionTokens;
   layout: ThemeLayoutTokens;
+  defaultPaletteId: string;
+}
+
+interface PaletteTokens {
+  id: string;
+  name: string;
+  description: string;
+  entries: Array<{ fill: string; text: string }>;
+}
+
+/** One shape + one palette, resolved for rendering and export (D-24). */
+interface MindMapTheme extends Omit<ShapeTokens, 'defaultPaletteId'> {
+  branches: PaletteTokens;
 }
 ```
+
+The theme is two orthogonal axes, both persisted in Markdown front matter (`shape:` /
+`palette:`). A shape is the shape language + canvas appearance + role base tokens + type
+scale; a palette is the branch colour band. `presets.ts` resolves the pair into the
+`MindMapTheme` the renderer, exporter and editing overlay share.
 
 ## 4. Canvas tokens
 
@@ -140,12 +157,29 @@ Requirements:
 ## 8. Branch palette
 
 ```ts
-interface BranchPaletteTokens {
-  colors: string[];
-  assignment: 'cyclic-by-semantic-first-level-order';
-  descendantTintPolicy: 'same' | 'same-with-opacity';
+interface PaletteEntry {
+  /** The fill colour for a first-level branch in by-first-level-branch mode. */
+  fill: string;
+  /** The designed text colour on that fill — authored data, never computed at runtime. */
+  text: string;
+}
+
+interface PaletteTokens {
+  id: string;
+  name: string;
+  /** One-line personality (cool/warm/high-saturation/monochrome...), for the picker. */
+  description: string;
+  entries: PaletteEntry[];
 }
 ```
+
+### 8.0 The theme is a shape × palette pair (D-24)
+
+Step 3 splits the single theme id into two orthogonal fields. Both are written into the
+Markdown front matter (`shape:` / `palette:`), and a document written with the legacy single
+`theme:` key still opens: it maps onto `(shape: X, palette: X's default palette)` and renders
+with the same tokens as today. The picker presents the two axes separately — a shape group and
+a palette group — never a shape × palette product list.
 
 ### 8.1 Assignment
 
@@ -155,21 +189,31 @@ Therefore moving a branch from left to right does not change its color.
 
 ### 8.2 Palette size
 
-A palette SHOULD include 6–10 distinguishable colors. After exhaustion, colors repeat cyclically.
+A palette SHOULD include 6–10 distinguishable designed pairs. After exhaustion, fills repeat cyclically.
 
 Repeated colors are acceptable because colors are decorative and not unique identifiers.
 
-### 8.3 Contrast
+### 8.3 Text colour is designed data, not a runtime computation
 
-In `by-first-level-branch` mode the branch colour drives the first-level node **fill** as well
-as the connector stroke, so text is placed on saturated fills by design. Each first-level
-fill MUST therefore carry the accessible partner of that fill (white or the theme's near-black,
-whichever clears WCAG AA 4.5:1), and every palette colour MUST have such a partner — asserted
-for every colour in every preset. Descendants follow `descendantTintPolicy`: `same` themes keep
-the full branch fill; `same-with-opacity` themes tint descendant fills at the same opacity
-their connectors use, blended over the canvas so exports stay literal and solid. In `single`
-mode no node fill changes. Branch colours must remain distinguishable from the canvas, node
-base borders, and the selection ring.
+In `by-first-level-branch` mode the branch fill drives the first-level node **fill** and its
+**authored text colour**. Three contracts follow:
+
+1. **Every `{ fill, text }` pair clears WCAG AA 4.5:1** — asserted for every entry in every
+   palette by `theme.test.ts`, so an out-of-range pair fails the build. There is no runtime
+   "pick the better of white / near-black" path; that silent degradation is exactly what let
+   the old Minimal Light palette (all six colours inside the 3.67–4.85 luminance band) flip
+   text black/white per branch in the same map.
+2. **One text colour per palette.** All entries in a palette share a single text colour so a
+   map reads as one object rather than a patchwork. This is also asserted, not left to
+   authors' discipline.
+3. **Branch colour fills only the first level (XMind model, D-24).** Deeper nodes return to
+   the role base tokens; only the connector carries the branch colour below the first level.
+   Hierarchy below level 1 is expressed by the shape layer (finer borders, paler ground).
+   There is no descendant fill tint, because blending a fill would break the authored
+   `{ fill, text }` pair.
+
+Branch colours must remain distinguishable from the canvas, node base borders, and the
+selection ring (C-01).
 
 ## 9. Interaction tokens
 
@@ -241,11 +285,16 @@ interface ThemeLayoutTokens {
 
 Themes may adjust density, but MVP presets SHOULD stay within a consistent ergonomic range. A theme should not make a 50-node document twice as large as another without explicit density controls.
 
-## 12. Required presets
+## 12. Required shapes and palettes
+
+The four required shapes ship by default, each with a `defaultPaletteId` (the palette a legacy
+single-`themeId` document maps to). Ten palettes ship by default and may be paired with any
+shape; the palette list is plain data, so adding one is a data change, not a code change
+(D-24).
 
 ### 12.1 Minimal Light
 
-Intent:
+Shape intent:
 
 - content-first;
 - neutral white/light canvas;
@@ -254,43 +303,71 @@ Intent:
 - one accent for selection;
 - suitable for study and printing.
 
-Suggested visual characteristics:
+Visual characteristics:
 
 - root: dark text with stronger border/fill;
 - level 1: lightly filled or underlined;
 - deeper nodes: white/transparent with fine border;
-- branch colors optional or muted.
+- hairline-outlined rounded cards (the reference shape, D-22);
+- default palette **Slate** — muted cool greys, deliberately darkened so every fill carries
+  white text at AA (the old #6b7280 family sat in the 3.67–4.85 luminance band where neither
+  white nor near-black cleared 4.5:1, flipping text per branch at runtime — that palette was
+  replaced in D-24).
 
 ### 12.2 Soft Branch Colors
 
-Intent:
+Shape intent:
 
 - friendly and immediately recognizable as a mind map;
 - each first-level branch receives a soft distinct color;
-- descendants inherit connector color;
-- node fills remain pale to preserve text contrast.
+- descendants inherit connector colour only (D-24 XMind model);
+- node fills remain pale to preserve text contrast;
+- large-radius, soft-bordered, roomier cards (D-22);
+- default palette **Soft Spectrum** — warm pastel midtones with near-black text.
 
 ### 12.3 Business
 
-Intent:
+Shape intent:
 
 - formal reports and product planning;
 - restrained blue/gray palette;
 - rectangular or moderately rounded nodes;
 - minimal shadow;
 - uniform connector color or limited branch hues;
-- good export on white background.
+- good export on white background;
+- squared, heavier-border, denser cards (D-22);
+- default palette **Corporate** — restrained blue-grey with white text.
 
 ### 12.4 Dark
 
-Intent:
+Shape intent:
 
 - comfortable dark-environment editing;
 - dark neutral canvas;
 - elevated node surfaces;
 - bright but controlled branch colors;
 - high-contrast selection/focus;
-- exports can use dark background or optional transparent background.
+- exports can use dark background or optional transparent background;
+- medium-radius, subtle-border cards on a dark canvas (D-22);
+- default palette **Night Glow** — bright saturated spectrum with near-black text.
+
+### 12.5 The ten shipped palettes
+
+Each palette is named and has a personality, and every entry is an authored `{ fill, text }`
+pair (see §8.3):
+
+| Palette | Personality | Text |
+|---|---|---|
+| Slate | muted cool greys, quiet and content-first | white |
+| Soft Spectrum | friendly warm pastel midtones | near-black |
+| Corporate | restrained blue-grey for formal maps | white |
+| Night Glow | bright saturated spectrum for dark canvases | near-black |
+| Ember | warm ramp from burnt orange to rose | near-black |
+| Glacier | deep cool blues and teals | white |
+| Forest | deep greens for natural themes | white |
+| Mono | grayscale gradient, prints cleanly | white |
+| Vivid | high-saturation rainbow | white |
+| Earth | ochre, clay and moss | white |
 
 ## 13. Border-style presets
 
@@ -305,7 +382,7 @@ Allowed preset variation:
 
 A theme MUST use one coherent border language across the map, with root/level distinctions allowed.
 
-The four shipped presets map onto the allowed languages as follows (D-22): Minimal Light is
+The four shipped shapes map onto the allowed languages as follows (D-22): Minimal Light is
 the hairline-outlined rounded-card reference; Soft Branch Colors is the large-radius,
 soft-bordered, roomier card; Business is the moderately squared, heavier-border, denser card;
 Dark is the medium-radius, subtle-border card on a dark canvas. Radius, border weight and
@@ -314,14 +391,16 @@ other in a grayscale screenshot — asserted as a shape signature in `theme.test
 
 ## 14. Theme selector behavior
 
-The toolbar theme selector SHOULD:
+The toolbar Style menu presents the two axes separately (D-24): a **Shape** group and a
+**Palette** group, each with names and previews — a canvas swatch for a shape, a strip of its
+designed fills for a palette. It SHOULD:
 
 - show theme names and small previews;
 - apply preview immediately on hover only if it can revert safely, otherwise on click;
 - keep the selected node and viewport context;
-- create one undoable presentation command;
-- autosave the chosen theme;
-- announce the chosen theme accessibly.
+- create one undoable presentation command per axis (`SetShape` / `SetPalette`);
+- autosave the chosen selection;
+- announce the chosen shape or palette accessibly.
 
 ## 15. User customization scope
 
@@ -379,6 +458,8 @@ Minimal Light and Business SHOULD remain legible when printed. Soft branch color
 - Large root text should remain clearly legible.
 - Focus indicators should have at least a clearly perceptible contrast difference.
 - Branch colors are decorative; hierarchy is conveyed by position and connectors.
+- Palette text colour is designed data, not a runtime pick: every authored `{ fill, text }`
+  pair clears AA 4.5:1 and one text colour is shared across each palette (§8.3).
 - Dark theme avoids pure black/white extremes where they create glare, while preserving contrast.
 - Theme previews include names, not color swatches only.
 
@@ -387,12 +468,14 @@ Minimal Light and Business SHOULD remain legible when printed. Soft branch color
 Each theme MUST pass:
 
 1. root/level/deeper text contrast checks;
-2. selection and focus visibility on every node role;
-3. collapse badge readability;
-4. connector visibility on canvas;
-5. long-label wrapping;
-6. Chinese glyph availability;
-7. SVG export visual regression;
-8. PNG export at 1× and 2×;
-9. grayscale structural legibility;
-10. reduced-motion interaction independence.
+2. every palette entry's authored `{ fill, text }` pair ≥ 4.5:1, with one text colour per
+   palette (build-time assertion, D-24);
+3. selection and focus visibility on every node role;
+4. collapse badge readability;
+5. connector visibility on canvas;
+6. long-label wrapping;
+7. Chinese glyph availability;
+8. SVG export visual regression;
+9. PNG export at 1× and 2×;
+10. grayscale structural legibility;
+11. reduced-motion interaction independence.

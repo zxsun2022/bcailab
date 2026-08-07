@@ -135,6 +135,10 @@ custom property system, which is what `@bcailab/ui` provides, is structurally th
 for that job; reusing it would force a resolve-variables-to-literals step in the exporter for
 no benefit.
 
+> **Correction (2026-08-06).** Step 3 (D-24) splits the single theme id into two front-matter
+> keys, `shape:` and `palette:`. The technical point this paragraph makes — theme tokens are
+> document data that must serialise to literals — is unchanged; only the key names moved.
+
 *Brand.* Mapdown competes with Excalidraw, draw.io and markmap. A visitor arriving from a link
 has no interest in an English-learning studio, and even once Mapdown is a paid product it stays
 a distinct brand under the bcailab umbrella.
@@ -570,6 +574,11 @@ nothing.
    drag reorder of two all-right branches silently flipped the branch to the left while the
    keyboard `ReorderNode` path preserved it.
 
+> **Correction (2026-08-06).** Step 3 (D-24) splits the theme command into two undoable
+> presentation commands, `SetShape` and `SetPalette` — one per axis — replacing `SetTheme`.
+> The principle recorded here is unchanged: each presentation change is its own undoable
+> command.
+
 **Why.** Right-only mode assigns `"right"` to every new first-level branch because §11.1 keeps
 the stored assignment across mode switches; a literal switch therefore produced a map visually
 identical to right-only. The user's reported "layout switch does nothing" is that placeholder,
@@ -686,6 +695,61 @@ states must read differently, which the inset-vs-outer-vs-textarea ring geometry
 **Boundary.** All four are Layer A chrome or interaction tokens, so nothing enters document
 themes or exports. Keyboard and screen-reader behaviour is unchanged: `Primary+0`, canvas
 `+`/`-`/`0`, the tree's ARIA structure, and the collapse control all stay as they were.
+
+---
+
+## D-24 — Theme differentiation step 3: the theme splits into shape × palette, and text colour
+becomes designed data
+
+**Decided 2026-08-06** by the owner (roadmap checkpoint, step 3; one commit).
+
+**Decision.**
+
+1. **Two orthogonal axes.** The single theme id becomes `shape` (shape language + canvas
+   appearance + role base tokens + type scale) and `palette` (the branch colour band). Both
+   are persisted in Markdown front matter (`shape:` / `palette:`), and the picker presents two
+   groups rather than a shape × palette product list. A legacy single `theme: X` key still
+   opens and maps onto `(shape: X, palette: X's default)`, and local snapshot recovery
+   normalises the same way.
+2. **Text colour is authored data, not a runtime computation.** Palette entries are designed
+   `{ fill, text }` pairs; `accessibleTextFor()` is deleted. AA is a build-time assertion:
+   every pair in every palette must clear 4.5:1, and every palette must use one text colour
+   across all entries. There is no "pick the better of white / near-black" fallback left.
+3. **Branch colour fills only first-level nodes (XMind model).** Deeper nodes return to the
+   role base tokens; only connectors carry branch colour below the first level.
+   `descendantTintPolicy` is removed from the schema. Keeping the old deep-tint path would
+   require authoring `{ fill, text }` pairs for every blend, doubling the data for no gain,
+   and the deep nodes are the most numerous, so tinting them all is what makes a map noisy.
+   Hierarchy below level 1 is the shape layer's job (finer borders, paler ground).
+4. **Minimal Light's palette is redesigned and the count grows to ten.** The old #6b7280
+   family sat entirely inside the 3.67–4.85 luminance band, where white and near-black both
+   barely failed AA, so runtime selection flipped text black/white per branch in one map —
+   the bug this step exists to fix. The redesigned **Slate** is muted cool grey, darkened so
+   every fill carries white text at AA. Nine other palettes (Soft Spectrum, Corporate, Night
+   Glow, Ember, Glacier, Forest, Mono, Vivid, Earth) give the two axes real variety, and the
+   palette list is plain data, so adding one is a data change.
+
+**Why.** Step 1 exposed the flaw in computing text colour at runtime: it can only choose
+between two candidates, and a fill that barely clears AA with one of them still renders
+visibly differently from a neighbouring branch that barely clears with the other. The palette
+was originally built for connector strokes, where its luminance was never constrained, so
+step 1's palette-reaching-the-nodes change ran into a band the candidates could not cover.
+Making text part of the authored pair moves the guarantee from "runtime picks a passable
+candidate" to "the shipped data is AA by construction". The XMind model exists for the same
+reason: any path that blends a branch colour at runtime breaks the authored pair, and a
+converged product should not keep two fill models alive.
+
+**Palette correction.** Slate's old hexes are replaced; the old values were not a public
+contract (the publish sequencing constraint requires the field split to land before any
+published URL carries front matter, which is exactly what this step does). Soft Spectrum,
+Corporate and Night Glow keep their shipped hexes so their legacy documents render as before,
+except that deep-node tinting is gone per decision 3 — a deliberate convergence of step 1's
+behaviour, not a regression.
+
+**Boundary.** Back-compat is structural: legacy documents still open and map onto the pair;
+the palette hexes that shipped before publish are not treated as immutable data. The
+`branchColors` toggle and `single` mode are untouched, and the editing overlay keeps reading
+the same resolved pair as the canvas and the SVG exporter.
 
 ---
 

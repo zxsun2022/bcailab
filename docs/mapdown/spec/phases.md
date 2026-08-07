@@ -77,7 +77,7 @@ This is the public version 1.0 described by the specification.
 - pan/zoom;
 - fit map;
 - center selection/root;
-- four themes;
+- four shapes × ten palettes (the theme is a shape/palette pair, D-24);
 - reduced motion.
 
 ### 4.3 Required data/file

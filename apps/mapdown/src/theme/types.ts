@@ -1,11 +1,21 @@
 /**
  * Document themes, per `theme.md` §3.
  *
- * **These are data, not CSS.** A theme id is written into the Markdown front matter and its
- * values must render inside an exported SVG that may carry no external dependency
- * (`storage-export.md` §12.3). So every colour here is a literal — never `var(--x)`, never a
- * class name — and a test asserts exactly that, because the failure mode is an export that
- * looks fine in the browser and unstyled everywhere else.
+ * **These are data, not CSS.** A shape or palette id is written into the Markdown front matter
+ * and the resolved values must render inside an exported SVG that may carry no external
+ * dependency (`storage-export.md` §12.3). So every colour here is a literal — never
+ * `var(--x)`, never a class name — and a test asserts exactly that, because the failure mode
+ * is an export that looks fine in the browser and unstyled everywhere else.
+ *
+ * Step 3 (D-24) splits the old single theme into two orthogonal axes:
+ *
+ * - **shape** — the "shape language × canvas" axis: canvas appearance, node geometry and role
+ *   tokens, typography, connectors, controls, interaction and layout. `ShapeTokens` below.
+ * - **palette** — the branch colour band, authored as designed `{ fill, text }` pairs. Text
+ *   colour is design data, never computed from the fill at runtime.
+ *
+ * A `MindMapTheme` is one shape + one palette resolved together; the renderer, the exporter
+ * and the editing overlay all read the resolved object so screen and file cannot diverge.
  *
  * Application chrome is a separate system and is **not** described here: D-08 removed the
  * toolbar tokens from this schema. See `docs/mapdown/design-tokens.md`.
@@ -54,10 +64,26 @@ export interface ConnectorTokens {
   defaultColor: string;
 }
 
-export interface BranchPaletteTokens {
-  /** §8.2 — six to ten distinguishable colours, cycling after exhaustion. */
-  colors: string[];
-  descendantTintPolicy: "same" | "same-with-opacity";
+/**
+ * §8 — one designed branch colour and its text colour, authored together.
+ *
+ * The text colour is part of the data (D-24): it must be chosen so the pair clears WCAG AA
+ * 4.5:1, and every palette SHOULD use one text colour across all its entries so a map reads
+ * as one object instead of flipping black/white per branch. A test asserts both contracts —
+ * they are build-time guarantees, not runtime fallbacks.
+ */
+export interface PaletteEntry {
+  fill: string;
+  text: string;
+}
+
+export interface PaletteTokens {
+  id: string;
+  name: string;
+  /** One-line personality (cool/warm/high-saturation/monochrome...), for the picker. */
+  description: string;
+  /** §8.2 — six to ten designed pairs, cycling after exhaustion. */
+  entries: PaletteEntry[];
 }
 
 /** §10, minus the toolbar tokens D-08 moved out. */
@@ -95,7 +121,12 @@ export interface ThemeLayoutTokens {
   collapseLane: number;
 }
 
-export interface MindMapTheme {
+/**
+ * One axis of the theme pair — everything except the branch palette. A document stores
+ * `shapeId` + `paletteId` in its front matter; `presets.ts` resolves them into a
+ * `MindMapTheme` for rendering.
+ */
+export interface ShapeTokens {
   id: string;
   name: string;
   appearance: "light" | "dark";
@@ -103,10 +134,20 @@ export interface MindMapTheme {
   typography: TypographyTokens;
   nodes: NodeLevelTokens;
   connectors: ConnectorTokens;
-  branches: BranchPaletteTokens;
   controls: ControlTokens;
   interaction: InteractionTokens;
   layout: ThemeLayoutTokens;
+  /**
+   * Step 3 back-compat: a document written with the current single `theme: X` front matter
+   * key maps onto `(shape: X, palette: <this shape's default palette>)`, rendering with the
+   * same tokens as today.
+   */
+  defaultPaletteId: string;
+}
+
+/** One shape + one palette, resolved for the renderer, exporter and editing overlay. */
+export type MindMapTheme = Omit<ShapeTokens, "defaultPaletteId"> & {
+  branches: PaletteTokens;
 }
 
 /* ---------- contrast, for §18 ---------- */

@@ -473,7 +473,8 @@ It SHOULD not recenter the entire map after each edit.
 
 ## 13. Themes
 
-The app MUST ship with at least four document-level themes:
+The app MUST ship with at least four shapes and ten palettes; a document theme is a shape ×
+palette pair (D-24). The four required shapes are:
 
 1. Minimal Light;
 2. Soft Branch Colors;

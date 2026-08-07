@@ -10,7 +10,8 @@ import { getNode, type MindMapDocument, type NodeId } from "../model/types";
  * names it as a product regression by name.
  */
 
-const DEFAULT_THEME = "minimal-light";
+const DEFAULT_SHAPE = "minimal-light";
+const DEFAULT_PALETTE = "slate";
 const DEFAULT_LAYOUT = "right";
 const DEFAULT_BRANCH_COLORS = "single";
 
@@ -26,7 +27,15 @@ export interface ExportOptions {
 function buildFrontMatter(doc: MindMapDocument): string {
   const lines: string[] = ["mindmap:", "  version: 1"];
   if (doc.layout.mode !== DEFAULT_LAYOUT) lines.push(`  layout: ${doc.layout.mode}`);
-  if (doc.theme.themeId !== DEFAULT_THEME) lines.push(`  theme: ${doc.theme.themeId}`);
+  // D-24 — the two theme axes are written separately; the legacy single `theme:` key is never
+  // emitted. When either axis differs from the defaults, BOTH are written, so a file is
+  // self-contained: a reader never has to infer one axis from the other.
+  const themeDefault =
+    doc.theme.shapeId === DEFAULT_SHAPE && doc.theme.paletteId === DEFAULT_PALETTE;
+  if (!themeDefault) {
+    lines.push(`  shape: ${doc.theme.shapeId}`);
+    lines.push(`  palette: ${doc.theme.paletteId}`);
+  }
   if (doc.theme.branchColorMode !== DEFAULT_BRANCH_COLORS) {
     lines.push(`  branchColors: ${doc.theme.branchColorMode}`);
   }
@@ -36,7 +45,8 @@ function buildFrontMatter(doc: MindMapDocument): string {
 function isAllDefaults(doc: MindMapDocument): boolean {
   return (
     doc.layout.mode === DEFAULT_LAYOUT &&
-    doc.theme.themeId === DEFAULT_THEME &&
+    doc.theme.shapeId === DEFAULT_SHAPE &&
+    doc.theme.paletteId === DEFAULT_PALETTE &&
     doc.theme.branchColorMode === DEFAULT_BRANCH_COLORS
   );
 }

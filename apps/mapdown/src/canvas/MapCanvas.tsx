@@ -10,7 +10,7 @@ import {
 } from "../model/types";
 import { resolveDropTarget, type DropZone } from "../model/commands";
 import { pan, screenToDocument, toViewBox, zoomAbout, type Viewport, type ViewportSize } from "./viewport";
-import { branchColorFor, connectorColorFor, nodeFillAndTextFor } from "../theme/branch-colors";
+import { connectorColorFor, nodeFillAndTextFor } from "../theme/branch-colors";
 import { roleTokens, roleTypography } from "../theme/roles";
 import type { MindMapTheme } from "../theme/types";
 import { autopanDelta, crossedDragThreshold, sideDropTarget } from "./drag";
@@ -920,16 +920,12 @@ export const MapCanvas = memo(function MapCanvas({
         <Edge
           key={`${connector.fromId}->${connector.toId}`}
           connector={connector}
-          // §8.1 — a connector takes its branch's colour, so a subtree reads as one limb.
+          // §8.1 / D-24 — a connector takes its branch's colour at every depth, so a subtree
+          // reads as one limb. Deep nodes no longer take a tinted fill (the XMind model), so
+          // the connector is the only branch-coloured element below the first level.
           color={connectorColorFor(doc, theme, connector.toId)}
           width={connector.fromId === doc.rootId ? theme.connectors.rootWidth : theme.connectors.width}
-          opacity={
-            theme.branches.descendantTintPolicy === "same-with-opacity" &&
-            branchColorFor(doc, theme, connector.toId) !== null &&
-            layout.boxes[connector.toId]!.depth > 1
-              ? 0.65
-              : theme.connectors.opacity
-          }
+          opacity={theme.connectors.opacity}
         />
       ))}
       {semanticOrder.map((id) => {

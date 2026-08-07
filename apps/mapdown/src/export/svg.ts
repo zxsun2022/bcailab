@@ -5,8 +5,8 @@ import {
   type NodeBox
 } from "../layout/layout";
 import { escapeXml } from "./xml";
-import { branchColorFor, connectorColorFor, nodeFillAndTextFor } from "../theme/branch-colors";
-import { themeById } from "../theme/presets";
+import { connectorColorFor, nodeFillAndTextFor } from "../theme/branch-colors";
+import { resolveTheme } from "../theme/presets";
 import { roleTokens, roleTypography } from "../theme/roles";
 import type { MindMapTheme } from "../theme/types";
 import { getNode, type MindMapDocument } from "../model/types";
@@ -93,7 +93,7 @@ export function exportSvg(
   options: SvgExportOptions = {},
   precomputed?: LayoutResult
 ): SvgExport {
-  const theme = themeById(doc.theme.themeId);
+  const theme = resolveTheme(doc.theme.shapeId, doc.theme.paletteId);
   const result = precomputed ?? layout(doc, layoutOptionsForTheme(theme));
   const padding = options.padding ?? 32;
 
@@ -123,15 +123,10 @@ export function exportSvg(
       const color = connectorColorFor(doc, theme, connector.toId);
       const strokeWidth =
         connector.fromId === doc.rootId ? theme.connectors.rootWidth : theme.connectors.width;
-      const faded =
-        theme.branches.descendantTintPolicy === "same-with-opacity" &&
-        branchColorFor(doc, theme, connector.toId) !== null &&
-        (result.boxes[connector.toId]?.depth ?? 0) > 1;
-      const opacity = faded ? 0.65 : theme.connectors.opacity;
       return (
         `<path d="M${round(x1)},${round(y1)} C${round(c1x)},${round(c1y)} ${round(c2x)},${round(c2y)} ${round(x2)},${round(y2)}" ` +
         `fill="none" stroke="${color}" stroke-width="${strokeWidth}"` +
-        (opacity === 1 ? "" : ` opacity="${opacity}"`) +
+        (theme.connectors.opacity === 1 ? "" : ` opacity="${theme.connectors.opacity}"`) +
         `/>`
       );
     })

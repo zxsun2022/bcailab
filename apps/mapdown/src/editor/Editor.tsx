@@ -18,7 +18,7 @@ import {
   undo,
   type EditorHistory
 } from "../model/history";
-import { createDocument, getNode, type NodeId } from "../model/types";
+import { createDocument, getNode, type NodeId, type ThemeSelection } from "../model/types";
 import {
   canDelete,
   canMoveSide,
@@ -29,7 +29,7 @@ import {
   previousSiblingId,
   type Command
 } from "../model/commands";
-import { THEMES, themeById, themeIdForSystemScheme } from "../theme/presets";
+import { PALETTES, SHAPES, initialThemeSelection, resolveTheme } from "../theme/presets";
 import { nodeFillAndTextFor } from "../theme/branch-colors";
 import { roleTokens, roleTypography } from "../theme/roles";
 import { shouldShowAuthoringHint } from "./affordances";
@@ -102,23 +102,23 @@ const EDITING_SAFETY_MARGIN = 2;
 const HINT_DISMISSED_KEY = "mapdown:authoring-hint-dismissed";
 
 /**
- * Canvas affordances (c) — the starter document's theme, read once at creation. A stored
- * document restores its own theme and a user pick overrides it, so the system preference is
- * strictly an initial value.
+ * Canvas affordances (c) — the starter document's theme selection (shape + palette), read once
+ * at creation. A stored document restores its own selection and a user pick overrides it, so
+ * the system preference is strictly an initial value.
  */
-function systemThemeId(): string {
+function systemThemeSelection(): ThemeSelection {
   const prefersDark =
     typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? window.matchMedia("(prefers-color-scheme: dark)").matches
       : false;
-  return themeIdForSystemScheme(prefersDark);
+  return initialThemeSelection(prefersDark);
 }
 
 export function Editor() {
   const [history, setHistory] = useState<EditorHistory>(() =>
     createHistory({
       ...createDocument("New map"),
-      theme: { themeId: systemThemeId(), branchColorMode: "single" }
+      theme: systemThemeSelection()
     })
   );
   const [hintDismissed, setHintDismissed] = useState<boolean>(() => {
@@ -153,7 +153,10 @@ export function Editor() {
   const selection = history.selection;
   const mode: EditorMode = editing ? "node-editing" : "node-selected";
 
-  const theme = useMemo(() => themeById(doc.theme.themeId), [doc.theme.themeId]);
+  const theme = useMemo(
+    () => resolveTheme(doc.theme.shapeId, doc.theme.paletteId),
+    [doc.theme.shapeId, doc.theme.paletteId]
+  );
   // Geometry stays derived rather than entering React state, but it follows the text the user
   // can currently see. This keeps the textarea, node box and connectors aligned while typing;
   // history still receives only one grouped RenameNode when the session commits.
@@ -405,7 +408,7 @@ export function Editor() {
               ...command,
               side: chooseSideForNewBranch(
                 state.doc,
-                layoutOptionsForTheme(themeById(state.doc.theme.themeId))
+                layoutOptionsForTheme(resolveTheme(state.doc.theme.shapeId, state.doc.theme.paletteId))
               )
             }
           : command;
@@ -747,7 +750,10 @@ export function Editor() {
       if (state.doc.layout.mode === mode) return state;
       const sides =
         mode === "two-sided"
-          ? planTwoSidedSides(state.doc, layoutOptionsForTheme(themeById(state.doc.theme.themeId)))
+          ? planTwoSidedSides(
+              state.doc,
+              layoutOptionsForTheme(resolveTheme(state.doc.theme.shapeId, state.doc.theme.paletteId))
+            )
           : undefined;
       return dispatch(state, { type: "SetLayoutMode", mode, sides });
     });
@@ -896,7 +902,9 @@ export function Editor() {
             mode === "two-sided"
               ? planTwoSidedSides(
                   committed.doc,
-                  layoutOptionsForTheme(themeById(committed.doc.theme.themeId))
+                  layoutOptionsForTheme(
+                    resolveTheme(committed.doc.theme.shapeId, committed.doc.theme.paletteId)
+                  )
                 )
               : undefined;
           setHistory(dispatch(committed, { type: "SetLayoutMode", mode, sides }));
@@ -1281,22 +1289,22 @@ export function Editor() {
           </ToolbarMenu>
 
           <ToolbarMenu label="Style" align="end">
-            <p className="toolbar-popover-label">Document theme</p>
+            <p className="toolbar-popover-label">Shape</p>
             <div className="theme-options">
-              {THEMES.map((entry) => (
+              {SHAPES.map((entry) => (
                 <button
                   key={entry.id}
                   type="button"
                   className="theme-option"
-                  aria-pressed={doc.theme.themeId === entry.id}
+                  aria-pressed={doc.theme.shapeId === entry.id}
                   data-close-menu
                   onClick={() => {
                     setHistory((state) =>
-                      state.doc.theme.themeId === entry.id
+                      state.doc.theme.shapeId === entry.id
                         ? state
-                        : dispatch(state, { type: "SetTheme", themeId: entry.id })
+                        : dispatch(state, { type: "SetShape", shapeId: entry.id })
                     );
-                    setAnnouncement(`Theme changed to ${entry.name}.`);
+                    setAnnouncement(`Shape changed to ${entry.name}.`);
                   }}
                 >
                   <span
@@ -1309,7 +1317,40 @@ export function Editor() {
                   />
                   <span>{entry.name}</span>
                   <span className="theme-check" aria-hidden="true">
-                    {doc.theme.themeId === entry.id ? "✓" : ""}
+                    {doc.theme.shapeId === entry.id ? "✓" : ""}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="toolbar-popover-label">Palette</p>
+            <div className="theme-options">
+              {PALETTES.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className="theme-option palette-option"
+                  aria-pressed={doc.theme.paletteId === entry.id}
+                  data-close-menu
+                  onClick={() => {
+                    setHistory((state) =>
+                      state.doc.theme.paletteId === entry.id
+                        ? state
+                        : dispatch(state, { type: "SetPalette", paletteId: entry.id })
+                    );
+                    setAnnouncement(`Palette changed to ${entry.name}.`);
+                  }}
+                >
+                  <span className="palette-swatches" aria-hidden="true">
+                    {entry.entries.map((swatch) => (
+                      <span key={swatch.fill} style={{ background: swatch.fill }} />
+                    ))}
+                  </span>
+                  <span className="palette-meta">
+                    <span>{entry.name}</span>
+                    <small>{entry.description}</small>
+                  </span>
+                  <span className="theme-check" aria-hidden="true">
+                    {doc.theme.paletteId === entry.id ? "✓" : ""}
                   </span>
                 </button>
               ))}
