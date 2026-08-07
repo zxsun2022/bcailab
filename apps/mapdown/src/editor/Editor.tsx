@@ -1407,11 +1407,21 @@ export function Editor() {
         </div>
       )}
 
-      <div className="canvas-frame">
+      {/*
+        The frame — not just the surface — carries the help-background marking. The zoom
+        capsule and the authoring hint are the surface's *siblings*, so marking only the
+        surface left them outside the inert set: `Primary+/` would hide the canvas from
+        assistive technology and still expose two floating controls to a virtual cursor. The
+        backdrop and the dialog's focus trap happen to cover pointer and Tab today, which is
+        exactly why this was invisible — the marking has to be on the common ancestor.
+      */}
+      <div
+        className="canvas-frame"
+        data-help-background
+        aria-hidden={helpMode ? true : undefined}
+      >
         <div
           ref={surfaceRef}
-          data-help-background
-          aria-hidden={helpMode ? true : undefined}
           role="tree"
           aria-label="Mind map editor"
           aria-activedescendant={selection ? `map-node-${selection}` : undefined}

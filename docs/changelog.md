@@ -22,7 +22,10 @@ make the final transition; see `AGENTS.md`.
   distinct from the outer selection ring and the editing textarea ring, suppressed while
   selected or dragged, with no hit target and no geometry change. All four are chrome or
   interaction tokens, so exports and document themes are untouched; the canvas frame was
-  wrapped so the capsule and hint sit outside the ARIA tree role. Spec:
+  wrapped so the capsule and hint sit outside the ARIA tree role, and the frame — not the
+  surface alone — carries the help-background marking, so opening Help inerts the capsule and
+  hint along with the canvas rather than leaving two floating controls exposed to a virtual
+  cursor. Spec:
   `spec/product-specification.md` §2.1 and `spec/interaction.md` §2.3/§12.5 updated;
   `decisions.md` records D-23. Evidence: 476/476 repository tests (4 new:
   `themeIdForSystemScheme` mapping, hint show/disappear/dismiss rules), clean Mapdown
