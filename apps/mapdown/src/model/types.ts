@@ -25,7 +25,9 @@ export interface DocumentLayoutSettings {
 }
 
 export interface ThemeSelection {
-  themeId: string;
+  /** Step 3 (D-24) — the two axes of the document theme, both persisted in front matter. */
+  shapeId: string;
+  paletteId: string;
   branchColorMode: "single" | "by-first-level-branch";
 }
 
@@ -99,7 +101,7 @@ export function createDocument(rootText = ""): MindMapDocument {
     rootId,
     nodes: { [rootId]: createNode({ id: rootId, text: normalizeText(rootText) }) },
     layout: { mode: "right" },
-    theme: { themeId: "minimal-light", branchColorMode: "single" },
+    theme: { shapeId: "minimal-light", paletteId: "slate", branchColorMode: "single" },
     revision: 0
   };
 }

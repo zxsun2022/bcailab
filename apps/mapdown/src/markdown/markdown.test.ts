@@ -64,9 +64,32 @@ describe("canonical export (§2)", () => {
     const doc = build([["Root", 0]]);
     expect(exportMarkdown(doc)).toBe("# Root\n");
 
-    const themed: MindMapDocument = { ...doc, theme: { ...doc.theme, themeId: "business" } };
+    const themed: MindMapDocument = {
+      ...doc,
+      theme: { shapeId: "business", paletteId: "corporate", branchColorMode: "single" }
+    };
     expect(exportMarkdown(themed)).toBe(
-      "---\nmindmap:\n  version: 1\n  theme: business\n---\n\n# Root\n"
+      "---\nmindmap:\n  version: 1\n  shape: business\n  palette: corporate\n---\n\n# Root\n"
+    );
+  });
+
+  it("writes the two theme axes as separate front matter keys (D-24), never the legacy theme key", () => {
+    const doc = build([["Root", 0]]);
+    const axes: MindMapDocument = {
+      ...doc,
+      theme: { shapeId: "dark", paletteId: "vivid", branchColorMode: "by-first-level-branch" }
+    };
+    expect(exportMarkdown(axes)).toBe(
+      "---\nmindmap:\n  version: 1\n  shape: dark\n  palette: vivid\n  branchColors: by-first-level-branch\n---\n\n# Root\n"
+    );
+    // A non-default shape writes both axes even when the palette is that shape's own default,
+    // so the file stays self-contained.
+    const paired: MindMapDocument = {
+      ...doc,
+      theme: { shapeId: "business", paletteId: "corporate", branchColorMode: "single" }
+    };
+    expect(exportMarkdown(paired)).toBe(
+      "---\nmindmap:\n  version: 1\n  shape: business\n  palette: corporate\n---\n\n# Root\n"
     );
   });
 
@@ -178,7 +201,7 @@ describe("round-trip guarantee (§15)", () => {
     const doc: MindMapDocument = {
       ...base,
       layout: { mode: "two-sided" },
-      theme: { themeId: "dark", branchColorMode: "by-first-level-branch" }
+      theme: { shapeId: "dark", paletteId: "night-glow", branchColorMode: "by-first-level-branch" }
     };
     const back = roundTrip(doc);
     expect(back.layout.mode).toBe("two-sided");
@@ -334,6 +357,48 @@ describe("import failure leaves the caller free to keep the current document (§
     if (result.ok) {
       expect(result.warnings.map((w) => w.category)).toContain("unsupported-front-matter-key");
     }
+  });
+
+  it("maps a legacy single theme key onto its shape + default palette (step 3 back-compat)", () => {
+    const result = importMarkdown(
+      "---\nmindmap:\n  version: 1\n  theme: soft-branches\n  branchColors: by-first-level-branch\n---\n\n# Root\n"
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.doc.theme).toEqual({
+      shapeId: "soft-branches",
+      paletteId: "soft-spectrum",
+      branchColorMode: "by-first-level-branch"
+    });
+    expect(result.warnings.map((w) => w.category)).not.toContain("unsupported-theme-fallback");
+  });
+
+  it("reads the two axes from front matter, with explicit keys winning per axis", () => {
+    const result = importMarkdown(
+      "---\nmindmap:\n  version: 1\n  shape: dark\n  palette: vivid\n  branchColors: single\n---\n\n# Root\n"
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.doc.theme).toEqual({
+      shapeId: "dark",
+      paletteId: "vivid",
+      branchColorMode: "single"
+    });
+  });
+
+  it("falls back to defaults and warns for an unknown shape or palette (§7.3)", () => {
+    const result = importMarkdown(
+      "---\nmindmap:\n  version: 1\n  shape: bogus\n  palette: nope\n---\n\n# Root\n"
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.doc.theme).toEqual({
+      shapeId: "minimal-light",
+      paletteId: "slate",
+      branchColorMode: "single"
+    });
+    const categories = result.warnings.map((w) => w.category);
+    expect(categories.filter((c) => c === "unsupported-theme-fallback")).toHaveLength(2);
   });
 });
 

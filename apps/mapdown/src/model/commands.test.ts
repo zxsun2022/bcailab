@@ -551,12 +551,20 @@ describe("SetLayoutMode (§12 — undoable document-view command)", () => {
 });
 
 describe("presentation commands are undoable (§12, theme.md §14, theme.md §8)", () => {
-  it("theme changes undo and redo", () => {
+  it("shape changes undo and redo independently (D-24)", () => {
     const doc = createDocument("root");
-    const changed = applyCommand(doc, { type: "SetTheme", themeId: "dark" });
-    expect(changed.doc.theme.themeId).toBe("dark");
-    expect(applyCommand(changed.doc, changed.inverse).doc.theme.themeId).toBe("minimal-light");
-    expect(applyCommand(changed.doc, changed.resolved).doc.theme.themeId).toBe("dark");
+    const changed = applyCommand(doc, { type: "SetShape", shapeId: "dark" });
+    expect(changed.doc.theme.shapeId).toBe("dark");
+    expect(applyCommand(changed.doc, changed.inverse).doc.theme.shapeId).toBe("minimal-light");
+    expect(applyCommand(changed.doc, changed.resolved).doc.theme.shapeId).toBe("dark");
+  });
+
+  it("palette changes undo and redo independently (D-24)", () => {
+    const doc = createDocument("root");
+    const changed = applyCommand(doc, { type: "SetPalette", paletteId: "vivid" });
+    expect(changed.doc.theme.paletteId).toBe("vivid");
+    expect(applyCommand(changed.doc, changed.inverse).doc.theme.paletteId).toBe("slate");
+    expect(applyCommand(changed.doc, changed.resolved).doc.theme.paletteId).toBe("vivid");
   });
 
   it("branch-colour mode changes undo and redo", () => {

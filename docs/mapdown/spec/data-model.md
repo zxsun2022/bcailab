@@ -92,10 +92,17 @@ MVP may expose only `mode` to users. Other values may come from theme/layout def
 
 ```ts
 interface ThemeSelection {
-  themeId: string;
+  shapeId: string;
+  paletteId: string;
   branchColorMode: 'single' | 'by-first-level-branch';
 }
 ```
+
+The document theme is two orthogonal axes (D-24): `shapeId` selects the shape language (canvas
+appearance, node geometry and role tokens, type scale, connectors, controls, interaction,
+layout) and `paletteId` selects the branch colour band, whose entries are authored
+`{ fill, text }` pairs. Both are persisted in Markdown front matter; a legacy `themeId` is
+normalised onto `(shape, palette)` at import and snapshot recovery.
 
 MVP does not store arbitrary user CSS or per-node overrides.
 
@@ -259,7 +266,8 @@ type Command =
   | MoveFirstLevelBranchSide
   | SetCollapsed
   | SetLayoutMode
-  | SetTheme
+  | SetShape
+  | SetPalette
   | ReplaceDocumentFromImport;
 ```
 

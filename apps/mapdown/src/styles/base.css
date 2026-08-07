@@ -264,6 +264,10 @@ button:disabled {
   z-index: 40;
   display: grid;
   width: min(300px, calc(100vw - 1.5rem));
+  /* D-24 — the Style menu now lists 14 options (4 shapes + 10 palettes); on short viewports
+     the popover must scroll internally instead of clipping the last items below the fold. */
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
   padding: 0.42rem;
   border: 1px solid var(--chrome-border);
   border-radius: var(--chrome-radius-large);
@@ -428,6 +432,39 @@ button:disabled {
   border: 5px solid;
   border-radius: 5px;
   box-shadow: inset 0 0 0 1px rgb(127 127 127 / 26%);
+}
+
+/* D-24 — palette options show a strip of their designed fills instead of a single swatch. */
+.palette-option {
+  grid-template-columns: 92px 1fr 18px;
+}
+
+.palette-swatches {
+  display: flex;
+  gap: 1px;
+  align-items: stretch;
+  height: 18px;
+}
+
+.palette-swatches span {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px;
+}
+
+.palette-meta {
+  display: grid;
+  gap: 0.04rem;
+  min-width: 0;
+}
+
+.palette-meta small {
+  overflow: hidden;
+  color: var(--chrome-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .theme-check {

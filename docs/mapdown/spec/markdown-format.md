@@ -21,7 +21,8 @@ A canonical document looks like:
 mindmap:
   version: 1
   layout: two-sided
-  theme: soft-branches
+  shape: soft-branches
+  palette: soft-spectrum
 ---
 
 # Root topic
@@ -176,9 +177,16 @@ Internal spaces remain as text. Hard tabs in labels SHOULD become spaces.
 mindmap:
   version: 1
   layout: right | two-sided
-  theme: <theme-id>
+  shape: <shape-id>
+  palette: <palette-id>
   branchColors: single | by-first-level-branch
 ```
+
+The theme is two orthogonal axes (D-24): `shape` (shape language + canvas appearance + role
+tokens + type scale) and `palette` (the branch colour band). Both are written to front matter;
+the legacy single `theme: <theme-id>` key is still read and maps onto
+`(shape: <theme-id>, palette: <that shape's default>)`, and an explicit `shape` / `palette`
+key wins its own axis when both forms are present. Export never emits the legacy `theme` key.
 
 MVP MAY add:
 
@@ -200,7 +208,7 @@ Recommended MVP behavior: preserve the original front-matter map in local snapsh
 
 ### 7.3 Invalid values
 
-Invalid `layout`, `theme`, or version values:
+Invalid `layout`, `shape`, `palette`, or version values:
 
 - fall back to defaults;
 - show a nonblocking warning;
@@ -396,7 +404,7 @@ Semantic equivalence includes:
 - hierarchy;
 - sibling order;
 - supported layout mode;
-- supported theme ID/fallback behavior.
+- supported shape/palette selection and its fallback behavior.
 
 It excludes IDs, collapse state, viewport, and history in standard Markdown mode.
 
@@ -428,7 +436,8 @@ It excludes IDs, collapse state, viewport, and history in standard Markdown mode
 mindmap:
   version: 1
   layout: right
-  theme: business
+  shape: business
+  palette: corporate
   branchColors: single
 ---
 

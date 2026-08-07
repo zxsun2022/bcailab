@@ -12,9 +12,9 @@ Read before writing any styling, theme, or export code.
 | | **Layer A — app chrome** | **Layer B — document theme** |
 |---|---|---|
 | Covers | toolbar, dialogs, Help centre, status area, menus | canvas, nodes, connectors, branch palette, collapse badge |
-| Chosen by | the user, once, as an app preference | the document; one of four presets |
+| Chosen by | the user, once, as an app preference | the document; one of four shapes × one of ten palettes |
 | Lifetime | the browser profile | travels with the document |
-| Persisted in | local preferences | the document model, and `theme:` in Markdown front matter |
+| Persisted in | local preferences | the document model, and `shape:` / `palette:` in Markdown front matter |
 | Appears in exports | **never** | **always** |
 | Source of truth | `apps/mapdown/src/styles/` | `spec/theme.md` §3 schema |
 

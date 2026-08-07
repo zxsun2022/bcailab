@@ -3,7 +3,7 @@ import kepanSource from "../fixtures/kepan.md?raw";
 import { importMarkdown } from "../markdown/parse";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
-import { MINIMAL_LIGHT, THEMES } from "../theme/presets";
+import { MINIMAL_LIGHT, SHAPES, resolveTheme } from "../theme/presets";
 import { roleTokens, roleTypography } from "../theme/roles";
 import {
   DEFAULT_SPACING,
@@ -14,6 +14,9 @@ import {
   rootCentre
 } from "./layout";
 import { clearMeasurementCache, measureNode, measurementCacheSize, wrapText } from "./measure";
+
+/** Every shape resolved with its own default palette — the legacy theme pairings (D-24). */
+const THEMES = SHAPES.map((shape) => resolveTheme(shape.id, shape.defaultPaletteId));
 
 beforeEach(() => {
   resetIdCounterForTests();
@@ -348,20 +351,22 @@ describe("§4.4 — measurement caching", () => {
 
   it("uses the selected theme's rendered root metrics", () => {
     const doc = createDocument("Root");
-    const result = layout(doc, layoutOptionsForTheme(MINIMAL_LIGHT));
+    const theme = resolveTheme(MINIMAL_LIGHT.id, MINIMAL_LIGHT.defaultPaletteId);
+    const result = layout(doc, layoutOptionsForTheme(theme));
 
     expect(result.boxes[doc.rootId]!.height).toBeCloseTo(
-      MINIMAL_LIGHT.typography.rootFontSize * MINIMAL_LIGHT.typography.lineHeight +
-        MINIMAL_LIGHT.nodes.root.paddingY * 2
+      theme.typography.rootFontSize * theme.typography.lineHeight +
+        theme.nodes.root.paddingY * 2
     );
   });
 
   it("measures first-level nodes with the rendered level1 font weight, not the default", () => {
-    const options = layoutOptionsForTheme(MINIMAL_LIGHT);
+    const theme = resolveTheme(MINIMAL_LIGHT.id, MINIMAL_LIGHT.defaultPaletteId);
+    const options = layoutOptionsForTheme(theme);
     const level1 = typeof options.typography === "function" ? options.typography(1) : options.typography;
 
-    expect(level1?.fontWeight).toBe(MINIMAL_LIGHT.typography.level1FontWeight);
-    expect(level1?.fontWeight).not.toBe(MINIMAL_LIGHT.typography.nodeFontWeight);
+    expect(level1?.fontWeight).toBe(theme.typography.level1FontWeight);
+    expect(level1?.fontWeight).not.toBe(theme.typography.nodeFontWeight);
   });
 
   /**

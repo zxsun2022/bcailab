@@ -9,6 +9,38 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-06 — **in_review: Mapdown Theme differentiation step 3 — the theme splits into
+  shape × palette, and text colour becomes designed data.** The single theme id is now two
+  orthogonal fields, both persisted in Markdown front matter (`shape:` / `palette:`): shape =
+  shape language + canvas appearance + role base tokens + type scale; palette = the branch
+  colour band. Palette entries are authored `{ fill, text }` pairs — `accessibleTextFor()` and
+  `descendantTintPolicy` are deleted, and WCAG AA is a build-time test (every pair ≥ 4.5:1,
+  one text colour per palette) instead of a runtime pick. Branch colour now fills only
+  first-level nodes (XMind model): deeper nodes return to role base tokens and only connectors
+  carry colour, so the authored pair is never blended away. Minimal Light's palette is
+  redesigned as **Slate** (muted cool greys darkened for white text; the old #6b7280 family
+  sat entirely inside the 3.67–4.85 luminance band where neither white nor near-black cleared
+  4.5:1, which is what flipped text per branch), and the palette count grows to ten with named
+  personalities (Slate, Soft Spectrum, Corporate, Night Glow, Ember, Glacier, Forest, Mono,
+  Vivid, Earth); Soft Spectrum, Corporate and Night Glow keep their shipped hexes. Legacy
+  `theme: X` documents still open and map onto `(shape: X, palette: X's default)`, and local
+  snapshot recovery normalises the same way. The Style picker presents Shape and Palette as
+  two groups (with a mobile-scrollable popover for the 14 options), and shape/palette changes
+  are separate undoable commands (`SetShape`/`SetPalette`). Spec: `spec/theme.md`
+  §3/§8/§12/§14/§18/§19 and `spec/markdown-format.md` §2/§7.1/§15/§16 rewritten;
+  `spec/data-model.md` §2.4 and the command union updated; `decisions.md` records D-24.
+  Evidence: 529/529 repository tests (new: per-palette authored AA pairs, one-text-per-palette,
+  legacy theme→pair mapping through Markdown import and snapshot recovery, explicit-axis-wins
+  resolution, two-axis serialisation, palette fills/text as SVG literals, XMind-model fills,
+  SetShape/SetPalette undo), clean Mapdown typecheck/build, and browser QA: Slate (min AA
+  6.61), Vivid (5.26), Ember (4.75), Night Glow (6.45), Soft Spectrum (4.54), Corporate (5.25)
+  and Forest (6.77) all render one uniform text colour per map with no black/white flip;
+  Business × Forest editing overlay matches its covered node's fill/text exactly; a legacy
+  `theme: soft-branches` document imports and renders the Soft shape with Soft Spectrum fills;
+  the exported SVG carries the literal branch fill, authored text colour, role text and canvas
+  colours; the Style menu fits 375px width and scrolls internally at 375×667. Only the owner
+  may mark this checkpoint accepted/shipped.
+
 - 2026-08-06 — **in_review: Mapdown Canvas affordances.** Four independent items. (a) Zoom
   now lives in a floating bottom-left capsule (− / percentage / +); clicking the percentage
   restores 100% without moving the viewport centre. The status-bar percentage and the View
