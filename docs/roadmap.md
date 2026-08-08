@@ -51,7 +51,7 @@ The owner additionally authorized three Mapdown stabilization checkpoints on 202
 
 The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
 
-- **Canvas affordances — authorized, not started.** Four independent items, each shippable
+- **Canvas affordances — in_review.** Four independent items, each shippable
   alone. (a) Move the zoom control out of the status bar and View menu into a floating
   bottom-left capsule (− percent +), where clicking the percentage restores 100%; the View
   menu keeps its entries. (b) Show a dismissable hint line on an untouched empty map naming
@@ -64,7 +64,7 @@ The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
   four: chrome visuals stay out of document themes and exported SVG/PNG; keyboard and
   screen-reader behaviour is unchanged; verified at desktop, tablet and mobile widths and
   under reduced-motion.
-- **Theme differentiation — authorized, not started.** The four presets read as hue variants
+- **Theme differentiation — in_review, all three steps.** The four presets read as hue variants
   of one design because the branch palette reaches only connector strokes: `branchColorFor()`
   is consumed for stroke colour alone, so node fills always come from a single per-role token
   and no theme can look structurally different from another. Three ordered steps, each
@@ -87,7 +87,9 @@ The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
   share-URL feature.** The theme id is persisted in Markdown front matter, so it becomes a
   public contract the moment a published URL carries it; splitting the field is close to free
   now and requires format migration plus back-compatibility afterwards. Publish is not yet on
-  this roadmap — when it is added, this constraint applies to it.
+  this roadmap — when it is added, this constraint applies to it. **Step 3 shipped 2026-08-06
+  (PR #37), so this gate is clear**; the front matter now carries `shape:` and `palette:` and a
+  published URL can safely reference either axis.
 
 The IA v2 / Coach Home iteration shipped 2026-07-28 (all three phases; see
 `docs/changelog.md`).
