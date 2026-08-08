@@ -119,6 +119,22 @@ returns, so neither needs an IA change.
   `docs/mapdown/decisions.md` before reopening any settled question — it has nineteen records,
   several of which correct an earlier
   mistake of mine and say so.
+- **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
+  product direction “AI-generated structure → Mapdown visualization” without putting a model
+  inside Mapdown. Add a **Create with AI** flow for people learning a new subject or researching
+  a topic: the user enters the topic, copies a model-agnostic prompt that defines Mapdown's
+  supported Markdown outline format, sends it to an AI of their choice, then pastes the returned
+  Markdown directly into Mapdown and creates a local editable map. Acceptance: (a) the prompt
+  requires exactly one level-1 root heading, unordered-list descendants and indentation-based
+  hierarchy, and asks for Markdown only — no explanation or code fence; (b) the pasted text is
+  validated by the same parser as file import, with actionable errors and no mutation of the
+  current map on failure; (c) a valid result opens immediately as a new locally saved map while
+  the previous map remains recoverable; (d) the flow works with at least two external AI
+  products and requires no account, API key or network request from Mapdown; and (e) the flow is
+  keyboard- and screen-reader-operable at desktop and mobile widths. Explicitly excluded:
+  built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
+  and server-side rendering. Those remain separate directions requiring their own evidence and
+  authorization.
 - **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
   attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
   surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
