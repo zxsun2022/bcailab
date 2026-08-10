@@ -1,5 +1,8 @@
 /// <reference types="@cloudflare/workers-types" />
 
+export * from "./saved-translations";
+export * from "./writing-prompts";
+
 export type Db = D1Database;
 
 export type User = {
@@ -107,6 +110,9 @@ export type WritingArticle = {
   user_id: string;
   title: string | null;
   essay_prompt: string | null;
+  prompt_id: string | null;
+  assignment_snapshot_json: string | null;
+  start_key: string | null;
   agent_type: string;
   status: string;
   created_at: string;
@@ -124,6 +130,8 @@ export type WritingRevision = {
   feedback_json: string | null;
   feedback_status: "pending" | "completed" | "failed";
   model_name: string | null;
+  feedback_generation: number;
+  feedback_started_at: string | null;
   created_at: string;
 };
 
@@ -253,6 +261,11 @@ const mapWritingArticle = (row: Record<string, unknown>): WritingArticle => ({
   user_id: String(row.user_id),
   title: row.title ? String(row.title) : null,
   essay_prompt: row.essay_prompt ? String(row.essay_prompt) : null,
+  prompt_id: row.prompt_id ? String(row.prompt_id) : null,
+  assignment_snapshot_json: row.assignment_snapshot_json
+    ? String(row.assignment_snapshot_json)
+    : null,
+  start_key: row.start_key ? String(row.start_key) : null,
   agent_type: String(row.agent_type),
   status: String(row.status),
   created_at: String(row.created_at),
@@ -273,6 +286,8 @@ const mapWritingRevision = (row: Record<string, unknown>): WritingRevision => ({
       ? row.feedback_status
       : "completed",
   model_name: row.model_name ? String(row.model_name) : null,
+  feedback_generation: Number(row.feedback_generation ?? 1),
+  feedback_started_at: row.feedback_started_at ? String(row.feedback_started_at) : null,
   created_at: String(row.created_at)
 });
 
@@ -1220,15 +1235,30 @@ export async function createWritingArticle(
     userId: string;
     title?: string | null;
     essayPrompt?: string | null;
+    promptId?: string | null;
+    assignmentSnapshotJson?: string | null;
+    startKey?: string | null;
     agentType: string;
   }
 ): Promise<WritingArticle> {
   const id = input.id ?? crypto.randomUUID();
   await db
     .prepare(
-      "INSERT INTO writing_articles (id, user_id, title, essay_prompt, agent_type) VALUES (?, ?, ?, ?, ?)"
+      `INSERT INTO writing_articles (
+         id, user_id, title, essay_prompt, prompt_id,
+         assignment_snapshot_json, start_key, agent_type
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(id, input.userId, input.title ?? null, input.essayPrompt ?? null, input.agentType)
+    .bind(
+      id,
+      input.userId,
+      input.title ?? null,
+      input.essayPrompt ?? null,
+      input.promptId ?? null,
+      input.assignmentSnapshotJson ?? null,
+      input.startKey ?? null,
+      input.agentType
+    )
     .run();
 
   const created = await getWritingArticleById(db, id, { includeDeleted: true });
