@@ -1,9 +1,11 @@
 <!-- /autoplan restore point: /Users/star/.gstack/projects/zxsun2022-bcailab/codex-english-studio-major-iteration-autoplan-restore-20260809-211051.md -->
 # English Studio major iteration plan
 
-Status: **authorized and active**. The owner approved decisions D1-D5 on 2026-08-09; the
-authorized scope and acceptance criteria are recorded in `docs/roadmap.md`. This document is
-the implementation plan and review artifact, while the roadmap remains the source of truth.
+Status: **authorized and in_review**. The owner approved decisions D1-D5 on 2026-08-09;
+implementation and integrated QA were reported for review on 2026-08-10. Content publication,
+remote rollout, deployment, and owner acceptance remain pending. The authorized scope and
+acceptance criteria are recorded in `docs/roadmap.md`; this document is the implementation plan
+and review artifact, while the roadmap remains the source of truth.
 
 Branch: `codex/english-studio-major-iteration`
 Baseline: `main` at `8570d63`

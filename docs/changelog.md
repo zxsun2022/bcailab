@@ -9,6 +9,32 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: English Studio material, memory, and interaction iteration
+  (D1-D5).** Writing is now material-led: a versioned D1 prompt contract, immutable article
+  assignment snapshots, 48-source-prompt editorial pipeline (24 General English across
+  A2/B1/B2/C1, 12 IELTS Academic Task 1 with content-addressed accessible assets, 12 Task 2),
+  catalogue/detail/freeform/trial entry points, atomic idempotent first submission, distinct
+  Task 1 factual evaluation, and generation-safe feedback retries. The current content batch
+  hash is `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`;
+  it remains unpublished until independent and owner review are recorded.
+  Translate now persists text only through an explicit signed-in Save backed by a short-lived
+  HMAC completion proof. `/translate/saved` adds private owner-scoped list/detail/copy,
+  25-row keyset pagination, idempotent retries, popup-auth handoff without losing the result,
+  no-JavaScript redirect parity, and confirmed hard delete. Partial, expired, tampered,
+  changed-snapshot, or wrong-subject results cannot write.
+  Shared interaction work adds a focus-trapped/inert mobile drawer, accessible branded confirm
+  dialog, stateful Reading record names, one migrated Reading/Writing feedback-language
+  preference, honest Writing evaluation progress, safe LLM logging, and removal of new
+  `next_drills` generation with legacy read compatibility. Standard browser QA found and fixed
+  two remaining mobile touch-target defects (`036d2fc`, `984c27b`). Evidence: 552/552 tests,
+  clean typecheck and production build, deterministic 48-prompt/12-asset/review-pack checks,
+  all 17 migrations on a fresh local D1 with no foreign-key violations and indexed saved-list
+  query plan, plus authenticated browser/D1 coverage at 375/768/1280px for preview/start/retry,
+  explicit Save/replay/isolation/pagination/dialogs, focus restoration, and failure states with
+  no console errors. Lint remains a placeholder (`lint not configured`). No prompts were
+  published, no remote migration ran, and nothing was deployed; only the owner may accept the
+  roadmap items and approve the content manifest.
+
 - 2026-08-06 — **in_review: Mapdown Theme differentiation step 3 — the theme splits into
   shape × palette, and text colour becomes designed data.** The single theme id is now two
   orthogonal fields, both persisted in Markdown front matter (`shape:` / `palette:`): shape =

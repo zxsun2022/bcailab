@@ -20,9 +20,9 @@ infrastructure and eventually its accounts, but branded and styled independently
 ## Now — English Studio material, memory, and interaction iteration
 
 The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation is
-**active** on `codex/english-studio-major-iteration`; finished work must move to `in_review`
-with the evidence below, never directly to accepted. The detailed design and failure registry
-live in [the iteration plan](english-studio-major-iteration-proposal.md).
+**in_review** on `codex/english-studio-major-iteration`; only the owner may move it to
+accepted. The detailed design and failure registry live in
+[the iteration plan](english-studio-major-iteration-proposal.md).
 
 ### Product boundary and invariants
 
@@ -37,7 +37,7 @@ live in [the iteration plan](english-studio-major-iteration-proposal.md).
 - New Reading evaluations stop requesting `next_drills`; stored historical feedback that has
   the field must remain readable.
 
-### A. Writing prompt bank and guided entry — active
+### A. Writing prompt bank and guided entry — in_review
 
 - Add a reviewable `writing_prompts` contract with stable identity, family/task type, prompt
   text, optional CEFR discovery band, topic, target words, optional reviewed asset, provenance,
@@ -64,7 +64,16 @@ errors and review status; local D1 checks for published/draft/retired visibility
 snapshots, and repeated attempts; browser coverage for catalogue, prompt detail/start,
 freeform entry, Task 1/Task 2, trial, progress, mobile, keyboard, and reduced motion.
 
-### B. Saved translations — active
+Review evidence (2026-08-10): deterministic validation passes for all 48 source prompts
+(24 general, 12 Task 1, 12 Task 2); all 12 derived Task 1 assets and the review pack match
+batch hash `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`.
+Fresh local D1 applies all 17 migrations with no foreign-key violations; browser/D1 fixtures
+cover no-write preview, atomic/idempotent first submission, immutable snapshots, feedback
+retry generations, failure recovery, trial, and responsive catalogue/detail layouts. The
+batch remains deliberately unpublished until independent review and owner approval are
+recorded in the owner manifest.
+
+### B. Saved translations — in_review
 
 - Add private, user-owned saved translations containing the source/result language metadata
   and timestamps. Saving is explicit, signed-in only, retry/double-click idempotent, and
@@ -80,7 +89,14 @@ no implicit or anonymous persistence, owner-only save/read/delete, retry stabili
 queries, and deletion; browser coverage for anonymous-to-auth Save, list/detail/delete,
 mobile, keyboard, and failure recovery.
 
-### C. Shared interaction and layout correctness — active
+Review evidence (2026-08-10): proof tests cover tampering, expiry, subject changes,
+normalization, size limits, and anonymous-to-auth handoff. Local D1/browser fixtures cover
+explicit-only persistence, replay idempotency, snapshot integrity, two-user isolation,
+same-result 404s, 25-row keyset pagination, confirmed hard delete, no-JavaScript redirect,
+failed streams, and consecutive results that do not inherit `Saved` state. Private responses
+use `Cache-Control: private, no-store`; no remote migration or deployment was performed.
+
+### C. Shared interaction and layout correctness — in_review
 
 - On narrow Translate layouts, keep the primary action reachable and reveal completed output;
   long input grows to a bounded height and the page owns ordinary reading scroll. Preserve
@@ -101,13 +117,25 @@ keyboard-only, reduced motion, and screen-reader accessibility-tree inspection. 
 planning-baseline failures (Translate mobile reveal, drawer focus escape, unnamed Reading
 record control, unguided Writing trial) must all be closed without new console errors.
 
-### D. Reading evaluation dead output — active
+Review evidence (2026-08-10): browser QA at 375, 768, and 1280px verifies Translate action
+reachability, output reveal, drawer `inert`/focus loop/Escape restoration, dialog role/title/
+description/return focus, and Writing catalogue/detail layouts with no console errors.
+Standard-tier QA found and fixed two remaining touch-target defects; the relevant Writing
+links and Translate language selectors now measure 44px. Reduced-motion rules are present in
+the production bundle; dynamic emulation was best-effort only because the isolated browser's
+CDP allowlist rejects `Emulation.setEmulatedMedia`.
+
+### D. Reading evaluation dead output — in_review
 
 Remove `next_drills` from new evaluation prompts and generated schemas. Keep read compatibility
 for existing stored payloads and leave the future one-tap drill/session lifecycle deferred.
 
 Acceptance evidence: parser fixtures prove old feedback still loads; prompt/schema tests prove
 new evaluations do not request or require `next_drills`.
+
+Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, while prompt
+and schema tests prove new Reading evaluations neither request nor generate the field. The
+full repository suite passes 552 tests.
 
 ### Explicitly excluded from this iteration
 
