@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title">
+<title id="title">Household energy use in Bellmere</title>
+<rect width="960" height="600" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Household energy use in Bellmere</text>
+<text x="48" y="92" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of household energy</text>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="376.99111843077515 408.4070449666731" stroke-dashoffset="0" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="172.7875959474386 612.6105674500096" stroke-dashoffset="-376.99111843077515" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="125.66370614359172 659.7344572538565" stroke-dashoffset="-549.7787143782137" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="70.68583470577033 714.7123286916778" stroke-dashoffset="-675.4424205218055" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#B88914" stroke-width="86" stroke-dasharray="39.269908169872416 746.1282552275758" stroke-dashoffset="-746.1282552275759" transform="rotate(-90 245 300)"/>
+<text x="370.75136778196224" y="297.0883945393065" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">48%</text>
+<text x="177.48582383264645" y="411.3853186132539" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">22%</text>
+<text x="121.23180640818522" y="281.38995436219875" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">16%</text>
+<text x="174.17749439063152" y="200.78784764140522" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">9%</text>
+<text x="225.28925740493088" y="180.55126908501265" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">5%</text>
+<circle cx="245" cy="300" r="78" fill="#FBFAF7"/><text x="245" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2000</text>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="274.8893571891069 510.50880620834135" stroke-dashoffset="0" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="157.07963267948966 628.3185307179585" stroke-dashoffset="-274.8893571891069" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="188.49555921538757 596.9026041820607" stroke-dashoffset="-431.9689898685965" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="62.83185307179586 722.5663103256524" stroke-dashoffset="-620.4645490839841" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#B88914" stroke-width="86" stroke-dasharray="102.10176124166827 683.29640215578" stroke-dashoffset="-683.29640215578" transform="rotate(-90 655 300)"/>
+<text x="767.2668220477343" y="247.7971970328171" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">35%</text>
+<text x="693.9361412912434" y="424.8331210531893" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">20%</text>
+<text x="544.5853583144732" y="365.7009629368161" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">24%</text>
+<text x="544.5853583144732" y="244.29903706318382" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">8%</text>
+<text x="604.9593657800177" y="189.36291716381837" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">13%</text>
+<circle cx="655" cy="300" r="78" fill="#FBFAF7"/><text x="655" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2025</text>
+<rect x="90" y="520" width="15" height="15" rx="3" fill="#2457D6"/><text x="113" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Heating</text>
+<rect x="365" y="520" width="15" height="15" rx="3" fill="#D9663D"/><text x="388" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Water heating</text>
+<rect x="640" y="520" width="15" height="15" rx="3" fill="#2F8F69"/><text x="663" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Appliances</text>
+<rect x="90" y="548" width="15" height="15" rx="3" fill="#8B5FBF"/><text x="113" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Lighting</text>
+<rect x="365" y="548" width="15" height="15" rx="3" fill="#B88914"/><text x="388" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Cooling</text>
+</svg>

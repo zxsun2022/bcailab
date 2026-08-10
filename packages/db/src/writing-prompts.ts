@@ -2,26 +2,17 @@
 
 type PromptDb = D1Database;
 
-export type WritingPromptFamily = "general" | "ielts";
-export type WritingPromptTaskType =
-  | "guided"
-  | "academic_task_1"
-  | "academic_task_2";
-export type WritingPromptKind =
-  | "email"
-  | "opinion"
-  | "story"
-  | "description"
-  | "line_graph"
-  | "bar_chart"
-  | "pie_chart"
-  | "table"
-  | "process"
-  | "map"
-  | "opinion_essay"
-  | "discussion"
-  | "problem_solution"
-  | "advantages_disadvantages";
+import type {
+  WritingPromptFamily,
+  WritingPromptKind,
+  WritingPromptTaskType
+} from "./writing-prompt-domain";
+
+export type {
+  WritingPromptFamily,
+  WritingPromptKind,
+  WritingPromptTaskType
+} from "./writing-prompt-domain";
 export type WritingPromptStatus = "draft" | "reviewed" | "published" | "retired";
 
 export type WritingPrompt = {

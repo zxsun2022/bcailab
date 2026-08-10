@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 export * from "./saved-translations";
+export * from "./writing-prompt-domain";
 export * from "./writing-prompts";
 
 export type Db = D1Database;

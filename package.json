@@ -8,6 +8,7 @@
     "typecheck": "pnpm --filter web typecheck",
     "lint": "pnpm --filter web lint",
     "db:migrate:local": "wrangler d1 migrations apply bcailab-db --local --persist-to apps/web/.wrangler/state",
+    "writing-prompts": "tsx scripts/writing-prompt-seed/cli.ts",
     "benchmark:mapdown": "tsx scripts/mapdown-benchmark.ts",
     "context": "./scripts/context-pack.sh",
     "test": "vitest run",

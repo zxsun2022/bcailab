@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title">
+<title id="title">How commuters travelled in Westford</title>
+<rect width="960" height="640" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">How commuters travelled in Westford</text>
+<rect x="50" y="82" width="15" height="15" rx="3" fill="#2457D6"/><text x="73" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Car</text>
+<rect x="310" y="82" width="15" height="15" rx="3" fill="#D9663D"/><text x="333" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Public transport</text>
+<rect x="570" y="82" width="15" height="15" rx="3" fill="#2F8F69"/><text x="593" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Cycling</text>
+<rect x="50" y="110" width="15" height="15" rx="3" fill="#8B5FBF"/><text x="73" y="123" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Walking</text>
+<text x="90" y="157" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of commuters</text>
+<line x1="90" y1="525" x2="880" y2="525" stroke="#D9DDE3"/><text x="78" y="530" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">0</text>
+<line x1="90" y1="455" x2="880" y2="455" stroke="#D9DDE3"/><text x="78" y="460" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">12.4</text>
+<line x1="90" y1="385" x2="880" y2="385" stroke="#D9DDE3"/><text x="78" y="390" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">24.8</text>
+<line x1="90" y1="315" x2="880" y2="315" stroke="#D9DDE3"/><text x="78" y="320" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">37.2</text>
+<line x1="90" y1="245" x2="880" y2="245" stroke="#D9DDE3"/><text x="78" y="250" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">49.6</text>
+<line x1="90" y1="175" x2="880" y2="175" stroke="#D9DDE3"/><text x="78" y="180" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">62</text>
+<line x1="90" y1="175" x2="90" y2="525" stroke="#596577" stroke-width="2"/>
+<line x1="90" y1="525" x2="880" y2="525" stroke="#596577" stroke-width="2"/>
+<text x="90" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2010</text>
+<text x="485" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2015</text>
+<text x="880" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2020</text>
+<polyline points="90,175 485,214.51612903225805 880,259.6774193548387" fill="none" stroke="#2457D6" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="175" r="5" fill="#2457D6"/>
+<circle cx="485" cy="214.51612903225805" r="5" fill="#2457D6"/>
+<circle cx="880" cy="259.6774193548387" r="5" fill="#2457D6"/>
+<polyline points="90,389.51612903225805 485,355.64516129032256 880,310.48387096774195" fill="none" stroke="#D9663D" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="389.51612903225805" r="5" fill="#D9663D"/>
+<circle cx="485" cy="355.64516129032256" r="5" fill="#D9663D"/>
+<circle cx="880" cy="310.48387096774195" r="5" fill="#D9663D"/>
+<polyline points="90,479.8387096774194 485,468.5483870967742 880,457.258064516129" fill="none" stroke="#2F8F69" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="479.8387096774194" r="5" fill="#2F8F69"/>
+<circle cx="485" cy="468.5483870967742" r="5" fill="#2F8F69"/>
+<circle cx="880" cy="457.258064516129" r="5" fill="#2F8F69"/>
+<polyline points="90,491.1290322580645 485,496.7741935483871 880,508.06451612903226" fill="none" stroke="#8B5FBF" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="491.1290322580645" r="5" fill="#8B5FBF"/>
+<circle cx="485" cy="496.7741935483871" r="5" fill="#8B5FBF"/>
+<circle cx="880" cy="508.06451612903226" r="5" fill="#8B5FBF"/>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title">
+<title id="title">Electricity generation by source in Norland</title>
+<rect width="960" height="640" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Electricity generation by source in Norland</text>
+<rect x="50" y="82" width="15" height="15" rx="3" fill="#2457D6"/><text x="73" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Solar</text>
+<rect x="310" y="82" width="15" height="15" rx="3" fill="#D9663D"/><text x="333" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Hydro</text>
+<rect x="570" y="82" width="15" height="15" rx="3" fill="#2F8F69"/><text x="593" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Gas</text>
+<text x="90" y="157" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of electricity</text>
+<line x1="90" y1="525" x2="880" y2="525" stroke="#D9DDE3"/><text x="78" y="530" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">0</text>
+<line x1="90" y1="455" x2="880" y2="455" stroke="#D9DDE3"/><text x="78" y="460" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">10.6</text>
+<line x1="90" y1="385" x2="880" y2="385" stroke="#D9DDE3"/><text x="78" y="390" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">21.2</text>
+<line x1="90" y1="315" x2="880" y2="315" stroke="#D9DDE3"/><text x="78" y="320" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">31.8</text>
+<line x1="90" y1="245" x2="880" y2="245" stroke="#D9DDE3"/><text x="78" y="250" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">42.4</text>
+<line x1="90" y1="175" x2="880" y2="175" stroke="#D9DDE3"/><text x="78" y="180" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">53</text>
+<line x1="90" y1="175" x2="90" y2="525" stroke="#596577" stroke-width="2"/>
+<line x1="90" y1="525" x2="880" y2="525" stroke="#596577" stroke-width="2"/>
+<text x="90" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2005</text>
+<text x="485" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2015</text>
+<text x="880" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2025</text>
+<polyline points="90,491.9811320754717 485,406.1320754716981 880,287.2641509433962" fill="none" stroke="#2457D6" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="491.9811320754717" r="5" fill="#2457D6"/>
+<circle cx="485" cy="406.1320754716981" r="5" fill="#2457D6"/>
+<circle cx="880" cy="287.2641509433962" r="5" fill="#2457D6"/>
+<polyline points="90,247.64150943396226 485,260.8490566037736 880,274.0566037735849" fill="none" stroke="#D9663D" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="247.64150943396226" r="5" fill="#D9663D"/>
+<circle cx="485" cy="260.8490566037736" r="5" fill="#D9663D"/>
+<circle cx="880" cy="274.0566037735849" r="5" fill="#D9663D"/>
+<polyline points="90,175 485,247.64150943396226 880,353.3018867924528" fill="none" stroke="#2F8F69" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="175" r="5" fill="#2F8F69"/>
+<circle cx="485" cy="247.64150943396226" r="5" fill="#2F8F69"/>
+<circle cx="880" cy="353.3018867924528" r="5" fill="#2F8F69"/>
+</svg>
