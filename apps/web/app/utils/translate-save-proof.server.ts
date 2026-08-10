@@ -149,6 +149,25 @@ export const createTranslationSaveProof = async (input: {
   return `${payloadSegment}.${encodeBase64Url(new Uint8Array(signature))}`;
 };
 
+/**
+ * Save proof creation is auxiliary to translation. An ineligible snapshot or proof-service
+ * failure returns null so a completed translation never becomes a translation failure.
+ */
+export const tryCreateTranslationSaveProof = async (
+  input: Parameters<typeof createTranslationSaveProof>[0]
+): Promise<string | null> => {
+  try {
+    return await createTranslationSaveProof(input);
+  } catch (error) {
+    if (!(error instanceof TranslationSaveProofError && error.code === "snapshot")) {
+      console.error("translation save proof unavailable", {
+        errorClass: error instanceof Error ? error.name : "unknown"
+      });
+    }
+    return null;
+  }
+};
+
 export const verifyTranslationSaveProof = async (input: {
   secret: string;
   proof: string;

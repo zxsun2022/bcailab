@@ -7,7 +7,10 @@ import {
   type WritingPromptSummary
 } from "@bcailab/db";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import { LocalDateTime } from "~/components/LocalDateTime";
+import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
+import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
 
 export const meta: MetaFunction = () => [
   { title: "Writing · English Studio · bcailab" },
@@ -19,21 +22,31 @@ export const meta: MetaFunction = () => [
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
-  const [prompts, articles] = await Promise.all([
-    listPublishedWritingPrompts(context.env.DB, { userId: user.id, limit: 100 }),
-    listRecentWritingArticlesByUser(context.env.DB, { userId: user.id, limit: 6 })
-  ]);
-  return json({
-    prompts,
-    articles: articles.map((article) => ({
-      id: article.id,
-      title: article.title,
-      essayPrompt: article.essay_prompt,
-      promptId: article.prompt_id,
-      agentType: article.agent_type,
-      updatedAt: article.updated_at
-    }))
-  });
+  try {
+    const [prompts, articles] = await Promise.all([
+      listPublishedWritingPrompts(context.env.DB, { userId: user.id, limit: 100 }),
+      listRecentWritingArticlesByUser(context.env.DB, { userId: user.id, limit: 6 })
+    ]);
+    return json({
+      schemaReady: true as const,
+      prompts,
+      articles: articles.map((article) => ({
+        id: article.id,
+        title: article.title,
+        essayPrompt: article.essay_prompt,
+        promptId: article.prompt_id,
+        agentType: article.agent_type,
+        updatedAt: article.updated_at
+      }))
+    });
+  } catch (error) {
+    if (!isWritingSchemaMissingError(error)) throw error;
+    logWritingSchemaMissing("writing.index.loader", error);
+    return json(
+      { schemaReady: false as const, prompts: [], articles: [] },
+      { status: 503 }
+    );
+  }
 };
 
 const promptHref = (prompt: WritingPromptSummary) => `/writing/prompt/${prompt.slug}`;
@@ -65,7 +78,9 @@ const PromptCard = ({ prompt }: { prompt: WritingPromptSummary }) => (
 );
 
 export default function WritingHomePage() {
-  const { prompts, articles } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  if (!data.schemaReady) return <WritingUnavailableState />;
+  const { prompts, articles } = data;
   const general = prompts.filter((prompt) => prompt.family === "general");
   const task1 = prompts.filter((prompt) => prompt.task_type === "academic_task_1");
   const task2 = prompts.filter((prompt) => prompt.task_type === "academic_task_2");
@@ -144,7 +159,10 @@ export default function WritingHomePage() {
                       <strong>{article.title ?? article.essayPrompt ?? "Untitled piece"}</strong>
                       <small>{article.promptId ? "Assignment" : "Freeform"}</small>
                     </span>
-                    <time dateTime={article.updatedAt}>{new Date(`${article.updatedAt}Z`).toLocaleDateString()}</time>
+                    <LocalDateTime
+                      value={article.updatedAt}
+                      options={{ year: "numeric", month: "short", day: "numeric" }}
+                    />
                   </Link>
                 ))}
               </div>

@@ -22,7 +22,7 @@ import { StudioShell } from "~/components/StudioShell";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { TranslateWorkspaceTabs } from "~/components/TranslateWorkspaceTabs";
 import {
-  createTranslationSaveProof,
+  tryCreateTranslationSaveProof,
   translateSaveProofSubject,
   type TranslationSaveSnapshot
 } from "~/utils/translate-save-proof.server";
@@ -64,7 +64,7 @@ type ActionData =
       translation: string;
       detectedSourceLanguage: TranslateLanguageCode | null;
       remainingToday: number;
-      proof: string;
+      proof: string | null;
       snapshot: TranslationSaveSnapshot;
     }
   | { ok: false; error: string; code?: "quota_exceeded" | "too_long" };
@@ -101,17 +101,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       sourceText: prepared.text,
       translatedText: result.translation
     };
-    const proof = await createTranslationSaveProof({
+    await recordTranslateUsage(context.env.DB, {
+      ...prepared.identity,
+      chars: prepared.text.length
+    });
+    const proof = await tryCreateTranslationSaveProof({
       secret: context.env.SESSION_SECRET,
       subject: translateSaveProofSubject({
         userId: prepared.identity.userId,
         anonId: prepared.identity.anonId
       }),
       snapshot
-    });
-    await recordTranslateUsage(context.env.DB, {
-      ...prepared.identity,
-      chars: prepared.text.length
     });
     return json<ActionData>(
       {
@@ -142,7 +142,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 type StreamEvent =
   | { type: "detected"; language: TranslateLanguageCode | null }
   | { type: "delta"; text: string }
-  | { type: "done"; remainingToday: number; proof: string }
+  | { type: "done"; remainingToday: number; proof: string | null }
   | { type: "error"; error: string; code?: "quota_exceeded" | "too_long" };
 
 const parseStreamEvent = (block: string): StreamEvent | null => {

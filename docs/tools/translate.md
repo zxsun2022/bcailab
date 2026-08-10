@@ -47,9 +47,11 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
 - **Limits**: per-tier — see "Quotas & Tiers" above. The char counter and submit button use
   the tier limit returned by the loader.
 - **Copy / Clear**: output pane has a copy button; input pane has a clear button.
-- **Explicit Save**: completion alone writes no translation text. A completed result receives a
-  short-lived server-signed proof and exposes Save. Signed-out Save opens the existing login
-  popup; the in-memory result and anonymous proof remain available after authentication.
+- **Explicit Save**: completion alone writes no translation text. A completed result that fits
+  the Saved translations storage contract receives a short-lived server-signed proof and
+  exposes Save. Signed-out Save opens the existing login popup; the in-memory result and
+  anonymous proof remain available after authentication. A valid translation whose expanded
+  output exceeds 40,000 characters still completes normally, but has no Save action.
 - **Immutable completion snapshot**: editing the source after completion does not mutate the
   displayed result. The page labels that state, and Save keeps the exact displayed
   source/language/result snapshot.
@@ -76,8 +78,10 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
   limits and counters cannot drift between the streaming and fallback paths.
 - Both paths record usage only after a successful translation; a stream that fails part-way
   does not consume the day's allowance.
-- Both successful paths expose the same HMAC completion proof only after the translation and
-  quota write finish. The token is domain-separated as `bcailab:translate-save:v1`, expires
+- Both successful paths attempt the same HMAC completion proof only after the translation and
+  quota write finish. Proof creation is auxiliary: an ineligible snapshot or proof-service
+  failure returns the successful translation without Save rather than changing it into a
+  translation error. The token is domain-separated as `bcailab:translate-save:v1`, expires
   after 15 minutes, and contains version/timestamps/completion id/subject/SHA-256 digest only —
   never source or translated text. Save accepts either the current signed-in subject or the
   same anonymous cookie subject after popup authentication, then recomputes the digest before
@@ -92,7 +96,7 @@ Cloudflare reason under "Provider failures" above.
 |-------|---------|-------|
 | `detected` | `{"language": "zh-Hans"\|null}` | At most once, before any delta. |
 | `delta` | `{"text": "…"}` | Translation text in arrival order; concatenate. |
-| `done` | `{"remainingToday": n, "proof": "…"}` | Success terminator. Proof binds the completed snapshot without containing its text. |
+| `done` | `{"remainingToday": n, "proof": "…"\|null}` | Success terminator. A non-null proof binds an eligible completed snapshot without containing its text. |
 | `error` | `{"error": "…", "code"?: "quota_exceeded"\|"too_long"}` | Terminal; may arrive first. |
 
 - Uses the existing `GEMINI_API_KEY` / `GEMINI_MODEL` env vars — no new infrastructure.
@@ -109,7 +113,7 @@ Migration `0017_saved_translations.sql` creates the private durable surface:
 - source/requested/detected/target language metadata, source text, translated text, and
   timestamps;
 - SQL length limits of 20,000 source and 40,000 translated characters, mirrored by server
-  validation;
+  validation; longer completed model output remains usable and copyable but is not saveable;
 - keyset index `(user_id, created_at DESC, id DESC)`; list queries return at most 25 rows plus
   one lookahead and only a 160-character source preview;
 - all list/detail/create/delete helpers require `userId` and include it in SQL. Missing and

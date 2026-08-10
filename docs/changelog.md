@@ -9,6 +9,24 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: English Studio acceptance-review hardening.** Fixed the reported
+  local Writing crash at both layers: the development D1 state now has additive migrations
+  `0016`/`0017`, and parallel child loaders degrade to the Writing unavailable state instead
+  of overriding the layout guard with `no such table`. Local workflow docs now point at
+  `apps/web/.wrangler/state`, the state actually used by `pnpm dev`. Review follow-ups decouple
+  a successful long translation from optional Save-proof creation; server-pin anonymous
+  Writing to the one featured assignment; keep first-submit idempotency keys stable across
+  loader revalidation; restore recoverable soft deletion for Writing articles and revisions;
+  use hydration-safe recent dates; scope mobile touch sizing; and make destructive form
+  triggers inert without the JavaScript confirmation path. The prompt pipeline now separates
+  reusable domain validation from the authorized first-48 editorial policy, uses
+  locale-independent canonical sorting and explicit publish-SQL quoting, and participates in
+  root typecheck/tests. Evidence: 558/558 tests, clean Web + seed typecheck, production build,
+  current 48-prompt/12-asset/review-pack checks, local trial GET 200, forged featured slug 409,
+  Translate GET 200, and a local schema query confirming both additive tables. No prompt was
+  published, no remote migration ran, and nothing was deployed. The unrelated destructive
+  local migration `0015` remains pending until the owner explicitly authorizes that deletion.
+
 - 2026-08-10 — **in_review: English Studio landing-page copy refresh.** The public hero now
   describes focused practice across reading, writing, listening, speaking, and translation,
   and explains the recitation, AI writing coach, audio/shadowing, and in-workspace translation

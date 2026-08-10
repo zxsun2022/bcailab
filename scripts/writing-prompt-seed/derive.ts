@@ -21,7 +21,7 @@ const stableValue = (value: unknown): unknown => {
   if (value && typeof value === "object") {
     return Object.fromEntries(
       Object.entries(value as Record<string, unknown>)
-        .sort(([left], [right]) => left.localeCompare(right))
+        .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
         .map(([key, entry]) => [key, stableValue(entry)])
     );
   }
@@ -34,6 +34,8 @@ export const sha256 = (value: string): string =>
   createHash("sha256").update(value, "utf8").digest("hex");
 
 const PALETTE = ["#2457D6", "#D9663D", "#2F8F69", "#8B5FBF", "#B88914"];
+
+type WritingChartMaterial = Extract<WritingTaskMaterial, { series: unknown }>;
 
 const svgShell = (title: string, body: string, width = 960, height = 600): string =>
   [
@@ -61,7 +63,7 @@ const renderLegend = (names: string[], startY = 82): string =>
     .join("\n");
 
 const renderLineGraph = (
-  material: Extract<WritingTaskMaterial, { kind: "line_graph" }>
+  material: WritingChartMaterial
 ): string => {
   const left = 90;
   const top = 175;
@@ -106,7 +108,7 @@ const renderLineGraph = (
 };
 
 const renderBarChart = (
-  material: Extract<WritingTaskMaterial, { kind: "bar_chart" }>
+  material: WritingChartMaterial
 ): string => {
   const left = 90;
   const top = 175;
@@ -143,7 +145,7 @@ const renderBarChart = (
 };
 
 const renderPieChart = (
-  material: Extract<WritingTaskMaterial, { kind: "pie_chart" }>
+  material: WritingChartMaterial
 ): string => {
   const pies = material.series
     .map((series, seriesIndex) => {

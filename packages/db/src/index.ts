@@ -1436,20 +1436,12 @@ export async function softDeleteWritingArticle(
     .run();
 }
 
+/** @deprecated Use softDeleteWritingArticle; retained for workspace API compatibility. */
 export async function deleteWritingArticleBatch(
   db: Db,
   input: { id: string; userId: string }
 ): Promise<void> {
-  await db.batch([
-    db
-      .prepare("DELETE FROM writing_revisions WHERE article_id = ? AND user_id = ?")
-      .bind(input.id, input.userId),
-    db
-      .prepare(
-        "UPDATE writing_articles SET deleted_at = datetime('now') WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
-      )
-      .bind(input.id, input.userId)
-  ]);
+  await softDeleteWritingArticle(db, input);
 }
 
 // ---------------------------------------------------------------------------

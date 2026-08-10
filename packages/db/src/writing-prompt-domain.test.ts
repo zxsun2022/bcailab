@@ -85,11 +85,11 @@ describe("validateWritingPrompt", () => {
 });
 
 describe("validateWritingPromptBatch", () => {
-  it("reports duplicate identity and the required batch distribution", () => {
+  it("reports duplicate identity without imposing one editorial batch size", () => {
     const issues = validateWritingPromptBatch([base, base]);
     expect(issues.some((issue) => issue.message.includes("duplicates"))).toBe(true);
-    expect(issues.some((issue) => issue.message.includes("exactly 48"))).toBe(true);
-    expect(issues.some((issue) => issue.message.includes("12 IELTS Task 1"))).toBe(true);
+    expect(issues.some((issue) => issue.message.includes("exactly 48"))).toBe(false);
+    expect(issues.some((issue) => issue.message.includes("12 IELTS Task 1"))).toBe(false);
   });
 });
 

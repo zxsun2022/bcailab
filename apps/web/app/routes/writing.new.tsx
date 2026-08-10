@@ -85,6 +85,7 @@ const TOPIC_KEY = "writing-topic-new";
 
 export default function WritingNewPage() {
   const { startKey } = useLoaderData<typeof loader>();
+  const [stableStartKey] = React.useState(() => startKey);
   const fetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const [agentType, setAgentType] = React.useState(DEFAULT_AGENT_ID);
@@ -124,7 +125,7 @@ export default function WritingNewPage() {
             <input type="hidden" name="_transport" value="fetcher" />
             <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
             <input type="hidden" name="topic" value={topic} />
-            <input type="hidden" name="startKey" value={startKey} />
+            <input type="hidden" name="startKey" value={stableStartKey} />
 
             <div className="writing-coach-row">
               <div className="writing-control-group">

@@ -524,12 +524,6 @@ main.tool-main {
   transform: translateY(-1px);
 }
 
-@media (max-width: 1023px) {
-  .btn {
-    min-height: 44px;
-  }
-}
-
 .btn:disabled {
   cursor: not-allowed;
   opacity: 0.65;
@@ -9173,6 +9167,12 @@ select.input:focus {
 .studio-page-body.speech-workspace {
   flex: 1;
   height: auto;
+}
+
+@media (max-width: 1023px) {
+  .studio-page-header-action .btn {
+    min-height: 44px;
+  }
 }
 
 @media (min-width: 1024px) {

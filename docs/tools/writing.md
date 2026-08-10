@@ -38,8 +38,9 @@ creating an account. It escapes the `/writing` layout (which calls `requireUser`
   iterating across rounds is precisely what signing in buys.
 - **Reviewed starter when available.** The trial offers the published
   `general-a2-study-invitation` assignment when that exact slug is available; otherwise it
-  safely falls back to the freeform experience. The action rechecks the content hash before
-  evaluation. Task 1 is never offered without canonical source material.
+  safely falls back to the freeform experience. The action hard-pins that same slug and
+  rechecks its content hash before evaluation; a submitted slug for any other published
+  prompt is rejected. Task 1 is never offered without canonical source material.
 - **Quota**: feature `writing_trial` in `feature_usage`, 5/day for anonymous visitors,
   counted against both the `bcailab_anon` cookie and the client IP. Charged only after a
   successful evaluation, so a provider failure costs the visitor nothing. Exceeding it
@@ -105,7 +106,8 @@ Nav rail collapse state is persisted in `localStorage`.
 - `writing_articles.assignment_snapshot_json` freezes the exact learner-visible assignment
   and canonical Task 1 facts for every later revision and retry.
 - `(user_id, start_key)` is unique, so a repeated first-submit transport returns the same
-  article and Round 1 instead of duplicating work.
+  article and Round 1 instead of duplicating work. The browser keeps that start key stable
+  across Remix loader revalidation, including validation errors and failed submissions.
 - `writing_revisions.feedback_generation` and `feedback_started_at` isolate retries and
   provide a server-authoritative stale-pending threshold.
 - `(article_id, round_number)` is unique.
@@ -117,6 +119,14 @@ Nav rail collapse state is persisted in `localStorage`.
 
 - D1 stores prompt metadata and learner work. Reviewed Task 1 SVGs are immutable,
   content-addressed public assets generated from the same canonical prompt source.
+- The reusable `@bcailab/db` validator enforces one prompt's domain contract plus unique
+  batch identities. The authorized first release's exact 48-prompt distribution lives in
+  `scripts/writing-prompt-seed/policy.ts`, so a later batch does not require changing an app
+  runtime package. Root `pnpm typecheck` includes this seed pipeline, and its deterministic
+  JSON ordering and explicit SQL quoting rules have direct tests.
+- Parent and child Writing loaders both degrade to the unavailable state when `0016` is not
+  present. Remix runs nested loaders in parallel, so the child guards are required even
+  though the layout probes the schema too.
 
 ## Coaches
 
@@ -305,7 +315,7 @@ Follows the same async pattern as Reading:
 2. Pinned actions at the top open `/writing`, `/writing/new`, and `/writing/progress`.
 3. Bottom of the rail includes a persistent `Settings` entry that opens `/writing/settings` in the center canvas.
 4. Hover reveals three-dot menu → "Delete article" using an accessible portal dialog.
-5. A single D1 batch deletes revisions and soft-deletes the owning article.
+5. The owning article is soft-deleted; its learner-authored revisions remain recoverable.
 6. Clicking an article navigates to `/writing/:id`.
 
 ### Flow F — Edit Title
@@ -318,7 +328,11 @@ Follows the same async pattern as Reading:
 ## Delete Behaviour
 
 - Article deletion uses the shared accessible confirmation dialog.
-- One D1 batch hard-deletes revision rows and soft-deletes the article row (`deleted_at` timestamp).
+- The article row receives a `deleted_at` timestamp and disappears from normal queries;
+  revision rows and learner-authored text are retained for recovery.
+- The destructive trigger is a non-submit button until the JavaScript confirmation succeeds.
+  With JavaScript unavailable, deletion is unavailable rather than silently bypassing the
+  confirmation requirement.
 - No R2 cleanup needed (text-only storage).
 
 ## File Manifest

@@ -6,10 +6,14 @@ import type {
 import { json, redirect } from "@remix-run/cloudflare";
 import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import * as React from "react";
-import { getPublishedWritingPromptBySlug } from "@bcailab/db";
+import {
+  getPublishedWritingPromptBySlug,
+  type WritingAssignmentSnapshot
+} from "@bcailab/db";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { WritingEditor } from "~/components/WritingEditor";
 import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
+import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import { createArticleWithFirstRevision, countWords } from "~/utils/writing-article.server";
@@ -35,10 +39,19 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   await requireUser(request, context);
   const slug = params.slug;
   if (!slug) throw new Response("Not found", { status: 404 });
-  const row = await getPublishedWritingPromptBySlug(context.env.DB, slug);
-  if (!row) throw new Response("Not found", { status: 404 });
-  const { snapshot } = materializeWritingPrompt(row);
-  return json({ assignment: snapshot, startKey: crypto.randomUUID() });
+  try {
+    const row = await getPublishedWritingPromptBySlug(context.env.DB, slug);
+    if (!row) throw new Response("Not found", { status: 404 });
+    const { snapshot } = materializeWritingPrompt(row);
+    return json({ schemaReady: true as const, assignment: snapshot, startKey: crypto.randomUUID() });
+  } catch (error) {
+    if (!isWritingSchemaMissingError(error)) throw error;
+    logWritingSchemaMissing("writing.prompt.loader", error);
+    return json(
+      { schemaReady: false as const, assignment: null, startKey: null },
+      { status: 503 }
+    );
+  }
 };
 
 export const action = async ({ request, context, params }: ActionFunctionArgs) => {
@@ -98,7 +111,27 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 };
 
 export default function WritingPromptPage() {
-  const { assignment, startKey } = useLoaderData<typeof loader>();
+  const data = useLoaderData<typeof loader>();
+  if (!data.schemaReady) return <WritingUnavailableState />;
+
+  return (
+    <WritingPromptReadyPage assignment={data.assignment} startKey={data.startKey} />
+  );
+}
+
+function WritingPromptReadyPage({
+  assignment,
+  startKey
+}: {
+  assignment: WritingAssignmentSnapshot;
+  startKey: string;
+}) {
+  const startIdentity = `${assignment.promptId}:${assignment.contentHash}`;
+  const stableStartRef = React.useRef({ identity: startIdentity, key: startKey });
+  if (stableStartRef.current.identity !== startIdentity) {
+    stableStartRef.current = { identity: startIdentity, key: startKey };
+  }
+  const stableStartKey = stableStartRef.current.key;
   const fetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const [feedbackLanguage] = useWritingFeedbackLanguage();
@@ -148,7 +181,7 @@ export default function WritingPromptPage() {
             <input type="hidden" name="_transport" value="fetcher" />
             <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
             <input type="hidden" name="contentHash" value={assignment.contentHash} />
-            <input type="hidden" name="startKey" value={startKey} />
+            <input type="hidden" name="startKey" value={stableStartKey} />
             <WritingEditor value={text} onChange={updateText} agent={agent} name="userText" />
             {fetcher.data?.error ? <div className="form-error" role="alert">{fetcher.data.error}</div> : null}
             <div className="writing-index-actions">

@@ -10,7 +10,7 @@ import * as React from "react";
 import {
   getWritingArticleById,
   listWritingRevisionsByArticle,
-  deleteWritingArticleBatch,
+  softDeleteWritingArticle,
   updateWritingArticleTitle
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
@@ -188,7 +188,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     if (intent === "deleteArticle") {
       try {
-        await deleteWritingArticleBatch(context.env.DB, { id: article.id, userId: user.id });
+        await softDeleteWritingArticle(context.env.DB, { id: article.id, userId: user.id });
         return redirect("/writing");
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {

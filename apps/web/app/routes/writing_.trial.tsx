@@ -22,6 +22,15 @@ import { openLoginPopup } from "~/utils/login-popup";
 import { getPublishedWritingPromptBySlug } from "@bcailab/db";
 import { materializeWritingPrompt } from "~/utils/writing-prompt.server";
 import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
+import {
+  FEATURED_WRITING_TRIAL_SLUG,
+  classifyWritingTrialAssignment
+} from "~/utils/writing-trial";
+import {
+  isWritingSchemaMissingError,
+  logWritingSchemaMissing,
+  WRITING_UNAVAILABLE_ERROR
+} from "~/utils/writing-schema.server";
 
 /**
  * Anonymous writing trial (design Appendix A).
@@ -55,7 +64,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   try {
     const row = await getPublishedWritingPromptBySlug(
       context.env.DB,
-      "general-a2-study-invitation"
+      FEATURED_WRITING_TRIAL_SLUG
     );
     featured = row ? materializeWritingPrompt(row).snapshot : null;
   } catch {
@@ -113,8 +122,28 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   let topic = String(formData.get("topic") ?? "").trim() || undefined;
   let assignment = null;
   const featuredSlug = String(formData.get("featuredSlug") ?? "");
-  if (featuredSlug) {
-    const row = await getPublishedWritingPromptBySlug(context.env.DB, featuredSlug);
+  const assignmentMode = classifyWritingTrialAssignment(featuredSlug);
+  if (assignmentMode === "invalid") {
+    return json<ActionData>(
+      { ok: false, error: "This trial assignment is not available." },
+      { status: 409, headers: extraHeaders }
+    );
+  }
+  if (assignmentMode === "featured") {
+    let row;
+    try {
+      row = await getPublishedWritingPromptBySlug(
+        context.env.DB,
+        FEATURED_WRITING_TRIAL_SLUG
+      );
+    } catch (error) {
+      if (!isWritingSchemaMissingError(error)) throw error;
+      logWritingSchemaMissing("writing.trial.action", error);
+      return json<ActionData>(
+        { ok: false, error: WRITING_UNAVAILABLE_ERROR },
+        { status: 503, headers: extraHeaders }
+      );
+    }
     const renderedHash = String(formData.get("contentHash") ?? "");
     if (!row || row.content_hash !== renderedHash) {
       return json<ActionData>(

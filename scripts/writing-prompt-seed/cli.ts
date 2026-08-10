@@ -2,12 +2,13 @@ import { execFileSync } from "node:child_process";
 import { readFile, mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
-  validateWritingPromptBatch,
   type GeneratedWritingPrompt,
   type PromptValidationIssue,
   type WritingPromptSource
 } from "@bcailab/db";
 import { deriveWritingPrompt, sha256, stableJson } from "./derive";
+import { validateInitialWritingPromptBatch } from "./policy";
+import { buildPublishedPromptValueRow, sqlQuote } from "./publish-sql";
 
 const SEED_DIR = import.meta.dirname;
 const REPO_ROOT = path.resolve(SEED_DIR, "..", "..");
@@ -88,7 +89,7 @@ const formatIssues = (issues: PromptValidationIssue[]): string =>
 
 const readSource = async (): Promise<WritingPromptSource[]> => {
   const source = await parseJsonFile<unknown>(SOURCE_PATH);
-  const issues = validateWritingPromptBatch(source);
+  const issues = validateInitialWritingPromptBatch(source);
   if (issues.length > 0) {
     throw new Error(`Prompt validation failed:\n${formatIssues(issues)}`);
   }
@@ -255,9 +256,6 @@ const preflightCommand = async (args: string[]) => {
   );
 };
 
-const sqlQuote = (value: string | null): string =>
-  value == null ? "NULL" : `'${value.replace(/'/g, "''")}'`;
-
 const buildPublishSql = (
   prompts: GeneratedWritingPrompt[],
   pack: ReviewPack,
@@ -270,32 +268,7 @@ const buildPublishSql = (
     ownerReview: approval.ownerReview
   });
   const values = prompts
-    .map((prompt) =>
-      `(${[
-        prompt.id,
-        prompt.slug,
-        prompt.family,
-        prompt.taskType,
-        prompt.promptKind,
-        prompt.cefrBand,
-        prompt.title,
-        prompt.promptText,
-        prompt.coachId,
-        prompt.topic,
-        String(prompt.targetWords),
-        String(prompt.targetMinutes),
-        prompt.taskMaterialJson,
-        prompt.assetPath,
-        prompt.assetAltText ?? null,
-        prompt.accessibleDescription,
-        prompt.sourceLabel,
-        prompt.contentHash,
-        reviewManifest,
-        prompt.contentHash
-      ]
-        .map((value, index) => (index === 10 || index === 11 ? value : sqlQuote(value)))
-        .join(", ")}, 'published', datetime('now'), datetime('now'))`
-    )
+    .map((prompt) => buildPublishedPromptValueRow(prompt, reviewManifest))
     .join(",\n");
   return `INSERT INTO writing_prompts (
     id, slug, family, task_type, prompt_kind, cefr_band,

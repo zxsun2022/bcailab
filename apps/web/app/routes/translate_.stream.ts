@@ -3,7 +3,7 @@ import { streamTranslateText } from "~/utils/translate.server";
 import { prepareTranslateRequest } from "~/utils/translate-request.server";
 import { recordTranslateUsage } from "~/utils/translate-quota.server";
 import {
-  createTranslationSaveProof,
+  tryCreateTranslationSaveProof,
   translateSaveProofSubject
 } from "~/utils/translate-save-proof.server";
 import type { TranslateLanguageCode } from "~/utils/translate-languages";
@@ -15,7 +15,7 @@ import type { TranslateLanguageCode } from "~/utils/translate-languages";
  * Wire format — one JSON object per `data:` line:
  *   {"type":"detected","language":"zh"|null}   at most once, before any delta
  *   {"type":"delta","text":"…"}                translation text, in arrival order
- *   {"type":"done","remainingToday":n,"proof":"…"} success terminator
+ *   {"type":"done","remainingToday":n,"proof":"…"|null} success terminator
  *   {"type":"error","error":"…","code":"…"}    terminal failure, may arrive at any point
  *
  * Every response is HTTP 200, including validation and quota rejections. Errors travel
@@ -65,7 +65,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           }
           controller.enqueue(frame(chunk));
         }
-        const proof = await createTranslationSaveProof({
+        // A completed translation consumes quota even when its expanded output is too
+        // large for the intentionally smaller Saved translations storage contract.
+        await recordTranslateUsage(context.env.DB, {
+          ...prepared.identity,
+          chars: prepared.text.length
+        });
+        const proof = await tryCreateTranslationSaveProof({
           secret: context.env.SESSION_SECRET,
           subject: translateSaveProofSubject({
             userId: prepared.identity.userId,
@@ -78,12 +84,6 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
             sourceText: prepared.text,
             translatedText
           }
-        });
-        // Charged only after the output is complete and eligible for a completion proof.
-        // A request that failed part-way through does not consume the daily allowance.
-        await recordTranslateUsage(context.env.DB, {
-          ...prepared.identity,
-          chars: prepared.text.length
         });
         controller.enqueue(
           frame({

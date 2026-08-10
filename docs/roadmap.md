@@ -125,6 +125,17 @@ links and Translate language selectors now measure 44px. Reduced-motion rules ar
 the production bundle; dynamic emulation was best-effort only because the isolated browser's
 CDP allowlist rejects `Emulation.setEmulatedMedia`.
 
+Acceptance-review follow-up (2026-08-10): nested Writing loaders now preserve the schema
+unavailable state during Remix's parallel loading; trial submission is server-pinned to the
+single featured slug; first-submit keys survive loader revalidation; article deletion retains
+learner revisions; and recent-piece dates use the hydration-safe local formatter. Translation
+completion is now independent from Save-proof eligibility, so output beyond the 40,000-character
+Saved limit still completes and consumes quota without exposing Save. The first-batch census
+was moved out of the shared prompt domain into seed policy, canonical sorting is locale
+independent, publish SQL has explicit typed quoting, and the seed pipeline joins root
+typecheck/tests. Mobile touch sizing is scoped to intended Studio controls, and destructive
+form triggers cannot submit without the confirmation JavaScript path.
+
 ### D. Reading evaluation dead output — in_review
 
 Remove `next_drills` from new evaluation prompts and generated schemas. Keep read compatibility
@@ -135,7 +146,7 @@ new evaluations do not request or require `next_drills`.
 
 Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, while prompt
 and schema tests prove new Reading evaluations neither request nor generate the field. The
-full repository suite passes 552 tests.
+full repository suite passes 558 tests.
 
 ### Explicitly excluded from this iteration
 

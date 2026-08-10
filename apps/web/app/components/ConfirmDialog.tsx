@@ -160,7 +160,11 @@ type ConfirmSubmitButtonProps = Omit<
   confirmLabel?: string;
 };
 
-/** Adds a confirmation gate to an ordinary progressively-enhanced form submit. */
+/**
+ * Adds a confirmation gate to a form submit. The trigger is deliberately never a native
+ * submit button: without JavaScript the destructive action is unavailable rather than
+ * bypassing confirmation.
+ */
 export function ConfirmSubmitButton({
   dialogTitle,
   dialogDescription,
@@ -182,9 +186,8 @@ export function ConfirmSubmitButton({
       <button
         {...buttonProps}
         ref={buttonRef}
-        type="submit"
-        onClick={(event) => {
-          event.preventDefault();
+        type="button"
+        onClick={() => {
           if (!buttonProps.disabled) setOpen(true);
         }}
       >

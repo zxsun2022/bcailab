@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createTranslationSaveProof,
+  tryCreateTranslationSaveProof,
   normalizeTranslationSaveSnapshot,
   verifyTranslationSaveProof,
   type TranslationSaveSnapshot
@@ -84,5 +85,14 @@ describe("translation save completion proof", () => {
       .toThrow();
     expect(() => normalizeTranslationSaveSnapshot({ ...snapshot, sourceText: "x".repeat(20_001) }))
       .toThrow();
+  });
+
+  it("keeps an oversized completed translation successful but ineligible to save", async () => {
+    await expect(tryCreateTranslationSaveProof({
+      secret: SECRET,
+      subject: "user:user-1",
+      snapshot: { ...snapshot, translatedText: "x".repeat(40_001) },
+      nowMs: NOW
+    })).resolves.toBeNull();
   });
 });
