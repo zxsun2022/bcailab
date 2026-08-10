@@ -64,7 +64,12 @@ describe("translation save completion proof", () => {
       snapshot,
       nowMs: NOW
     });
-    const tamperedProof = `${proof.slice(0, -1)}${proof.endsWith("A") ? "B" : "A"}`;
+    const separator = proof.indexOf(".");
+    const payloadSegment = proof.slice(0, separator);
+    // The final base64url signature character contains two unused padding bits; changing it
+    // can decode to the same bytes. Mutate the payload's first fully significant character.
+    const tamperedPayload = `${payloadSegment.startsWith("A") ? "B" : "A"}${payloadSegment.slice(1)}`;
+    const tamperedProof = `${tamperedPayload}${proof.slice(separator)}`;
     const cases = [
       { proof: tamperedProof, acceptedSubjects: ["user:user-1"], snapshot, nowMs: NOW },
       { proof, acceptedSubjects: ["user:user-1"], snapshot, nowMs: NOW + 16 * 60_000 },

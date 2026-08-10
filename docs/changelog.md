@@ -24,8 +24,9 @@ make the final transition; see `AGENTS.md`.
   root typecheck/tests. Evidence: 558/558 tests, clean Web + seed typecheck, production build,
   current 48-prompt/12-asset/review-pack checks, local trial GET 200, forged featured slug 409,
   Translate GET 200, and a local schema query confirming both additive tables. No prompt was
-  published, no remote migration ran, and nothing was deployed. The unrelated destructive
-  local migration `0015` remains pending until the owner explicitly authorizes that deletion.
+  published, no remote migration ran, and nothing was deployed. Follow-up inspection found
+  both `0015` target tables already absent, so its missing local ledger record was reconciled
+  without executing a DROP; the local migration list is now clean.
 
 - 2026-08-10 — **in_review: English Studio landing-page copy refresh.** The public hero now
   describes focused practice across reading, writing, listening, speaking, and translation,
