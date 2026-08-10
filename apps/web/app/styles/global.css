@@ -2478,6 +2478,7 @@ select.input:focus {
 
   .translate-submit,
   .translate-swap,
+  .translate-lang-select,
   .translate-pane-action {
     min-height: 44px;
   }
