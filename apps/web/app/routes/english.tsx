@@ -31,7 +31,7 @@ export const meta: MetaFunction = () => [
   {
     name: "description",
     content:
-      "One workspace for English practice: reading and recitation, writing coaching, speech audio, and LLM-powered translation."
+      "One workspace for focused English practice: read, write, listen, speak, and translate with AI feedback along the way."
   }
 ];
 
@@ -58,14 +58,14 @@ export default function EnglishLanding() {
         </div>
         <h1 className="landing-title">English Studio</h1>
         <p className="landing-tagline">
-          One workspace for deliberate English practice — read, write, listen,
-          and translate with AI feedback in the loop.
+          One workspace for focused English practice — read, write, listen, speak,
+          and translate with AI feedback along the way.
         </p>
         <p className="landing-desc">
-          English Studio brings the lab&rsquo;s language tools together as one product.
-          Practice is organized around real workflows instead of drills: recite a passage
-          and hear what needs work, revise an essay across rounds with a coach, turn text
-          into audio for shadowing, and translate without leaving the workspace.
+          English Studio brings the lab&rsquo;s language tools together in one place. Practice
+          through real workflows: recite a passage and learn what needs work; revise an essay
+          with an AI coach; turn text into audio for listening and shadowing; and translate
+          without leaving your workspace.
         </p>
         {!user ? (
           <button type="button" className="landing-cta" onClick={() => openLoginPopup()}>

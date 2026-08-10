@@ -9,6 +9,12 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: English Studio landing-page copy refresh.** The public hero now
+  describes focused practice across reading, writing, listening, speaking, and translation,
+  and explains the recitation, AI writing coach, audio/shadowing, and in-workspace translation
+  workflows in clearer learner-facing language. The page metadata carries the same product
+  positioning. Evidence: web typecheck and production build.
+
 - 2026-08-10 — **in_review: English Studio material, memory, and interaction iteration
   (D1-D5).** Writing is now material-led: a versioned D1 prompt contract, immutable article
   assignment snapshots, 48-source-prompt editorial pipeline (24 General English across
