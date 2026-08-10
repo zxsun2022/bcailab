@@ -10,6 +10,8 @@ without an account, within daily quotas.
 |------|-------|---------------|
 | Translate | `/translate` | Public. Responsive workspace inside the English Studio shell. Its `action` is the no-JS fallback only. |
 | Translate stream | `/translate/stream` | Public resource route (POST). SSE endpoint the page uses whenever JavaScript is available. |
+| Saved translations | `/translate/saved` | Auth required. Private, keyset-paginated list of explicitly saved results. The route action verifies completion proof before creating a row. |
+| Saved translation | `/translate/saved/:id` | Auth required. Owner-scoped full source/result, Copy, and confirmed permanent delete. |
 
 ## Quotas & Tiers
 Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the D1
@@ -45,6 +47,12 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
 - **Limits**: per-tier — see "Quotas & Tiers" above. The char counter and submit button use
   the tier limit returned by the loader.
 - **Copy / Clear**: output pane has a copy button; input pane has a clear button.
+- **Explicit Save**: completion alone writes no translation text. A completed result receives a
+  short-lived server-signed proof and exposes Save. Signed-out Save opens the existing login
+  popup; the in-memory result and anonymous proof remain available after authentication.
+- **Immutable completion snapshot**: editing the source after completion does not mutate the
+  displayed result. The page labels that state, and Save keeps the exact displayed
+  source/language/result snapshot.
 - **Stable layout**: the translate workspace has a fixed responsive width, so adding or removing
   translation output does not resize the two-pane container.
 - **Mobile order**: source language → source input → Translate action → output. The input gives
@@ -68,6 +76,12 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
   limits and counters cannot drift between the streaming and fallback paths.
 - Both paths record usage only after a successful translation; a stream that fails part-way
   does not consume the day's allowance.
+- Both successful paths expose the same HMAC completion proof only after the translation and
+  quota write finish. The token is domain-separated as `bcailab:translate-save:v1`, expires
+  after 15 minutes, and contains version/timestamps/completion id/subject/SHA-256 digest only —
+  never source or translated text. Save accepts either the current signed-in subject or the
+  same anonymous cookie subject after popup authentication, then recomputes the digest before
+  any D1 write. Partial, interrupted, expired, tampered, or cross-subject results cannot save.
 
 ### `/translate/stream` wire format
 Server-Sent Events, one JSON object per `data:` line. Always HTTP 200 — errors travel in-band,
@@ -78,12 +92,30 @@ Cloudflare reason under "Provider failures" above.
 |-------|---------|-------|
 | `detected` | `{"language": "zh-Hans"\|null}` | At most once, before any delta. |
 | `delta` | `{"text": "…"}` | Translation text in arrival order; concatenate. |
-| `done` | `{"remainingToday": n}` | Success terminator. |
+| `done` | `{"remainingToday": n, "proof": "…"}` | Success terminator. Proof binds the completed snapshot without containing its text. |
 | `error` | `{"error": "…", "code"?: "quota_exceeded"\|"too_long"}` | Terminal; may arrive first. |
 
 - Uses the existing `GEMINI_API_KEY` / `GEMINI_MODEL` env vars — no new infrastructure.
-- Translation text is never persisted; only daily usage counters (request count + char count)
-  are stored in `translate_usage`.
+- Translation text is not persisted by translating. Daily usage counters are stored in
+  `translate_usage`; full text enters `saved_translations` only after an authenticated,
+  explicit, proof-verified Save.
+
+## Saved translations
+
+Migration `0017_saved_translations.sql` creates the private durable surface:
+
+- one row per `(user_id, completion_id)`, which makes double-click and transport retry
+  idempotent while rejecting the same completion id with different text;
+- source/requested/detected/target language metadata, source text, translated text, and
+  timestamps;
+- SQL length limits of 20,000 source and 40,000 translated characters, mirrored by server
+  validation;
+- keyset index `(user_id, created_at DESC, id DESC)`; list queries return at most 25 rows plus
+  one lookahead and only a 160-character source preview;
+- all list/detail/create/delete helpers require `userId` and include it in SQL. Missing and
+  foreign ids both return the same 404;
+- delete is a confirmed hard delete because translation text may be sensitive. Saved route
+  responses use `Cache-Control: private, no-store`.
 
 ## Client/Server Split
 Route components must not import `*.server.ts` modules for values used in the component body

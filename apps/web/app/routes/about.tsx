@@ -38,7 +38,8 @@ export default function About() {
         </p>
         <p>
           <strong>Translate</strong>: LLM translation between English, Chinese, and other languages,
-          with source-language detection and a two-pane layout.
+          with source-language detection, a two-pane layout, and a private Saved workspace for
+          results you explicitly choose to keep.
         </p>
         <p>
           <strong>Speech</strong>: turn text into natural MP3 audio with Google Cloud TTS voices,
@@ -73,8 +74,9 @@ export default function About() {
           own job.
         </p>
         <p>
-          Practice recordings and drafts are private to your account. Translation text is never
-          stored at all, and anonymous trials are evaluated and discarded rather than saved.
+          Practice recordings and drafts are private to your account. Translation text is discarded
+          unless a signed-in user explicitly chooses Save after a completed result; anonymous and
+          unsaved translations are not retained. Anonymous trials are evaluated and discarded.
         </p>
       </section>
       <section>
