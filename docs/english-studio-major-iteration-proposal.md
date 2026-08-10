@@ -1,8 +1,8 @@
-# English Studio major iteration proposal
+# English Studio major iteration plan
 
-Status: **proposal, not authorized**. This file does not change `docs/roadmap.md` priority.
-Implementation must not begin until the owner confirms the premises and scope decisions in
-this document, then moves the selected work into `docs/roadmap.md` with acceptance criteria.
+Status: **authorized and active**. The owner approved decisions D1-D5 on 2026-08-09; the
+authorized scope and acceptance criteria are recorded in `docs/roadmap.md`. This document is
+the implementation plan and review artifact, while the roadmap remains the source of truth.
 
 Branch: `codex/english-studio-major-iteration`
 Baseline: `main` at `8570d63`
@@ -62,7 +62,7 @@ portable:
 3. The Reading trial's primary record button has no accessible name.
 4. Writing trial offers an IELTS coach but no question or level-guided starting point.
 
-## 3. Premises requiring owner confirmation
+## 3. Confirmed premises
 
 1. **Release focus:** this branch should deliver one coherent English Studio iteration.
    Mapdown's authorized external-AI flow remains a separate branch/release even though it is
@@ -370,7 +370,10 @@ This phase lowers risk before the larger route and data changes.
 | Stream fails | Existing Translate error/retry path | Failed/partial output cannot be saved as completed |
 | Drawer JavaScript fails | Navigation remains semantically an aside and links work | Main content is never permanently left inert |
 
-## 9. Open owner decisions
+## 9. Owner decisions — resolved 2026-08-09
+
+The owner approved all five recommended choices below. Alternatives remain recorded as the
+decision audit, not as authorized scope.
 
 ### D1. Product boundary
 
