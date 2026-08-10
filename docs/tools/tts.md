@@ -45,9 +45,10 @@ working rule.)
 - D1 table: `tts_generations`
 - R2 key pattern: `tts/{userId}/{yyyy}/{mm}/{id}.mp3`
 - Delete action performs:
-  1. Delete R2 object
-  2. Soft-delete D1 row (`deleted_at`)
-  3. Reload selected history state from the remaining records
+  1. Ask for confirmation in the shared accessible destructive-action dialog
+  2. Delete R2 object
+  3. Soft-delete D1 row (`deleted_at`)
+  4. Reload selected history state from the remaining records
 
 ## Constraints
 - Voice list in the Speech workspace is limited to the Chirp3 family.

@@ -7,6 +7,7 @@ import { renderMarkdown } from "~/utils/markdown.server";
 import { requireUser } from "~/utils/auth.server";
 import { MAX_POST_LENGTH, extractTitle, normalizePostContent, stripMarkdown } from "~/utils/posts";
 import * as React from "react";
+import { ConfirmActionButton } from "~/components/ConfirmDialog";
 
 type ComposerNotice = {
   id: string;
@@ -207,7 +208,6 @@ export default function PostsTool() {
 
   const handleDelete = () => {
     if (!activePostId) return;
-    if (!confirm("Delete this post? This cannot be undone.")) return;
     deleteFetcher.submit({ _intent: "delete", id: activePostId }, { method: "post" });
   };
 
@@ -273,15 +273,15 @@ export default function PostsTool() {
                         ? "Copy failed"
                         : "Copy link"}
                   </Button>
-                  <Button
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    disabled={isDeleting}
-                    onClick={handleDelete}
+                  <ConfirmActionButton
+                    className="btn btn-danger btn-sm"
+                    pending={isDeleting}
+                    onConfirm={handleDelete}
+                    dialogTitle="Delete this post?"
+                    dialogDescription="This removes the published post from your history. This cannot be undone."
                   >
                     {isDeleting ? "Deleting..." : "Delete"}
-                  </Button>
+                  </ConfirmActionButton>
                 </>
               ) : null}
             </div>

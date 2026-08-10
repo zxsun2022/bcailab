@@ -28,7 +28,7 @@ export default function ReadingSettingsPage() {
     <StudioPage width="standard">
       <StudioPageHeader
         title="Reading settings"
-        description="Manage your account, appearance, and reading feedback language."
+        description="Manage your account, appearance, and shared feedback language."
       />
       <StudioPageBody className="tool-settings-page">
         <div className="tool-settings-card">
@@ -74,7 +74,7 @@ export default function ReadingSettingsPage() {
           <div className="menu-setting-row">
             <div className="menu-setting-title">Output Language</div>
             <div className="menu-setting-hint">
-              New feedback and retry requests use this language.
+              New Reading and Writing feedback uses this language.
             </div>
           </div>
           <div className="menu-option-grid menu-option-grid-two">

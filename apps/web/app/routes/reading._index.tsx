@@ -11,6 +11,7 @@ import {
 import { requireUser } from "~/utils/auth.server";
 import { resolveCefr } from "~/utils/learner-model";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
 
 /**
  * Reading catalogue. Design: `docs/english-studio-ia-v2-design.md` §3.7.
@@ -219,23 +220,15 @@ export default function ReadingCatalogue() {
                 </Link>
                 {/* Delete used to live in the rail's passage list. The rail no longer lists
                     passages, so the affordance moves here rather than disappearing. */}
-                <form
-                  method="post"
-                  action={`/reading/${passage.id}`}
-                  onSubmit={(event) => {
-                    if (
-                      !confirm(
-                        "Delete this passage, its reference audio, all recordings, and all AI feedback?"
-                      )
-                    ) {
-                      event.preventDefault();
-                    }
-                  }}
-                >
+                <form method="post" action={`/reading/${passage.id}`}>
                   <input type="hidden" name="_intent" value="deletePassage" />
-                  <button type="submit" className="passage-own-delete">
+                  <ConfirmSubmitButton
+                    className="passage-own-delete"
+                    dialogTitle="Delete this text and its practice history?"
+                    dialogDescription="This removes the text, reference audio, recordings, and AI feedback. This cannot be undone."
+                  >
                     Delete
-                  </button>
+                  </ConfirmSubmitButton>
                 </form>
               </li>
             ))}

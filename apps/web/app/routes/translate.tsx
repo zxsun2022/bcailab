@@ -100,7 +100,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       extraHeaders ? { headers: extraHeaders } : undefined
     );
   } catch (error) {
-    console.error("translate action failed", error);
+    console.error("translate action failed", {
+      errorClass: error instanceof Error ? error.name : "unknown"
+    });
     // Keep handled provider failures in the normal data path. In production,
     // Cloudflare can replace a 502 response body with its HTML error page,
     // which Remix cannot deserialize and promotes to the route error boundary.
@@ -162,6 +164,7 @@ export default function TranslatePage() {
   const [copied, setCopied] = React.useState(false);
   const [stream, setStream] = React.useState<StreamState>(IDLE_STREAM);
   const formRef = React.useRef<HTMLFormElement | null>(null);
+  const outputPaneRef = React.useRef<HTMLDivElement | null>(null);
   const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => () => abortRef.current?.abort(), []);
@@ -185,6 +188,17 @@ export default function TranslatePage() {
   const remainingToday =
     stream.remainingToday ??
     (fallbackData?.ok ? fallbackData.remainingToday : quota.remainingToday);
+
+  React.useEffect(() => {
+    if (stream.status !== "done" || !stream.translation || !outputPaneRef.current) return;
+    const bounds = outputPaneRef.current.getBoundingClientRect();
+    if (bounds.top < window.innerHeight && bounds.bottom > 0) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    outputPaneRef.current.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start"
+    });
+  }, [stream.status, stream.translation]);
 
   // Refresh quota display after login completes in the popup.
   React.useEffect(() => {
@@ -257,7 +271,9 @@ export default function TranslatePage() {
       );
     } catch (error) {
       if (controller.signal.aborted) return;
-      console.error("translate stream failed", error);
+      console.error("translate stream failed", {
+        errorClass: error instanceof Error ? error.name : "unknown"
+      });
       setStream((prev) => ({
         ...prev,
         status: "error",
@@ -386,6 +402,7 @@ export default function TranslatePage() {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type or paste text here…"
+              aria-label="Text to translate"
               rows={12}
             />
             <div className="translate-pane-foot">
@@ -406,8 +423,15 @@ export default function TranslatePage() {
             </div>
           </div>
 
-          <div className={`translate-pane is-output${busy ? " is-busy" : ""}`}>
-            <div className="translate-output" aria-live="polite" aria-busy={busy}>
+          <div
+            ref={outputPaneRef}
+            className={`translate-pane is-output${busy ? " is-busy" : ""}`}
+          >
+            <div
+              className="translate-output"
+              aria-label="Translation result"
+              aria-busy={busy}
+            >
               {translation ? (
                 <>
                   {translation}
@@ -435,6 +459,15 @@ export default function TranslatePage() {
         </div>
 
         <div className="translate-actions">
+          <span className="sr-only" role="status" aria-live="polite">
+            {busy
+              ? "Translation started."
+              : stream.status === "done"
+                ? "Translation complete."
+                : stream.status === "error"
+                  ? "Translation failed."
+                  : ""}
+          </span>
           {errorMessage ? (
             <span className="translate-error">
               {errorMessage}

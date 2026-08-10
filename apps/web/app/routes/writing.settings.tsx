@@ -29,7 +29,7 @@ export default function WritingSettingsPage() {
       <StudioPage width="standard">
         <StudioPageHeader
           title="Writing settings"
-          description="Manage your account, appearance, and writing feedback language."
+          description="Manage your account, appearance, and shared feedback language."
         />
         <StudioPageBody className="tool-settings-page">
           <div className="tool-settings-card">
@@ -75,7 +75,7 @@ export default function WritingSettingsPage() {
             <div className="menu-setting-row">
               <div className="menu-setting-title">Language</div>
               <div className="menu-setting-hint">
-                New feedback and retry requests use this language.
+                New Writing and Reading feedback uses this language.
               </div>
             </div>
             <div className="menu-option-grid menu-option-grid-two">

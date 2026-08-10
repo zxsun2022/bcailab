@@ -37,6 +37,7 @@ import {
   StudioPageHeader,
   StudioPageTabs
 } from "~/components/StudioPage";
+import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
 
 type LoaderLanguage = {
   code: string;
@@ -868,19 +869,16 @@ export default function TtsIndexPage() {
                     <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
                       Download MP3
                     </a>
-                    <form
-                      method="post"
-                      onSubmit={(event) => {
-                        if (!confirm("Delete this generation? This cannot be undone.")) {
-                          event.preventDefault();
-                        }
-                      }}
-                    >
+                    <form method="post">
                       <input type="hidden" name="_intent" value="delete" />
                       <input type="hidden" name="id" value={selected.id} />
-                      <Button type="submit" variant="danger" size="sm">
+                      <ConfirmSubmitButton
+                        className="btn btn-danger btn-sm"
+                        dialogTitle="Delete speech generation?"
+                        dialogDescription="This removes the generated audio and its history entry. This cannot be undone."
+                      >
                         Delete
-                      </Button>
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 </div>

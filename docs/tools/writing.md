@@ -223,8 +223,9 @@ When coaches requiring formatting (Business Writing, Academic) are added, migrat
 ### Feedback Language
 
 Same as Reading tool:
-- User selects feedback language (Chinese / English) from `/writing/settings`.
-- Preference stored in `localStorage`, defaults to English.
+- User selects the shared feedback language (Chinese / English) from either tool's settings.
+- Preference is stored under `bcailab-feedback-language`, defaults to English, and deterministically
+  migrates the old Writing key before the old Reading key.
 - Controls the language of `diagnosis`, `guiding_question`, `overall_comment`, and `delta` strings.
 - The user's writing text language is not affected.
 
@@ -236,7 +237,9 @@ Follows the same async pattern as Reading:
 2. Gemini evaluation fires in a `waitUntil` background task.
 3. Frontend polls `/writing/:id/status` for feedback completion.
 4. On completion, `feedback_json` and `model_name` are written; `feedback_status` set to `'completed'`.
-5. If Gemini fails, `feedback_status` set to `'failed'`; user sees a "Retry feedback" button.
+5. If Gemini fails, `feedback_status` is set to `'failed'`; the saved-draft state exposes Retry.
+6. Pending feedback says the draft is saved, adds a longer-than-usual message after 15 seconds,
+   and never claims a fabricated model stage or percentage.
 
 ### Prompt Structure
 

@@ -8,7 +8,7 @@ without an account, within daily quotas.
 ## Live Routes
 | Page | Route | Key behaviour |
 |------|-------|---------------|
-| Translate | `/translate` | Public. Two-pane UI: source text left, translation right. Renders under the global site header (same pattern as Posts). Its `action` is the no-JS fallback only. |
+| Translate | `/translate` | Public. Responsive workspace inside the English Studio shell. Its `action` is the no-JS fallback only. |
 | Translate stream | `/translate/stream` | Public resource route (POST). SSE endpoint the page uses whenever JavaScript is available. |
 
 ## Quotas & Tiers
@@ -40,11 +40,16 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
 - **Streaming output**: translated text appears incrementally, with a blinking caret while the
   stream is open. Submitting again aborts the in-flight stream. A stream that ends without a
   terminator renders "Translation was interrupted."
+- **Accessible status**: the output is not a token-by-token live region. A separate polite status
+  announces only start, completion, and failure.
 - **Limits**: per-tier — see "Quotas & Tiers" above. The char counter and submit button use
   the tier limit returned by the loader.
 - **Copy / Clear**: output pane has a copy button; input pane has a clear button.
 - **Stable layout**: the translate workspace has a fixed responsive width, so adding or removing
   translation output does not resize the two-pane container.
+- **Mobile order**: source language → source input → Translate action → output. The input gives
+  page scrolling back after roughly 40dvh; output avoids a short nested scroll. On completion,
+  the output scrolls into view only when it is off-screen and respects reduced motion.
 - **Provider failures**: model or upstream failures render the inline retry message rather than
   an error page. Both paths deliberately answer with a normal 200 body because Cloudflare may
   replace HTTP 502 bodies with an HTML gateway page, which would otherwise trigger Remix's

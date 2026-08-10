@@ -250,6 +250,18 @@ body {
   height: 100%;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 body {
   min-height: 100vh;
   display: flex;
@@ -552,6 +564,60 @@ main.tool-main {
   border-color: var(--color-danger-hover);
   background: var(--color-danger-hover);
   color: var(--color-on-danger);
+}
+
+.confirm-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.confirm-dialog {
+  width: min(100%, 420px);
+  padding: var(--space-xl);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-card);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+.confirm-dialog-title {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.35;
+}
+
+.confirm-dialog-description {
+  margin: var(--space-sm) 0 0;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+  margin-top: var(--space-xl);
+}
+
+@media (max-width: 479px) {
+  .confirm-dialog-overlay {
+    align-items: flex-end;
+    padding: var(--space-md);
+  }
+
+  .confirm-dialog {
+    padding: var(--space-lg);
+  }
+
+  .confirm-dialog-actions > .btn {
+    min-height: 44px;
+  }
 }
 
 .btn-sm {
@@ -2004,7 +2070,15 @@ select.input:focus {
 .translate-lang-select:hover,
 .translate-lang-select:focus {
   border-color: var(--color-action);
-  outline: none;
+}
+
+.translate-lang-select:focus-visible,
+.translate-input:focus-visible,
+.translate-swap:focus-visible,
+.translate-pane-action:focus-visible,
+.translate-submit:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
 }
 
 .translate-swap {
@@ -2058,10 +2132,6 @@ select.input:focus {
   font-size: 16px;
   line-height: 1.7;
   resize: none;
-}
-
-.translate-input:focus {
-  outline: none;
 }
 
 .translate-output {
@@ -2193,8 +2263,34 @@ select.input:focus {
 }
 
 @media (max-width: 768px) {
+  .translate-board {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .translate-toolbar {
+    order: 1;
+  }
+
   .translate-panes {
-    grid-template-columns: 1fr;
+    display: contents;
+  }
+
+  .translate-pane {
+    min-height: 0;
+  }
+
+  .translate-pane:not(.is-output) {
+    order: 2;
+  }
+
+  .translate-actions {
+    order: 3;
+  }
+
+  .translate-pane.is-output {
+    order: 4;
+    min-height: 180px;
   }
 
   .translate-pane.is-output {
@@ -2204,6 +2300,25 @@ select.input:focus {
 
   .translate-toolbar {
     flex-wrap: wrap;
+  }
+
+  .translate-input {
+    flex: none;
+    min-height: 220px;
+    max-height: 40dvh;
+    overflow-y: auto;
+    resize: vertical;
+  }
+
+  .translate-output {
+    min-height: 140px;
+    overflow-y: visible;
+  }
+
+  .translate-submit,
+  .translate-swap,
+  .translate-pane-action {
+    min-height: 44px;
   }
 }
 
@@ -5242,7 +5357,7 @@ select.input:focus {
   margin: 0 auto;
   flex: 1;
   min-height: 0;
-  --mobile-nav-offset: 44px; /* hamburger width (36) + gap (8) */
+  --mobile-nav-offset: 52px; /* hamburger width (44) + gap (8) */
 }
 
 .writing-canvas.is-detail {
@@ -6560,11 +6675,11 @@ select.input:focus {
   align-items: center;
   justify-content: center;
   position: absolute;
-  top: 10px;
+  top: 6px;
   left: var(--container-padding);
   z-index: 10;
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--bg-card);
@@ -6584,8 +6699,8 @@ select.input:focus {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -6626,6 +6741,12 @@ select.input:focus {
   display: flex;
   transform: translateX(0);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-nav-rail {
+    transition: none;
+  }
 }
 
 .nav-rail-backdrop {
@@ -7471,7 +7592,7 @@ select.input:focus {
   max-width: 780px;
   margin: 0 auto;
   padding-top: var(--space-xl);
-  --mobile-nav-offset: 44px; /* hamburger width (36) + gap (8) */
+  --mobile-nav-offset: 52px; /* hamburger width (44) + gap (8) */
 }
 
 /* The mobile hamburger is fixed over the top-left, so the first heading in each

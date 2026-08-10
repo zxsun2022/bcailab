@@ -46,6 +46,7 @@ type ActionData = {
   };
 };
 const PENDING_STALE_MS = 60_000;
+const PENDING_LONG_WAIT_MS = 15_000;
 const ASIDE_COLLAPSED_KEY = "writing-aside-collapsed";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -320,6 +321,7 @@ function WritingArticlePageReady({
   const [liveLatestRound, setLiveLatestRound] = React.useState(latestRound);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [titleValue, setTitleValue] = React.useState(article.title ?? "");
+  const [pendingClock, setPendingClock] = React.useState(() => Date.now());
   const submitFetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const titleFetcher = useFetcher<ActionData>();
@@ -393,7 +395,18 @@ function WritingArticlePageReady({
   const liveIsStalePending =
     liveIsPending &&
     liveActiveRevision &&
-    Date.now() - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+    pendingClock - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+  const liveIsLongPending =
+    liveIsPending &&
+    liveActiveRevision &&
+    pendingClock - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_LONG_WAIT_MS;
+
+  React.useEffect(() => {
+    if (!liveIsPending) return;
+    setPendingClock(Date.now());
+    const intervalId = window.setInterval(() => setPendingClock(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [liveIsPending]);
 
   React.useEffect(() => {
     const nextRevision = submitFetcher.data?.revision;
@@ -426,9 +439,10 @@ function WritingArticlePageReady({
     if (!retryFetcher.data?.ok || !liveActiveRevision) return;
     setLiveActiveRevision((current) =>
       current
-        ? {
+          ? {
             ...current,
-            feedback_status: "pending"
+            feedback_status: "pending",
+            created_at: new Date().toISOString().slice(0, 19)
           }
         : current
     );
@@ -571,10 +585,12 @@ function WritingArticlePageReady({
     }
     if (liveIsPending && !liveIsStalePending) {
       return (
-        <div className="writing-status-card">
-          <div className="writing-status-title">Analyzing...</div>
+        <div className="writing-status-card" role="status" aria-live="polite">
+          <div className="writing-status-title">Draft saved — preparing feedback</div>
           <p className="writing-status-desc">
-            Your text has been submitted. AI feedback is being generated.
+            {liveIsLongPending
+              ? "This is taking longer than usual. Your draft is safe; you can stay here or return later."
+              : "Your draft is safe. Feedback is being prepared, and this page will update when it is ready."}
           </p>
         </div>
       );
@@ -582,9 +598,9 @@ function WritingArticlePageReady({
     if (liveIsStalePending && liveActiveRevision) {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Feedback interrupted</div>
+          <div className="writing-status-title">Draft saved — feedback paused</div>
           <p className="writing-status-desc">
-            The feedback job did not finish. You can retry without resubmitting.
+            The feedback job did not finish. Your draft is safe, and you can retry without resubmitting.
           </p>
           <retryFetcher.Form method="post" className="writing-retry-form">
             <input type="hidden" name="_intent" value="retryFeedback" />
@@ -604,9 +620,9 @@ function WritingArticlePageReady({
     if (liveActiveRevision?.feedback_status === "failed") {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Feedback unavailable</div>
+          <div className="writing-status-title">Draft saved — feedback unavailable</div>
           <p className="writing-status-desc">
-            AI feedback failed for this round.
+            AI feedback failed for this round. Your draft is safe.
           </p>
           <retryFetcher.Form method="post" className="writing-retry-form">
             <input type="hidden" name="_intent" value="retryFeedback" />
