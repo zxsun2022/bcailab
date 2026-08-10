@@ -1,7 +1,7 @@
 import type { LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Outlet, useLoaderData, useParams } from "@remix-run/react";
-import { listWritingArticlesByUser } from "@bcailab/db";
+import { probeWritingPromptSchema } from "@bcailab/db";
 import { WritingNavRail } from "~/components/WritingNavRail";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
@@ -17,7 +17,7 @@ export const handle = {
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   try {
-    await listWritingArticlesByUser(context.env.DB, user.id);
+    await probeWritingPromptSchema(context.env.DB);
 
     return json({
       user: {

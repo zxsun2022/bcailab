@@ -10,8 +10,7 @@ import * as React from "react";
 import {
   getWritingArticleById,
   listWritingRevisionsByArticle,
-  softDeleteWritingArticle,
-  softDeleteWritingRevisionsByArticle,
+  deleteWritingArticleBatch,
   updateWritingArticleTitle
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
@@ -25,6 +24,7 @@ import {
 } from "~/components/WritingEditor";
 import { WritingFeedbackPanel } from "~/components/WritingFeedback";
 import { WritingDetailAside, type AsideRound } from "~/components/WritingDetailAside";
+import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import {
@@ -32,6 +32,7 @@ import {
   logWritingSchemaMissing,
   WRITING_UNAVAILABLE_ERROR
 } from "~/utils/writing-schema.server";
+import { parseWritingAssignmentSnapshot } from "~/utils/writing-prompt.server";
 
 type ActionData = {
   error?: string;
@@ -70,6 +71,10 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
     const revisions = await listWritingRevisionsByArticle(context.env.DB, articleId);
     const agent = getWritingAgentOrDefault(article.agent_type);
+    const assignment = parseWritingAssignmentSnapshot(article.assignment_snapshot_json);
+    if (article.prompt_id && !assignment) {
+      throw new Error("Prompt-backed article is missing its assignment snapshot.");
+    }
     const latestRevision = revisions.length > 0 ? revisions[revisions.length - 1] : null;
 
     const url = new URL(request.url);
@@ -110,7 +115,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     const isStalePending =
       isPending &&
       activeRevision &&
-      Date.now() - new Date(activeRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+      Date.now() - new Date((activeRevision.feedback_started_at ?? activeRevision.created_at) + "Z").getTime() > PENDING_STALE_MS;
 
     return json({
       schemaReady: true as const,
@@ -118,7 +123,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
         id: article.id,
         title: article.title,
         essay_prompt: article.essay_prompt,
-        agent_type: article.agent_type
+        agent_type: article.agent_type,
+        assignment
       },
       agent: { id: agent.id, label: agent.label, minWords: agent.minWords, maxWords: agent.maxWords },
       revisions: revisionEntries,
@@ -129,7 +135,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
             user_text: activeRevision.user_text,
             word_count: activeRevision.word_count,
             feedback_status: activeRevision.feedback_status,
-            created_at: activeRevision.created_at
+            created_at: activeRevision.feedback_started_at ?? activeRevision.created_at
           }
         : null,
       activeFeedback,
@@ -182,11 +188,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     if (intent === "deleteArticle") {
       try {
-        await softDeleteWritingRevisionsByArticle(context.env.DB, {
-          articleId: article.id,
-          userId: user.id
-        });
-        await softDeleteWritingArticle(context.env.DB, { id: article.id, userId: user.id });
+        await deleteWritingArticleBatch(context.env.DB, { id: article.id, userId: user.id });
         return redirect("/writing");
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {
@@ -332,6 +334,7 @@ function WritingArticlePageReady({
 
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const essayPrompt = article.essay_prompt ?? "";
+  const assignment = article.assignment;
   const [asideCollapsed, setAsideCollapsed] = React.useState(false);
 
   React.useEffect(() => {
@@ -719,6 +722,7 @@ function WritingArticlePageReady({
               <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
+              {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
               <WritingEditor
                 value={text}
                 onChange={setText}
@@ -741,6 +745,7 @@ function WritingArticlePageReady({
             <div className="writing-readonly-view">
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
+              {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
               <div className="writing-readonly-text">{liveActiveRevision.user_text}</div>
               <div className="writing-editor-footer">
                 <span className="writing-editor-count">

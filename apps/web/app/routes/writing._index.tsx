@@ -1,162 +1,155 @@
-import type { ActionFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
-import { json, redirect } from "@remix-run/cloudflare";
-import { useFetcher, useNavigate } from "@remix-run/react";
-import * as React from "react";
-import { requireUser } from "~/utils/auth.server";
-import { listWritingAgents, DEFAULT_AGENT_ID } from "~/utils/writing-agents";
-import { getWritingAgentOrDefault } from "~/utils/writing-agents";
-import { createArticleWithFirstRevision, countWords } from "~/utils/writing-article.server";
-import { WritingEditor } from "~/components/WritingEditor";
-import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
+import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
+import { json } from "@remix-run/cloudflare";
+import { Link, useLoaderData } from "@remix-run/react";
 import {
-  isWritingSchemaMissingError,
-  logWritingSchemaMissing,
-  WRITING_UNAVAILABLE_ERROR
-} from "~/utils/writing-schema.server";
+  listPublishedWritingPrompts,
+  listRecentWritingArticlesByUser,
+  type WritingPromptSummary
+} from "@bcailab/db";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
-
-type ActionData = { error?: string; redirectTo?: string };
+import { requireUser } from "~/utils/auth.server";
 
 export const meta: MetaFunction = () => [
-  { title: "New piece · Writing · English Studio · bcailab" }
+  { title: "Writing · English Studio · bcailab" },
+  {
+    name: "description",
+    content: "Choose a level-guided or IELTS writing assignment, or start a freeform piece."
+  }
 ];
 
-export const action = async ({ request, context }: ActionFunctionArgs) => {
+export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
-  const formData = await request.formData();
-  const intent = String(formData.get("_intent") ?? "createArticle");
-  const transport = String(formData.get("_transport") ?? "document");
-
-  if (intent !== "createArticle") {
-    return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
-  }
-
-  const userText = String(formData.get("userText") ?? "").trim();
-  if (!userText) {
-    return json<ActionData>({ error: "Please write something before submitting." }, { status: 400 });
-  }
-
-  const wordCount = countWords(userText);
-  if (wordCount < 10) {
-    return json<ActionData>({ error: "Please write at least 10 words." }, { status: 400 });
-  }
-
-  const agentType = String(formData.get("agentType") ?? DEFAULT_AGENT_ID);
-  const title = String(formData.get("title") ?? "").trim() || null;
-  const feedbackLanguage = formData.get("feedbackLanguage") === "zh" ? "zh" as const : "en" as const;
-  const topic = String(formData.get("topic") ?? "").trim() || undefined;
-
-  try {
-    const { articleId } = await createArticleWithFirstRevision(context, {
-      userId: user.id,
-      agentType,
-      userText,
-      title,
-      feedbackLanguage,
-      topic
-    });
-    const redirectTo = `/writing/${articleId}`;
-    return transport === "fetcher"
-      ? json<ActionData>({ redirectTo })
-      : redirect(redirectTo);
-  } catch (error) {
-    if (isWritingSchemaMissingError(error)) {
-      logWritingSchemaMissing("writing.index.action", error);
-      return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
-    }
-    return json<ActionData>({ error: "Failed to create article. Please retry." }, { status: 500 });
-  }
+  const [prompts, articles] = await Promise.all([
+    listPublishedWritingPrompts(context.env.DB, { userId: user.id, limit: 100 }),
+    listRecentWritingArticlesByUser(context.env.DB, { userId: user.id, limit: 6 })
+  ]);
+  return json({
+    prompts,
+    articles: articles.map((article) => ({
+      id: article.id,
+      title: article.title,
+      essayPrompt: article.essay_prompt,
+      promptId: article.prompt_id,
+      agentType: article.agent_type,
+      updatedAt: article.updated_at
+    }))
+  });
 };
 
-const TOPIC_KEY = "writing-topic-new";
+const promptHref = (prompt: WritingPromptSummary) => `/writing/prompt/${prompt.slug}`;
 
-export default function WritingIndexPage() {
-  const fetcher = useFetcher<ActionData>();
-  const navigate = useNavigate();
-  const [agentType, setAgentType] = React.useState(DEFAULT_AGENT_ID);
-  const [text, setText] = React.useState("");
-  const [topic, setTopic] = React.useState("");
-  const [feedbackLanguage] = useWritingFeedbackLanguage();
-  const agent = getWritingAgentOrDefault(agentType);
-  const agents = listWritingAgents();
+const PromptCard = ({ prompt }: { prompt: WritingPromptSummary }) => (
+  <Link to={promptHref(prompt)} className="writing-prompt-card">
+    <div className="writing-prompt-card-meta">
+      {prompt.cefr_band ? <span className="writing-level-badge">{prompt.cefr_band}</span> : null}
+      <span>{prompt.topic}</span>
+      <span>{prompt.target_minutes} min</span>
+    </div>
+    <h3>{prompt.title}</h3>
+    <p>
+      {prompt.task_type === "academic_task_1"
+        ? "Read the visual, identify key features, and write an accurate academic report."
+        : prompt.task_type === "academic_task_2"
+          ? "Develop a clear position and support it in an academic essay."
+          : "Practice a focused real-world writing task with guided feedback."}
+    </p>
+    <div className="writing-prompt-card-foot">
+      <span>{prompt.target_words}+ words</span>
+      <span>
+        {prompt.attempt_count === 0
+          ? "Not attempted"
+          : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "attempt" : "attempts"}`}
+      </span>
+    </div>
+  </Link>
+);
 
-  // Persist topic to localStorage
-  React.useEffect(() => {
-    try { setTopic(localStorage.getItem(TOPIC_KEY) ?? ""); } catch {}
-  }, []);
-  const handleTopicChange = (v: string) => {
-    setTopic(v);
-    try { localStorage.setItem(TOPIC_KEY, v); } catch {}
-  };
-
-  React.useEffect(() => {
-    const redirectTo = fetcher.data?.redirectTo;
-    if (!redirectTo) return;
-    try { localStorage.removeItem(TOPIC_KEY); } catch {}
-    navigate(redirectTo);
-  }, [fetcher.data, navigate]);
+export default function WritingHomePage() {
+  const { prompts, articles } = useLoaderData<typeof loader>();
+  const general = prompts.filter((prompt) => prompt.family === "general");
+  const task1 = prompts.filter((prompt) => prompt.task_type === "academic_task_1");
+  const task2 = prompts.filter((prompt) => prompt.task_type === "academic_task_2");
 
   return (
     <div className="writing-main-scroll">
-      <StudioPage width="standard">
+      <StudioPage width="wide">
         <StudioPageHeader
-          title="New piece"
-          description="Write with a coach and get structured feedback on your next revision."
+          title="Writing"
+          description="Start with a reviewed assignment at the level or exam task you want to practice. Levels guide discovery; they never lock material."
+          action={<Link to="/writing/new" className="btn btn-primary">New freeform piece</Link>}
         />
+        <StudioPageBody className="writing-home">
+          {prompts.length === 0 ? (
+            <section className="writing-catalogue-empty" aria-labelledby="writing-material-heading">
+              <p className="writing-section-eyebrow">Assignment library</p>
+              <h2 id="writing-material-heading">Reviewed material is being prepared</h2>
+              <p>
+                Only fully reviewed assignments appear here. You can keep using the freeform
+                coach while the first level-guided and IELTS batch completes review.
+              </p>
+              <Link to="/writing/new" className="btn btn-secondary">Start freeform</Link>
+            </section>
+          ) : (
+            <>
+              {general.length > 0 ? <section className="writing-catalogue-section" aria-labelledby="general-writing-heading">
+                <div className="writing-section-heading">
+                  <div>
+                    <p className="writing-section-eyebrow">General English · A2 to C1</p>
+                    <h2 id="general-writing-heading">Build range through real writing tasks</h2>
+                  </div>
+                  <p>Every level remains open.</p>
+                </div>
+                <div className="writing-prompt-grid">{general.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} />)}</div>
+              </section> : null}
 
-        <StudioPageBody className="writing-index">
-        <fetcher.Form method="post" action="?index" className="writing-index-form">
-          <input type="hidden" name="_intent" value="createArticle" />
-          <input type="hidden" name="_transport" value="fetcher" />
-          <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
-          <input type="hidden" name="topic" value={topic} />
+              {task1.length > 0 ? <section className="writing-catalogue-section" aria-labelledby="task-one-heading">
+                <div className="writing-section-heading">
+                  <div>
+                    <p className="writing-section-eyebrow">IELTS Academic</p>
+                    <h2 id="task-one-heading">Task 1 · Visual reports</h2>
+                  </div>
+                  <p>Canonical figures power the visual, accessible data, and feedback.</p>
+                </div>
+                <div className="writing-prompt-grid">{task1.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} />)}</div>
+              </section> : null}
 
-          <div className="writing-coach-row">
-            <div className="writing-control-group">
-              <label className="writing-label" htmlFor="agentType">
-                Coach
-              </label>
-              <select
-                id="agentType"
-                name="agentType"
-                className="writing-select"
-                value={agentType}
-                onChange={(e) => setAgentType(e.currentTarget.value)}
-              >
-                {agents.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.label}
-                  </option>
-                ))}
-              </select>
+              {task2.length > 0 ? <section className="writing-catalogue-section" aria-labelledby="task-two-heading">
+                <div className="writing-section-heading">
+                  <div>
+                    <p className="writing-section-eyebrow">IELTS Academic</p>
+                    <h2 id="task-two-heading">Task 2 · Essays</h2>
+                  </div>
+                  <p>Opinion, discussion, problem/solution, and advantages/disadvantages.</p>
+                </div>
+                <div className="writing-prompt-grid">{task2.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} />)}</div>
+              </section> : null}
+            </>
+          )}
+
+          <section className="writing-pieces-section" aria-labelledby="your-pieces-heading">
+            <div className="writing-section-heading">
+              <div>
+                <p className="writing-section-eyebrow">Your workspace</p>
+                <h2 id="your-pieces-heading">Your pieces</h2>
+              </div>
+              <Link to="/writing/progress">View progress</Link>
             </div>
-            <p className="writing-coach-desc">{agent.description}</p>
-          </div>
-
-          <WritingEditor
-            value={text}
-            onChange={setText}
-            agent={agent}
-            name="userText"
-            showTopic
-            topic={topic}
-            onTopicChange={handleTopicChange}
-          />
-
-          {fetcher.data?.error ? (
-            <div className="form-error">{fetcher.data.error}</div>
-          ) : null}
-
-          <div className="writing-index-actions">
-            <button
-              type="submit"
-              className="btn btn-primary"
-              disabled={!text.trim() || fetcher.state === "submitting"}
-            >
-              {fetcher.state === "submitting" ? "Submitting..." : "Submit for feedback"}
-            </button>
-          </div>
-        </fetcher.Form>
+            {articles.length === 0 ? (
+              <p className="writing-pieces-empty">Your first submitted piece will appear here.</p>
+            ) : (
+              <div className="writing-pieces-list">
+                {articles.map((article) => (
+                  <Link key={article.id} to={`/writing/${article.id}`} className="writing-piece-row">
+                    <span>
+                      <strong>{article.title ?? article.essayPrompt ?? "Untitled piece"}</strong>
+                      <small>{article.promptId ? "Assignment" : "Freeform"}</small>
+                    </span>
+                    <time dateTime={article.updatedAt}>{new Date(`${article.updatedAt}Z`).toLocaleDateString()}</time>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
         </StudioPageBody>
       </StudioPage>
     </div>

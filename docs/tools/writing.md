@@ -14,7 +14,9 @@ AI-powered iterative writing coach. Users submit a piece of writing, receive str
 | Page | Route | Behaviour |
 |------|-------|-----------|
 | Writing layout | `/writing` | Auth required. Three-column shell with article list sidebar. |
-| Writing index | `/writing` (index) | Create a new article: choose a coach, write the first draft, submit. |
+| Assignment library | `/writing` (index) | Lists owner-published General English and IELTS assignments plus the user's six most recent pieces. CEFR labels guide discovery and do not gate access. |
+| Freeform writing | `/writing/new` | Create a piece from a user-supplied topic and coach. |
+| Assignment preview | `/writing/prompt/:slug` | Preview one published assignment and its accessible material without creating an article. The first draft submission creates the durable work. |
 | Writing progress | `/writing/progress` | Progress dashboard opened inside the center canvas. |
 | Legacy progress redirect | `/writing/dashboard` | Redirects to `/writing/progress` for backward compatibility. |
 | Writing settings | `/writing/settings` | Writing-specific settings page opened inside the center canvas. |
@@ -34,6 +36,10 @@ creating an account. It escapes the `/writing` layout (which calls `requireUser`
   the daily quota counter.
 - **No revision rounds.** The trial is always round 1 with no previous-round context —
   iterating across rounds is precisely what signing in buys.
+- **Reviewed starter when available.** The trial offers the published
+  `general-a2-study-invitation` assignment when that exact slug is available; otherwise it
+  safely falls back to the freeform experience. The action rechecks the content hash before
+  evaluation. Task 1 is never offered without canonical source material.
 - **Quota**: feature `writing_trial` in `feature_usage`, 5/day for anonymous visitors,
   counted against both the `bcailab_anon` cookie and the client IP. Charged only after a
   successful evaluation, so a provider failure costs the visitor nothing. Exceeding it
@@ -58,9 +64,11 @@ Three-column collapsible shell following the **Canvas-centered** pattern (see `d
 
 ### Columns
 
-- **Left panel — Navigation rail (`ToolNavRail` / `WritingNavRail`)**: Collapsible sidebar (260px expanded → 52px collapsed). All user articles sorted by `updated_at` DESC. Each entry shows title only (single line, no coach badge) for higher density. Pinned top: "+ New Article", "Progress". Pinned bottom: user avatar → settings. Article deletion via three-dot menu with `confirm()`. Collapse state persisted in `localStorage` key `"writing-nav-rail-collapsed"`. On mobile, rendered as a drawer overlay (280px) with hamburger toggle at top-left and backdrop.
+- **Left panel — Navigation rail (`ToolNavRail` / `WritingNavRail`)**: Collapsible sidebar (260px expanded → 52px collapsed). All user articles sorted by `updated_at` DESC. Each entry shows title only (single line, no coach badge) for higher density. Pinned top: "Writing home", "+ New Article", "Progress". Pinned bottom: user avatar → settings. Article deletion uses the shared accessible confirmation dialog. Collapse state is persisted in `localStorage` key `"writing-nav-rail-collapsed"`. On mobile, the rail is an inert, focus-trapped drawer (280px) with Escape/close focus restoration and a backdrop.
 - **Center — Main canvas**: All route content renders inside `.writing-canvas` (max-width `1020px`, auto-centered). Sub-pages apply their own inner max-width for readability:
-  - New article (`writing._index`): `720px`
+  - Assignment library (`writing._index`): wide catalogue
+  - New freeform article (`writing.new`): `720px`
+  - Assignment preview (`writing.prompt.$slug`): assignment material followed by the editor
   - Article detail (`writing.$id`): `center stage` containing a narrower `article column`, plus a separate right rail shell
   - Progress (`writing.progress`): `760px`
   - Settings (`writing.settings`): `600px`
@@ -87,55 +95,40 @@ Nav rail collapse state is persisted in `localStorage`.
 
 ## Data Model
 
-### Migrations: `0007_writing.sql`, `0008_writing_essay_prompt.sql`
+### Migrations: `0007_writing.sql`, `0008_writing_essay_prompt.sql`, `0016_writing_prompts.sql`
 
-```sql
-CREATE TABLE writing_articles (
-  id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL REFERENCES users(id),
-  title TEXT,
-  essay_prompt TEXT,
-  agent_type TEXT NOT NULL DEFAULT 'ielts_task2',
-  status TEXT NOT NULL DEFAULT 'active',
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  deleted_at TEXT
-);
+`0016_writing_prompts.sql` adds the reviewed-content and reliable-start contracts:
 
-CREATE TABLE writing_revisions (
-  id TEXT PRIMARY KEY,
-  article_id TEXT NOT NULL REFERENCES writing_articles(id),
-  user_id TEXT NOT NULL,
-  round_number INTEGER NOT NULL,
-  user_text TEXT NOT NULL,
-  word_count INTEGER NOT NULL DEFAULT 0,
-  feedback_json TEXT,
-  feedback_status TEXT NOT NULL DEFAULT 'pending',
-  model_name TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-
-CREATE INDEX idx_writing_articles_user ON writing_articles(user_id, created_at DESC);
-CREATE INDEX idx_writing_revisions_article ON writing_revisions(article_id, round_number);
-```
+- `writing_prompts` stores the canonical source JSON, content hash, review evidence,
+  publication state, level/task metadata, and optional Task 1 asset manifest.
+- `writing_articles.prompt_id` links a submitted piece to the source prompt.
+- `writing_articles.assignment_snapshot_json` freezes the exact learner-visible assignment
+  and canonical Task 1 facts for every later revision and retry.
+- `(user_id, start_key)` is unique, so a repeated first-submit transport returns the same
+  article and Round 1 instead of duplicating work.
+- `writing_revisions.feedback_generation` and `feedback_started_at` isolate retries and
+  provide a server-authoritative stale-pending threshold.
+- `(article_id, round_number)` is unique.
 
 - `essay_prompt` belongs to `writing_articles`, not `writing_revisions`. An article represents repeated work on one prompt.
 - Round 1 may leave `essay_prompt` blank. In later states, the prompt field remains blank and read-only rather than showing placeholder helper copy; when empty, it collapses to a compact blank slot instead of reserving a large text box.
 
 ### Storage
 
-- D1 only. No R2 needed for V0 (text-only, no binary assets).
+- D1 stores prompt metadata and learner work. Reviewed Task 1 SVGs are immutable,
+  content-addressed public assets generated from the same canonical prompt source.
 
 ## Coaches
 
 Each coach embeds a writing evaluation standard. Coach = Writing Purpose + Evaluation Criteria + Feedback Tone. Coaches are defined in code (`utils/writing-agents.ts`), not in the database.
 
-### V0 Coach Roster
+### Coach Roster
 
 | Coach | Evaluation Standard | Feedback Focus |
 |-------|-------------------|----------------|
 | General | General writing rubric | Clarity, structure, style, grammar |
-| IELTS Tutor | IELTS Task 2 Band 7–9 descriptors (TR, CC, LR, GRA) | Argument coherence, lexical range, grammatical accuracy |
+| IELTS Academic Task 1 | IELTS Task 1 descriptors grounded in canonical source facts | Overview, key-feature selection, factual accuracy, cohesion, lexis, grammar |
+| IELTS Academic Task 2 | IELTS Task 2 descriptors (TR, CC, LR, GRA) | Argument coherence, lexical range, grammatical accuracy |
 
 ### Coach Definition Schema
 
@@ -240,27 +233,43 @@ Follows the same async pattern as Reading:
 5. If Gemini fails, `feedback_status` is set to `'failed'`; the saved-draft state exposes Retry.
 6. Pending feedback says the draft is saved, adds a longer-than-usual message after 15 seconds,
    and never claims a fabricated model stage or percentage.
+7. A retry increments `feedback_generation`. Completion writes compare both user and
+   generation, so a late response from an older attempt cannot overwrite newer feedback.
+   A still-pending job becomes retryable only after the server timestamp is at least 60
+   seconds old.
 
 ### Prompt Structure
 
 - System context: coach rubric, feedback tone, JSON schema, rules ("never rewrite, only diagnose and question").
 - User content: Current text, word count, previous round's feedback (if any), revision history summary (scores from older rounds).
 - Feedback language directive (Chinese or English).
+- Prompt-backed work includes the immutable assignment snapshot. Task 1 evaluation receives
+  canonical values, units, labels, and key facts from that snapshot; it hard-fails if those
+  facts are absent. Scores are presented as coach estimates, not official IELTS results.
 - Model: `gemini-flash-latest` (same env var `GEMINI_MODEL` as Reading).
 - Generation config: `responseMimeType: "application/json"`, `temperature: 0.3`.
 
 ## Interaction Flows
 
-### Flow A — New Article
+### Flow A — Start from an assignment
 
-1. User navigates to `/writing`. Empty state shows "Start your first writing session".
-2. Clicks "+ New article" in left panel.
-3. Writes in the textarea and chooses a `Coach` in the action row beside the submit button.
-4. Redirected to `/writing/:id` with the newly created article.
-5. Text saved as Round 1 (`feedback_status: 'pending'`). Title auto-generated in background if not provided.
-6. Button shows "Analyzing..." state. Frontend polls status endpoint.
-7. Feedback appears in the panel below the editor.
-8. Round 1 appears in the right revision timeline.
+1. User navigates to `/writing` and browses every published General English and IELTS
+   assignment. A2/B1/B2/C1 labels are discovery aids, not prerequisites.
+2. Opening `/writing/prompt/:slug` renders the reviewed prompt and, for Task 1, the visual
+   plus an accessible data/table/process/map representation. Previewing writes nothing.
+3. The draft is kept locally under the prompt ID and content hash. On submit, the server
+   rechecks that the prompt is still published with the same hash.
+4. Article, immutable assignment snapshot, and Round 1 are created in one D1 batch. The
+   per-page start key makes repeat transport safe.
+5. The user is redirected to `/writing/:id`; the fixed assignment remains visible across
+   latest, history, compose, and retry states.
+
+### Flow A2 — Start freeform
+
+1. User opens `/writing/new`, chooses a supported freeform coach, and optionally supplies a
+   topic and title.
+2. First submission uses the same atomic article + Round 1 start contract. A title is
+   generated in the background only when no title was supplied.
 
 ### Flow B — Revision
 
@@ -287,15 +296,16 @@ Follows the same async pattern as Reading:
 
 1. While the latest round is `pending`, `New Revision` is disabled.
 2. If the latest feedback job stalls or fails, the right aside shows retry messaging for that latest round.
-3. Retry reuses the article's stored essay prompt so evaluation context stays stable across retries.
+3. Retry reuses the immutable assignment snapshot (or stored freeform prompt) and increments
+   the revision's generation before evaluation.
 
 ### Flow E — Manage Articles
 
 1. Left panel lists all articles sorted by `updated_at` DESC.
-2. Pinned actions at the top open `/writing` and `/writing/progress`.
+2. Pinned actions at the top open `/writing`, `/writing/new`, and `/writing/progress`.
 3. Bottom of the rail includes a persistent `Settings` entry that opens `/writing/settings` in the center canvas.
-4. Hover reveals three-dot menu → "Delete article" (native `confirm()` dialog).
-5. Deletion soft-deletes the article and all its revisions.
+4. Hover reveals three-dot menu → "Delete article" using an accessible portal dialog.
+5. A single D1 batch deletes revisions and soft-deletes the owning article.
 6. Clicking an article navigates to `/writing/:id`.
 
 ### Flow F — Edit Title
@@ -307,8 +317,8 @@ Follows the same async pattern as Reading:
 
 ## Delete Behaviour
 
-- Article deletion uses native `confirm()`.
-- Server soft-deletes all revision rows for the article, then soft-deletes the article row (`deleted_at` timestamp).
+- Article deletion uses the shared accessible confirmation dialog.
+- One D1 batch hard-deletes revision rows and soft-deletes the article row (`deleted_at` timestamp).
 - No R2 cleanup needed (text-only storage).
 
 ## File Manifest
@@ -317,20 +327,25 @@ Follows the same async pattern as Reading:
 |------|------|---------|
 | `migrations/0007_writing.sql` | Migration | Create `writing_articles` and `writing_revisions` tables |
 | `migrations/0008_writing_essay_prompt.sql` | Migration | Add article-level `essay_prompt` persistence |
+| `migrations/0016_writing_prompts.sql` | Migration | Add reviewed prompts, immutable assignment starts, and feedback generations |
 | `packages/db/src/index.ts` | Package | Add Writing types and CRUD functions |
 | `apps/web/app/routes/writing.tsx` | Route | Layout: three-column shell, article list loader |
-| `apps/web/app/routes/writing._index.tsx` | Route | New article: coach selection + first draft |
+| `apps/web/app/routes/writing._index.tsx` | Route | Published assignment catalogue and recent pieces |
+| `apps/web/app/routes/writing.new.tsx` | Route | Freeform coach selection and first draft |
+| `apps/web/app/routes/writing.prompt.$slug.tsx` | Route | Published assignment preview and atomic first submit |
 | `apps/web/app/routes/writing.progress.tsx` | Route | Progress dashboard in the center canvas |
 | `apps/web/app/routes/writing.dashboard.tsx` | Route | Legacy redirect from `/writing/dashboard` to `/writing/progress` |
 | `apps/web/app/routes/writing.settings.tsx` | Route | Writing settings page in the center canvas |
 | `apps/web/app/routes/writing.$id.tsx` | Route | Article detail: editor + feedback + actions |
 | `apps/web/app/routes/writing.$id_.status.ts` | Route | Feedback status polling endpoint |
 | `apps/web/app/utils/writing-eval.server.ts` | Server | Gemini prompt construction, response parsing, fallback |
+| `apps/web/app/utils/writing-prompt.server.ts` | Server | Materialize validated prompt rows into immutable snapshots |
 | `apps/web/app/utils/writing-agents.ts` | Shared | Coach definitions (rubric, tone, constraints) |
 | `apps/web/app/utils/writing-settings.ts` | Shared | Writing feedback-language storage and change events |
 | `apps/web/app/utils/use-writing-feedback-language.ts` | Shared | Hook for reading and updating the writing feedback language |
 | `apps/web/app/utils/writing-article.server.ts` | Server | Article/revision CRUD, feedback scheduling |
 | `apps/web/app/components/WritingEditor.tsx` | Component | Textarea editor with word count |
+| `apps/web/app/components/WritingPromptMaterial.tsx` | Component | Task 1 visual and accessible canonical material |
 | `apps/web/app/components/WritingFeedback.tsx` | Component | Feedback annotation cards and summary |
 | `apps/web/app/components/WritingDetailAside.tsx` | Component | Right panel: round selector + feedback content |
 | `apps/web/app/styles/global.css` | CSS | Three-column layout styles, writing-specific styles |
@@ -361,5 +376,4 @@ Follows the same async pattern as Reading:
 - Inline text annotation (highlight spans in editor, mapped from `quoted_text`)
 - Extract three-column collapsible shell into reusable `ToolShell` component
 - Apply `ToolShell` to Reading and Speech tools
-- Writing prompts per coach (optional starter prompts)
 - Session completion marking and progress analytics

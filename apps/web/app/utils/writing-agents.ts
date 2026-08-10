@@ -47,7 +47,39 @@ export const WRITING_AGENTS: Record<string, WritingAgent> = {
     maxWords: 1200,
     assessmentExample: "Strong",
     assessmentGuidance:
-      "Use a short overall assessment such as Strong, Developing, or Needs focus.",
+      "Use a short overall assessment such as Strong, Developing, or Needs focus. This is a coach estimate, not a formal score.",
+  },
+  ielts_task1: {
+    id: "ielts_task1",
+    label: "IELTS Academic Task 1",
+    description:
+      "Academic report describing visual information. Evaluated for accurate key features, comparisons, organization, vocabulary, and grammar.",
+    scaffold:
+      "Structure: Introduction → Overview → Detail paragraph 1 → Detail paragraph 2\n\nWord target: at least 150 words\n\nTips: Paraphrase the task, identify the most important features in an overview, and support comparisons with accurate figures. Do not add opinions or explanations that the visual does not provide.",
+    dimensions: [
+      "Task Achievement (TA)",
+      "Coherence & Cohesion (CC)",
+      "Lexical Resource (LR)",
+      "Grammatical Range & Accuracy (GRA)"
+    ],
+    rubric: [
+      "Evaluate the report against IELTS Academic Writing Task 1 descriptors (Bands 5–9).",
+      "Use the supplied canonical facts as the only factual source for the visual.",
+      "Treat an incorrect number, reversed trend, invented cause, missing unit, or unsupported comparison as a Task Achievement problem.",
+      "A fluent report cannot receive a strong Task Achievement estimate if it contradicts the canonical facts.",
+      "Reward a clear overview that selects the most important features rather than listing every value.",
+      "Evaluate logical grouping and comparisons under Coherence & Cohesion.",
+      "Evaluate precise trend/comparison language under Lexical Resource.",
+      "Evaluate sentence variety and accuracy under Grammatical Range & Accuracy."
+    ].join("\n"),
+    tone:
+      "Precise and constructive, like an IELTS examiner-coach. Name factual errors directly, distinguish them from language errors, and never invent information that is absent from the canonical material.",
+    minWords: 150,
+    maxWords: 260,
+    assessmentPrefix: "Coach estimate · Band",
+    assessmentExample: "6.5",
+    assessmentGuidance:
+      "Use an IELTS band-style coach estimate such as 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, or 8.5.",
   },
   ielts_task2: {
     id: "ielts_task2",
@@ -89,7 +121,7 @@ export const WRITING_AGENTS: Record<string, WritingAgent> = {
       "Direct and constructive, like a strict but fair IELTS examiner-coach. Point out weaknesses clearly, but acknowledge genuine strengths. Never soften serious issues.",
     minWords: 250,
     maxWords: 400,
-    assessmentPrefix: "Band",
+    assessmentPrefix: "Coach estimate · Band",
     assessmentExample: "6.5",
     assessmentGuidance:
       "Use an IELTS band-style value such as 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, or 8.5.",
@@ -102,7 +134,7 @@ export const getWritingAgent = (id: string): WritingAgent | null =>
   WRITING_AGENTS[id] ?? null;
 
 export const getWritingAgentOrDefault = (id: string): WritingAgent =>
-  WRITING_AGENTS[id] ?? WRITING_AGENTS[DEFAULT_AGENT_ID];
+  WRITING_AGENTS[id] ?? WRITING_AGENTS.general;
 
 export const listWritingAgents = (): WritingAgent[] =>
   Object.values(WRITING_AGENTS);

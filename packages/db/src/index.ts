@@ -1267,6 +1267,94 @@ export async function createWritingArticle(
   return created;
 }
 
+export async function getWritingArticleByStartKey(
+  db: Db,
+  input: { userId: string; startKey: string }
+): Promise<WritingArticle | null> {
+  const result = await db
+    .prepare(
+      "SELECT * FROM writing_articles WHERE user_id = ? AND start_key = ? AND deleted_at IS NULL LIMIT 1"
+    )
+    .bind(input.userId, input.startKey)
+    .first();
+  return result ? mapWritingArticle(result) : null;
+}
+
+/**
+ * Creates the learner's durable assignment and Round 1 as one D1 batch. A repeated
+ * transport request with the same user/start key returns the original pair.
+ */
+export async function createWritingArticleWithFirstRevision(
+  db: Db,
+  input: {
+    articleId?: string;
+    revisionId?: string;
+    userId: string;
+    title?: string | null;
+    essayPrompt?: string | null;
+    promptId?: string | null;
+    assignmentSnapshotJson?: string | null;
+    startKey: string;
+    agentType: string;
+    userText: string;
+    wordCount: number;
+  }
+): Promise<{ article: WritingArticle; revision: WritingRevision; created: boolean }> {
+  const articleId = input.articleId ?? crypto.randomUUID();
+  const revisionId = input.revisionId ?? crypto.randomUUID();
+  try {
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO writing_articles (
+             id, user_id, title, essay_prompt, prompt_id,
+             assignment_snapshot_json, start_key, agent_type
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          articleId,
+          input.userId,
+          input.title ?? null,
+          input.essayPrompt ?? null,
+          input.promptId ?? null,
+          input.assignmentSnapshotJson ?? null,
+          input.startKey,
+          input.agentType
+        ),
+      db
+        .prepare(
+          `INSERT INTO writing_revisions (
+             id, article_id, user_id, round_number, user_text, word_count,
+             feedback_generation, feedback_started_at
+           ) VALUES (?, ?, ?, 1, ?, ?, 1, datetime('now'))`
+        )
+        .bind(revisionId, articleId, input.userId, input.userText, input.wordCount)
+    ]);
+  } catch (error) {
+    const existing = await getWritingArticleByStartKey(db, {
+      userId: input.userId,
+      startKey: input.startKey
+    });
+    if (!existing) throw error;
+    if (
+      existing.prompt_id !== (input.promptId ?? null) ||
+      existing.assignment_snapshot_json !== (input.assignmentSnapshotJson ?? null)
+    ) {
+      throw new Error("The Writing start key is already associated with another assignment.");
+    }
+    const revision = await getLatestWritingRevision(db, existing.id);
+    if (!revision || revision.round_number !== 1) throw error;
+    return { article: existing, revision, created: false };
+  }
+
+  const [article, revision] = await Promise.all([
+    getWritingArticleById(db, articleId, { includeDeleted: true }),
+    getWritingRevisionById(db, revisionId)
+  ]);
+  if (!article || !revision) throw new Error("Failed to load the new Writing assignment.");
+  return { article, revision, created: true };
+}
+
 export async function getWritingArticleById(
   db: Db,
   id: string,
@@ -1292,6 +1380,23 @@ export async function listWritingArticlesByUser(
     .all();
   if (!result.results) return [];
   return result.results.map(mapWritingArticle);
+}
+
+export async function listRecentWritingArticlesByUser(
+  db: Db,
+  input: { userId: string; limit?: number }
+): Promise<WritingArticle[]> {
+  const limit = Math.min(Math.max(input.limit ?? 6, 1), 25);
+  const result = await db
+    .prepare(
+      `SELECT * FROM writing_articles
+       WHERE user_id = ? AND deleted_at IS NULL
+       ORDER BY updated_at DESC, created_at DESC
+       LIMIT ?`
+    )
+    .bind(input.userId, limit)
+    .all();
+  return (result.results ?? []).map(mapWritingArticle);
 }
 
 export async function updateWritingArticleTitle(
@@ -1331,6 +1436,22 @@ export async function softDeleteWritingArticle(
     .run();
 }
 
+export async function deleteWritingArticleBatch(
+  db: Db,
+  input: { id: string; userId: string }
+): Promise<void> {
+  await db.batch([
+    db
+      .prepare("DELETE FROM writing_revisions WHERE article_id = ? AND user_id = ?")
+      .bind(input.id, input.userId),
+    db
+      .prepare(
+        "UPDATE writing_articles SET deleted_at = datetime('now') WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+      )
+      .bind(input.id, input.userId)
+  ]);
+}
+
 // ---------------------------------------------------------------------------
 // Writing Revisions
 // ---------------------------------------------------------------------------
@@ -1349,7 +1470,10 @@ export async function createWritingRevision(
   const id = input.id ?? crypto.randomUUID();
   await db
     .prepare(
-      "INSERT INTO writing_revisions (id, article_id, user_id, round_number, user_text, word_count) VALUES (?, ?, ?, ?, ?, ?)"
+      `INSERT INTO writing_revisions (
+         id, article_id, user_id, round_number, user_text, word_count,
+         feedback_generation, feedback_started_at
+       ) VALUES (?, ?, ?, ?, ?, ?, 1, datetime('now'))`
     )
     .bind(id, input.articleId, input.userId, input.roundNumber, input.userText, input.wordCount)
     .run();
@@ -1401,17 +1525,57 @@ export async function updateWritingRevisionFeedback(
   db: Db,
   input: {
     id: string;
+    userId: string;
+    generation: number;
     feedbackJson: string | null;
     feedbackStatus: "pending" | "completed" | "failed";
     modelName: string;
   }
-): Promise<void> {
-  await db
+): Promise<boolean> {
+  const result = await db
     .prepare(
-      "UPDATE writing_revisions SET feedback_json = ?, feedback_status = ?, model_name = ? WHERE id = ?"
+      `UPDATE writing_revisions
+       SET feedback_json = ?, feedback_status = ?, model_name = ?
+       WHERE id = ? AND user_id = ? AND feedback_generation = ?`
     )
-    .bind(input.feedbackJson, input.feedbackStatus, input.modelName, input.id)
+    .bind(
+      input.feedbackJson,
+      input.feedbackStatus,
+      input.modelName,
+      input.id,
+      input.userId,
+      input.generation
+    )
     .run();
+  return Number(result.meta.changes ?? 0) > 0;
+}
+
+export async function beginWritingRevisionFeedbackRetry(
+  db: Db,
+  input: { id: string; articleId: string; userId: string }
+): Promise<WritingRevision | null> {
+  const result = await db
+    .prepare(
+      `UPDATE writing_revisions
+       SET feedback_json = NULL,
+           feedback_status = 'pending',
+           model_name = NULL,
+           feedback_generation = feedback_generation + 1,
+           feedback_started_at = datetime('now')
+       WHERE id = ? AND article_id = ? AND user_id = ?
+         AND (
+           feedback_status <> 'pending'
+           OR feedback_started_at IS NULL
+           OR feedback_started_at <= datetime('now', '-60 seconds')
+         )`
+    )
+    .bind(input.id, input.articleId, input.userId)
+    .run();
+  if (Number(result.meta.changes ?? 0) === 0) return null;
+  const revision = await getWritingRevisionById(db, input.id);
+  return revision?.article_id === input.articleId && revision.user_id === input.userId
+    ? revision
+    : null;
 }
 
 export async function softDeleteWritingRevisionsByArticle(
