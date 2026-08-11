@@ -9751,6 +9751,23 @@ select.input:focus {
   cursor: default;
 }
 
+.home-level-picker.is-compact {
+  max-width: 280px;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.home-level-picker.is-compact .home-level-picker-label {
+  flex-basis: 100%;
+  color: var(--color-action);
+}
+
+.home-level-picker.is-compact .home-level-chip {
+  min-width: 40px;
+  min-height: 40px;
+  padding-inline: 10px;
+}
+
 /* ---------- the break between doing and knowing ---------- */
 
 .home-split {
@@ -9857,20 +9874,28 @@ a.home-panel-more:hover {
 }
 
 .home-coverage-band {
+  display: grid;
   flex: 1;
-  text-align: center;
-  padding: 4px 0;
-  border: 1px solid var(--border);
-  border-radius: 3px;
+  gap: 5px;
+  padding: 0;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: var(--text-faint);
 }
 
+.home-coverage-band::before {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  content: "";
+}
+
 .home-coverage-band.is-on {
-  border-color: var(--border-hover);
-  background: var(--bg-alt);
   color: var(--text);
+}
+
+.home-coverage-band.is-on::before {
+  background: var(--copper);
 }
 
 /* ---------- ability bars ---------- */
@@ -9974,8 +9999,8 @@ a.home-panel-more:hover {
 
 .home-actions {
   grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
-  gap: 16px;
-  align-items: stretch;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: start;
 }
 
 .home-actions.is-single {
@@ -9984,25 +10009,17 @@ a.home-panel-more:hover {
 
 .home-focus-primary,
 .home-focus-secondary {
-  display: flex;
   min-width: 0;
-  min-height: 244px;
-  flex-direction: column;
-  padding: clamp(24px, 3vw, 34px);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--bg-card);
+  padding-block: 6px;
 }
 
 .home-focus-primary {
-  border-color: var(--color-action-border);
-  border-inline-start-width: 3px;
-  border-inline-start-color: var(--color-action);
-  background: linear-gradient(135deg, var(--color-action-surface), transparent 58%), var(--bg-card);
+  padding-inline-start: clamp(24px, 3vw, 32px);
+  border-inline-start: 3px solid var(--color-action);
 }
 
 .home-focus-secondary {
-  background: color-mix(in srgb, var(--bg-card) 72%, var(--bg-alt));
+  padding-inline: 0;
 }
 
 .home-focus-primary .home-card-title {
@@ -10034,17 +10051,15 @@ a.home-panel-more:hover {
 
 .home-focus-primary .home-card-actions,
 .home-focus-secondary .home-card-actions {
-  margin-top: auto;
-  padding-top: 8px;
+  margin-top: 22px;
 }
 
 .home-card-alternatives {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
+  max-width: 240px;
+  flex-direction: column;
+  gap: 0;
   margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
 }
 
 .home-card-alternative {
@@ -10071,19 +10086,21 @@ a.home-panel-more:hover {
   display: grid;
   grid-template-columns: 0.8fr 0.8fr 1.4fr;
   margin-bottom: 32px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-card) 72%, var(--bg-alt));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .home-stat {
   min-width: 0;
-  padding: 20px clamp(20px, 3vw, 30px);
+  padding: 22px clamp(20px, 3vw, 30px);
 }
 
 .home-stat:first-child {
-  padding-inline-start: clamp(20px, 3vw, 30px);
+  padding-inline-start: 0;
+}
+
+.home-stat:last-child {
+  padding-inline-end: 0;
 }
 
 .home-stat + .home-stat {
@@ -10133,8 +10150,15 @@ a.home-panel-more:hover {
 
   .home-focus-primary,
   .home-focus-secondary {
-    min-height: 0;
-    padding: 22px 20px;
+    padding-block: 4px;
+  }
+
+  .home-focus-primary {
+    padding-inline: 20px 0;
+  }
+
+  .home-focus-secondary {
+    padding-inline: 0;
   }
 
   .home-status-strip {
@@ -10144,11 +10168,16 @@ a.home-panel-more:hover {
 
   .home-stat,
   .home-stat:first-child {
-    padding: 18px 20px;
+    padding: 18px 0;
   }
 
   .home-stat + .home-stat {
     border-top: 1px solid var(--border);
     border-left: 0;
+  }
+
+  .home-level-picker.is-compact .home-level-chip {
+    min-width: 44px;
+    min-height: 44px;
   }
 }

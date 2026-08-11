@@ -2271,6 +2271,39 @@ export async function listRecentReadingAttempts(
   });
 }
 
+/**
+ * CEFR bands represented by this learner's Reading and Dictation history.
+ *
+ * The result is naturally bounded by the six CEFR values even when the attempt history
+ * grows. Joining the practised passages here avoids deriving coverage from a bounded
+ * recommendation candidate window, which can omit older material.
+ */
+export async function listPractisedPassageBandsByUser(
+  db: Db,
+  userId: string
+): Promise<string[]> {
+  const result = await db
+    .prepare(
+      `SELECT DISTINCT band
+         FROM (
+           SELECT p.band AS band
+             FROM dictation_attempts a
+             JOIN passages p ON p.id = a.passage_id
+            WHERE a.user_id = ? AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+           UNION
+           SELECT p.band AS band
+             FROM esl_reading_attempts a
+             JOIN passages p ON p.id = a.passage_id
+            WHERE a.user_id = ? AND a.deleted_at IS NULL AND p.deleted_at IS NULL
+         )
+        WHERE band IS NOT NULL
+        ORDER BY band ASC`
+    )
+    .bind(userId, userId)
+    .all();
+  return (result.results ?? []).map((row) => String((row as Record<string, unknown>).band));
+}
+
 export type ReadingPassageStat = {
   passage_id: string;
   attempts: number;

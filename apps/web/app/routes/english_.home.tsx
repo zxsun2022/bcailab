@@ -6,13 +6,15 @@ import {
   getEslLearnerProfile,
   listDictationAttemptsByUser,
   listLibraryPassages,
+  listPractisedPassageBandsByUser,
   listRecentReadingAttempts,
-  listWritingArticlesByUser,
+  listRecentWritingArticlesByUser,
   setLearnerDeclaredLevel
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { StudioShell } from "~/components/StudioShell";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import { LocalDateTime } from "~/components/LocalDateTime";
 import {
   CEFR_LEVELS,
   resolveCefr,
@@ -52,9 +54,13 @@ export const meta: MetaFunction = () => [{ title: "English Studio · bcailab" }]
 const LIBRARY_LIMIT = 60;
 const DICTATION_HISTORY_LIMIT = 40;
 const READING_HISTORY_LIMIT = 20;
+const WRITING_HISTORY_LIMIT = 1;
 const RECENT_ROWS = 4;
 const ABILITY_ROWS = 4;
 const TREND_POINTS = 12;
+const HOME_COVERAGE_BANDS: readonly string[] = CEFR_LEVELS.filter(
+  (band) => band !== "A1" && band !== "C2"
+);
 
 type RecentItem = { id: string; title: string; meta: string; href: string; at: string };
 
@@ -124,10 +130,14 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   let degraded = false;
 
   try {
-    const [dictationAttempts, readingAttempts, articles] = await Promise.all([
+    const [dictationAttempts, readingAttempts, articles, practisedBands] = await Promise.all([
       listDictationAttemptsByUser(db, { userId: user.id, limit: DICTATION_HISTORY_LIMIT }),
       listRecentReadingAttempts(db, { userId: user.id, limit: READING_HISTORY_LIMIT }),
-      listWritingArticlesByUser(db, user.id)
+      listRecentWritingArticlesByUser(db, {
+        userId: user.id,
+        limit: WRITING_HISTORY_LIMIT
+      }),
+      listPractisedPassageBandsByUser(db, user.id)
     ]);
 
     const records: PracticeRecord[] = [
@@ -192,12 +202,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     // Coverage: which bands the learner has actually practised. Displayed because CEFR
     // confidence depends on band spread, so exploring adjacent bands has to look
     // purposeful rather than arbitrary (design §1.4).
-    const bandById = new Map(candidates.map((c) => [c.id, c.band]));
-    coverage = [
-      ...new Set(
-        records.map((r) => bandById.get(r.passageId)).filter((b): b is string => Boolean(b))
-      )
-    ];
+    coverage = practisedBands.filter((band) => HOME_COVERAGE_BANDS.includes(band));
 
     // Accuracy trend, oldest → newest, dictation only: it is the deterministic signal.
     trend = dictationAttempts
@@ -278,12 +283,17 @@ function TrendChart({ points }: { points: number[] }) {
   );
 }
 
-function LevelPicker() {
+function LevelPicker({ compact = false }: { compact?: boolean }) {
   const fetcher = useFetcher<{ ok?: boolean }>();
   const saving = fetcher.state !== "idle";
   return (
-    <fetcher.Form method="post" className="home-level-picker">
-      <span className="home-level-picker-label">Or pick your level:</span>
+    <fetcher.Form
+      method="post"
+      className={`home-level-picker${compact ? " is-compact" : ""}`}
+    >
+      <span className="home-level-picker-label">
+        {compact ? "Pick your level" : "Or pick your level:"}
+      </span>
       {CEFR_LEVELS.map((level) => (
         <button
           key={level}
@@ -377,7 +387,11 @@ export default function EnglishHome() {
                 <p className="home-card-meta">
                   {continueAction.kind === "dictation"
                     ? `Dictation · ${continueAction.done} of ${continueAction.total} sentences`
-                    : "Writing · draft in progress"}
+                    : (
+                      <>
+                        Writing · edited <LocalDateTime value={continueAction.updatedAt} />
+                      </>
+                    )}
                 </p>
                 <div className="home-card-actions">
                   <Link to={continueAction.href} className="btn btn-primary">
@@ -459,6 +473,7 @@ export default function EnglishHome() {
                       ? `Measured from your dictation accuracy · ${Math.round(levelConfidence * 100)}% confidence`
                       : "The level you picked. It adjusts as you practise."}
                 </div>
+                {level == null ? <LevelPicker compact /> : null}
               </div>
 
               <div className="home-stat">
@@ -472,7 +487,7 @@ export default function EnglishHome() {
               <div className="home-stat">
                 <div className="home-panel-title">Coverage</div>
                 <div className="home-coverage">
-                  {CEFR_LEVELS.filter((band) => band !== "A1" && band !== "C2").map((band) => (
+                  {HOME_COVERAGE_BANDS.map((band) => (
                     <span
                       key={band}
                       className={`home-coverage-band${coverage.includes(band) ? " is-on" : ""}`}
