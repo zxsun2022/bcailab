@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-11 — **in_review: Coach Home correction and utility workspace polish.** Replaced
+  Home's equal-height framed action cards with an open editorial hierarchy: Continue keeps one
+  leading accent, the recommendation is unboxed, alternatives form a stable vertical list, and
+  status is separated by rules rather than another rounded container. Fixed three underlying
+  state defects at the same time: a fallback B1 recommendation no longer says it fits an
+  unknown current level; learners with practice history but no estimate can declare a level
+  directly; and Coverage now queries the bands represented by actual Reading/Dictation history
+  instead of inferring them from a bounded recommendation window. Writing continuation also
+  shows its last edit. Translate now uses the shared page-tabs frame, a bounded 1120px canvas,
+  visible From/To labels, and a compact mobile board whose primary action remains in the first
+  viewport. Speech aligns its 780px title, tabs, and form; removes the decorative full-height
+  compose card; adds a persistent Text to speak label with described help/count content and
+  visible focus; and sizes the narrow editor so Generate remains reachable. Evidence: 21
+  focused recommendation tests; the complete 564-test suite; root typecheck; production build;
+  and authenticated 351px browser checks for all three pages with no horizontal overflow and
+  visible primary actions.
+
 - 2026-08-10 — **in_review: scalable English Studio navigation and material discovery.**
   Reworked the shared rail into a narrower, quieter navigation spine with a line-based active
   state; reshaped Coach Home into an action-first editorial workspace with a compact status

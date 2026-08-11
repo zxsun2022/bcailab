@@ -223,6 +223,20 @@ strip, and a lone detail section uses the full available width instead of reserv
 second column. Authenticated cold-state QA at 351px verifies reflow, 44px primary and level
 actions, and no horizontal overflow; the full suite, Web typecheck, and production build pass.
 
+Owner-review correction (2026-08-11): removed the equal-height framed Home panels after they
+turned useful whitespace into visible empty card space. Continue now leads with a single
+editorial rule, the recommendation stays unboxed, alternatives form a stable vertical action
+list, and status uses open dividers instead of another container. Null-level recommendations
+no longer claim to fit a known level; learners with history but no estimate regain the direct
+level picker; Coverage reads the practised passage bands rather than the bounded recommendation
+window; and Writing continuation names its last edit. Translate and Speech now share the same
+title → workspace tabs → tool canvas rhythm: Translate uses a bounded two-pane workspace with
+visible From/To labels, while Speech uses a narrower unboxed compose surface with a persistent
+text label, linked help/count text, visible focus, and a mobile-sized editor that keeps Generate
+in the first viewport. Browser checks at a 351px content width confirm no horizontal overflow
+and first-viewport primary actions on Translate and Speech; all 564 tests, root typecheck, and
+the production build pass.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;
