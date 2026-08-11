@@ -4979,6 +4979,31 @@ select.input:focus {
   margin-top: 0;
 }
 
+.tts-compose-card {
+  width: 100%;
+}
+
+.tts-input-label {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.speech-compose-form .textarea {
+  min-height: 280px;
+  max-height: 50dvh;
+  resize: vertical;
+}
+
+.speech-compose-form .textarea:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
+}
+
 .speech-workspace,
 .speech-center-stage,
 .speech-content-column {
@@ -5243,6 +5268,17 @@ select.input:focus {
     grid-template-columns: 1fr;
   }
 
+  .speech-compose-form .textarea {
+    min-height: 200px;
+    max-height: 34dvh;
+  }
+
+  .speech-compose-form .textarea-meta {
+    align-items: flex-start;
+    gap: 4px;
+    margin-top: 8px;
+  }
+
   .tts-generate-wrap {
     width: 100%;
   }
@@ -5250,6 +5286,10 @@ select.input:focus {
   .tts-generate-btn {
     width: 100%;
     height: auto;
+  }
+
+  .tts-history-actions .btn {
+    min-height: 44px;
   }
 
   .tool-page.tts-shell {
@@ -5383,59 +5423,23 @@ select.input:focus {
   }
 
   .speech-workspace {
-    --speech-content-max: 860px;
-    --speech-content-pad-x: clamp(40px, 5vw, 64px);
     display: flex;
     flex-direction: column;
-    height: 100%;
     min-height: 0;
-  }
-
-  .speech-center-stage {
-    display: flex;
-    justify-content: center;
-    height: 100%;
-    min-height: 0;
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: contain;
-    padding: 16px var(--speech-content-pad-x) 24px;
-  }
-
-  .speech-content-column {
-    width: min(100%, var(--speech-content-max));
-    max-width: var(--speech-content-max);
-    min-height: 100%;
-    margin: 0 auto;
-  }
-
-  .speech-content-column > .tts-primary-content {
-    min-height: 100%;
-  }
-
-  .speech-content-column > .tts-primary-content > .tts-compose-card {
-    min-height: 100%;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
   }
 
   .speech-workspace .speech-compose-form {
-    flex: 1;
-    min-height: 100%;
     display: flex;
     flex-direction: column;
   }
 
   .speech-workspace .speech-compose-form .textarea {
-    flex: 1 1 auto;
-    min-height: clamp(360px, 56vh, 720px);
-    resize: none;
+    min-height: clamp(280px, 44vh, 460px);
   }
 
   .speech-workspace .speech-compose-form .tts-controls {
-    margin-top: auto;
-    padding-top: 24px;
+    margin-top: 18px;
+    padding-top: 0;
   }
 
   .tts-shell {
