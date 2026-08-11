@@ -168,6 +168,9 @@ bcailab                            ← all products
   Reading, Writing · Tools: Translate, Speech. Signed-out users are routed per the
   registry's `access` field (`public` → straight in; `trial` → trial route; `auth` →
   login popup) — this is the §1.3(3) bug fix.
+- The signed-out `/english` directory mirrors the rail’s **Practice / Tools** grouping rather
+  than rendering every module as one undifferentiated list. This keeps the public wayfinding
+  model aligned with the workspace learners enter after choosing a destination.
 - The rail contains **destinations only**. Creation, history, settings specific to a task,
   and per-tool progress links belong to that tool's main workspace. Reading exposes
   "+ Add text" in its catalogue header; Writing opens directly on "New piece".

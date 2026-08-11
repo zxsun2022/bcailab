@@ -9,6 +9,16 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: English Studio navigation and mobile-action polish.** The public
+  module directory now mirrors the product rail’s information architecture by separating
+  Practice (Dictation, Reading, Writing) from Tools (Translate, Speech, planned Dictionary),
+  with a coherent `h1` → group `h2` → module `h3` outline. Global signed-out header actions
+  and the landing-page start action now meet the 44px mobile touch baseline. On the anonymous
+  Writing trial, the remaining quota stays grouped immediately above the submit action on
+  narrow screens instead of wrapping to the opposite edge; the submit target is also 44px.
+  Evidence: Web typecheck; browser screenshots at 375/768/1280px for the landing directory;
+  Writing checks at 320/375/1280px with no horizontal overflow; measured 44px action targets.
+
 - 2026-08-10 — **in_review: Dictation catalogue band spacing.** Restored the shared band-body
   wrapper around each `/dictation` card grid, so the band description divider no longer sits
   directly against the first row of passage cards. Evidence: Web typecheck and production
