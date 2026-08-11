@@ -88,15 +88,15 @@ export default function WritingHomePage() {
         <StudioPageHeader
           title="Writing"
           description="Choose a kind of writing first. Inside each collection, levels and task types help you narrow the material without locking anything away."
-          action={<Link to="/writing/new" className="btn btn-primary">New freeform piece</Link>}
+          action={<Link to="/writing/new" className="btn btn-primary">New freeform session</Link>}
         />
         <StudioPageBody className="writing-home writing-hub">
           {latest ? (
             <section className="writing-continue" aria-labelledby="continue-writing-heading">
               <div>
                 <p className="writing-section-eyebrow">Continue writing</p>
-                <h2 id="continue-writing-heading">{latest.title ?? latest.essayPrompt ?? "Untitled piece"}</h2>
-                <p>{latest.promptId ? "Reviewed assignment" : "Freeform piece"}</p>
+                <h2 id="continue-writing-heading">{latest.title ?? latest.essayPrompt ?? "Untitled session"}</h2>
+                <p>{latest.promptId ? "Assignment session" : "Freeform session"}</p>
               </div>
               <Link to={`/writing/${latest.id}`} className="writing-text-action">Continue <span aria-hidden="true">→</span></Link>
             </section>
@@ -133,23 +133,23 @@ export default function WritingHomePage() {
             )}
           </section>
 
-          <section className="writing-pieces-section" aria-labelledby="your-pieces-heading">
+          <section className="writing-sessions-section" aria-labelledby="recent-sessions-heading">
             <div className="writing-section-heading">
               <div>
                 <p className="writing-section-eyebrow">Your workspace</p>
-                <h2 id="your-pieces-heading">Recent pieces</h2>
+                <h2 id="recent-sessions-heading">Recent sessions</h2>
               </div>
-              <Link to="/writing/progress">View progress</Link>
+              <Link to="/writing/sessions">View all sessions</Link>
             </div>
             {data.articles.length === 0 ? (
-              <p className="writing-pieces-empty">Your first submitted piece will appear here.</p>
+              <p className="writing-sessions-empty">Your first session will appear here after you submit a draft.</p>
             ) : (
-              <div className="writing-pieces-list">
+              <div className="writing-sessions-list">
                 {data.articles.map((article) => (
-                  <Link key={article.id} to={`/writing/${article.id}`} className="writing-piece-row">
+                  <Link key={article.id} to={`/writing/${article.id}`} className="writing-session-row">
                     <span>
-                      <strong>{article.title ?? article.essayPrompt ?? "Untitled piece"}</strong>
-                      <small>{article.promptId ? "Assignment" : "Freeform"}</small>
+                      <strong>{article.title ?? article.essayPrompt ?? "Untitled session"}</strong>
+                      <small>{article.promptId ? "Assignment session" : "Freeform session"}</small>
                     </span>
                     <LocalDateTime value={article.updatedAt} options={{ year: "numeric", month: "short", day: "numeric" }} />
                   </Link>

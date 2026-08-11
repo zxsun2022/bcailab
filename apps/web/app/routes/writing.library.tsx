@@ -108,7 +108,7 @@ const PromptRow = ({ prompt }: { prompt: WritingPromptSummary }) => (
     </span>
     <strong>{prompt.title}</strong>
     <span className="writing-library-progress">
-      {prompt.target_words}+ words · {prompt.attempt_count === 0 ? "Not attempted" : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "attempt" : "attempts"}`}
+      {prompt.target_words}+ words · {prompt.attempt_count === 0 ? "Not started" : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "session" : "sessions"}`}
     </span>
     <span className="writing-library-arrow" aria-hidden="true">→</span>
   </Link>
@@ -134,8 +134,8 @@ const FeaturedPromptCard = ({ prompt }: { prompt: WritingPromptSummary }) => (
       <span>{prompt.target_words}+ words</span>
       <span>
         {prompt.attempt_count === 0
-          ? "Not attempted"
-          : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "attempt" : "attempts"}`}
+          ? "Not started"
+          : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "session" : "sessions"}`}
       </span>
     </div>
   </Link>

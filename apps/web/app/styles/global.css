@@ -5978,7 +5978,7 @@ select.input:focus {
 }
 
 .writing-catalogue-section,
-.writing-pieces-section {
+.writing-sessions-section {
   min-width: 0;
 }
 
@@ -6010,7 +6010,7 @@ select.input:focus {
 
 .writing-section-heading > p,
 .writing-catalogue-empty > p,
-.writing-pieces-empty {
+.writing-sessions-empty {
   max-width: 56ch;
   margin: 0;
   color: var(--text-muted);
@@ -6115,11 +6115,11 @@ select.input:focus {
   margin: 12px 0 22px;
 }
 
-.writing-pieces-list {
+.writing-sessions-list {
   border-top: 1px solid var(--border);
 }
 
-.writing-piece-row {
+.writing-session-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -6131,22 +6131,52 @@ select.input:focus {
   text-decoration: none;
 }
 
-.writing-piece-row > span {
+.writing-session-row > span {
   display: grid;
   min-width: 0;
   gap: 3px;
 }
 
-.writing-piece-row strong {
+.writing-session-row strong {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.writing-piece-row small,
-.writing-piece-row time {
+.writing-session-row small,
+.writing-session-row time {
   color: var(--text-muted);
   font-size: 0.78rem;
+}
+
+.writing-sessions-page {
+  display: grid;
+  gap: 28px;
+}
+
+.writing-sessions-page-empty {
+  padding: clamp(28px, 5vw, 52px) 0;
+}
+
+.writing-sessions-page-empty h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+}
+
+.writing-sessions-page-empty p {
+  max-width: 58ch;
+  margin: 0 0 22px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.writing-sessions-page-empty .btn {
+  min-height: 44px;
+}
+
+.writing-sessions-pagination {
+  display: flex;
+  justify-content: flex-end;
 }
 
 /* --- Writing hub and bounded collection catalogue --- */

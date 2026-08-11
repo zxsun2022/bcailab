@@ -1382,6 +1382,84 @@ export async function listWritingArticlesByUser(
   return result.results.map(mapWritingArticle);
 }
 
+type WritingArticleCursor = {
+  updatedAt: string;
+  createdAt: string;
+  id: string;
+};
+
+export type WritingArticlePage = {
+  items: WritingArticle[];
+  next_cursor: string | null;
+};
+
+export const encodeWritingArticleCursor = (
+  article: Pick<WritingArticle, "updated_at" | "created_at" | "id">
+): string => [
+  encodeURIComponent(article.updated_at),
+  encodeURIComponent(article.created_at),
+  encodeURIComponent(article.id)
+].join(":");
+
+export const decodeWritingArticleCursor = (
+  value: string | null | undefined
+): WritingArticleCursor | null => {
+  if (!value) return null;
+  const [updatedAtText, createdAtText, idText, ...rest] = value.split(":");
+  if (rest.length > 0 || !updatedAtText || !createdAtText || !idText) return null;
+  try {
+    return {
+      updatedAt: decodeURIComponent(updatedAtText),
+      createdAt: decodeURIComponent(createdAtText),
+      id: decodeURIComponent(idText)
+    };
+  } catch {
+    return null;
+  }
+};
+
+export async function listWritingArticlePageByUser(
+  db: Db,
+  input: { userId: string; cursor?: string | null; limit?: number }
+): Promise<WritingArticlePage> {
+  const cursor = decodeWritingArticleCursor(input.cursor);
+  const clauses = ["user_id = ?", "deleted_at IS NULL"];
+  const bindings: Array<string | number> = [input.userId];
+  if (cursor) {
+    clauses.push(
+      "(updated_at < ? OR (updated_at = ? AND (created_at < ? OR (created_at = ? AND id < ?))))"
+    );
+    bindings.push(
+      cursor.updatedAt,
+      cursor.updatedAt,
+      cursor.createdAt,
+      cursor.createdAt,
+      cursor.id
+    );
+  }
+
+  const limit = Math.min(Math.max(input.limit ?? 20, 1), 25);
+  bindings.push(limit + 1);
+  const result = await db
+    .prepare(
+      `SELECT * FROM writing_articles
+       WHERE ${clauses.join(" AND ")}
+       ORDER BY updated_at DESC, created_at DESC, id DESC
+       LIMIT ?`
+    )
+    .bind(...bindings)
+    .all();
+  const rows = (result.results ?? []).map(mapWritingArticle);
+  const hasNext = rows.length > limit;
+  const items = rows.slice(0, limit);
+  return {
+    items,
+    next_cursor: hasNext && items.length > 0
+      ? encodeWritingArticleCursor(items[items.length - 1]!)
+      : null
+  };
+}
+
 export async function listRecentWritingArticlesByUser(
   db: Db,
   input: { userId: string; limit?: number }

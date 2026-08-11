@@ -25,7 +25,7 @@ import {
 type ActionData = { error?: string; redirectTo?: string };
 
 export const meta: MetaFunction = () => [
-  { title: "New freeform piece · Writing · English Studio · bcailab" }
+  { title: "New freeform session · Writing · English Studio · bcailab" }
 ];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -77,7 +77,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       logWritingSchemaMissing("writing.new.action", error);
       return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
     }
-    return json<ActionData>({ error: "Failed to create this piece. Please retry." }, { status: 500 });
+    return json<ActionData>({ error: "Unable to create this session. Please try again." }, { status: 500 });
   }
 };
 
@@ -115,7 +115,7 @@ export default function WritingNewPage() {
     <div className="writing-main-scroll">
       <StudioPage width="standard">
         <StudioPageHeader
-          title="New freeform piece"
+          title="New freeform session"
           description="Bring your own topic, choose a coach, and keep revising after the first feedback round."
           action={<Link to="/writing" className="btn btn-secondary">Browse assignments</Link>}
         />

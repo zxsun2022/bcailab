@@ -176,11 +176,15 @@ underlying learning, recommendation, or evaluation policies.
   catalogues without forcing material taxonomy onto Translate or Speech.
 - Preserve the established editorial design tokens, responsive reading order, 44px primary
   touch targets, visible keyboard focus, reduced-motion behavior, and accessible names.
+- Use **Session** for one durable Writing workspace and **Round** for a revision inside it.
+  Rename the Writing hub's recent-work section accordingly and provide an authenticated,
+  bounded `/writing/sessions` history where every non-deleted session remains reachable.
 
 Acceptance evidence: focused query/filter/pagination tests; browser coverage at 375, 768, and
 1280px for rail, Home, Writing hub, category catalogue, prompt detail, and continuation;
 keyboard-only and reduced-motion checks; no new console errors; and the full repository test,
-typecheck, and production build. New materials, Reading/Dictation catalogue implementation,
+typecheck, and production build. Writing session history additionally covers empty, populated,
+continued-page, and mobile layouts without loading an unbounded article collection. New materials, Reading/Dictation catalogue implementation,
 global search, and a taxonomy/schema expansion are explicitly outside this follow-up.
 
 Review evidence (2026-08-10): `/writing` now queries three collection counts instead of the
@@ -198,6 +202,14 @@ The in-app browser injects `#codex-browser-sidebar-comments-root` as a third chi
 which produces Remix hydration warnings in that test surface; standalone browser checks are
 clean, and no application runtime error was observed. The full suite passes 561 tests, Web
 typecheck passes, and the production build succeeds.
+
+Session-history follow-up (2026-08-10): Writing now uses Session for one durable workspace
+and Round for an in-session revision. `/writing` exposes six recent sessions and links to the
+authenticated `/writing/sessions` history; the history reads 21 rows to render a 20-item page
+with a stable opaque continuation cursor. Cursor/unit coverage includes first and continued
+pages. Authenticated empty-state browser QA at a 351px content width verifies breadcrumb
+semantics, 44px actions, and no horizontal overflow. The full suite now passes 564 tests;
+Web typecheck and the production build pass.
 
 ### Explicitly excluded from this iteration
 

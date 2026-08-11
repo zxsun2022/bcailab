@@ -21,7 +21,9 @@ make the final transition; see `AGENTS.md`.
   imposing it on Translate or Speech. Owner-review follow-up places shallow detail returns at
   the leading edge and adds category-aware breadcrumbs to Writing's real three-level material
   hierarchy, extending prompt-backed workspaces through their source assignment while keeping
-  freeform trails compact. Evidence: 561 tests, Web typecheck, production build,
+  freeform trails compact. Writing now consistently calls a durable workspace a Session and a
+  revision within it a Round; the hub links its recent sessions to a bounded, authenticated
+  `/writing/sessions` history. Evidence: 564 tests, Web typecheck, production build,
   local D1 collection census (24 General, 12 Task 1, 12 Task 2), and authenticated browser QA
   at 375/768/1280px covering pagination, no horizontal overflow, 44px mobile actions, visible
   focus, and mobile drawer focus restoration. Codex's in-app browser injects a third child into
