@@ -9,6 +9,11 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-11 — **in_review: Translate composer focus indicator contained.** Kept the strong
+  two-pixel action-color focus indicator while moving it inside the text composer, preventing
+  the ring from covering the output divider and surrounding workspace borders. Evidence: Web
+  typecheck, production build, and browser inspection of the focused composer geometry.
+
 - 2026-08-11 — **in_review: Translate and Speech history surfaces simplified.** Removed the
   redundant New translation action from Saved translations and the duplicate History heading
   plus New generation action from Speech History. Both pages now rely on their persistent

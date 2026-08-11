@@ -242,6 +242,10 @@ repeat creation actions that are already available through their workspace tabs.
 translations keeps Translate as the single return path; Speech History removes its second,
 oversized History heading and begins directly with the generation list or concise empty state.
 
+Translate focus follow-up (2026-08-11): the composer keeps a clear two-pixel keyboard focus
+indicator, inset within the input so it no longer obscures the two-pane divider or workspace
+boundaries.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;

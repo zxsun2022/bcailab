@@ -2106,12 +2106,16 @@ select.input:focus {
 }
 
 .translate-lang-select:focus-visible,
-.translate-input:focus-visible,
 .translate-swap:focus-visible,
 .translate-pane-action:focus-visible,
 .translate-submit:focus-visible {
   outline: 2px solid var(--color-action);
   outline-offset: 2px;
+}
+
+.translate-input:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: -2px;
 }
 
 .translate-swap {
