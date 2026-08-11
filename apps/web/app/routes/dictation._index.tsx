@@ -84,25 +84,27 @@ export default function DictationLibrary() {
                 <h2 className="passage-band-title">{group.band}</h2>
                 <span className="passage-band-blurb">{group.blurb}</span>
               </div>
-              <ul className="passage-card-grid">
-                {group.passages.map((passage) => (
-                  <li key={passage.id}>
-                    <Link to={`/dictation/${passage.id}`} className="passage-card">
-                      <span className="passage-card-title">{passage.title}</span>
-                      <span className="passage-card-meta">
-                        {passage.topic} · {passage.sentenceCount} sentences
-                      </span>
-                      {passage.bestAccuracy !== null ? (
-                        <span className="passage-card-best">
-                          Best {Math.round(passage.bestAccuracy * 100)}%
+              <div className="passage-band-body">
+                <ul className="passage-card-grid">
+                  {group.passages.map((passage) => (
+                    <li key={passage.id}>
+                      <Link to={`/dictation/${passage.id}`} className="passage-card">
+                        <span className="passage-card-title">{passage.title}</span>
+                        <span className="passage-card-meta">
+                          {passage.topic} · {passage.sentenceCount} sentences
                         </span>
-                      ) : (
-                        <span className="passage-card-start">Start</span>
-                      )}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+                        {passage.bestAccuracy !== null ? (
+                          <span className="passage-card-best">
+                            Best {Math.round(passage.bestAccuracy * 100)}%
+                          </span>
+                        ) : (
+                          <span className="passage-card-start">Start</span>
+                        )}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </section>
           ))
         )}
