@@ -6294,28 +6294,54 @@ select.input:focus {
 }
 
 .writing-library-filters {
-  display: flex;
-  align-items: end;
-  gap: 12px;
+  display: grid;
+  gap: 10px;
   padding: 18px 0 22px;
   border-bottom: 1px solid var(--border);
 }
 
-.writing-library-filters label {
-  display: grid;
-  gap: 6px;
+.writing-library-filter-label {
   color: var(--text-muted);
   font-size: 0.75rem;
+  font-weight: 650;
 }
 
-.writing-library-filters select {
-  min-width: 190px;
+.writing-library-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.writing-library-filter {
+  display: inline-flex;
   min-height: 44px;
-  padding: 0 36px 0 12px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 999px;
   background: var(--bg-card);
   color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease, transform 100ms ease;
+}
+
+.writing-library-filter:hover:not(.is-active) {
+  border-color: var(--border-hover);
+  color: var(--color-action);
+}
+
+.writing-library-filter.is-active {
+  border-color: var(--color-action);
+  background: var(--color-action);
+  color: var(--color-on-action);
+  font-weight: 750;
+}
+
+.writing-library-filter:active {
+  transform: scale(0.96);
 }
 
 .writing-library-list {
@@ -6390,8 +6416,13 @@ select.input:focus {
 
 @media (prefers-reduced-motion: reduce) {
   .writing-collection-row,
-  .writing-library-row {
+  .writing-library-row,
+  .writing-library-filter {
     transition: none;
+  }
+
+  .writing-library-filter:active {
+    transform: none;
   }
 }
 
@@ -6417,17 +6448,6 @@ select.input:focus {
   .writing-collection-arrow {
     grid-column: 3;
     grid-row: 1 / span 2;
-  }
-
-  .writing-library-filters {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .writing-library-filters select,
-  .writing-library-filters .btn {
-    width: 100%;
-    min-height: 44px;
   }
 
   .writing-library-row {

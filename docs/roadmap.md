@@ -211,6 +211,11 @@ pages. Authenticated empty-state browser QA at a 351px content width verifies br
 semantics, 44px actions, and no horizontal overflow. The full suite now passes 564 tests;
 Web typecheck and the production build pass.
 
+Filter-interaction follow-up (2026-08-10): bounded Writing catalogues expose every available
+level or task-family choice as a direct URL-backed link, including All. Selection immediately
+loads the filtered first page without an intermediate Apply action; native link semantics keep
+the interaction available to keyboards and without JavaScript.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;

@@ -23,7 +23,9 @@ make the final transition; see `AGENTS.md`.
   hierarchy, extending prompt-backed workspaces through their source assignment while keeping
   freeform trails compact. Writing now consistently calls a durable workspace a Session and a
   revision within it a Round; the hub links its recent sessions to a bounded, authenticated
-  `/writing/sessions` history. Evidence: 564 tests, Web typecheck, production build,
+  `/writing/sessions` history. Catalogue filters now expose All and every level/task family as
+  visible URL-backed choices, so one selection applies immediately and resets continuation
+  state without requiring JavaScript. Evidence: 564 tests, Web typecheck, production build,
   local D1 collection census (24 General, 12 Task 1, 12 Task 2), and authenticated browser QA
   at 375/768/1280px covering pagination, no horizontal overflow, 44px mobile actions, visible
   focus, and mobile drawer focus restoration. Codex's in-app browser injects a third child into

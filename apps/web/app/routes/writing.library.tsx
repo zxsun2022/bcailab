@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { Form, Link, useLoaderData } from "@remix-run/react";
+import { Link, useLoaderData } from "@remix-run/react";
 import {
   decodeWritingPromptCursor,
   listPublishedWritingPromptPage,
@@ -152,6 +152,13 @@ export default function WritingLibraryPage() {
   if (level) nextParams.set("level", level);
   if (kind) nextParams.set("kind", kind);
   if (page.next_cursor) nextParams.set("cursor", page.next_cursor);
+  const filterHref = (value: string | null) => {
+    const params = new URLSearchParams({ category });
+    if (value) params.set(category === "general" ? "level" : "kind", value);
+    return `/writing/library?${params.toString()}`;
+  };
+  const activeFilter = category === "general" ? level : kind;
+  const filterOptions = category === "general" ? GENERAL_LEVELS : kinds;
 
   return (
     <div className="writing-main-scroll">
@@ -167,27 +174,33 @@ export default function WritingLibraryPage() {
         />
         <StudioPageBody className="writing-library">
           <p className="writing-section-eyebrow">{collection.eyebrow}</p>
-          <Form method="get" className="writing-library-filters">
-            <input type="hidden" name="category" value={category} />
-            {category === "general" ? (
-              <label>
-                <span>Level</span>
-                <select name="level" defaultValue={level ?? ""}>
-                  <option value="">All levels</option>
-                  {GENERAL_LEVELS.map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-              </label>
-            ) : (
-              <label>
-                <span>Task family</span>
-                <select name="kind" defaultValue={kind ?? ""}>
-                  <option value="">All task families</option>
-                  {kinds.map((value) => <option key={value} value={value}>{humanizeKind(value)}</option>)}
-                </select>
-              </label>
-            )}
-            <button type="submit" className="btn btn-secondary">Apply</button>
-          </Form>
+          <nav
+            className="writing-library-filters"
+            aria-label={category === "general" ? "Filter assignments by level" : "Filter assignments by task family"}
+          >
+            <span className="writing-library-filter-label">
+              {category === "general" ? "Level" : "Task family"}
+            </span>
+            <div className="writing-library-filter-options">
+              <Link
+                to={filterHref(null)}
+                className={`writing-library-filter${activeFilter === null ? " is-active" : ""}`}
+                aria-current={activeFilter === null ? "page" : undefined}
+              >
+                All
+              </Link>
+              {filterOptions.map((value) => (
+                <Link
+                  key={value}
+                  to={filterHref(value)}
+                  className={`writing-library-filter${activeFilter === value ? " is-active" : ""}`}
+                  aria-current={activeFilter === value ? "page" : undefined}
+                >
+                  {category === "general" ? value : humanizeKind(value)}
+                </Link>
+              ))}
+            </div>
+          </nav>
 
           {featured.length > 0 ? (
             <section className="writing-library-featured" aria-labelledby="writing-featured-heading">
