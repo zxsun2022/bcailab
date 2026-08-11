@@ -9,6 +9,14 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-11 — **in_review: Translate and Speech history surfaces simplified.** Removed the
+  redundant New translation action from Saved translations and the duplicate History heading
+  plus New generation action from Speech History. Both pages now rely on their persistent
+  workspace tabs for returning to creation, so the content area has one job: show saved or
+  generated history. Empty states remain explanatory without adding another competing button.
+  Evidence: Web typecheck, production build, and authenticated 351px browser checks with no
+  horizontal overflow or duplicate creation actions.
+
 - 2026-08-11 — **in_review: Coach Home correction and utility workspace polish.** Replaced
   Home's equal-height framed action cards with an open editorial hierarchy: Continue keeps one
   leading accent, the recommendation is unboxed, alternatives form a stable vertical list, and

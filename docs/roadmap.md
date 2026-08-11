@@ -237,6 +237,11 @@ in the first viewport. Browser checks at a 351px content width confirm no horizo
 and first-viewport primary actions on Translate and Speech; all 564 tests, root typecheck, and
 the production build pass.
 
+History-surface follow-up (2026-08-11): Saved translations and Speech History no longer
+repeat creation actions that are already available through their workspace tabs. Saved
+translations keeps Translate as the single return path; Speech History removes its second,
+oversized History heading and begins directly with the generation list or concise empty state.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;

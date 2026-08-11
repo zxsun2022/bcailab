@@ -11,7 +11,12 @@ import {
   type SavedTranslationCursor
 } from "@bcailab/db";
 import { LocalDateTime } from "~/components/LocalDateTime";
-import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 import { StudioShell } from "~/components/StudioShell";
 import { TranslateWorkspaceTabs } from "~/components/TranslateWorkspaceTabs";
 import { requireUser } from "~/utils/auth.server";
@@ -165,17 +170,17 @@ export default function SavedTranslationsPage() {
         <StudioPageHeader
           title="Saved translations"
           description="Only translations you explicitly save appear here."
-          action={<Link to="/translate" className="btn btn-primary">New translation</Link>}
         />
-        <StudioPageBody className="translate-saved-page">
+        <StudioPageTabs>
           <TranslateWorkspaceTabs active="saved" />
+        </StudioPageTabs>
+        <StudioPageBody className="translate-saved-page">
           {deleted ? <p className="translate-saved-notice" role="status">Translation permanently deleted.</p> : null}
           {items.length === 0 ? (
             <section className="translate-saved-empty">
               <p className="writing-section-eyebrow">Private workspace</p>
               <h2>No saved translations yet</h2>
               <p>Translate something useful, then choose Save after the result is complete.</p>
-              <Link to="/translate" className="btn btn-secondary">Open Translate</Link>
             </section>
           ) : (
             <div className="translate-saved-list">
