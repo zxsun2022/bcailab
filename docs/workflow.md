@@ -35,7 +35,8 @@ pnpm dev
 # 访问 http://localhost:5173
 
 # 3. 如果有新的数据库 migration，先应用到本地
-wrangler d1 migrations apply bcailab-db --local
+# 这个脚本与 pnpm dev 共用 apps/web/.wrangler/state，避免迁移到错误的本地库
+pnpm db:migrate:local
 
 # 4. 开发、测试、提交
 git add <files>
@@ -99,12 +100,12 @@ wrangler d1 migrations apply bcailab-db
 ```bash
 # 查看 migration 状态
 wrangler d1 migrations list bcailab-db          # 生产
-wrangler d1 migrations list bcailab-db --local   # 本地
+wrangler d1 migrations list bcailab-db --local --persist-to apps/web/.wrangler/state  # 本地
 wrangler d1 migrations list bcailab-db --preview  # 测试
 
 # 应用 migration
 wrangler d1 migrations apply bcailab-db          # 生产
-wrangler d1 migrations apply bcailab-db --local   # 本地
+pnpm db:migrate:local                              # 本地
 wrangler d1 migrations apply bcailab-db --preview  # 测试
 ```
 
@@ -144,7 +145,10 @@ Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 
 检查是否有新 migration 未应用到 preview 数据库：`wrangler d1 migrations list bcailab-db --preview`。
 
 **Q: 本地 D1 数据丢失？**
-本地数据存储在 `.wrangler/` 目录中。删除该目录或切换分支不会自动清除，但如果手动删除则需要重新 `--local` 应用所有 migration。
+`pnpm dev` 使用的本地数据存储在 `apps/web/.wrangler/state/`。根目录默认的
+`.wrangler/` 是另一份 state；不要用未带 `--persist-to` 的本地 Wrangler 命令检查或
+迁移开发服务器数据库。删除 app state 或切换分支不会自动清除，但如果手动删除则
+需要重新运行 `pnpm db:migrate:local`。
 
 **Q: 构建失败？**
 Pages 构建命令是 `cd ../.. && pnpm install --frozen-lockfile && pnpm --filter web build`。确保 `pnpm-lock.yaml` 是最新的（本地 `pnpm install` 后提交 lock 文件）。

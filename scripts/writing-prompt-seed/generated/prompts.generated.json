@@ -1,0 +1,1550 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_a2_study_invitation",
+    "slug": "general-a2-study-invitation",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "A2",
+    "title": "Invite a classmate to study",
+    "promptText": "Write an email inviting a classmate to study with you this weekend. Say what subject you want to study, where and when to meet, and what your classmate should bring.",
+    "coachId": "general",
+    "topic": "Everyday communication",
+    "targetWords": 80,
+    "targetMinutes": 15,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "c5bcc747486a2ad9cf1a6b422fdcd6780bc9d0f3e0e390b4efa1e8c47d21cb63"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_a2_neighborhood",
+    "slug": "general-a2-neighborhood",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "description",
+    "cefrBand": "A2",
+    "title": "Describe your neighborhood",
+    "promptText": "Describe the neighborhood where you live or a neighborhood you know well. Explain what places are nearby, what people usually do there, and one thing you like about it.",
+    "coachId": "general",
+    "topic": "Places",
+    "targetWords": 90,
+    "targetMinutes": 15,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "72a5e56b1f4b92fac01780d3cab4faf180ac0a1739c3efe74ed0b6b7fd63308b"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_a2_missed_bus",
+    "slug": "general-a2-missed-bus",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "story",
+    "cefrBand": "A2",
+    "title": "The bus left without me",
+    "promptText": "Write a short story about a day when someone missed a bus. Show where the person was going, why they were late, and what they did next.",
+    "coachId": "general",
+    "topic": "Travel",
+    "targetWords": 100,
+    "targetMinutes": 18,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "d2213f13d6c519a6ed64dd65b1ff8c9933cd9133f7e5fc2bbcd11e4f3212f374"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_a2_school_uniforms",
+    "slug": "general-a2-school-uniforms",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "A2",
+    "title": "Should students wear uniforms?",
+    "promptText": "Do you think students should wear school uniforms? Give your opinion and support it with two simple reasons or examples.",
+    "coachId": "general",
+    "topic": "Education",
+    "targetWords": 90,
+    "targetMinutes": 15,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "d894cb9262e38956b50b65409dc2859134e8df83d709e0a6fa34cf1dc83b331e"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_a2_lost_item",
+    "slug": "general-a2-lost-item",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "A2",
+    "title": "Ask about a lost item",
+    "promptText": "You left an important item at a café. Write an email to the café. Describe the item, say when and where you left it, and explain how the staff can contact you.",
+    "coachId": "general",
+    "topic": "Everyday communication",
+    "targetWords": 80,
+    "targetMinutes": 12,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "14051f974176e8049b097aacae2b69951fe201afb6fd9e4c83a5e96ea8ee8832"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_a2_favorite_meal",
+    "slug": "general-a2-favorite-meal",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "description",
+    "cefrBand": "A2",
+    "title": "A meal I enjoy",
+    "promptText": "Describe a meal you enjoy. Say what food is in it, when you usually eat it, who you eat it with, and why it is special to you.",
+    "coachId": "general",
+    "topic": "Food",
+    "targetWords": 90,
+    "targetMinutes": 15,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "b9f31cdf641dd698172b7447f0a28ddd523b272af85636df5b42ff8e71f239e6"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b1_event_feedback",
+    "slug": "general-b1-event-feedback",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "B1",
+    "title": "Give feedback on an event",
+    "promptText": "You attended a community event last weekend. Write an email to the organizer describing what worked well, one problem you noticed, and one suggestion for the next event.",
+    "coachId": "general",
+    "topic": "Community",
+    "targetWords": 120,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "c406ed6ec32a28edb1dd5a60cbdcfdfbfa7609d404b634cf2a217e9ed9927ea2"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b1_weekend_homework",
+    "slug": "general-b1-weekend-homework",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "B1",
+    "title": "Homework at the weekend",
+    "promptText": "Some people think students should not receive homework at weekends. Do you agree or disagree? Explain your view with reasons and an example from school life.",
+    "coachId": "general",
+    "topic": "Education",
+    "targetWords": 130,
+    "targetMinutes": 22,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "4dc49cec79a6bcc6251d48ddb4c7b5a4cb3358610e34d0254b094d85e17ae369"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b1_unexpected_visitor",
+    "slug": "general-b1-unexpected-visitor",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "story",
+    "cefrBand": "B1",
+    "title": "An unexpected visitor",
+    "promptText": "Write a story that begins with the sentence: When I opened the door, I could not believe who was standing there. Include a problem, a decision, and a clear ending.",
+    "coachId": "general",
+    "topic": "Relationships",
+    "targetWords": 150,
+    "targetMinutes": 25,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "45140ccde20f72e0f37110893eeae676b4534244fff422660fd99baa21a34b48"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b1_helpful_app",
+    "slug": "general-b1-helpful-app",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "description",
+    "cefrBand": "B1",
+    "title": "An app that helps me",
+    "promptText": "Describe an app or digital tool that is useful in your daily life. Explain what it does, how you use it, and one way it could be improved.",
+    "coachId": "general",
+    "topic": "Technology",
+    "targetWords": 130,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "a6d58ade7b0424571308d5dea74f9b397283b82f885ecba1581d8ec3be761420"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b1_cancel_reservation",
+    "slug": "general-b1-cancel-reservation",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "B1",
+    "title": "Change a reservation",
+    "promptText": "You need to change a hotel reservation because your travel dates have moved. Write an email explaining the situation, giving the new dates, and asking about any extra cost.",
+    "coachId": "general",
+    "topic": "Travel",
+    "targetWords": 120,
+    "targetMinutes": 18,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "a5fdcbd0a5c1ab764174dde1cedab628780c6f6976301960fa2ebd2ed7c26021"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b1_city_bicycles",
+    "slug": "general-b1-city-bicycles",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "B1",
+    "title": "Make cycling easier",
+    "promptText": "Should cities spend more money on making cycling easier and safer? State your opinion and discuss how the change could affect at least two groups of people.",
+    "coachId": "general",
+    "topic": "Cities",
+    "targetWords": 140,
+    "targetMinutes": 22,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "f53123cf8c04906aaffd985d7fefcb31e53539da732356b8145c1412ff3ab705"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b2_remote_work",
+    "slug": "general-b2-remote-work",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "B2",
+    "title": "When remote work works",
+    "promptText": "Companies should allow employees to choose where they work whenever their job can be done remotely. Discuss the strengths and limitations of this idea, then give your position.",
+    "coachId": "general",
+    "topic": "Work",
+    "targetWords": 180,
+    "targetMinutes": 28,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "455e7eae2d77044daca109df70e7c4847ac827510a74705fbfd3254502c6a93f"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b2_fitness_complaint",
+    "slug": "general-b2-fitness-complaint",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "B2",
+    "title": "Resolve a membership problem",
+    "promptText": "A fitness club continued charging you after you cancelled your membership. Write a formal email that explains the timeline, identifies the resolution you expect, and requests a prompt response.",
+    "coachId": "general",
+    "topic": "Consumer services",
+    "targetWords": 160,
+    "targetMinutes": 25,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "636b1eab06c93fd3465fe3c9428c214ca62c8a82d8ba14f9eef8b1f9495905f3"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b2_changed_mind",
+    "slug": "general-b2-changed-mind",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "story",
+    "cefrBand": "B2",
+    "title": "The choice I reconsidered",
+    "promptText": "Write a story about a character who is certain about an important decision but changes their mind after one conversation. Use details to make the change believable rather than stating it directly.",
+    "coachId": "general",
+    "topic": "Decisions",
+    "targetWords": 200,
+    "targetMinutes": 30,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "c416fead2af038c9c376b67d61e90b820318d7a16964b006cbbaaf3dd7b48bd6"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b2_public_space",
+    "slug": "general-b2-public-space",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "description",
+    "cefrBand": "B2",
+    "title": "A public space that succeeds",
+    "promptText": "Describe a public space that brings different people together. Explain how its layout, atmosphere, and rules influence the way people behave there.",
+    "coachId": "general",
+    "topic": "Cities",
+    "targetWords": 180,
+    "targetMinutes": 26,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "7ccb97bd20b5a6f12094459e016f61cd9a90335aebf33fbf6e8c5e2033cf4372"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b2_social_news",
+    "slug": "general-b2-social-news",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "B2",
+    "title": "News through social media",
+    "promptText": "For many people, social media is now the main way to discover news. Is this change mostly beneficial or mostly harmful? Develop a balanced argument and reach a clear conclusion.",
+    "coachId": "general",
+    "topic": "Media",
+    "targetWords": 190,
+    "targetMinutes": 30,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "ad3db7fd6e9eb5c1ffb4c880b64914830adba54c45a77a12bdaa34faf0b425bc"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_b2_language_exchange",
+    "slug": "general-b2-language-exchange",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "B2",
+    "title": "Propose a language exchange",
+    "promptText": "Write an email to a community center proposing a weekly language-exchange program. Explain the need, outline how sessions would work, and address one likely concern.",
+    "coachId": "general",
+    "topic": "Community",
+    "targetWords": 170,
+    "targetMinutes": 26,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "abf500ce7686fea16dd90d5b8f27f77d518064b146ecf0922cf8c2efc53eb67c"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_c1_urban_surveillance",
+    "slug": "general-c1-urban-surveillance",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "C1",
+    "title": "The price of safer streets",
+    "promptText": "Cities increasingly use cameras and automated systems to improve public safety. Argue where the boundary between collective security and personal privacy should lie, acknowledging a serious objection to your view.",
+    "coachId": "general",
+    "topic": "Public policy",
+    "targetWords": 230,
+    "targetMinutes": 35,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "64bf9031e0a5439f09b1adf31f4ff9a6b6fb96d54486855b09cd655ea16c283b"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_c1_workplace_dilemma",
+    "slug": "general-c1-workplace-dilemma",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "description",
+    "cefrBand": "C1",
+    "title": "A difficult professional choice",
+    "promptText": "Describe a workplace ethical dilemma in which every available choice has a meaningful cost. Explain the competing responsibilities and the principles someone should use to decide.",
+    "coachId": "general",
+    "topic": "Work",
+    "targetWords": 220,
+    "targetMinutes": 34,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "63336ee999d9edf02378428deb27e63e79c08722b044dd0ede13c765aa836596"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_c1_policy_response",
+    "slug": "general-c1-policy-response",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "email",
+    "cefrBand": "C1",
+    "title": "Challenge a proposed policy",
+    "promptText": "Your organization plans to monitor all employee messages to prevent data leaks. Write a formal response to leadership that recognizes the risk, challenges the proposal, and offers a proportionate alternative.",
+    "coachId": "general",
+    "topic": "Workplace policy",
+    "targetWords": 220,
+    "targetMinutes": 32,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "7c5c2d9afd891a833c5bfb33215cb0169e7585db03d50d62df3390057f59d43f"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_c1_unreliable_memory",
+    "slug": "general-c1-unreliable-memory",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "story",
+    "cefrBand": "C1",
+    "title": "A memory that shifts",
+    "promptText": "Write a story in which the narrator retells an important memory but gradually reveals that their version may be incomplete. Use contradictions and selective detail without explicitly calling the narrator unreliable.",
+    "coachId": "general",
+    "topic": "Memory",
+    "targetWords": 250,
+    "targetMinutes": 38,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "f5f613b07429416fc155eafe5a33850cac4e82c32cd0b63391a22a00616ea2cb"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_c1_museum_objects",
+    "slug": "general-c1-museum-objects",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "opinion",
+    "cefrBand": "C1",
+    "title": "Who should hold cultural objects?",
+    "promptText": "When cultural objects were acquired under unequal historical conditions, should museums be required to return them? Develop criteria that could guide difficult cases rather than arguing from one example alone.",
+    "coachId": "general",
+    "topic": "Culture",
+    "targetWords": 240,
+    "targetMinutes": 36,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "3f6ff6b8c9ba702d1a4bb03388ba63fbd7a0380b6729defdb9e1e3eb5624482d"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_general_c1_professional_identity",
+    "slug": "general-c1-professional-identity",
+    "family": "general",
+    "taskType": "guided",
+    "promptKind": "description",
+    "cefrBand": "C1",
+    "title": "When professional identity changes",
+    "promptText": "Describe how a person's professional identity can change after a major success, failure, or career transition. Analyze the tension between external recognition and private values.",
+    "coachId": "general",
+    "topic": "Identity",
+    "targetWords": 220,
+    "targetMinutes": 34,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "402b49e4d5028d09311f24475944f7cd01778bb1eae5b82a5353cd7c494f949c"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_commuting_modes",
+    "slug": "ielts-task1-commuting-modes",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "line_graph",
+    "cefrBand": null,
+    "title": "Commuting modes over time",
+    "promptText": "The line graph shows the percentage of commuters in Westford using four transport modes in 2010, 2015, and 2020. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Transport",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Line graph showing car use falling while public transport and cycling rise in Westford from 2010 to 2020.",
+    "material": {
+      "kind": "line_graph",
+      "title": "How commuters travelled in Westford",
+      "unit": "percent of commuters",
+      "categories": [
+        "2010",
+        "2015",
+        "2020"
+      ],
+      "series": [
+        {
+          "name": "Car",
+          "values": [
+            62,
+            55,
+            47
+          ]
+        },
+        {
+          "name": "Public transport",
+          "values": [
+            24,
+            30,
+            38
+          ]
+        },
+        {
+          "name": "Cycling",
+          "values": [
+            8,
+            10,
+            12
+          ]
+        },
+        {
+          "name": "Walking",
+          "values": [
+            6,
+            5,
+            3
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Car remained the most common mode but fell by 15 percentage points.",
+        "Public transport had the largest increase, rising by 14 points."
+      ],
+      "comparisons": [
+        "In 2020, car use was 9 points above public transport.",
+        "Cycling doubled walking in 2010 and was four times walking in 2020."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"2010\",\"2015\",\"2020\"],\"comparisons\":[\"In 2020, car use was 9 points above public transport.\",\"Cycling doubled walking in 2010 and was four times walking in 2020.\"],\"keyFeatures\":[\"Car remained the most common mode but fell by 15 percentage points.\",\"Public transport had the largest increase, rising by 14 points.\"],\"kind\":\"line_graph\",\"series\":[{\"name\":\"Car\",\"values\":[62,55,47]},{\"name\":\"Public transport\",\"values\":[24,30,38]},{\"name\":\"Cycling\",\"values\":[8,10,12]},{\"name\":\"Walking\",\"values\":[6,5,3]}],\"title\":\"How commuters travelled in Westford\",\"unit\":\"percent of commuters\"}",
+    "assetPath": "/writing/task1/83bf0f07483425162a7387ef2759a2dba640dc5136a4d059bb65738fdd1d03b2.svg",
+    "assetDigest": "83bf0f07483425162a7387ef2759a2dba640dc5136a4d059bb65738fdd1d03b2",
+    "accessibleDescription": "How commuters travelled in Westford. Unit: percent of commuters. Car: 2010 62, 2015 55, 2020 47. Public transport: 2010 24, 2015 30, 2020 38. Cycling: 2010 8, 2015 10, 2020 12. Walking: 2010 6, 2015 5, 2020 3. Key features: Car remained the most common mode but fell by 15 percentage points. Public transport had the largest increase, rising by 14 points. Comparisons: In 2020, car use was 9 points above public transport. Cycling doubled walking in 2010 and was four times walking in 2020.",
+    "contentHash": "15a02752342a32ec52ae438bf407bd5f28dc40fec6adf82fb2641cd8710f0ce2"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_electricity_sources",
+    "slug": "ielts-task1-electricity-sources",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "line_graph",
+    "cefrBand": null,
+    "title": "Changing electricity sources",
+    "promptText": "The line graph compares the shares of electricity generated from solar, hydro, and gas in Norland in 2005, 2015, and 2025. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Energy",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Line graph showing solar electricity rising strongly, gas falling, and hydro changing little in Norland between 2005 and 2025.",
+    "material": {
+      "kind": "line_graph",
+      "title": "Electricity generation by source in Norland",
+      "unit": "percent of electricity",
+      "categories": [
+        "2005",
+        "2015",
+        "2025"
+      ],
+      "series": [
+        {
+          "name": "Solar",
+          "values": [
+            5,
+            18,
+            36
+          ]
+        },
+        {
+          "name": "Hydro",
+          "values": [
+            42,
+            40,
+            38
+          ]
+        },
+        {
+          "name": "Gas",
+          "values": [
+            53,
+            42,
+            26
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Solar rose more than sevenfold and became the second-largest source by 2025.",
+        "Gas declined by 27 percentage points and became the smallest source."
+      ],
+      "comparisons": [
+        "Hydro was the most stable source, falling only 4 points.",
+        "Solar remained 2 points below hydro in 2025."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"2005\",\"2015\",\"2025\"],\"comparisons\":[\"Hydro was the most stable source, falling only 4 points.\",\"Solar remained 2 points below hydro in 2025.\"],\"keyFeatures\":[\"Solar rose more than sevenfold and became the second-largest source by 2025.\",\"Gas declined by 27 percentage points and became the smallest source.\"],\"kind\":\"line_graph\",\"series\":[{\"name\":\"Solar\",\"values\":[5,18,36]},{\"name\":\"Hydro\",\"values\":[42,40,38]},{\"name\":\"Gas\",\"values\":[53,42,26]}],\"title\":\"Electricity generation by source in Norland\",\"unit\":\"percent of electricity\"}",
+    "assetPath": "/writing/task1/4f06dfd3a95d977b7c4481241a46500d662d8875af586258ea4e11aa44e10f79.svg",
+    "assetDigest": "4f06dfd3a95d977b7c4481241a46500d662d8875af586258ea4e11aa44e10f79",
+    "accessibleDescription": "Electricity generation by source in Norland. Unit: percent of electricity. Solar: 2005 5, 2015 18, 2025 36. Hydro: 2005 42, 2015 40, 2025 38. Gas: 2005 53, 2015 42, 2025 26. Key features: Solar rose more than sevenfold and became the second-largest source by 2025. Gas declined by 27 percentage points and became the smallest source. Comparisons: Hydro was the most stable source, falling only 4 points. Solar remained 2 points below hydro in 2025.",
+    "contentHash": "fb79868984c9c54a1eccf53aee4702f119000c15455fa8b1a5a10384b13105b2"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_library_visitors",
+    "slug": "ielts-task1-library-visitors",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "bar_chart",
+    "cefrBand": null,
+    "title": "Library visitors by age",
+    "promptText": "The bar chart compares the number of monthly visits to Brookfield Library by four age groups in 2014 and 2024. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Public services",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Grouped bar chart comparing monthly library visits by four age groups in 2014 and 2024, with the largest growth among people aged 18 to 34.",
+    "material": {
+      "kind": "bar_chart",
+      "title": "Monthly visits to Brookfield Library",
+      "unit": "thousands of visits",
+      "categories": [
+        "Under 18",
+        "18–34",
+        "35–54",
+        "55 and over"
+      ],
+      "series": [
+        {
+          "name": "2014",
+          "values": [
+            18,
+            14,
+            20,
+            16
+          ]
+        },
+        {
+          "name": "2024",
+          "values": [
+            21,
+            27,
+            22,
+            19
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Visits increased in every age group.",
+        "The 18–34 group recorded the largest rise and became the biggest group in 2024."
+      ],
+      "comparisons": [
+        "In 2014, people aged 35–54 led at 20 thousand visits.",
+        "The smallest increase was 2 thousand among people aged 35–54."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Under 18\",\"18–34\",\"35–54\",\"55 and over\"],\"comparisons\":[\"In 2014, people aged 35–54 led at 20 thousand visits.\",\"The smallest increase was 2 thousand among people aged 35–54.\"],\"keyFeatures\":[\"Visits increased in every age group.\",\"The 18–34 group recorded the largest rise and became the biggest group in 2024.\"],\"kind\":\"bar_chart\",\"series\":[{\"name\":\"2014\",\"values\":[18,14,20,16]},{\"name\":\"2024\",\"values\":[21,27,22,19]}],\"title\":\"Monthly visits to Brookfield Library\",\"unit\":\"thousands of visits\"}",
+    "assetPath": "/writing/task1/db9497798010770ad3aab9b6a37293282e6dd340029a3363a47e23c3a044547b.svg",
+    "assetDigest": "db9497798010770ad3aab9b6a37293282e6dd340029a3363a47e23c3a044547b",
+    "accessibleDescription": "Monthly visits to Brookfield Library. Unit: thousands of visits. 2014: Under 18 18, 18–34 14, 35–54 20, 55 and over 16. 2024: Under 18 21, 18–34 27, 35–54 22, 55 and over 19. Key features: Visits increased in every age group. The 18–34 group recorded the largest rise and became the biggest group in 2024. Comparisons: In 2014, people aged 35–54 led at 20 thousand visits. The smallest increase was 2 thousand among people aged 35–54.",
+    "contentHash": "83a6f7620e8acab1e181eba3d1885defe4de846226bb26ea54c2dc7f37fafd93"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_weekly_exercise",
+    "slug": "ielts-task1-weekly-exercise",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "bar_chart",
+    "cefrBand": null,
+    "title": "Weekly exercise in three cities",
+    "promptText": "The bar chart shows average weekly exercise time for adults in three cities, divided into indoor exercise, outdoor exercise, and active travel. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Health",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Grouped bar chart showing adults in Linton exercising the most overall, with indoor exercise highest in all three cities.",
+    "material": {
+      "kind": "bar_chart",
+      "title": "Average weekly exercise time",
+      "unit": "minutes per adult",
+      "categories": [
+        "Indoor exercise",
+        "Outdoor exercise",
+        "Active travel"
+      ],
+      "series": [
+        {
+          "name": "Linton",
+          "values": [
+            110,
+            85,
+            70
+          ]
+        },
+        {
+          "name": "Marston",
+          "values": [
+            95,
+            60,
+            80
+          ]
+        },
+        {
+          "name": "Pell",
+          "values": [
+            75,
+            65,
+            45
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Linton had the highest total and led in indoor and outdoor exercise.",
+        "Indoor exercise was the largest category in every city."
+      ],
+      "comparisons": [
+        "Marston exceeded Linton only in active travel, by 10 minutes.",
+        "Pell recorded the lowest figure for active travel, at 45 minutes."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Indoor exercise\",\"Outdoor exercise\",\"Active travel\"],\"comparisons\":[\"Marston exceeded Linton only in active travel, by 10 minutes.\",\"Pell recorded the lowest figure for active travel, at 45 minutes.\"],\"keyFeatures\":[\"Linton had the highest total and led in indoor and outdoor exercise.\",\"Indoor exercise was the largest category in every city.\"],\"kind\":\"bar_chart\",\"series\":[{\"name\":\"Linton\",\"values\":[110,85,70]},{\"name\":\"Marston\",\"values\":[95,60,80]},{\"name\":\"Pell\",\"values\":[75,65,45]}],\"title\":\"Average weekly exercise time\",\"unit\":\"minutes per adult\"}",
+    "assetPath": "/writing/task1/106bf748ec6254e0a25ef706451df3a8468a4280885fcefbb51a737c10dce368.svg",
+    "assetDigest": "106bf748ec6254e0a25ef706451df3a8468a4280885fcefbb51a737c10dce368",
+    "accessibleDescription": "Average weekly exercise time. Unit: minutes per adult. Linton: Indoor exercise 110, Outdoor exercise 85, Active travel 70. Marston: Indoor exercise 95, Outdoor exercise 60, Active travel 80. Pell: Indoor exercise 75, Outdoor exercise 65, Active travel 45. Key features: Linton had the highest total and led in indoor and outdoor exercise. Indoor exercise was the largest category in every city. Comparisons: Marston exceeded Linton only in active travel, by 10 minutes. Pell recorded the lowest figure for active travel, at 45 minutes.",
+    "contentHash": "b1bce19767feebfb1eb4c52d8981616c5e6343c82166ada5e81575c2effaf759"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_household_energy",
+    "slug": "ielts-task1-household-energy",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "pie_chart",
+    "cefrBand": null,
+    "title": "Household energy use",
+    "promptText": "The pie charts compare how household energy was used in Bellmere in 2000 and 2025. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Energy",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Two pie charts showing heating's share of household energy falling between 2000 and 2025 while cooling and appliances increase.",
+    "material": {
+      "kind": "pie_chart",
+      "title": "Household energy use in Bellmere",
+      "unit": "percent of household energy",
+      "categories": [
+        "Heating",
+        "Water heating",
+        "Appliances",
+        "Lighting",
+        "Cooling"
+      ],
+      "series": [
+        {
+          "name": "2000",
+          "values": [
+            48,
+            22,
+            16,
+            9,
+            5
+          ]
+        },
+        {
+          "name": "2025",
+          "values": [
+            35,
+            20,
+            24,
+            8,
+            13
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Heating remained the largest use but fell by 13 percentage points.",
+        "Cooling more than doubled and appliances became the second-largest category."
+      ],
+      "comparisons": [
+        "Water heating and lighting changed only slightly.",
+        "Appliances and cooling together rose from 21 to 37 percent."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Heating\",\"Water heating\",\"Appliances\",\"Lighting\",\"Cooling\"],\"comparisons\":[\"Water heating and lighting changed only slightly.\",\"Appliances and cooling together rose from 21 to 37 percent.\"],\"keyFeatures\":[\"Heating remained the largest use but fell by 13 percentage points.\",\"Cooling more than doubled and appliances became the second-largest category.\"],\"kind\":\"pie_chart\",\"series\":[{\"name\":\"2000\",\"values\":[48,22,16,9,5]},{\"name\":\"2025\",\"values\":[35,20,24,8,13]}],\"title\":\"Household energy use in Bellmere\",\"unit\":\"percent of household energy\"}",
+    "assetPath": "/writing/task1/d87431b6d8a6a7776b7bffd07c7bb1a4d36003ff99f658fe143560a470ac3bb9.svg",
+    "assetDigest": "d87431b6d8a6a7776b7bffd07c7bb1a4d36003ff99f658fe143560a470ac3bb9",
+    "accessibleDescription": "Household energy use in Bellmere. Unit: percent of household energy. 2000: Heating 48, Water heating 22, Appliances 16, Lighting 9, Cooling 5. 2025: Heating 35, Water heating 20, Appliances 24, Lighting 8, Cooling 13. Key features: Heating remained the largest use but fell by 13 percentage points. Cooling more than doubled and appliances became the second-largest category. Comparisons: Water heating and lighting changed only slightly. Appliances and cooling together rose from 21 to 37 percent.",
+    "contentHash": "6d3cfdedb1c42bfb837ce75460bef067430cc881c18610af9a90c370f32f0acb"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_university_budget",
+    "slug": "ielts-task1-university-budget",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "pie_chart",
+    "cefrBand": null,
+    "title": "University budget priorities",
+    "promptText": "The pie charts show how Northbridge University allocated its annual budget in 2015 and 2025. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Education",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Two pie charts showing Northbridge University shifting budget share from buildings and administration toward teaching and technology from 2015 to 2025.",
+    "material": {
+      "kind": "pie_chart",
+      "title": "Northbridge University annual budget",
+      "unit": "percent of budget",
+      "categories": [
+        "Teaching",
+        "Research",
+        "Buildings",
+        "Technology",
+        "Administration"
+      ],
+      "series": [
+        {
+          "name": "2015",
+          "values": [
+            34,
+            24,
+            20,
+            8,
+            14
+          ]
+        },
+        {
+          "name": "2025",
+          "values": [
+            39,
+            25,
+            13,
+            15,
+            8
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Teaching remained the largest category and gained 5 percentage points.",
+        "Technology nearly doubled while buildings and administration both declined."
+      ],
+      "comparisons": [
+        "Research was almost unchanged, rising by 1 point.",
+        "Technology overtook buildings in 2025."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Teaching\",\"Research\",\"Buildings\",\"Technology\",\"Administration\"],\"comparisons\":[\"Research was almost unchanged, rising by 1 point.\",\"Technology overtook buildings in 2025.\"],\"keyFeatures\":[\"Teaching remained the largest category and gained 5 percentage points.\",\"Technology nearly doubled while buildings and administration both declined.\"],\"kind\":\"pie_chart\",\"series\":[{\"name\":\"2015\",\"values\":[34,24,20,8,14]},{\"name\":\"2025\",\"values\":[39,25,13,15,8]}],\"title\":\"Northbridge University annual budget\",\"unit\":\"percent of budget\"}",
+    "assetPath": "/writing/task1/c31d3af988c50320f5b662ab8e4379e6f5cfb295229b5d5fe4d7ea6428255248.svg",
+    "assetDigest": "c31d3af988c50320f5b662ab8e4379e6f5cfb295229b5d5fe4d7ea6428255248",
+    "accessibleDescription": "Northbridge University annual budget. Unit: percent of budget. 2015: Teaching 34, Research 24, Buildings 20, Technology 8, Administration 14. 2025: Teaching 39, Research 25, Buildings 13, Technology 15, Administration 8. Key features: Teaching remained the largest category and gained 5 percentage points. Technology nearly doubled while buildings and administration both declined. Comparisons: Research was almost unchanged, rising by 1 point. Technology overtook buildings in 2025.",
+    "contentHash": "abd56fef295c4bfb3c85858eec4ca9482c0c3a2ff3b2349f6c74e1450e4f3ea3"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_city_transport",
+    "slug": "ielts-task1-city-transport",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "table",
+    "cefrBand": null,
+    "title": "City transport costs and times",
+    "promptText": "The table compares a standard public-transport fare, average weekday waiting time, and average central journey time in four cities in 2025. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Transport",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Table comparing fares, waiting times, and journey times in four cities, with Arden cheapest and Danton fastest overall.",
+    "material": {
+      "kind": "table",
+      "title": "Public transport in four cities, 2025",
+      "unit": "fare in dollars; times in minutes",
+      "columns": [
+        "Standard fare ($)",
+        "Average wait (min)",
+        "Central journey (min)"
+      ],
+      "rows": [
+        {
+          "label": "Arden",
+          "values": [
+            1.8,
+            9,
+            31
+          ]
+        },
+        {
+          "label": "Bexley",
+          "values": [
+            2.6,
+            7,
+            28
+          ]
+        },
+        {
+          "label": "Corin",
+          "values": [
+            3.2,
+            12,
+            35
+          ]
+        },
+        {
+          "label": "Danton",
+          "values": [
+            2.9,
+            6,
+            24
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Arden had the lowest fare but not the shortest times.",
+        "Danton had both the shortest wait and the fastest central journey."
+      ],
+      "comparisons": [
+        "Corin was the most expensive and slowest city.",
+        "Danton's journey was 11 minutes shorter than Corin's."
+      ]
+    },
+    "taskMaterialJson": "{\"columns\":[\"Standard fare ($)\",\"Average wait (min)\",\"Central journey (min)\"],\"comparisons\":[\"Corin was the most expensive and slowest city.\",\"Danton's journey was 11 minutes shorter than Corin's.\"],\"keyFeatures\":[\"Arden had the lowest fare but not the shortest times.\",\"Danton had both the shortest wait and the fastest central journey.\"],\"kind\":\"table\",\"rows\":[{\"label\":\"Arden\",\"values\":[1.8,9,31]},{\"label\":\"Bexley\",\"values\":[2.6,7,28]},{\"label\":\"Corin\",\"values\":[3.2,12,35]},{\"label\":\"Danton\",\"values\":[2.9,6,24]}],\"title\":\"Public transport in four cities, 2025\",\"unit\":\"fare in dollars; times in minutes\"}",
+    "assetPath": "/writing/task1/493dbf212f420cdc2f403aa81f7718d8a5f99affdd042c31b38f14f1e619852e.svg",
+    "assetDigest": "493dbf212f420cdc2f403aa81f7718d8a5f99affdd042c31b38f14f1e619852e",
+    "accessibleDescription": "Public transport in four cities, 2025. Unit: fare in dollars; times in minutes. Arden: Standard fare ($) 1.8, Average wait (min) 9, Central journey (min) 31. Bexley: Standard fare ($) 2.6, Average wait (min) 7, Central journey (min) 28. Corin: Standard fare ($) 3.2, Average wait (min) 12, Central journey (min) 35. Danton: Standard fare ($) 2.9, Average wait (min) 6, Central journey (min) 24. Key features: Arden had the lowest fare but not the shortest times. Danton had both the shortest wait and the fastest central journey. Comparisons: Corin was the most expensive and slowest city. Danton's journey was 11 minutes shorter than Corin's.",
+    "contentHash": "2d37ce8fe1cb058b64ebf740623fe454ee6b97177bf1c32d54bcd194924cb6a4"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_student_housing",
+    "slug": "ielts-task1-student-housing",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "table",
+    "cefrBand": null,
+    "title": "Student housing in four cities",
+    "promptText": "The table compares monthly student accommodation costs and three related measures in four university cities in 2023. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Housing",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Table comparing rent, room size, travel time, and included utilities for student housing in four cities, with Ellison most expensive and Farrow cheapest.",
+    "material": {
+      "kind": "table",
+      "title": "Typical student accommodation, 2023",
+      "unit": "dollars, m², minutes, and utility count",
+      "columns": [
+        "Monthly rent ($)",
+        "Room size (m²)",
+        "Campus travel (min)",
+        "Utilities included"
+      ],
+      "rows": [
+        {
+          "label": "Ellison",
+          "values": [
+            980,
+            14,
+            12,
+            2
+          ]
+        },
+        {
+          "label": "Farrow",
+          "values": [
+            640,
+            18,
+            28,
+            3
+          ]
+        },
+        {
+          "label": "Ganton",
+          "values": [
+            790,
+            16,
+            19,
+            1
+          ]
+        },
+        {
+          "label": "Havers",
+          "values": [
+            850,
+            20,
+            16,
+            4
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Ellison was the most expensive and offered the smallest rooms.",
+        "Farrow was cheapest but had the longest journey to campus."
+      ],
+      "comparisons": [
+        "Havers offered the largest rooms and the most included utilities.",
+        "The rent gap between Ellison and Farrow was 340 dollars per month."
+      ]
+    },
+    "taskMaterialJson": "{\"columns\":[\"Monthly rent ($)\",\"Room size (m²)\",\"Campus travel (min)\",\"Utilities included\"],\"comparisons\":[\"Havers offered the largest rooms and the most included utilities.\",\"The rent gap between Ellison and Farrow was 340 dollars per month.\"],\"keyFeatures\":[\"Ellison was the most expensive and offered the smallest rooms.\",\"Farrow was cheapest but had the longest journey to campus.\"],\"kind\":\"table\",\"rows\":[{\"label\":\"Ellison\",\"values\":[980,14,12,2]},{\"label\":\"Farrow\",\"values\":[640,18,28,3]},{\"label\":\"Ganton\",\"values\":[790,16,19,1]},{\"label\":\"Havers\",\"values\":[850,20,16,4]}],\"title\":\"Typical student accommodation, 2023\",\"unit\":\"dollars, m², minutes, and utility count\"}",
+    "assetPath": "/writing/task1/b282bcf6fcba11f70e391ca91af9250d232b5ffb20cac54212d01c823e07a780.svg",
+    "assetDigest": "b282bcf6fcba11f70e391ca91af9250d232b5ffb20cac54212d01c823e07a780",
+    "accessibleDescription": "Typical student accommodation, 2023. Unit: dollars, m², minutes, and utility count. Ellison: Monthly rent ($) 980, Room size (m²) 14, Campus travel (min) 12, Utilities included 2. Farrow: Monthly rent ($) 640, Room size (m²) 18, Campus travel (min) 28, Utilities included 3. Ganton: Monthly rent ($) 790, Room size (m²) 16, Campus travel (min) 19, Utilities included 1. Havers: Monthly rent ($) 850, Room size (m²) 20, Campus travel (min) 16, Utilities included 4. Key features: Ellison was the most expensive and offered the smallest rooms. Farrow was cheapest but had the longest journey to campus. Comparisons: Havers offered the largest rooms and the most included utilities. The rent gap between Ellison and Farrow was 340 dollars per month.",
+    "contentHash": "1eced205b3bd2038c9ef19532685c6c0e38361b5289b44b47427b53ee827449a"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_coffee_process",
+    "slug": "ielts-task1-coffee-process",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "process",
+    "cefrBand": null,
+    "title": "From coffee cherry to package",
+    "promptText": "The diagram illustrates how harvested coffee cherries are processed into packaged roasted coffee. Summarize the information by selecting and reporting the main features.",
+    "coachId": "ielts_task1",
+    "topic": "Manufacturing",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Seven-stage linear process from sorting coffee cherries through washing, drying, roasting, cooling, grinding, and packaging.",
+    "material": {
+      "kind": "process",
+      "title": "Producing packaged roasted coffee",
+      "stages": [
+        {
+          "label": "Sort",
+          "description": "Harvested cherries are inspected and damaged fruit is removed."
+        },
+        {
+          "label": "Wash",
+          "description": "The selected cherries are washed and the beans are separated from the pulp."
+        },
+        {
+          "label": "Dry",
+          "description": "The beans are spread on raised beds and dried in the sun."
+        },
+        {
+          "label": "Roast",
+          "description": "Dry beans are roasted at high temperature until they reach the required colour."
+        },
+        {
+          "label": "Cool",
+          "description": "The roasted beans are cooled rapidly with moving air."
+        },
+        {
+          "label": "Grind",
+          "description": "Some beans are ground while the rest remain whole."
+        },
+        {
+          "label": "Package",
+          "description": "Whole and ground coffee are sealed in labelled bags for distribution."
+        }
+      ],
+      "keyFeatures": [
+        "The process is linear and has seven stages.",
+        "Physical preparation comes before heat treatment, followed by two alternative final products."
+      ]
+    },
+    "taskMaterialJson": "{\"keyFeatures\":[\"The process is linear and has seven stages.\",\"Physical preparation comes before heat treatment, followed by two alternative final products.\"],\"kind\":\"process\",\"stages\":[{\"description\":\"Harvested cherries are inspected and damaged fruit is removed.\",\"label\":\"Sort\"},{\"description\":\"The selected cherries are washed and the beans are separated from the pulp.\",\"label\":\"Wash\"},{\"description\":\"The beans are spread on raised beds and dried in the sun.\",\"label\":\"Dry\"},{\"description\":\"Dry beans are roasted at high temperature until they reach the required colour.\",\"label\":\"Roast\"},{\"description\":\"The roasted beans are cooled rapidly with moving air.\",\"label\":\"Cool\"},{\"description\":\"Some beans are ground while the rest remain whole.\",\"label\":\"Grind\"},{\"description\":\"Whole and ground coffee are sealed in labelled bags for distribution.\",\"label\":\"Package\"}],\"title\":\"Producing packaged roasted coffee\"}",
+    "assetPath": "/writing/task1/34b183a5c5e61806abdafe44af89716362473e1868dcc543f82423fe494106a6.svg",
+    "assetDigest": "34b183a5c5e61806abdafe44af89716362473e1868dcc543f82423fe494106a6",
+    "accessibleDescription": "Producing packaged roasted coffee. Stages in order: 1. Sort: Harvested cherries are inspected and damaged fruit is removed. 2. Wash: The selected cherries are washed and the beans are separated from the pulp. 3. Dry: The beans are spread on raised beds and dried in the sun. 4. Roast: Dry beans are roasted at high temperature until they reach the required colour. 5. Cool: The roasted beans are cooled rapidly with moving air. 6. Grind: Some beans are ground while the rest remain whole. 7. Package: Whole and ground coffee are sealed in labelled bags for distribution. Key features: The process is linear and has seven stages. Physical preparation comes before heat treatment, followed by two alternative final products.",
+    "contentHash": "7b61c2d73523a6d102d212ba3475049dadf169e3750867ac2040529aef18a119"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_water_reuse",
+    "slug": "ielts-task1-water-reuse",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "process",
+    "cefrBand": null,
+    "title": "Treating water for reuse",
+    "promptText": "The diagram shows how household wastewater is treated and returned for non-drinking uses in a residential district. Summarize the information by selecting and reporting the main features.",
+    "coachId": "ielts_task1",
+    "topic": "Environment",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Six-stage water-reuse cycle collecting household wastewater, screening, biological treatment, filtering, disinfecting, and redistributing it for gardens and toilets.",
+    "material": {
+      "kind": "process",
+      "title": "Residential wastewater reuse",
+      "stages": [
+        {
+          "label": "Collect",
+          "description": "Wastewater from sinks, showers, and washing machines enters a separate pipe network."
+        },
+        {
+          "label": "Screen",
+          "description": "A screen removes large solid material from the collected water."
+        },
+        {
+          "label": "Biological treatment",
+          "description": "Microorganisms break down dissolved organic matter in an aerated tank."
+        },
+        {
+          "label": "Filter",
+          "description": "The treated water passes through sand and carbon filters."
+        },
+        {
+          "label": "Disinfect",
+          "description": "Ultraviolet light destroys remaining harmful microorganisms."
+        },
+        {
+          "label": "Redistribute",
+          "description": "A second pipe network supplies the water to gardens and toilet tanks, after which it can re-enter the system."
+        }
+      ],
+      "keyFeatures": [
+        "The system forms a cycle rather than a single-use linear process.",
+        "Mechanical, biological, and disinfection stages occur before redistribution."
+      ]
+    },
+    "taskMaterialJson": "{\"keyFeatures\":[\"The system forms a cycle rather than a single-use linear process.\",\"Mechanical, biological, and disinfection stages occur before redistribution.\"],\"kind\":\"process\",\"stages\":[{\"description\":\"Wastewater from sinks, showers, and washing machines enters a separate pipe network.\",\"label\":\"Collect\"},{\"description\":\"A screen removes large solid material from the collected water.\",\"label\":\"Screen\"},{\"description\":\"Microorganisms break down dissolved organic matter in an aerated tank.\",\"label\":\"Biological treatment\"},{\"description\":\"The treated water passes through sand and carbon filters.\",\"label\":\"Filter\"},{\"description\":\"Ultraviolet light destroys remaining harmful microorganisms.\",\"label\":\"Disinfect\"},{\"description\":\"A second pipe network supplies the water to gardens and toilet tanks, after which it can re-enter the system.\",\"label\":\"Redistribute\"}],\"title\":\"Residential wastewater reuse\"}",
+    "assetPath": "/writing/task1/420cb2c4a4bc8f0058c7d47f748081213209bfff5aaeb32ecdfba90c59acf5bf.svg",
+    "assetDigest": "420cb2c4a4bc8f0058c7d47f748081213209bfff5aaeb32ecdfba90c59acf5bf",
+    "accessibleDescription": "Residential wastewater reuse. Stages in order: 1. Collect: Wastewater from sinks, showers, and washing machines enters a separate pipe network. 2. Screen: A screen removes large solid material from the collected water. 3. Biological treatment: Microorganisms break down dissolved organic matter in an aerated tank. 4. Filter: The treated water passes through sand and carbon filters. 5. Disinfect: Ultraviolet light destroys remaining harmful microorganisms. 6. Redistribute: A second pipe network supplies the water to gardens and toilet tanks, after which it can re-enter the system. Key features: The system forms a cycle rather than a single-use linear process. Mechanical, biological, and disinfection stages occur before redistribution.",
+    "contentHash": "8f477c4bdb8a08fa29b3514cb27bb737df80d00a53e03f40c4db5ece2734d59f"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_riverside_park",
+    "slug": "ielts-task1-riverside-park",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "map",
+    "cefrBand": null,
+    "title": "Riverside Park redevelopment",
+    "promptText": "The maps show Riverside Park in 2000 and at present. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Urban development",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Before-and-after maps showing Riverside Park gaining a café, playground, cycle path, wetland garden, and footbridge while retaining its sports field.",
+    "material": {
+      "kind": "map",
+      "title": "Riverside Park",
+      "beforeLabel": "2000",
+      "afterLabel": "Present",
+      "features": [
+        {
+          "place": "Northwest corner",
+          "before": "Small car park",
+          "after": "Multi-level car park and café"
+        },
+        {
+          "place": "North bank",
+          "before": "Open grass",
+          "after": "Playground and picnic area"
+        },
+        {
+          "place": "River crossing",
+          "before": "No crossing",
+          "after": "Pedestrian footbridge"
+        },
+        {
+          "place": "East edge",
+          "before": "Straight walking path",
+          "after": "Shared walking and cycle path"
+        },
+        {
+          "place": "Southeast corner",
+          "before": "Unused land",
+          "after": "Wetland garden"
+        },
+        {
+          "place": "Central area",
+          "before": "Sports field",
+          "after": "Sports field retained"
+        }
+      ],
+      "keyFeatures": [
+        "The park became more accessible and gained several leisure facilities.",
+        "The sports field was retained while previously unused or open areas were developed."
+      ]
+    },
+    "taskMaterialJson": "{\"afterLabel\":\"Present\",\"beforeLabel\":\"2000\",\"features\":[{\"after\":\"Multi-level car park and café\",\"before\":\"Small car park\",\"place\":\"Northwest corner\"},{\"after\":\"Playground and picnic area\",\"before\":\"Open grass\",\"place\":\"North bank\"},{\"after\":\"Pedestrian footbridge\",\"before\":\"No crossing\",\"place\":\"River crossing\"},{\"after\":\"Shared walking and cycle path\",\"before\":\"Straight walking path\",\"place\":\"East edge\"},{\"after\":\"Wetland garden\",\"before\":\"Unused land\",\"place\":\"Southeast corner\"},{\"after\":\"Sports field retained\",\"before\":\"Sports field\",\"place\":\"Central area\"}],\"keyFeatures\":[\"The park became more accessible and gained several leisure facilities.\",\"The sports field was retained while previously unused or open areas were developed.\"],\"kind\":\"map\",\"title\":\"Riverside Park\"}",
+    "assetPath": "/writing/task1/8525cc9e5f47d27c90df0e7b71dc5e5a489e87f8464cccce6ad44ddc9d8552f2.svg",
+    "assetDigest": "8525cc9e5f47d27c90df0e7b71dc5e5a489e87f8464cccce6ad44ddc9d8552f2",
+    "accessibleDescription": "Riverside Park. Northwest corner: 2000 — Small car park; Present — Multi-level car park and café. North bank: 2000 — Open grass; Present — Playground and picnic area. River crossing: 2000 — No crossing; Present — Pedestrian footbridge. East edge: 2000 — Straight walking path; Present — Shared walking and cycle path. Southeast corner: 2000 — Unused land; Present — Wetland garden. Central area: 2000 — Sports field; Present — Sports field retained. Key features: The park became more accessible and gained several leisure facilities. The sports field was retained while previously unused or open areas were developed.",
+    "contentHash": "f4d64b933414de7feb64d27440c71ecd05b294a8ec0738596ecb1ed7b39972e0"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_harbor_plan",
+    "slug": "ielts-task1-harbor-plan",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "map",
+    "cefrBand": null,
+    "title": "Harbor district plan",
+    "promptText": "The maps compare Southport Harbor in 1990 with a redevelopment plan for 2030. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Urban development",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Maps showing Southport Harbor changing from an industrial port into a mixed-use waterfront with housing, shops, a marina, and public promenade by 2030.",
+    "material": {
+      "kind": "map",
+      "title": "Southport Harbor redevelopment",
+      "beforeLabel": "1990",
+      "afterLabel": "Plan for 2030",
+      "features": [
+        {
+          "place": "Western waterfront",
+          "before": "Cargo warehouses",
+          "after": "Apartment blocks"
+        },
+        {
+          "place": "Central pier",
+          "before": "Freight dock",
+          "after": "Leisure marina"
+        },
+        {
+          "place": "Eastern waterfront",
+          "before": "Fuel storage tanks",
+          "after": "Park and events lawn"
+        },
+        {
+          "place": "Shore road",
+          "before": "Service road",
+          "after": "Tree-lined boulevard with shops"
+        },
+        {
+          "place": "Waterfront edge",
+          "before": "Restricted industrial zone",
+          "after": "Continuous public promenade"
+        },
+        {
+          "place": "Rail spur",
+          "before": "Freight rail line",
+          "after": "Removed and replaced by tram stops"
+        }
+      ],
+      "keyFeatures": [
+        "Industrial and freight uses are planned to disappear completely.",
+        "The waterfront will become a residential, recreational, and pedestrian-oriented district with public transport access."
+      ]
+    },
+    "taskMaterialJson": "{\"afterLabel\":\"Plan for 2030\",\"beforeLabel\":\"1990\",\"features\":[{\"after\":\"Apartment blocks\",\"before\":\"Cargo warehouses\",\"place\":\"Western waterfront\"},{\"after\":\"Leisure marina\",\"before\":\"Freight dock\",\"place\":\"Central pier\"},{\"after\":\"Park and events lawn\",\"before\":\"Fuel storage tanks\",\"place\":\"Eastern waterfront\"},{\"after\":\"Tree-lined boulevard with shops\",\"before\":\"Service road\",\"place\":\"Shore road\"},{\"after\":\"Continuous public promenade\",\"before\":\"Restricted industrial zone\",\"place\":\"Waterfront edge\"},{\"after\":\"Removed and replaced by tram stops\",\"before\":\"Freight rail line\",\"place\":\"Rail spur\"}],\"keyFeatures\":[\"Industrial and freight uses are planned to disappear completely.\",\"The waterfront will become a residential, recreational, and pedestrian-oriented district with public transport access.\"],\"kind\":\"map\",\"title\":\"Southport Harbor redevelopment\"}",
+    "assetPath": "/writing/task1/262a0c4ab50566527a8c6f30becc0980faeb1410f3d8b73d1a892b5e64efff59.svg",
+    "assetDigest": "262a0c4ab50566527a8c6f30becc0980faeb1410f3d8b73d1a892b5e64efff59",
+    "accessibleDescription": "Southport Harbor redevelopment. Western waterfront: 1990 — Cargo warehouses; Plan for 2030 — Apartment blocks. Central pier: 1990 — Freight dock; Plan for 2030 — Leisure marina. Eastern waterfront: 1990 — Fuel storage tanks; Plan for 2030 — Park and events lawn. Shore road: 1990 — Service road; Plan for 2030 — Tree-lined boulevard with shops. Waterfront edge: 1990 — Restricted industrial zone; Plan for 2030 — Continuous public promenade. Rail spur: 1990 — Freight rail line; Plan for 2030 — Removed and replaced by tram stops. Key features: Industrial and freight uses are planned to disappear completely. The waterfront will become a residential, recreational, and pedestrian-oriented district with public transport access.",
+    "contentHash": "12fa5bd017ab719294368ceda861e84b260de4e2e7ae05ad63dd31b62d1dd345"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_car_free_centers",
+    "slug": "ielts-task2-car-free-centers",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "opinion_essay",
+    "cefrBand": null,
+    "title": "Car-free city centers",
+    "promptText": "Some people believe private cars should be completely banned from city centers. To what extent do you agree or disagree? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Transport",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "4d8f499c96be921da0f057af36dd4c1a9d969b2a07d6551d109cc53cc284ea03"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_free_university",
+    "slug": "ielts-task2-free-university",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "opinion_essay",
+    "cefrBand": null,
+    "title": "Publicly funded university",
+    "promptText": "University education should be free for everyone, regardless of their financial situation. To what extent do you agree or disagree? Give reasons for your answer and include relevant examples.",
+    "coachId": "ielts_task2",
+    "topic": "Education",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "92b3e94e6cfa0c5fdad2243288af8974708723e6bbdd61d8d846c9f4bc0a74dd"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_automated_decisions",
+    "slug": "ielts-task2-automated-decisions",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "opinion_essay",
+    "cefrBand": null,
+    "title": "Automated public decisions",
+    "promptText": "Governments increasingly use automated systems to make decisions about public services. Such systems should never make a final decision without human review. To what extent do you agree or disagree?",
+    "coachId": "ielts_task2",
+    "topic": "Technology",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "8b142e8703cca568f94799d333425a82ee4a5db60ed0dc12631f27789ff90721"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_remote_work_models",
+    "slug": "ielts-task2-remote-work-models",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "discussion",
+    "cefrBand": null,
+    "title": "Where employees should work",
+    "promptText": "Some people think employees should work mainly from home, while others believe regular attendance at a workplace is better. Discuss both views and give your own opinion.",
+    "coachId": "ielts_task2",
+    "topic": "Work",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "7c173c1a6495948ce741b496b760f586e0ae9934ba9401d2cca0968017165708"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_heritage_housing",
+    "slug": "ielts-task2-heritage-housing",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "discussion",
+    "cefrBand": null,
+    "title": "Heritage or new housing",
+    "promptText": "Some people argue that old buildings should be protected, while others think cities should replace them with modern housing. Discuss both views and give your own opinion.",
+    "coachId": "ielts_task2",
+    "topic": "Cities",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "e6427a67b77378c27e67f673209b9ee10e3ed1130f57d227c23701e7f90942c1"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_compete_cooperate",
+    "slug": "ielts-task2-compete-cooperate",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "discussion",
+    "cefrBand": null,
+    "title": "Competition and cooperation at school",
+    "promptText": "Some people believe competition helps children succeed, while others think schools should emphasize cooperation. Discuss both views and give your own opinion.",
+    "coachId": "ielts_task2",
+    "topic": "Education",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "1e2742746900cee3f26d7be9b61c6951a9d20660700f89053dfce7ce779c8cbf"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_food_waste",
+    "slug": "ielts-task2-food-waste",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "problem_solution",
+    "cefrBand": null,
+    "title": "Reducing household food waste",
+    "promptText": "Large amounts of edible food are thrown away by households in many countries. What are the main causes of this problem, and what measures could reduce it?",
+    "coachId": "ielts_task2",
+    "topic": "Environment",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "e3b2ec85a9184f865cd47669bf002168ace693b14fa525dd1a419d7735dff45f"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_rural_doctors",
+    "slug": "ielts-task2-rural-doctors",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "problem_solution",
+    "cefrBand": null,
+    "title": "Shortages of rural doctors",
+    "promptText": "Many rural areas struggle to attract and retain doctors and other health professionals. Why does this problem occur, and what practical steps could governments and communities take?",
+    "coachId": "ielts_task2",
+    "topic": "Health",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "a70ba4ea638ce6113642fde5cc8873d4c33a2ac4f199cb512136d243b9161bdd"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_urban_loneliness",
+    "slug": "ielts-task2-urban-loneliness",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "problem_solution",
+    "cefrBand": null,
+    "title": "Loneliness in crowded cities",
+    "promptText": "Despite living close to many other people, some residents of large cities experience serious loneliness. What factors contribute to this situation, and how could it be addressed?",
+    "coachId": "ielts_task2",
+    "topic": "Society",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "f810aa2f4fb5101f045b283ed690b9ce7ebb5b2cbe93371aa0a7408ad25e25db"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_four_day_week",
+    "slug": "ielts-task2-four-day-week",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "advantages_disadvantages",
+    "cefrBand": null,
+    "title": "The four-day work week",
+    "promptText": "An increasing number of organizations are considering a four-day work week with no reduction in salary. What are the advantages and disadvantages of this change?",
+    "coachId": "ielts_task2",
+    "topic": "Work",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "d411eac2a28ed810e703212c5f7b985ce7d1ca2d1a1511453cc0f2b1cd212521"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_remote_tourism",
+    "slug": "ielts-task2-remote-tourism",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "advantages_disadvantages",
+    "cefrBand": null,
+    "title": "Tourism in remote places",
+    "promptText": "Improved transport and online promotion are bringing more tourists to remote natural areas. What are the advantages and disadvantages for these places and their communities?",
+    "coachId": "ielts_task2",
+    "topic": "Travel",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "d45ed77d47c9499486e396787ec8eb2b50ed07e403518d351b7ac1b3449684df"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_cashless_society",
+    "slug": "ielts-task2-cashless-society",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "advantages_disadvantages",
+    "cefrBand": null,
+    "title": "Living without cash",
+    "promptText": "In some countries, digital payments are replacing cash for most everyday purchases. What are the advantages and disadvantages of moving toward a cashless society?",
+    "coachId": "ielts_task2",
+    "topic": "Technology",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "3845b700e2ea234359a4c2201f1d9e239f1928f4c834ac87a39e3df996885a3b"
+  }
+]

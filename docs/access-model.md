@@ -16,6 +16,8 @@ Every module declares its tier in the shared registry (`english-modules.ts`, sur
 `access: public | trial | auth` field). The three behave differently for a signed-out visitor:
 
 **`public`** — currently Translate and Dictation. Cards link straight into the tool. No popup.
+Translate's `/translate/saved` and `/translate/saved/:id` subroutes are authenticated private
+workspaces; only the translation surface itself remains public.
 The tool handles anonymous users itself via daily quotas. **These are the acquisition funnels;
 do not gate them behind the popup.**
 

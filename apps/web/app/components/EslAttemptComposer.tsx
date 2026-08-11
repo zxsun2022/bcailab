@@ -79,6 +79,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);
+  const [recordingError, setRecordingError] = React.useState<string | null>(null);
 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
@@ -136,7 +137,11 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
 
   const startRecording = React.useCallback(async () => {
     if (recordingState !== "idle") return;
-    if (!navigator.mediaDevices?.getUserMedia) return;
+    setRecordingError(null);
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setRecordingError("Audio recording is not supported in this browser.");
+      return;
+    }
 
     try {
       cleanupAudio();
@@ -181,6 +186,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
         setRecordingState("idle");
         mediaRecorderRef.current = null;
         stopMediaStream();
+        setRecordingError("The recording stopped unexpectedly. Please try again.");
       };
 
       startTimeRef.current = Date.now();
@@ -191,9 +197,14 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
 
       recorder.start(200);
       setRecordingState("recording");
-    } catch {
+    } catch (error) {
       setRecordingState("idle");
       stopMediaStream();
+      setRecordingError(
+        error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Microphone access was denied. Allow microphone access, then try again."
+          : "Could not start recording. Check your microphone and try again."
+      );
     }
   }, [cleanupAudio, recordingState, stopMediaStream, stopTimer]);
 
@@ -228,7 +239,12 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
 
       {recordingState === "preview" && recordedAudioUrl ? (
         <div className="esl-preview-area">
-          <audio controls src={recordedAudioUrl} className="esl-audio-player" />
+          <audio
+            controls
+            src={recordedAudioUrl}
+            className="esl-audio-player"
+            aria-label="Recording preview"
+          />
           <div className="esl-preview-side">
             <div className="esl-preview-meta">{formatDuration(durationMsRef.current)}</div>
             <div className="esl-preview-actions">
@@ -258,16 +274,27 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
           </div>
 
           {recordingState === "idle" ? (
-            <button type="button" className="esl-record-btn" onClick={() => void startRecording()}>
-              <span className="esl-record-btn-inner" />
+            <button
+              type="button"
+              className="esl-record-btn"
+              aria-label="Start recording"
+              onClick={() => void startRecording()}
+            >
+              <span className="esl-record-btn-inner" aria-hidden="true" />
             </button>
           ) : (
-            <button type="button" className="esl-record-btn is-recording" onClick={stopRecording}>
-              <span className="esl-record-btn-stop" />
+            <button
+              type="button"
+              className="esl-record-btn is-recording"
+              aria-label="Stop recording"
+              onClick={stopRecording}
+            >
+              <span className="esl-record-btn-stop" aria-hidden="true" />
             </button>
           )}
         </div>
       )}
+      {recordingError ? <div className="form-error" role="alert">{recordingError}</div> : null}
     </div>
   );
 

@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link } from "@remix-run/react";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { formatDuration } from "~/utils/esl-reading";
+import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
 
 type HistoryAttempt = {
   id: string;
@@ -200,20 +201,16 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
 
                     {openMenuId === attempt.id && passageId ? (
                       <div className="esl-history-item-menu">
-                        <form
-                          method="post"
-                          action={`/reading/${passageId}`}
-                          onSubmit={(event) => {
-                            if (!confirm("Delete this attempt and its AI feedback?")) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
+                        <form method="post" action={`/reading/${passageId}`}>
                           <input type="hidden" name="_intent" value="deleteAttempt" />
                           <input type="hidden" name="attemptId" value={attempt.id} />
-                          <button type="submit" className="esl-history-item-menu-option is-danger">
+                          <ConfirmSubmitButton
+                            className="esl-history-item-menu-option is-danger"
+                            dialogTitle="Delete this attempt?"
+                            dialogDescription="This removes the recording and its AI feedback. This cannot be undone."
+                          >
                             Delete attempt
-                          </button>
+                          </ConfirmSubmitButton>
                         </form>
                       </div>
                     ) : null}

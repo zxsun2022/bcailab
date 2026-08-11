@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
-import { useActionData, useLoaderData, useRevalidator } from "@remix-run/react";
+import { Link, useActionData, useFetcher, useLoaderData, useRevalidator } from "@remix-run/react";
 import { getOptionalUser } from "~/utils/auth.server";
 import { translateText } from "~/utils/translate.server";
 import { prepareTranslateRequest } from "~/utils/translate-request.server";
@@ -20,6 +20,12 @@ import {
 import { openLoginPopup } from "~/utils/login-popup";
 import { StudioShell } from "~/components/StudioShell";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import { TranslateWorkspaceTabs } from "~/components/TranslateWorkspaceTabs";
+import {
+  tryCreateTranslationSaveProof,
+  translateSaveProofSubject,
+  type TranslationSaveSnapshot
+} from "~/utils/translate-save-proof.server";
 
 export const handle = {
   breadcrumb: { label: "translate", href: "/translate" },
@@ -58,6 +64,8 @@ type ActionData =
       translation: string;
       detectedSourceLanguage: TranslateLanguageCode | null;
       remainingToday: number;
+      proof: string | null;
+      snapshot: TranslationSaveSnapshot;
     }
   | { ok: false; error: string; code?: "quota_exceeded" | "too_long" };
 
@@ -86,21 +94,40 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       sourceLang: prepared.sourceLang,
       targetLang: prepared.targetLang
     });
+    const snapshot: TranslationSaveSnapshot = {
+      sourceLanguage: prepared.sourceLang,
+      detectedSourceLanguage: result.detectedSourceLanguage,
+      targetLanguage: prepared.targetLang,
+      sourceText: prepared.text,
+      translatedText: result.translation
+    };
     await recordTranslateUsage(context.env.DB, {
       ...prepared.identity,
       chars: prepared.text.length
+    });
+    const proof = await tryCreateTranslationSaveProof({
+      secret: context.env.SESSION_SECRET,
+      subject: translateSaveProofSubject({
+        userId: prepared.identity.userId,
+        anonId: prepared.identity.anonId
+      }),
+      snapshot
     });
     return json<ActionData>(
       {
         ok: true,
         translation: result.translation,
         detectedSourceLanguage: result.detectedSourceLanguage,
-        remainingToday: prepared.remainingToday - 1
+        remainingToday: Math.max(0, prepared.remainingToday - 1),
+        proof,
+        snapshot
       },
       extraHeaders ? { headers: extraHeaders } : undefined
     );
   } catch (error) {
-    console.error("translate action failed", error);
+    console.error("translate action failed", {
+      errorClass: error instanceof Error ? error.name : "unknown"
+    });
     // Keep handled provider failures in the normal data path. In production,
     // Cloudflare can replace a 502 response body with its HTML error page,
     // which Remix cannot deserialize and promotes to the route error boundary.
@@ -115,7 +142,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 type StreamEvent =
   | { type: "detected"; language: TranslateLanguageCode | null }
   | { type: "delta"; text: string }
-  | { type: "done"; remainingToday: number }
+  | { type: "done"; remainingToday: number; proof: string | null }
   | { type: "error"; error: string; code?: "quota_exceeded" | "too_long" };
 
 const parseStreamEvent = (block: string): StreamEvent | null => {
@@ -140,6 +167,8 @@ type StreamState = {
   error: string | null;
   quotaExceeded: boolean;
   remainingToday: number | null;
+  proof: string | null;
+  snapshot: TranslationSaveSnapshot | null;
 };
 
 const IDLE_STREAM: StreamState = {
@@ -148,7 +177,9 @@ const IDLE_STREAM: StreamState = {
   detected: null,
   error: null,
   quotaExceeded: false,
-  remainingToday: null
+  remainingToday: null,
+  proof: null,
+  snapshot: null
 };
 
 export default function TranslatePage() {
@@ -156,12 +187,25 @@ export default function TranslatePage() {
   // Only reachable without JavaScript, where the form posts to this route's action.
   const fallbackData = useActionData<typeof action>() as ActionData | undefined;
   const revalidator = useRevalidator();
-  const [text, setText] = React.useState("");
-  const [source, setSource] = React.useState<string>("auto");
-  const [target, setTarget] = React.useState<TranslateLanguageCode>("en");
+  const [text, setText] = React.useState(fallbackData?.ok ? fallbackData.snapshot.sourceText : "");
+  const [source, setSource] = React.useState<string>(
+    fallbackData?.ok ? fallbackData.snapshot.sourceLanguage : "auto"
+  );
+  const [target, setTarget] = React.useState<TranslateLanguageCode>(
+    fallbackData?.ok ? fallbackData.snapshot.targetLanguage : "en"
+  );
   const [copied, setCopied] = React.useState(false);
   const [stream, setStream] = React.useState<StreamState>(IDLE_STREAM);
+  const [saveOutcome, setSaveOutcome] = React.useState<{
+    proof: string;
+    savedId?: string;
+    error?: string;
+  } | null>(null);
+  const saveFetcher = useFetcher<{ savedId?: string; error?: string }>();
+  const pendingSaveProofRef = React.useRef<string | null>(null);
+  const saveTransportRef = React.useRef<HTMLInputElement | null>(null);
   const formRef = React.useRef<HTMLFormElement | null>(null);
+  const outputPaneRef = React.useRef<HTMLDivElement | null>(null);
   const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => () => abortRef.current?.abort(), []);
@@ -185,6 +229,37 @@ export default function TranslatePage() {
   const remainingToday =
     stream.remainingToday ??
     (fallbackData?.ok ? fallbackData.remainingToday : quota.remainingToday);
+  const completionProof = started ? stream.proof : fallbackData?.ok ? fallbackData.proof : null;
+  const completedSnapshot = started ? stream.snapshot : fallbackData?.ok ? fallbackData.snapshot : null;
+  const sourceChanged = Boolean(
+    completedSnapshot && (
+      completedSnapshot.sourceText !== text ||
+      completedSnapshot.sourceLanguage !== source ||
+      completedSnapshot.targetLanguage !== target
+    )
+  );
+
+  React.useEffect(() => {
+    const proof = pendingSaveProofRef.current;
+    if (!proof || !saveFetcher.data) return;
+    if (saveFetcher.data.savedId) {
+      setSaveOutcome({ proof, savedId: saveFetcher.data.savedId });
+    } else if (saveFetcher.data.error) {
+      setSaveOutcome({ proof, error: saveFetcher.data.error });
+    }
+    pendingSaveProofRef.current = null;
+  }, [saveFetcher.data]);
+
+  React.useEffect(() => {
+    if (stream.status !== "done" || !stream.translation || !outputPaneRef.current) return;
+    const bounds = outputPaneRef.current.getBoundingClientRect();
+    if (bounds.top < window.innerHeight && bounds.bottom > 0) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    outputPaneRef.current.scrollIntoView({
+      behavior: reducedMotion ? "auto" : "smooth",
+      block: "start"
+    });
+  }, [stream.status, stream.translation]);
 
   // Refresh quota display after login completes in the popup.
   React.useEffect(() => {
@@ -205,17 +280,47 @@ export default function TranslatePage() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    setStream({ ...IDLE_STREAM, status: "streaming" });
+    setStream({
+      ...IDLE_STREAM,
+      status: "streaming",
+      snapshot: {
+        sourceLanguage: source === "auto" ? "auto" : (source as TranslateLanguageCode),
+        detectedSourceLanguage: null,
+        targetLanguage: target,
+        sourceText: text,
+        translatedText: ""
+      }
+    });
 
     const apply = (event: StreamEvent) => {
       setStream((prev) => {
         switch (event.type) {
           case "detected":
-            return { ...prev, detected: event.language };
+            return {
+              ...prev,
+              detected: event.language,
+              snapshot: prev.snapshot
+                ? { ...prev.snapshot, detectedSourceLanguage: event.language }
+                : null
+            };
           case "delta":
-            return { ...prev, translation: prev.translation + event.text };
+            return {
+              ...prev,
+              translation: prev.translation + event.text,
+              snapshot: prev.snapshot
+                ? {
+                    ...prev.snapshot,
+                    translatedText: prev.snapshot.translatedText + event.text
+                  }
+                : null
+            };
           case "done":
-            return { ...prev, status: "done", remainingToday: event.remainingToday };
+            return {
+              ...prev,
+              status: "done",
+              remainingToday: event.remainingToday,
+              proof: event.proof
+            };
           case "error":
             return {
               ...prev,
@@ -257,14 +362,16 @@ export default function TranslatePage() {
       );
     } catch (error) {
       if (controller.signal.aborted) return;
-      console.error("translate stream failed", error);
+      console.error("translate stream failed", {
+        errorClass: error instanceof Error ? error.name : "unknown"
+      });
       setStream((prev) => ({
         ...prev,
         status: "error",
         error: "Translation failed. Please try again in a moment."
       }));
     }
-  }, [text, busy]);
+  }, [text, source, target, busy]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -300,6 +407,7 @@ export default function TranslatePage() {
           description="LLM-powered translation. Natural phrasing, formatting preserved."
         />
         <StudioPageBody className="translate-page">
+      <TranslateWorkspaceTabs active="translate" />
 
       {!authed ? (
         <div className="translate-quota-banner">
@@ -386,6 +494,7 @@ export default function TranslatePage() {
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Type or paste text here…"
+              aria-label="Text to translate"
               rows={12}
             />
             <div className="translate-pane-foot">
@@ -406,8 +515,15 @@ export default function TranslatePage() {
             </div>
           </div>
 
-          <div className={`translate-pane is-output${busy ? " is-busy" : ""}`}>
-            <div className="translate-output" aria-live="polite" aria-busy={busy}>
+          <div
+            ref={outputPaneRef}
+            className={`translate-pane is-output${busy ? " is-busy" : ""}`}
+          >
+            <div
+              className="translate-output"
+              aria-label="Translation result"
+              aria-busy={busy}
+            >
               {translation ? (
                 <>
                   {translation}
@@ -425,17 +541,67 @@ export default function TranslatePage() {
               ) : (
                 <span />
               )}
-              {translation && !busy ? (
-                <button type="button" className="translate-pane-action" onClick={handleCopy}>
-                  {copied ? "Copied" : "Copy"}
-                </button>
-              ) : null}
+              <div className="translate-pane-actions">
+                {translation && !busy ? (
+                  <button type="button" className="translate-pane-action" onClick={handleCopy}>
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                ) : null}
+                {translation && !busy && completionProof && completedSnapshot ? (
+                  authed ? (
+                    <button
+                      type="submit"
+                      form="translate-save-form"
+                      className="translate-pane-action"
+                      disabled={
+                        saveFetcher.state !== "idle" ||
+                        (saveOutcome?.proof === completionProof && Boolean(saveOutcome.savedId))
+                      }
+                      onClick={() => {
+                        pendingSaveProofRef.current = completionProof;
+                        if (saveTransportRef.current) saveTransportRef.current.value = "fetcher";
+                      }}
+                    >
+                      {saveFetcher.state !== "idle"
+                        ? "Saving…"
+                        : saveOutcome?.proof === completionProof && saveOutcome.savedId
+                          ? "Saved"
+                          : "Save"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="translate-pane-action"
+                      onClick={() => openLoginPopup()}
+                    >
+                      Sign in to save
+                    </button>
+                  )
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
 
         <div className="translate-actions">
-          {errorMessage ? (
+          <span className="sr-only" role="status" aria-live="polite">
+            {busy
+              ? "Translation started."
+              : stream.status === "done"
+                ? "Translation complete."
+                : stream.status === "error"
+                  ? "Translation failed."
+                  : ""}
+          </span>
+          {saveOutcome?.proof === completionProof && saveOutcome.error ? (
+            <span className="translate-error" role="alert">{saveOutcome.error}</span>
+          ) : sourceChanged ? (
+            <span className="translate-hint">Last translation — source changed. Save keeps the displayed result.</span>
+          ) : saveOutcome?.proof === completionProof && saveOutcome.savedId ? (
+            <Link className="translate-saved-link" to={`/translate/saved/${saveOutcome.savedId}`}>
+              View saved translation
+            </Link>
+          ) : errorMessage ? (
             <span className="translate-error">
               {errorMessage}
               {quotaExceeded && !authed ? (
@@ -460,6 +626,17 @@ export default function TranslatePage() {
           </button>
         </div>
       </form>
+      {authed && completionProof && completedSnapshot ? (
+        <saveFetcher.Form id="translate-save-form" method="post" action="/translate/saved" hidden>
+          <input ref={saveTransportRef} type="hidden" name="_transport" defaultValue="document" />
+          <input type="hidden" name="proof" value={completionProof} />
+          <input type="hidden" name="sourceLanguage" value={completedSnapshot.sourceLanguage} />
+          <input type="hidden" name="detectedSourceLanguage" value={completedSnapshot.detectedSourceLanguage ?? ""} />
+          <input type="hidden" name="targetLanguage" value={completedSnapshot.targetLanguage} />
+          <input type="hidden" name="sourceText" value={completedSnapshot.sourceText} />
+          <input type="hidden" name="translatedText" value={completedSnapshot.translatedText} />
+        </saveFetcher.Form>
+      ) : null}
         </StudioPageBody>
       </StudioPage>
     </StudioShell>

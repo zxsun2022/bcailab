@@ -5,6 +5,7 @@ import { listTtsGenerationsByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { SpeechWorkspaceTabs } from "~/components/SpeechWorkspaceTabs";
+import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
 import {
   StudioPage,
   StudioPageBody,
@@ -74,21 +75,17 @@ export default function SpeechHistoryPage() {
                       <LocalDateTime value={generation.createdAt} />
                     </div>
                   </Link>
-                  <form
-                    method="post"
-                    action="/speech?index"
-                    onSubmit={(event) => {
-                      if (!confirm("Delete this generation? This cannot be undone.")) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
+                  <form method="post" action="/speech?index">
                     <input type="hidden" name="_intent" value="delete" />
                     <input type="hidden" name="id" value={generation.id} />
                     <input type="hidden" name="returnTo" value="/speech/history" />
-                    <button type="submit" className="speech-history-delete">
+                    <ConfirmSubmitButton
+                      className="speech-history-delete"
+                      dialogTitle="Delete speech generation?"
+                      dialogDescription="This removes the generated audio and its history entry. This cannot be undone."
+                    >
                       Delete
-                    </button>
+                    </ConfirmSubmitButton>
                   </form>
                 </article>
               ))}

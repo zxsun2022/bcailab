@@ -17,6 +17,149 @@ no-account acquisition funnel into it. A second product, **Mapdown**, was added 
 a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
 infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
+## Now — English Studio material, memory, and interaction iteration
+
+The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation is
+**in_review** on `codex/english-studio-major-iteration`; only the owner may move it to
+accepted. The detailed design and failure registry live in
+[the iteration plan](english-studio-major-iteration-proposal.md).
+
+### Product boundary and invariants
+
+- This branch covers English Studio only. Mapdown Create with AI remains authorized in Next,
+  but is a separate branch and release.
+- Prompt levels are discovery metadata, not measured ability. Never render a null level as B1
+  and never lock material by band.
+- Translation text is persisted only after an explicit signed-in **Save** action. There is no
+  automatic history or anonymous persistence.
+- Writing-to-profile measurement remains deferred. Prompt metadata must allow a future writing
+  vocabulary without claiming that the vocabulary exists now.
+- New Reading evaluations stop requesting `next_drills`; stored historical feedback that has
+  the field must remain readable.
+
+### A. Writing prompt bank and guided entry — in_review
+
+- Add a reviewable `writing_prompts` contract with stable identity, family/task type, prompt
+  text, optional CEFR discovery band, topic, target words, optional reviewed asset, provenance,
+  editorial status, and timestamps. Add a nullable prompt reference to writing articles while
+  preserving the article's assignment as an immutable snapshot.
+- Add deterministic intake/validation and idempotent publication tooling. The first batch is
+  exactly 48 original prompts: 24 general prompts (six each for A2/B1/B2/C1), 12 IELTS
+  Academic Task 1 prompts with reviewed chart/table/process/map assets, and 12 IELTS Task 2
+  prompts across the four common task families.
+- Generated artifacts may be committed as drafts, but no prompt becomes published until
+  automated validation, an independent content review, and owner review of all flagged items
+  plus the agreed sample are complete.
+- Make `/writing` a material-led catalogue with family/task filters, visible learner work and
+  progress, and repeated attempts as distinct articles. Preserve freeform writing at
+  `/writing/new`; no prompt may be hidden because of level.
+- Starting a published prompt must use its correct coach, target, and asset and save both its
+  stable prompt reference and immutable assignment snapshot. Draft/retired prompts never
+  appear or start; retiring/editing a prompt never rewrites existing work.
+- Add a distinct IELTS Academic Task 1 evaluation contract. The anonymous trial uses one
+  reviewed featured prompt without gaining catalogue access, persistence, or extra quota.
+
+Acceptance evidence: validation/parser unit tests; a 48-item manifest with zero validator
+errors and review status; local D1 checks for published/draft/retired visibility, immutable
+snapshots, and repeated attempts; browser coverage for catalogue, prompt detail/start,
+freeform entry, Task 1/Task 2, trial, progress, mobile, keyboard, and reduced motion.
+
+Review evidence (2026-08-10): deterministic validation passes for all 48 source prompts
+(24 general, 12 Task 1, 12 Task 2); all 12 derived Task 1 assets and the review pack match
+batch hash `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`.
+Fresh local D1 applies all 17 migrations with no foreign-key violations; browser/D1 fixtures
+cover no-write preview, atomic/idempotent first submission, immutable snapshots, feedback
+retry generations, failure recovery, trial, and responsive catalogue/detail layouts.
+
+Publication status (2026-08-10): the batch is approved and published to development and
+production D1; `/writing` serves all 48 assignments. The approval was recorded by a single
+reviewer — the owner acted as both independent content reviewer and approving owner, with no
+second party — in `docs/approvals/writing-prompts-38d84de9.json`. A second-party content
+review is therefore still outstanding as a quality step, and would need a fresh manifest.
+Publication does not by itself make this item accepted; only the owner makes that transition.
+
+### B. Saved translations — in_review
+
+- Add private, user-owned saved translations containing the source/result language metadata
+  and timestamps. Saving is explicit, signed-in only, retry/double-click idempotent, and
+  available after the existing popup-auth handoff without losing the in-memory result.
+- Add an authenticated, bounded/paginated `/translate/saved` workspace with list/detail and
+  confirmed hard delete. Every read and mutation is user-scoped; foreign and absent ids are
+  indistinguishable. Failed/partial streams cannot be saved.
+- Keep the feature out of the universal navigation rail: it is history inside the Translate
+  workspace, consistent with the English Studio information architecture.
+
+Acceptance evidence: pure validation/idempotency tests where applicable; local D1 checks for
+no implicit or anonymous persistence, owner-only save/read/delete, retry stability, bounded
+queries, and deletion; browser coverage for anonymous-to-auth Save, list/detail/delete,
+mobile, keyboard, and failure recovery.
+
+Review evidence (2026-08-10): proof tests cover tampering, expiry, subject changes,
+normalization, size limits, and anonymous-to-auth handoff. Local D1/browser fixtures cover
+explicit-only persistence, replay idempotency, snapshot integrity, two-user isolation,
+same-result 404s, 25-row keyset pagination, confirmed hard delete, no-JavaScript redirect,
+failed streams, and consecutive results that do not inherit `Saved` state. Private responses
+use `Cache-Control: private, no-store`; no remote migration or deployment was performed.
+
+### C. Shared interaction and layout correctness — in_review
+
+- On narrow Translate layouts, keep the primary action reachable and reveal completed output;
+  long input grows to a bounded height and the page owns ordinary reading scroll. Preserve
+  streaming, selection, keyboard shortcuts, reduced motion, and no-JavaScript behavior.
+- The mobile navigation drawer traps focus, makes covered content inert, closes by Escape and
+  backdrop, locks background scroll, and restores focus. Navigation remains usable if drawer
+  JavaScript fails.
+- Give Reading's record control a state-dependent accessible name.
+- Replace the duplicate Reading/Writing feedback-language keys with one English Studio
+  preference, one-time compatibility fallback, and same-tab updates.
+- Replace the five native web-app `confirm()` calls with one accessible branded dialog,
+  including cancel/confirm, keyboard, pending, and return-focus paths. Mapdown is excluded.
+- Replace Writing's static evaluation wait with honest narrative progress while preserving
+  retry/failure behavior; do not add fake progress to Translate's real stream.
+
+Acceptance evidence: relevant unit tests plus browser QA at desktop/tablet/mobile widths,
+keyboard-only, reduced motion, and screen-reader accessibility-tree inspection. The four
+planning-baseline failures (Translate mobile reveal, drawer focus escape, unnamed Reading
+record control, unguided Writing trial) must all be closed without new console errors.
+
+Review evidence (2026-08-10): browser QA at 375, 768, and 1280px verifies Translate action
+reachability, output reveal, drawer `inert`/focus loop/Escape restoration, dialog role/title/
+description/return focus, and Writing catalogue/detail layouts with no console errors.
+Standard-tier QA found and fixed two remaining touch-target defects; the relevant Writing
+links and Translate language selectors now measure 44px. Reduced-motion rules are present in
+the production bundle; dynamic emulation was best-effort only because the isolated browser's
+CDP allowlist rejects `Emulation.setEmulatedMedia`.
+
+Acceptance-review follow-up (2026-08-10): nested Writing loaders now preserve the schema
+unavailable state during Remix's parallel loading; trial submission is server-pinned to the
+single featured slug; first-submit keys survive loader revalidation; article deletion retains
+learner revisions; and recent-piece dates use the hydration-safe local formatter. Translation
+completion is now independent from Save-proof eligibility, so output beyond the 40,000-character
+Saved limit still completes and consumes quota without exposing Save. The first-batch census
+was moved out of the shared prompt domain into seed policy, canonical sorting is locale
+independent, publish SQL has explicit typed quoting, and the seed pipeline joins root
+typecheck/tests. Mobile touch sizing is scoped to intended Studio controls, and destructive
+form triggers cannot submit without the confirmation JavaScript path.
+
+### D. Reading evaluation dead output — in_review
+
+Remove `next_drills` from new evaluation prompts and generated schemas. Keep read compatibility
+for existing stored payloads and leave the future one-tap drill/session lifecycle deferred.
+
+Acceptance evidence: parser fixtures prove old feedback still loads; prompt/schema tests prove
+new evaluations do not request or require `next_drills`.
+
+Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, while prompt
+and schema tests prove new Reading evaluations neither request nor generate the field. The
+full repository suite passes 558 tests.
+
+### Explicitly excluded from this iteration
+
+Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;
+long-document translation; first-token/provider/AI-Gateway work; model-routing hot config;
+LLM-signal weight promotion; Chinese UI; paid tier; profile settings; and further
+Reading/Dictation library expansion.
+
 ## Now — Mapdown production MVP
 
 The owner authorized Mapdown implementation through the Phase 2 production-MVP exit criteria
@@ -137,23 +280,15 @@ returns, so neither needs an IA change.
   built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
   and server-side rendering. Those remain separate directions requiring their own evidence and
   authorization.
-- **`next_drills`: render or delete.** Reading evaluation generates `next_drills` on every
-  attempt and stores it, but no page renders it — a pure dead output costing tokens. Either
-  surface it (with a one-tap "practise this" that creates a passage from `target_text`) or drop
-  it from the evaluation. Confirmed 2026-07-21.
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the
   presentation half, and it follows the colour work.
-- Unified feedback-language setting (currently duplicated per tool in localStorage).
 - Fold **writing** into the ability profile. Writing currently contributes only counters and
   Continue/Recent entries, because it has no tag vocabulary — a prompt is not a passage. The
   mechanism is settled (IA v2 design §6.3): a new vocabulary plus a writer emitting into the same
   `learner_tag_observations` table, surfaced on `/english/progress` rather than crowding the Home
   snapshot. Blocked on that vocabulary, not on schema.
-- Feedback wait experience: streaming or narrative loading instead of a spinner
-  (the "magic moment" should not hide behind a spinner).
-- Replace native `confirm()` dialogs with branded confirmation UI.
 
 ## Later
 
@@ -178,9 +313,6 @@ returns, so neither needs an IA change.
   [ADR 0003](decisions/0003-defer-chinese-ui.md).
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
-- Translate history for signed-in users — opt-in only (current privacy stance: translation
-  text is never persisted). Most interesting framed as learning material: saved translations
-  feeding vocabulary/dictionary and the learner profile, not a standalone log.
 - **Dictation v2 — level-adaptive material matching.** Retrieve from the tagged library rather
   than generate per request. The work is (a) a dimensional tag schema shared by library and
   learner profile, (b) a matching policy, (c) growing the library (now its own item above).
@@ -212,12 +344,6 @@ returns, so neither needs an IA change.
   a fresh TTS pass for those rows only. Reading's topic/state filters are still **not** needed:
   the Phase 3 trigger was "the first expansion", but ten cards per band browse fine — revisit
   when a band passes roughly thirty.
-- **Writing prompt bank — raised 2026-07-27** from "nice cold-start fix" to structural. With a
-  graded prompt bank, all three practice tools share one shape (platform material + user's own),
-  which is what lets the IA v2 list skeleton be instantiated three times instead of special-cased.
-  Note it gives writing *material*, not *measurement*: prompts have no tag vocabulary, so writing
-  still contributes nothing to the ability profile until the Next item above lands. Originally
-  discussed 2026-07-21, `docs/learner-model-notes.md` §5.
 - **Promote LLM judgment to a formal measurement signal** (owner direction 2026-07-27). The
   grader variance spikes (`docs/changelog.md`, 2026-07-23) showed LLM scoring repeatable enough to be more than
   a down-weighted hint. The architecture already anticipates this: `learner_tag_observations.source`

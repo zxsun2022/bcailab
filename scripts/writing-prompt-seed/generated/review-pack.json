@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 1,
+  "batchHash": "38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078",
+  "generatedAt": "deterministic-from-content",
+  "counts": {
+    "total": 48,
+    "general": 24,
+    "ieltsTask1": 12,
+    "ieltsTask2": 12
+  },
+  "prompts": [
+    {
+      "id": "wp_general_a2_study_invitation",
+      "slug": "general-a2-study-invitation",
+      "title": "Invite a classmate to study",
+      "contentHash": "c5bcc747486a2ad9cf1a6b422fdcd6780bc9d0f3e0e390b4efa1e8c47d21cb63",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_a2_neighborhood",
+      "slug": "general-a2-neighborhood",
+      "title": "Describe your neighborhood",
+      "contentHash": "72a5e56b1f4b92fac01780d3cab4faf180ac0a1739c3efe74ed0b6b7fd63308b",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_a2_missed_bus",
+      "slug": "general-a2-missed-bus",
+      "title": "The bus left without me",
+      "contentHash": "d2213f13d6c519a6ed64dd65b1ff8c9933cd9133f7e5fc2bbcd11e4f3212f374",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_a2_school_uniforms",
+      "slug": "general-a2-school-uniforms",
+      "title": "Should students wear uniforms?",
+      "contentHash": "d894cb9262e38956b50b65409dc2859134e8df83d709e0a6fa34cf1dc83b331e",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_a2_lost_item",
+      "slug": "general-a2-lost-item",
+      "title": "Ask about a lost item",
+      "contentHash": "14051f974176e8049b097aacae2b69951fe201afb6fd9e4c83a5e96ea8ee8832",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_a2_favorite_meal",
+      "slug": "general-a2-favorite-meal",
+      "title": "A meal I enjoy",
+      "contentHash": "b9f31cdf641dd698172b7447f0a28ddd523b272af85636df5b42ff8e71f239e6",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b1_event_feedback",
+      "slug": "general-b1-event-feedback",
+      "title": "Give feedback on an event",
+      "contentHash": "c406ed6ec32a28edb1dd5a60cbdcfdfbfa7609d404b634cf2a217e9ed9927ea2",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b1_weekend_homework",
+      "slug": "general-b1-weekend-homework",
+      "title": "Homework at the weekend",
+      "contentHash": "4dc49cec79a6bcc6251d48ddb4c7b5a4cb3358610e34d0254b094d85e17ae369",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b1_unexpected_visitor",
+      "slug": "general-b1-unexpected-visitor",
+      "title": "An unexpected visitor",
+      "contentHash": "45140ccde20f72e0f37110893eeae676b4534244fff422660fd99baa21a34b48",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b1_helpful_app",
+      "slug": "general-b1-helpful-app",
+      "title": "An app that helps me",
+      "contentHash": "a6d58ade7b0424571308d5dea74f9b397283b82f885ecba1581d8ec3be761420",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b1_cancel_reservation",
+      "slug": "general-b1-cancel-reservation",
+      "title": "Change a reservation",
+      "contentHash": "a5fdcbd0a5c1ab764174dde1cedab628780c6f6976301960fa2ebd2ed7c26021",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b1_city_bicycles",
+      "slug": "general-b1-city-bicycles",
+      "title": "Make cycling easier",
+      "contentHash": "f53123cf8c04906aaffd985d7fefcb31e53539da732356b8145c1412ff3ab705",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b2_remote_work",
+      "slug": "general-b2-remote-work",
+      "title": "When remote work works",
+      "contentHash": "455e7eae2d77044daca109df70e7c4847ac827510a74705fbfd3254502c6a93f",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b2_fitness_complaint",
+      "slug": "general-b2-fitness-complaint",
+      "title": "Resolve a membership problem",
+      "contentHash": "636b1eab06c93fd3465fe3c9428c214ca62c8a82d8ba14f9eef8b1f9495905f3",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b2_changed_mind",
+      "slug": "general-b2-changed-mind",
+      "title": "The choice I reconsidered",
+      "contentHash": "c416fead2af038c9c376b67d61e90b820318d7a16964b006cbbaaf3dd7b48bd6",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b2_public_space",
+      "slug": "general-b2-public-space",
+      "title": "A public space that succeeds",
+      "contentHash": "7ccb97bd20b5a6f12094459e016f61cd9a90335aebf33fbf6e8c5e2033cf4372",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b2_social_news",
+      "slug": "general-b2-social-news",
+      "title": "News through social media",
+      "contentHash": "ad3db7fd6e9eb5c1ffb4c880b64914830adba54c45a77a12bdaa34faf0b425bc",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_b2_language_exchange",
+      "slug": "general-b2-language-exchange",
+      "title": "Propose a language exchange",
+      "contentHash": "abf500ce7686fea16dd90d5b8f27f77d518064b146ecf0922cf8c2efc53eb67c",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_c1_urban_surveillance",
+      "slug": "general-c1-urban-surveillance",
+      "title": "The price of safer streets",
+      "contentHash": "64bf9031e0a5439f09b1adf31f4ff9a6b6fb96d54486855b09cd655ea16c283b",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_c1_workplace_dilemma",
+      "slug": "general-c1-workplace-dilemma",
+      "title": "A difficult professional choice",
+      "contentHash": "63336ee999d9edf02378428deb27e63e79c08722b044dd0ede13c765aa836596",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_c1_policy_response",
+      "slug": "general-c1-policy-response",
+      "title": "Challenge a proposed policy",
+      "contentHash": "7c5c2d9afd891a833c5bfb33215cb0169e7585db03d50d62df3390057f59d43f",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_c1_unreliable_memory",
+      "slug": "general-c1-unreliable-memory",
+      "title": "A memory that shifts",
+      "contentHash": "f5f613b07429416fc155eafe5a33850cac4e82c32cd0b63391a22a00616ea2cb",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_c1_museum_objects",
+      "slug": "general-c1-museum-objects",
+      "title": "Who should hold cultural objects?",
+      "contentHash": "3f6ff6b8c9ba702d1a4bb03388ba63fbd7a0380b6729defdb9e1e3eb5624482d",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_general_c1_professional_identity",
+      "slug": "general-c1-professional-identity",
+      "title": "When professional identity changes",
+      "contentHash": "402b49e4d5028d09311f24475944f7cd01778bb1eae5b82a5353cd7c494f949c",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_commuting_modes",
+      "slug": "ielts-task1-commuting-modes",
+      "title": "Commuting modes over time",
+      "contentHash": "15a02752342a32ec52ae438bf407bd5f28dc40fec6adf82fb2641cd8710f0ce2",
+      "assetDigest": "83bf0f07483425162a7387ef2759a2dba640dc5136a4d059bb65738fdd1d03b2",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_electricity_sources",
+      "slug": "ielts-task1-electricity-sources",
+      "title": "Changing electricity sources",
+      "contentHash": "fb79868984c9c54a1eccf53aee4702f119000c15455fa8b1a5a10384b13105b2",
+      "assetDigest": "4f06dfd3a95d977b7c4481241a46500d662d8875af586258ea4e11aa44e10f79",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_library_visitors",
+      "slug": "ielts-task1-library-visitors",
+      "title": "Library visitors by age",
+      "contentHash": "83a6f7620e8acab1e181eba3d1885defe4de846226bb26ea54c2dc7f37fafd93",
+      "assetDigest": "db9497798010770ad3aab9b6a37293282e6dd340029a3363a47e23c3a044547b",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_weekly_exercise",
+      "slug": "ielts-task1-weekly-exercise",
+      "title": "Weekly exercise in three cities",
+      "contentHash": "b1bce19767feebfb1eb4c52d8981616c5e6343c82166ada5e81575c2effaf759",
+      "assetDigest": "106bf748ec6254e0a25ef706451df3a8468a4280885fcefbb51a737c10dce368",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_household_energy",
+      "slug": "ielts-task1-household-energy",
+      "title": "Household energy use",
+      "contentHash": "6d3cfdedb1c42bfb837ce75460bef067430cc881c18610af9a90c370f32f0acb",
+      "assetDigest": "d87431b6d8a6a7776b7bffd07c7bb1a4d36003ff99f658fe143560a470ac3bb9",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_university_budget",
+      "slug": "ielts-task1-university-budget",
+      "title": "University budget priorities",
+      "contentHash": "abd56fef295c4bfb3c85858eec4ca9482c0c3a2ff3b2349f6c74e1450e4f3ea3",
+      "assetDigest": "c31d3af988c50320f5b662ab8e4379e6f5cfb295229b5d5fe4d7ea6428255248",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_city_transport",
+      "slug": "ielts-task1-city-transport",
+      "title": "City transport costs and times",
+      "contentHash": "2d37ce8fe1cb058b64ebf740623fe454ee6b97177bf1c32d54bcd194924cb6a4",
+      "assetDigest": "493dbf212f420cdc2f403aa81f7718d8a5f99affdd042c31b38f14f1e619852e",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_student_housing",
+      "slug": "ielts-task1-student-housing",
+      "title": "Student housing in four cities",
+      "contentHash": "1eced205b3bd2038c9ef19532685c6c0e38361b5289b44b47427b53ee827449a",
+      "assetDigest": "b282bcf6fcba11f70e391ca91af9250d232b5ffb20cac54212d01c823e07a780",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_coffee_process",
+      "slug": "ielts-task1-coffee-process",
+      "title": "From coffee cherry to package",
+      "contentHash": "7b61c2d73523a6d102d212ba3475049dadf169e3750867ac2040529aef18a119",
+      "assetDigest": "34b183a5c5e61806abdafe44af89716362473e1868dcc543f82423fe494106a6",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_water_reuse",
+      "slug": "ielts-task1-water-reuse",
+      "title": "Treating water for reuse",
+      "contentHash": "8f477c4bdb8a08fa29b3514cb27bb737df80d00a53e03f40c4db5ece2734d59f",
+      "assetDigest": "420cb2c4a4bc8f0058c7d47f748081213209bfff5aaeb32ecdfba90c59acf5bf",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_riverside_park",
+      "slug": "ielts-task1-riverside-park",
+      "title": "Riverside Park redevelopment",
+      "contentHash": "f4d64b933414de7feb64d27440c71ecd05b294a8ec0738596ecb1ed7b39972e0",
+      "assetDigest": "8525cc9e5f47d27c90df0e7b71dc5e5a489e87f8464cccce6ad44ddc9d8552f2",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_harbor_plan",
+      "slug": "ielts-task1-harbor-plan",
+      "title": "Harbor district plan",
+      "contentHash": "12fa5bd017ab719294368ceda861e84b260de4e2e7ae05ad63dd31b62d1dd345",
+      "assetDigest": "262a0c4ab50566527a8c6f30becc0980faeb1410f3d8b73d1a892b5e64efff59",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_car_free_centers",
+      "slug": "ielts-task2-car-free-centers",
+      "title": "Car-free city centers",
+      "contentHash": "4d8f499c96be921da0f057af36dd4c1a9d969b2a07d6551d109cc53cc284ea03",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_free_university",
+      "slug": "ielts-task2-free-university",
+      "title": "Publicly funded university",
+      "contentHash": "92b3e94e6cfa0c5fdad2243288af8974708723e6bbdd61d8d846c9f4bc0a74dd",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_automated_decisions",
+      "slug": "ielts-task2-automated-decisions",
+      "title": "Automated public decisions",
+      "contentHash": "8b142e8703cca568f94799d333425a82ee4a5db60ed0dc12631f27789ff90721",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_remote_work_models",
+      "slug": "ielts-task2-remote-work-models",
+      "title": "Where employees should work",
+      "contentHash": "7c173c1a6495948ce741b496b760f586e0ae9934ba9401d2cca0968017165708",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_heritage_housing",
+      "slug": "ielts-task2-heritage-housing",
+      "title": "Heritage or new housing",
+      "contentHash": "e6427a67b77378c27e67f673209b9ee10e3ed1130f57d227c23701e7f90942c1",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_compete_cooperate",
+      "slug": "ielts-task2-compete-cooperate",
+      "title": "Competition and cooperation at school",
+      "contentHash": "1e2742746900cee3f26d7be9b61c6951a9d20660700f89053dfce7ce779c8cbf",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_food_waste",
+      "slug": "ielts-task2-food-waste",
+      "title": "Reducing household food waste",
+      "contentHash": "e3b2ec85a9184f865cd47669bf002168ace693b14fa525dd1a419d7735dff45f",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_rural_doctors",
+      "slug": "ielts-task2-rural-doctors",
+      "title": "Shortages of rural doctors",
+      "contentHash": "a70ba4ea638ce6113642fde5cc8873d4c33a2ac4f199cb512136d243b9161bdd",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_urban_loneliness",
+      "slug": "ielts-task2-urban-loneliness",
+      "title": "Loneliness in crowded cities",
+      "contentHash": "f810aa2f4fb5101f045b283ed690b9ce7ebb5b2cbe93371aa0a7408ad25e25db",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_four_day_week",
+      "slug": "ielts-task2-four-day-week",
+      "title": "The four-day work week",
+      "contentHash": "d411eac2a28ed810e703212c5f7b985ce7d1ca2d1a1511453cc0f2b1cd212521",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_remote_tourism",
+      "slug": "ielts-task2-remote-tourism",
+      "title": "Tourism in remote places",
+      "contentHash": "d45ed77d47c9499486e396787ec8eb2b50ed07e403518d351b7ac1b3449684df",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_cashless_society",
+      "slug": "ielts-task2-cashless-society",
+      "title": "Living without cash",
+      "contentHash": "3845b700e2ea234359a4c2201f1d9e239f1928f4c834ac87a39e3df996885a3b",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    }
+  ],
+  "independentReview": {
+    "status": "pending",
+    "reviewer": null,
+    "reviewedAt": null
+  },
+  "ownerReview": {
+    "status": "pending",
+    "ownerApprovedHash": null,
+    "reviewedAt": null
+  }
+}

@@ -5,6 +5,7 @@ import {
   type WritingAgent
 } from "~/utils/writing-agents";
 import { callGemini, parseJsonFromText, toStringArray } from "~/utils/llm.server";
+import type { WritingAssignmentSnapshot } from "@bcailab/db";
 
 export type WritingFeedback = {
   annotations: WritingAnnotation[];
@@ -101,7 +102,7 @@ export const normalizeWritingFeedback = (
   return { annotations, round_summary: roundSummary, delta };
 };
 
-const buildPrompt = (input: {
+export const buildWritingEvaluationPrompt = (input: {
   agent: WritingAgent;
   userText: string;
   wordCount: number;
@@ -109,6 +110,7 @@ const buildPrompt = (input: {
   previousRound: PreviousRoundContext | null;
   historyScores: Array<{ round: number; assessment: string }>;
   topic?: string;
+  assignment?: WritingAssignmentSnapshot | null;
 }): string => {
   const langLabel = input.feedbackLanguage === "zh" ? "Chinese" : "English";
   const isFirstRound = input.previousRound === null;
@@ -131,6 +133,7 @@ const buildPrompt = (input: {
     `- All learner-facing strings (diagnosis, guiding_question, overall_comment, delta strings) must be in ${langLabel}.`,
     `- Feedback language: ${langLabel}`,
     `- round_summary.band_estimate should follow this format: ${input.agent.assessmentGuidance}`,
+    "- Any assessment value is a coach estimate, not an official exam result.",
     "",
     "## JSON schema",
     "Return valid JSON only. Do not wrap in markdown code fences.",
@@ -165,8 +168,21 @@ const buildPrompt = (input: {
     )
   ];
 
-  if (input.topic) {
-    parts.push("", "## Essay Prompt / Topic", input.topic);
+  const assignmentPrompt = input.assignment?.promptText ?? input.topic;
+  if (assignmentPrompt) {
+    parts.push("", "## Assignment", assignmentPrompt);
+  }
+
+  if (input.assignment?.taskType === "academic_task_1") {
+    parts.push(
+      "",
+      "## Canonical Task 1 facts",
+      "The following structured facts are the source of truth. Check every learner claim against them.",
+      JSON.stringify(input.assignment.taskMaterial, null, 2),
+      "",
+      "## Accessible material description",
+      input.assignment.asset?.accessibleDescription ?? "No accessible description supplied."
+    );
   }
 
   if (input.historyScores.length > 0) {
@@ -209,17 +225,23 @@ export const evaluateWriting = async (input: {
   previousRound: PreviousRoundContext | null;
   historyScores: Array<{ round: number; assessment: string }>;
   topic?: string;
+  assignment?: WritingAssignmentSnapshot | null;
 }): Promise<{ modelName: string; feedback: WritingFeedback }> => {
   const agent = getWritingAgentOrDefault(input.agentType);
 
-  const prompt = buildPrompt({
+  if (agent.id === "ielts_task1" && !input.assignment?.taskMaterial) {
+    throw new Error("IELTS Task 1 evaluation requires canonical assignment facts.");
+  }
+
+  const prompt = buildWritingEvaluationPrompt({
     agent,
     userText: input.userText,
     wordCount: input.wordCount,
     feedbackLanguage: input.feedbackLanguage,
     previousRound: input.previousRound,
     historyScores: input.historyScores,
-    topic: input.topic
+    topic: input.topic,
+    assignment: input.assignment
   });
 
   const { modelName, text } = await callGemini({

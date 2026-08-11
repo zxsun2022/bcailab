@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title">
+<title id="title">Monthly visits to Brookfield Library</title>
+<rect width="960" height="640" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Monthly visits to Brookfield Library</text>
+<rect x="50" y="82" width="15" height="15" rx="3" fill="#2457D6"/><text x="73" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2014</text>
+<rect x="310" y="82" width="15" height="15" rx="3" fill="#D9663D"/><text x="333" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2024</text>
+<text x="90" y="157" fill="#596577" font-family="system-ui, sans-serif" font-size="14">thousands of visits</text>
+<line x1="90" y1="515" x2="880" y2="515" stroke="#D9DDE3"/><text x="78" y="520" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">0</text>
+<line x1="90" y1="447" x2="880" y2="447" stroke="#D9DDE3"/><text x="78" y="452" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">5</text>
+<line x1="90" y1="379" x2="880" y2="379" stroke="#D9DDE3"/><text x="78" y="384" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">11</text>
+<line x1="90" y1="311" x2="880" y2="311" stroke="#D9DDE3"/><text x="78" y="316" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">16</text>
+<line x1="90" y1="243" x2="880" y2="243" stroke="#D9DDE3"/><text x="78" y="248" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">22</text>
+<line x1="90" y1="175" x2="880" y2="175" stroke="#D9DDE3"/><text x="78" y="180" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">27</text>
+<line x1="90" y1="515" x2="880" y2="515" stroke="#596577" stroke-width="2"/>
+<text x="188.75" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Under 18</text>
+<rect x="114.6875" y="288.33333333333337" width="43" height="226.66666666666666" rx="4" fill="#2457D6"/><text x="136.1875" y="282.33333333333337" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">18</text>
+<rect x="162.6875" y="250.55555555555554" width="43" height="264.44444444444446" rx="4" fill="#D9663D"/><text x="184.1875" y="244.55555555555554" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">21</text>
+<text x="386.25" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">18–34</text>
+<rect x="312.1875" y="338.7037037037037" width="43" height="176.29629629629628" rx="4" fill="#2457D6"/><text x="333.6875" y="332.7037037037037" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">14</text>
+<rect x="360.1875" y="175" width="43" height="340" rx="4" fill="#D9663D"/><text x="381.6875" y="169" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">27</text>
+<text x="583.75" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">35–54</text>
+<rect x="509.6875" y="263.14814814814815" width="43" height="251.85185185185185" rx="4" fill="#2457D6"/><text x="531.1875" y="257.14814814814815" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">20</text>
+<rect x="557.6875" y="237.962962962963" width="43" height="277.037037037037" rx="4" fill="#D9663D"/><text x="579.1875" y="231.962962962963" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">22</text>
+<text x="781.25" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">55 and over</text>
+<rect x="707.1875" y="313.51851851851853" width="43" height="201.48148148148147" rx="4" fill="#2457D6"/><text x="728.6875" y="307.51851851851853" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">16</text>
+<rect x="755.1875" y="275.74074074074076" width="43" height="239.25925925925927" rx="4" fill="#D9663D"/><text x="776.6875" y="269.74074074074076" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">19</text>
+</svg>

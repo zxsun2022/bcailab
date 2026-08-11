@@ -19,6 +19,18 @@ import { WritingEditor } from "~/components/WritingEditor";
 import { WritingFeedbackPanel } from "~/components/WritingFeedback";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import { openLoginPopup } from "~/utils/login-popup";
+import { getPublishedWritingPromptBySlug } from "@bcailab/db";
+import { materializeWritingPrompt } from "~/utils/writing-prompt.server";
+import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
+import {
+  FEATURED_WRITING_TRIAL_SLUG,
+  classifyWritingTrialAssignment
+} from "~/utils/writing-trial";
+import {
+  isWritingSchemaMissingError,
+  logWritingSchemaMissing,
+  WRITING_UNAVAILABLE_ERROR
+} from "~/utils/writing-schema.server";
 
 /**
  * Anonymous writing trial (design Appendix A).
@@ -48,9 +60,19 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   const subject = resolveQuotaSubject(request, null);
   const quota = await getFeatureQuotaStatus(context.env.DB, "writing_trial", subject);
+  let featured = null;
+  try {
+    const row = await getPublishedWritingPromptBySlug(
+      context.env.DB,
+      FEATURED_WRITING_TRIAL_SLUG
+    );
+    featured = row ? materializeWritingPrompt(row).snapshot : null;
+  } catch {
+    // A safe empty state during additive migration or before owner-reviewed publication.
+  }
 
   return json(
-    { allowed: quota.allowed, remainingToday: quota.remainingToday },
+    { allowed: quota.allowed, remainingToday: quota.remainingToday, featured },
     subject.setCookie ? { headers: { "Set-Cookie": subject.setCookie } } : undefined
   );
 };
@@ -95,9 +117,45 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     );
   }
 
-  const agentType = String(formData.get("agentType") ?? DEFAULT_AGENT_ID);
+  let agentType = String(formData.get("agentType") ?? DEFAULT_AGENT_ID);
   const feedbackLanguage = formData.get("feedbackLanguage") === "zh" ? ("zh" as const) : ("en" as const);
-  const topic = String(formData.get("topic") ?? "").trim() || undefined;
+  let topic = String(formData.get("topic") ?? "").trim() || undefined;
+  let assignment = null;
+  const featuredSlug = String(formData.get("featuredSlug") ?? "");
+  const assignmentMode = classifyWritingTrialAssignment(featuredSlug);
+  if (assignmentMode === "invalid") {
+    return json<ActionData>(
+      { ok: false, error: "This trial assignment is not available." },
+      { status: 409, headers: extraHeaders }
+    );
+  }
+  if (assignmentMode === "featured") {
+    let row;
+    try {
+      row = await getPublishedWritingPromptBySlug(
+        context.env.DB,
+        FEATURED_WRITING_TRIAL_SLUG
+      );
+    } catch (error) {
+      if (!isWritingSchemaMissingError(error)) throw error;
+      logWritingSchemaMissing("writing.trial.action", error);
+      return json<ActionData>(
+        { ok: false, error: WRITING_UNAVAILABLE_ERROR },
+        { status: 503, headers: extraHeaders }
+      );
+    }
+    const renderedHash = String(formData.get("contentHash") ?? "");
+    if (!row || row.content_hash !== renderedHash) {
+      return json<ActionData>(
+        { ok: false, error: "This trial assignment changed. Refresh before submitting." },
+        { status: 409, headers: extraHeaders }
+      );
+    }
+    assignment = materializeWritingPrompt(row).snapshot;
+    agentType = assignment.coachId;
+    topic = assignment.promptText;
+  }
+  if (agentType === "ielts_task1" && !assignment) agentType = DEFAULT_AGENT_ID;
 
   try {
     const { feedback } = await evaluateWriting({
@@ -108,7 +166,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       feedbackLanguage,
       previousRound: null,
       historyScores: [],
-      topic
+      topic,
+      assignment
     });
     // Charged only after a successful evaluation, so a provider failure is free.
     await recordFeatureUsage(context.env.DB, "writing_trial", { ...subject, units: wordCount });
@@ -125,13 +184,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 };
 
 export default function WritingTrialPage() {
-  const { allowed, remainingToday } = useLoaderData<typeof loader>();
+  const { allowed, remainingToday, featured } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
   const [agentType, setAgentType] = React.useState(DEFAULT_AGENT_ID);
   const [text, setText] = React.useState("");
+  const [useFeatured, setUseFeatured] = React.useState(Boolean(featured));
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const agent = getWritingAgentOrDefault(agentType);
-  const agents = listWritingAgents();
+  const agents = listWritingAgents().filter((entry) => entry.id !== "ielts_task1");
+  const activeAgent = useFeatured && featured
+    ? getWritingAgentOrDefault(featured.coachId)
+    : agent;
 
   const data = fetcher.data;
   const result = data && "ok" in data && data.ok ? data : null;
@@ -169,8 +232,9 @@ export default function WritingTrialPage() {
         <p className="trial-eyebrow">Free trial · no account needed</p>
         <h1 className="trial-title">Writing Coach</h1>
         <p className="trial-subtitle">
-          Submit one piece of writing and get structured feedback: what's working, what to
-          fix, and questions to guide your revision.
+          {featured
+            ? "Start from a reviewed assignment or bring your own topic. Nothing is saved unless you later sign in and submit inside Writing."
+            : "Submit one piece of writing and get structured feedback: what's working, what to fix, and questions to guide your revision."}
         </p>
       </header>
 
@@ -191,30 +255,47 @@ export default function WritingTrialPage() {
       ) : (
         <fetcher.Form method="post" className="writing-index-form">
           <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
+          {useFeatured && featured ? (
+            <>
+              <input type="hidden" name="featuredSlug" value={featured.promptSlug} />
+              <input type="hidden" name="contentHash" value={featured.contentHash} />
+              <section className="writing-assignment-copy" aria-labelledby="trial-assignment-heading">
+                <p className="writing-section-eyebrow">Featured assignment</p>
+                <h2 id="trial-assignment-heading">{featured.title}</h2>
+                <p>{featured.promptText}</p>
+              </section>
+              <WritingPromptMaterial assignment={featured} />
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setUseFeatured(false)}>
+                Use my own topic instead
+              </button>
+            </>
+          ) : null}
 
-          <div className="writing-coach-row">
-            <div className="writing-control-group">
-              <label className="writing-label" htmlFor="agentType">
-                Coach
-              </label>
-              <select
-                id="agentType"
-                name="agentType"
-                className="writing-select"
-                value={agentType}
-                onChange={(event) => setAgentType(event.currentTarget.value)}
-              >
-                {agents.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
+          {!useFeatured || !featured ? (
+            <div className="writing-coach-row">
+              <div className="writing-control-group">
+                <label className="writing-label" htmlFor="agentType">
+                  Coach
+                </label>
+                <select
+                  id="agentType"
+                  name="agentType"
+                  className="writing-select"
+                  value={agentType}
+                  onChange={(event) => setAgentType(event.currentTarget.value)}
+                >
+                  {agents.map((entry) => (
+                    <option key={entry.id} value={entry.id}>
+                      {entry.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="writing-coach-desc">{activeAgent.description}</p>
             </div>
-            <p className="writing-coach-desc">{agent.description}</p>
-          </div>
+          ) : null}
 
-          <WritingEditor value={text} onChange={setText} agent={agent} name="userText" />
+          <WritingEditor value={text} onChange={setText} agent={activeAgent} name="userText" />
 
           {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
 

@@ -38,7 +38,7 @@ const normalizeSpan = (value: unknown): { start: number; end: number } | null =>
   return { start: Math.max(0, Math.floor(start)), end: Math.max(Math.max(0, Math.floor(start)), Math.floor(end)) };
 };
 
-const normalizeEvalOutput = (
+export const normalizeEvalOutput = (
   raw: unknown,
   fallbackLanguage: ReadingOutputLanguage
 ): EslReadingEvaluationOutput | null => {
@@ -122,7 +122,7 @@ const normalizeEvalOutput = (
   };
 };
 
-const buildHeuristicEvaluation = (input: {
+export const buildHeuristicEvaluation = (input: {
   passageText: string;
   mode: EslReadingMode;
   outputLanguage: ReadingOutputLanguage;
@@ -166,15 +166,6 @@ const buildHeuristicEvaluation = (input: {
     input.outputLanguage === "zh"
       ? "优先复练这一句，关注重读词和连读。"
       : "Practice this sentence first and focus on stressed words plus linking.";
-  const repeatPrompt =
-    input.outputLanguage === "zh"
-      ? "同一句连续读 3 次，第二次更慢，第三次恢复自然语速。"
-      : "Read the same sentence 3 times in a row: slower on the second pass, then back to natural speed on the third.";
-  const shadowingPrompt =
-    input.outputLanguage === "zh"
-      ? "跟读时模仿句子重音和停顿位置。"
-      : "Shadow the sentence and copy the stress pattern plus pause placement.";
-
   return {
     rubric_version: RUBRIC_VERSION,
     ui_language: input.outputLanguage,
@@ -191,28 +182,15 @@ const buildHeuristicEvaluation = (input: {
           note_zh: highlightNote
         }]
       : [],
-    next_drills: sampleChunk
-      ? [
-          {
-            drill_type: "repeat_sentence",
-            target_text: sampleChunk,
-            repeat: 3,
-            prompt_zh: repeatPrompt
-          },
-          {
-            drill_type: "shadowing",
-            target_text: sampleChunk,
-            repeat: 2,
-            prompt_zh: shadowingPrompt
-          }
-        ]
-      : [],
+    // D5: retain the field for historical read compatibility, but do not
+    // manufacture drills until a learner-facing drill lifecycle exists.
+    next_drills: [],
     commentary_zh: "",
     progress_vs_last: []
   };
 };
 
-const buildPrompt = (input: {
+export const buildPrompt = (input: {
   passageText: string;
   mode: EslReadingMode;
   outputLanguage: ReadingOutputLanguage;
@@ -241,7 +219,7 @@ const buildPrompt = (input: {
     "",
     "Return valid JSON only. Do not wrap the response in markdown.",
     "Important: keep the existing JSON field names even when the feedback language is English.",
-    `All learner-facing strings inside top_actions_zh, highlights[].note_zh, next_drills[].prompt_zh, commentary_zh, and progress_vs_last must be written in ${feedbackLanguage}.`,
+    `All learner-facing strings inside top_actions_zh, highlights[].note_zh, commentary_zh, and progress_vs_last must be written in ${feedbackLanguage}.`,
     "",
     "JSON schema:",
     JSON.stringify({
@@ -258,7 +236,6 @@ const buildPrompt = (input: {
         text_quote: "exact word or short phrase copied from the passage",
         note_zh: `string (${feedbackLanguage}; must name the exact word or phrase first)`
       }],
-      next_drills: [{ drill_type: "repeat_sentence|minimal_pair|shadowing", target_text: "string", repeat: "1-8", prompt_zh: `string (${feedbackLanguage})` }],
       commentary_zh: `freeform ${feedbackLanguage} coaching feedback that can reference history and give concrete guidance`,
       progress_vs_last: [`changes vs last attempt, written in ${feedbackLanguage}`]
     }, null, 2)

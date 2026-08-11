@@ -53,7 +53,7 @@ otherwise discovers the root `pages_build_output_dir` for the wrong app.
 1. Create D1 database:
    - `wrangler d1 create bcailab-db`
 2. Apply migrations:
-   - `wrangler d1 migrations apply bcailab-db --local`
+   - `pnpm db:migrate:local` (uses the same `apps/web/.wrangler/state` as `pnpm dev`)
    - `wrangler d1 migrations apply bcailab-db`
 
 ## Pages Environment Variables
@@ -101,7 +101,8 @@ Recommended setup:
   - `GEMINI_API_KEY`, `GEMINI_MODEL`, and all auth/session env vars
 
 If preview/staging is missing newer D1 migrations, tool routes that depend on
-them may be unavailable. In particular, `/writing` requires `0007_writing.sql`.
+them may be unavailable. In particular, the current `/writing` catalogue requires
+`0007_writing.sql` and `0016_writing_prompts.sql`.
 The UI now shows an unavailable state instead of crashing, but the migration
 still needs to be applied for the tool to work.
 

@@ -71,6 +71,8 @@ export function ToolNavRail({
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const userMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const mobileToggleRef = React.useRef<HTMLButtonElement | null>(null);
+  const drawerRef = React.useRef<HTMLElement | null>(null);
   // Apply stored theme preference on tool pages (no site header rendered here)
   const [themePreference, setThemePreference] = useThemePreference();
 
@@ -90,6 +92,70 @@ export function ToolNavRail({
     setMobileOpen(false);
     setUserMenuOpen(false);
   }, [location.pathname]);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 1024px)");
+    const closeMobileDialog = () => {
+      if (mediaQuery.matches) setMobileOpen(false);
+    };
+    closeMobileDialog();
+    mediaQuery.addEventListener("change", closeMobileDialog);
+    return () => mediaQuery.removeEventListener("change", closeMobileDialog);
+  }, []);
+
+  React.useEffect(() => {
+    if (!mobileOpen) return;
+    const drawer = drawerRef.current;
+    if (!drawer) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const studioMain = drawer.parentElement?.querySelector<HTMLElement>(".studio-main") ?? null;
+    const mainWasInert = studioMain?.inert ?? false;
+    if (studioMain) studioMain.inert = true;
+    document.body.style.overflow = "hidden";
+    setUserMenuOpen(false);
+
+    const focusable = () =>
+      Array.from(
+        drawer.querySelectorAll<HTMLElement>(
+          "a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex='-1'])"
+        )
+      ).filter((element) => !element.hidden && element.getAttribute("aria-hidden") !== "true");
+
+    drawer.querySelector<HTMLElement>(".nav-rail-mobile-close")?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMobileOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const items = focusable();
+      if (items.length === 0) {
+        event.preventDefault();
+        drawer.focus();
+        return;
+      }
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+      if (studioMain) studioMain.inert = mainWasInert;
+      mobileToggleRef.current?.focus();
+    };
+  }, [mobileOpen]);
 
   React.useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
@@ -115,9 +181,12 @@ export function ToolNavRail({
     <>
       {/* Mobile toggle — opens drawer */}
       <button
+        ref={mobileToggleRef}
         type="button"
         className="nav-rail-mobile-toggle"
         aria-label="Open navigation"
+        aria-controls="english-studio-navigation"
+        aria-expanded={mobileOpen}
         onClick={() => setMobileOpen(true)}
       >
         <span /><span /><span />
@@ -127,7 +196,15 @@ export function ToolNavRail({
         <div className="nav-rail-backdrop" onClick={() => setMobileOpen(false)} />
       ) : null}
 
-      <aside className={`tool-nav-rail${collapsed ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}>
+      <aside
+        ref={drawerRef}
+        id="english-studio-navigation"
+        className={`tool-nav-rail${collapsed && !mobileOpen ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}
+        role={mobileOpen ? "dialog" : undefined}
+        aria-modal={mobileOpen ? true : undefined}
+        aria-label={mobileOpen ? "English Studio navigation" : undefined}
+        tabIndex={mobileOpen ? -1 : undefined}
+      >
 
         {/* Stable product identity. Tool/page context lives below and in the canvas. */}
         <div className="nav-rail-tool-header">

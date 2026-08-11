@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-labelledby="title">
+<title id="title">Typical student accommodation, 2023</title>
+<rect width="960" height="520" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Typical student accommodation, 2023</text>
+<text x="48" y="95" fill="#596577" font-family="system-ui, sans-serif" font-size="14">dollars, m², minutes, and utility count</text>
+<rect x="45" y="130" width="170" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="130" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700"></text>
+<rect x="215" y="130" width="175" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="302.5" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Monthly rent ($)</text>
+<rect x="390" y="130" width="175" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="477.5" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Room size (m²)</text>
+<rect x="565" y="130" width="175" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="652.5" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Campus travel (min)</text>
+<rect x="740" y="130" width="175" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="827.5" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Utilities included</text>
+<rect x="45" y="192" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="229" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Ellison</text>
+<rect x="215" y="192" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="302.5" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">980</text>
+<rect x="390" y="192" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="477.5" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">14</text>
+<rect x="565" y="192" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="652.5" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">12</text>
+<rect x="740" y="192" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="827.5" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">2</text>
+<rect x="45" y="254" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="291" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Farrow</text>
+<rect x="215" y="254" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="302.5" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">640</text>
+<rect x="390" y="254" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="477.5" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">18</text>
+<rect x="565" y="254" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="652.5" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">28</text>
+<rect x="740" y="254" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="827.5" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">3</text>
+<rect x="45" y="316" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="353" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Ganton</text>
+<rect x="215" y="316" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="302.5" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">790</text>
+<rect x="390" y="316" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="477.5" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">16</text>
+<rect x="565" y="316" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="652.5" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">19</text>
+<rect x="740" y="316" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="827.5" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">1</text>
+<rect x="45" y="378" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="415" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Havers</text>
+<rect x="215" y="378" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="302.5" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">850</text>
+<rect x="390" y="378" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="477.5" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">20</text>
+<rect x="565" y="378" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="652.5" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">16</text>
+<rect x="740" y="378" width="175" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="827.5" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">4</text>
+</svg>

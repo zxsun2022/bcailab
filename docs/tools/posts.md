@@ -21,14 +21,12 @@ A lightweight publishing tool that accepts Markdown input and publishes a sharea
 
 ## Destructive Actions
 
-- Delete is available only from the posts list page, **not** from the edit page. The edit page
-  offers Save and Cancel only.
-- Confirmation is currently implemented with the native `confirm()` dialog on form submit
-  (`onSubmit` handler). Replacing it with branded confirmation UI is a `docs/roadmap.md` item.
+- Delete is available from the authenticated `/posts` workspace while an existing post is open.
+- The shared confirmation dialog contains the destructive scope, traps focus, supports Escape
+  and backdrop cancellation, restores focus, and prevents the mutation until confirmed.
 
 The repo-wide rule that destructive actions must be confirmed before executing stays in
-`AGENTS.md`; the two facts above are this tool's implementation of it and moved here
-on 2026-08-01.
+`AGENTS.md`; the facts above are this tool's implementation of it.
 
 ## Legacy Routes
 

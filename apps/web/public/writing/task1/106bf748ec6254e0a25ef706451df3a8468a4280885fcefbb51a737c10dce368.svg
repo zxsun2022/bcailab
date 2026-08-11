@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title">
+<title id="title">Average weekly exercise time</title>
+<rect width="960" height="640" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Average weekly exercise time</text>
+<rect x="50" y="82" width="15" height="15" rx="3" fill="#2457D6"/><text x="73" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Linton</text>
+<rect x="310" y="82" width="15" height="15" rx="3" fill="#D9663D"/><text x="333" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Marston</text>
+<rect x="570" y="82" width="15" height="15" rx="3" fill="#2F8F69"/><text x="593" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Pell</text>
+<text x="90" y="157" fill="#596577" font-family="system-ui, sans-serif" font-size="14">minutes per adult</text>
+<line x1="90" y1="515" x2="880" y2="515" stroke="#D9DDE3"/><text x="78" y="520" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">0</text>
+<line x1="90" y1="447" x2="880" y2="447" stroke="#D9DDE3"/><text x="78" y="452" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">22</text>
+<line x1="90" y1="379" x2="880" y2="379" stroke="#D9DDE3"/><text x="78" y="384" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">44</text>
+<line x1="90" y1="311" x2="880" y2="311" stroke="#D9DDE3"/><text x="78" y="316" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">66</text>
+<line x1="90" y1="243" x2="880" y2="243" stroke="#D9DDE3"/><text x="78" y="248" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">88</text>
+<line x1="90" y1="175" x2="880" y2="175" stroke="#D9DDE3"/><text x="78" y="180" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">110</text>
+<line x1="90" y1="515" x2="880" y2="515" stroke="#596577" stroke-width="2"/>
+<text x="221.66666666666666" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Indoor exercise</text>
+<rect x="122.91666666666666" y="175" width="43" height="340" rx="4" fill="#2457D6"/><text x="144.41666666666666" y="169" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">110</text>
+<rect x="170.91666666666666" y="221.36363636363637" width="43" height="293.6363636363636" rx="4" fill="#D9663D"/><text x="192.41666666666666" y="215.36363636363637" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">95</text>
+<rect x="218.91666666666666" y="283.1818181818182" width="43" height="231.8181818181818" rx="4" fill="#2F8F69"/><text x="240.41666666666666" y="277.1818181818182" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">75</text>
+<text x="485" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Outdoor exercise</text>
+<rect x="386.25" y="252.27272727272725" width="43" height="262.72727272727275" rx="4" fill="#2457D6"/><text x="407.75" y="246.27272727272725" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">85</text>
+<rect x="434.25" y="329.54545454545456" width="43" height="185.45454545454544" rx="4" fill="#D9663D"/><text x="455.75" y="323.54545454545456" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">60</text>
+<rect x="482.25" y="314.0909090909091" width="43" height="200.9090909090909" rx="4" fill="#2F8F69"/><text x="503.75" y="308.0909090909091" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">65</text>
+<text x="748.3333333333333" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Active travel</text>
+<rect x="649.5833333333333" y="298.6363636363636" width="43" height="216.36363636363637" rx="4" fill="#2457D6"/><text x="671.0833333333333" y="292.6363636363636" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">70</text>
+<rect x="697.5833333333333" y="267.72727272727275" width="43" height="247.27272727272728" rx="4" fill="#D9663D"/><text x="719.0833333333333" y="261.72727272727275" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">80</text>
+<rect x="745.5833333333333" y="375.9090909090909" width="43" height="139.0909090909091" rx="4" fill="#2F8F69"/><text x="767.0833333333333" y="369.9090909090909" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">45</text>
+</svg>

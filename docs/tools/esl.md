@@ -119,7 +119,12 @@ via the `reading_.trial.tsx` route-name prefix.
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
-- Reading settings currently include `Output language` with `English` and `Chinese`. The preference is stored locally in the browser, defaults to English, and affects newly generated feedback plus manual retry-feedback requests.
+- Reading settings include feedback language with `English` and `Chinese`. Reading and Writing
+  now share `bcailab-feedback-language`; migration precedence is the old Writing key, then the
+  old Reading key, then English. The winner is persisted and both old keys are removed. Same-tab
+  changes use a custom event and cross-tab changes use the browser `storage` event.
+- Recorder controls expose state-specific accessible names (`Start recording` / `Stop recording`),
+  the preview player has a name, and unsupported/denied/failed microphone paths render an alert.
 - After the first successful submit for a passage, the app also synthesizes one background reference TTS in American English and attaches it to the passage.
 - Reference synthesis can still complete on environments where passage-level TTS metadata columns are not yet available; the audio is stored under a deterministic R2 key and resolved directly from storage.
 - Attempt detail exposes two compact players together: `Reference` (passage TTS) and `Your attempt` (uploaded recording).
@@ -150,7 +155,8 @@ via the `reading_.trial.tsx` route-name prefix.
   - `scores` (overall/pronunciation/stress_rhythm/fluency/clarity)
   - `top_actions_zh` (2-3 actionable feedback items in the selected output language; field name remains unchanged for compatibility)
   - `highlights` with `text_span` + `text_quote` (target word/phrase offsets and the copied text itself, plus pronunciation/prosody notes)
-  - `next_drills` (practice exercises)
+  - historical `next_drills` (read compatibility only). New model prompts and the local fallback
+    no longer request or generate drills until a learner-facing drill lifecycle is authorized.
   - `commentary_zh` (freeform coach feedback in the selected output language; field name remains unchanged for compatibility)
   - `progress_vs_last` (delta observations vs previous attempt)
   - optional `cefr_guess` + `cefr_confidence`
@@ -183,9 +189,9 @@ via the `reading_.trial.tsx` route-name prefix.
 - When viewing an older attempt, the center column shows a lightweight history banner with a `Back to latest` action.
 
 ### Delete Behaviour
-- Attempt deletion uses native `confirm()`.
+- Attempt deletion uses the shared accessible destructive-action dialog.
 - Attempt deletion removes the R2 object, hard-deletes that attempt's AI evaluations, then soft-deletes the attempt row (`deleted_at`).
-- Passage deletion uses native `confirm()`.
+- Passage deletion uses the same dialog and names the full passage/audio/recording/feedback scope.
 - Server deletes the passage reference audio object in R2 (if present), every attempt audio object in R2 for that passage, hard-deletes all linked AI evaluations, soft-deletes all attempt rows, then soft-deletes the passage row.
 
 ## Data Model & Storage

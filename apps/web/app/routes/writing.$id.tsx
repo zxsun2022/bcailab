@@ -11,7 +11,6 @@ import {
   getWritingArticleById,
   listWritingRevisionsByArticle,
   softDeleteWritingArticle,
-  softDeleteWritingRevisionsByArticle,
   updateWritingArticleTitle
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
@@ -25,6 +24,7 @@ import {
 } from "~/components/WritingEditor";
 import { WritingFeedbackPanel } from "~/components/WritingFeedback";
 import { WritingDetailAside, type AsideRound } from "~/components/WritingDetailAside";
+import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import {
@@ -32,6 +32,7 @@ import {
   logWritingSchemaMissing,
   WRITING_UNAVAILABLE_ERROR
 } from "~/utils/writing-schema.server";
+import { parseWritingAssignmentSnapshot } from "~/utils/writing-prompt.server";
 
 type ActionData = {
   error?: string;
@@ -46,6 +47,7 @@ type ActionData = {
   };
 };
 const PENDING_STALE_MS = 60_000;
+const PENDING_LONG_WAIT_MS = 15_000;
 const ASIDE_COLLAPSED_KEY = "writing-aside-collapsed";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -69,6 +71,10 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
     const revisions = await listWritingRevisionsByArticle(context.env.DB, articleId);
     const agent = getWritingAgentOrDefault(article.agent_type);
+    const assignment = parseWritingAssignmentSnapshot(article.assignment_snapshot_json);
+    if (article.prompt_id && !assignment) {
+      throw new Error("Prompt-backed article is missing its assignment snapshot.");
+    }
     const latestRevision = revisions.length > 0 ? revisions[revisions.length - 1] : null;
 
     const url = new URL(request.url);
@@ -109,7 +115,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     const isStalePending =
       isPending &&
       activeRevision &&
-      Date.now() - new Date(activeRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+      Date.now() - new Date((activeRevision.feedback_started_at ?? activeRevision.created_at) + "Z").getTime() > PENDING_STALE_MS;
 
     return json({
       schemaReady: true as const,
@@ -117,7 +123,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
         id: article.id,
         title: article.title,
         essay_prompt: article.essay_prompt,
-        agent_type: article.agent_type
+        agent_type: article.agent_type,
+        assignment
       },
       agent: { id: agent.id, label: agent.label, minWords: agent.minWords, maxWords: agent.maxWords },
       revisions: revisionEntries,
@@ -128,7 +135,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
             user_text: activeRevision.user_text,
             word_count: activeRevision.word_count,
             feedback_status: activeRevision.feedback_status,
-            created_at: activeRevision.created_at
+            created_at: activeRevision.feedback_started_at ?? activeRevision.created_at
           }
         : null,
       activeFeedback,
@@ -181,10 +188,6 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     if (intent === "deleteArticle") {
       try {
-        await softDeleteWritingRevisionsByArticle(context.env.DB, {
-          articleId: article.id,
-          userId: user.id
-        });
         await softDeleteWritingArticle(context.env.DB, { id: article.id, userId: user.id });
         return redirect("/writing");
       } catch (error) {
@@ -320,6 +323,7 @@ function WritingArticlePageReady({
   const [liveLatestRound, setLiveLatestRound] = React.useState(latestRound);
   const [editingTitle, setEditingTitle] = React.useState(false);
   const [titleValue, setTitleValue] = React.useState(article.title ?? "");
+  const [pendingClock, setPendingClock] = React.useState(() => Date.now());
   const submitFetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const titleFetcher = useFetcher<ActionData>();
@@ -330,6 +334,7 @@ function WritingArticlePageReady({
 
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const essayPrompt = article.essay_prompt ?? "";
+  const assignment = article.assignment;
   const [asideCollapsed, setAsideCollapsed] = React.useState(false);
 
   React.useEffect(() => {
@@ -393,7 +398,18 @@ function WritingArticlePageReady({
   const liveIsStalePending =
     liveIsPending &&
     liveActiveRevision &&
-    Date.now() - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+    pendingClock - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+  const liveIsLongPending =
+    liveIsPending &&
+    liveActiveRevision &&
+    pendingClock - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_LONG_WAIT_MS;
+
+  React.useEffect(() => {
+    if (!liveIsPending) return;
+    setPendingClock(Date.now());
+    const intervalId = window.setInterval(() => setPendingClock(Date.now()), 1000);
+    return () => window.clearInterval(intervalId);
+  }, [liveIsPending]);
 
   React.useEffect(() => {
     const nextRevision = submitFetcher.data?.revision;
@@ -426,9 +442,10 @@ function WritingArticlePageReady({
     if (!retryFetcher.data?.ok || !liveActiveRevision) return;
     setLiveActiveRevision((current) =>
       current
-        ? {
+          ? {
             ...current,
-            feedback_status: "pending"
+            feedback_status: "pending",
+            created_at: new Date().toISOString().slice(0, 19)
           }
         : current
     );
@@ -571,10 +588,12 @@ function WritingArticlePageReady({
     }
     if (liveIsPending && !liveIsStalePending) {
       return (
-        <div className="writing-status-card">
-          <div className="writing-status-title">Analyzing...</div>
+        <div className="writing-status-card" role="status" aria-live="polite">
+          <div className="writing-status-title">Draft saved — preparing feedback</div>
           <p className="writing-status-desc">
-            Your text has been submitted. AI feedback is being generated.
+            {liveIsLongPending
+              ? "This is taking longer than usual. Your draft is safe; you can stay here or return later."
+              : "Your draft is safe. Feedback is being prepared, and this page will update when it is ready."}
           </p>
         </div>
       );
@@ -582,9 +601,9 @@ function WritingArticlePageReady({
     if (liveIsStalePending && liveActiveRevision) {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Feedback interrupted</div>
+          <div className="writing-status-title">Draft saved — feedback paused</div>
           <p className="writing-status-desc">
-            The feedback job did not finish. You can retry without resubmitting.
+            The feedback job did not finish. Your draft is safe, and you can retry without resubmitting.
           </p>
           <retryFetcher.Form method="post" className="writing-retry-form">
             <input type="hidden" name="_intent" value="retryFeedback" />
@@ -604,9 +623,9 @@ function WritingArticlePageReady({
     if (liveActiveRevision?.feedback_status === "failed") {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Feedback unavailable</div>
+          <div className="writing-status-title">Draft saved — feedback unavailable</div>
           <p className="writing-status-desc">
-            AI feedback failed for this round.
+            AI feedback failed for this round. Your draft is safe.
           </p>
           <retryFetcher.Form method="post" className="writing-retry-form">
             <input type="hidden" name="_intent" value="retryFeedback" />
@@ -703,6 +722,7 @@ function WritingArticlePageReady({
               <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
+              {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
               <WritingEditor
                 value={text}
                 onChange={setText}
@@ -725,6 +745,7 @@ function WritingArticlePageReady({
             <div className="writing-readonly-view">
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
+              {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
               <div className="writing-readonly-text">{liveActiveRevision.user_text}</div>
               <div className="writing-editor-footer">
                 <span className="writing-editor-count">

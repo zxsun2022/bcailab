@@ -11,14 +11,16 @@ import path from "node:path";
 export default defineConfig({
   resolve: {
     alias: {
-      "~": path.resolve(__dirname, "apps/web/app")
+      "~": path.resolve(__dirname, "apps/web/app"),
+      "@bcailab/db": path.resolve(__dirname, "packages/db/src/index.ts")
     }
   },
   test: {
     include: [
       "apps/web/app/**/*.test.ts",
       "apps/mapdown/src/**/*.test.ts",
-      "packages/*/src/**/*.test.ts"
+      "packages/*/src/**/*.test.ts",
+      "scripts/writing-prompt-seed/**/*.test.ts"
     ],
     environment: "node"
   }

@@ -1,30 +1,19 @@
-export const WRITING_FEEDBACK_LANGUAGE_STORAGE_KEY = "bcailab-writing-feedback-language";
-export const WRITING_SETTINGS_EVENT = "bcailab-writing-settings-changed";
+import {
+  FEEDBACK_LANGUAGE_EVENT,
+  FEEDBACK_LANGUAGE_OPTIONS,
+  FEEDBACK_LANGUAGE_STORAGE_KEY,
+  getStoredFeedbackLanguage,
+  parseFeedbackLanguage,
+  setStoredFeedbackLanguage,
+  type FeedbackLanguage
+} from "~/utils/feedback-language";
 
-export const WRITING_FEEDBACK_LANGUAGE_OPTIONS = [
-  { value: "en", label: "English" },
-  { value: "zh", label: "Chinese" }
-] as const;
-
-export type WritingFeedbackLanguage =
-  (typeof WRITING_FEEDBACK_LANGUAGE_OPTIONS)[number]["value"];
-
-export const parseWritingFeedbackLanguage = (value: unknown): WritingFeedbackLanguage =>
-  value === "zh" ? "zh" : "en";
-
-export const getStoredWritingFeedbackLanguage = (): WritingFeedbackLanguage => {
-  if (typeof window === "undefined") return "en";
-  return parseWritingFeedbackLanguage(
-    window.localStorage.getItem(WRITING_FEEDBACK_LANGUAGE_STORAGE_KEY)
-  );
-};
-
-export const setStoredWritingFeedbackLanguage = (value: WritingFeedbackLanguage) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(WRITING_FEEDBACK_LANGUAGE_STORAGE_KEY, value);
-  window.dispatchEvent(
-    new CustomEvent(WRITING_SETTINGS_EVENT, {
-      detail: { feedbackLanguage: value }
-    })
-  );
-};
+/** @deprecated Use the shared feedback-language names for new code. */
+export const WRITING_FEEDBACK_LANGUAGE_STORAGE_KEY = FEEDBACK_LANGUAGE_STORAGE_KEY;
+/** @deprecated Use the shared feedback-language names for new code. */
+export const WRITING_SETTINGS_EVENT = FEEDBACK_LANGUAGE_EVENT;
+export const WRITING_FEEDBACK_LANGUAGE_OPTIONS = FEEDBACK_LANGUAGE_OPTIONS;
+export type WritingFeedbackLanguage = FeedbackLanguage;
+export const parseWritingFeedbackLanguage = parseFeedbackLanguage;
+export const getStoredWritingFeedbackLanguage = getStoredFeedbackLanguage;
+export const setStoredWritingFeedbackLanguage = setStoredFeedbackLanguage;

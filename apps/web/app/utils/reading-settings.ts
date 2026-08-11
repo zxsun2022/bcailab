@@ -1,29 +1,19 @@
-export const READING_OUTPUT_LANGUAGE_STORAGE_KEY = "bcailab-reading-output-language";
-export const READING_SETTINGS_EVENT = "bcailab-reading-settings-changed";
+import {
+  FEEDBACK_LANGUAGE_EVENT,
+  FEEDBACK_LANGUAGE_OPTIONS,
+  FEEDBACK_LANGUAGE_STORAGE_KEY,
+  getStoredFeedbackLanguage,
+  parseFeedbackLanguage,
+  setStoredFeedbackLanguage,
+  type FeedbackLanguage
+} from "~/utils/feedback-language";
 
-export const READING_OUTPUT_LANGUAGE_OPTIONS = [
-  { value: "en", label: "English" },
-  { value: "zh", label: "Chinese" }
-] as const;
-
-export type ReadingOutputLanguage = (typeof READING_OUTPUT_LANGUAGE_OPTIONS)[number]["value"];
-
-export const parseReadingOutputLanguage = (value: unknown): ReadingOutputLanguage =>
-  value === "zh" ? "zh" : "en";
-
-export const getStoredReadingOutputLanguage = (): ReadingOutputLanguage => {
-  if (typeof window === "undefined") return "en";
-  return parseReadingOutputLanguage(
-    window.localStorage.getItem(READING_OUTPUT_LANGUAGE_STORAGE_KEY)
-  );
-};
-
-export const setStoredReadingOutputLanguage = (value: ReadingOutputLanguage) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(READING_OUTPUT_LANGUAGE_STORAGE_KEY, value);
-  window.dispatchEvent(
-    new CustomEvent(READING_SETTINGS_EVENT, {
-      detail: { outputLanguage: value }
-    })
-  );
-};
+/** @deprecated Use the shared feedback-language names for new code. */
+export const READING_OUTPUT_LANGUAGE_STORAGE_KEY = FEEDBACK_LANGUAGE_STORAGE_KEY;
+/** @deprecated Use the shared feedback-language names for new code. */
+export const READING_SETTINGS_EVENT = FEEDBACK_LANGUAGE_EVENT;
+export const READING_OUTPUT_LANGUAGE_OPTIONS = FEEDBACK_LANGUAGE_OPTIONS;
+export type ReadingOutputLanguage = FeedbackLanguage;
+export const parseReadingOutputLanguage = parseFeedbackLanguage;
+export const getStoredReadingOutputLanguage = getStoredFeedbackLanguage;
+export const setStoredReadingOutputLanguage = setStoredFeedbackLanguage;

@@ -233,7 +233,10 @@ export const parseJsonFromText = (input: string): unknown => {
         // fall through to the error below
       }
     }
-    console.error("parseJsonFromText failed; response head:", payload.slice(0, 300));
+    console.error("parseJsonFromText failed", {
+      errorClass: "invalid_json",
+      responseLength: payload.length
+    });
     throw new Error("Gemini response is not valid JSON.");
   }
 };

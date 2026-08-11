@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title">
+<title id="title">Northbridge University annual budget</title>
+<rect width="960" height="600" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Northbridge University annual budget</text>
+<text x="48" y="92" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of budget</text>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="267.0353755551324 518.3627878423158" stroke-dashoffset="0" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="188.49555921538757 596.9026041820607" stroke-dashoffset="-267.0353755551324" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="157.07963267948966 628.3185307179585" stroke-dashoffset="-455.53093477052" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="62.83185307179586 722.5663103256524" stroke-dashoffset="-612.6105674500096" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#B88914" stroke-width="86" stroke-dasharray="109.95574287564276 675.4424205218055" stroke-dashoffset="-675.4424205218055" transform="rotate(-90 245 300)"/>
+<text x="355.4146416855268" y="244.2990370631839" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">34%</text>
+<text x="276.3349257827717" y="427.0414783022075" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">24%</text>
+<text x="130.9917913892815" y="358.6481907371991" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">20%</text>
+<text x="130.99179138928156" y="251.35180926280083" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">8%</text>
+<text x="191.35180926280083" y="190.99179138928156" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">14%</text>
+<circle cx="245" cy="300" r="78" fill="#FBFAF7"/><text x="245" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2015</text>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="306.3052837250048 479.0928796724434" stroke-dashoffset="0" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="196.34954084936206 589.0486225480862" stroke-dashoffset="-306.3052837250048" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="102.10176124166827 683.29640215578" stroke-dashoffset="-502.6548245743669" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="117.80972450961723 667.588438887831" stroke-dashoffset="-604.7565858160351" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#B88914" stroke-width="86" stroke-dasharray="62.83185307179586 722.5663103256524" stroke-dashoffset="-722.5663103256524" transform="rotate(-90 655 300)"/>
+<text x="773.5509768882324" y="262.3190220490933" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">39%</text>
+<text x="643.1423525218672" y="430.4408075399881" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">25%</text>
+<text x="534.0029956047051" y="340.1528793609428" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">13%</text>
+<text x="550.7878476414052" y="234.17749439063155" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">15%</text>
+<text x="623.6650742172284" y="182.9585216977925" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">8%</text>
+<circle cx="655" cy="300" r="78" fill="#FBFAF7"/><text x="655" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2025</text>
+<rect x="90" y="520" width="15" height="15" rx="3" fill="#2457D6"/><text x="113" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Teaching</text>
+<rect x="365" y="520" width="15" height="15" rx="3" fill="#D9663D"/><text x="388" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Research</text>
+<rect x="640" y="520" width="15" height="15" rx="3" fill="#2F8F69"/><text x="663" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Buildings</text>
+<rect x="90" y="548" width="15" height="15" rx="3" fill="#8B5FBF"/><text x="113" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Technology</text>
+<rect x="365" y="548" width="15" height="15" rx="3" fill="#B88914"/><text x="388" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Administration</text>
+</svg>

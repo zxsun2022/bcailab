@@ -9,6 +9,78 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: Writing prompt batch approved and published; migrations `0016`/`0017`
+  applied to production.** Batch `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`
+  was approved and published to both the development D1 (`apps/web/.wrangler/state`) and
+  production, so `/writing` now serves 24 General English (A2-C1), 12 IELTS Academic Task 1 and
+  12 Task 2 assignments instead of the "preparing" empty state. **The batch had one reviewer, not
+  two:** no second-party content review was performed, and the owner acted as both the
+  independent content reviewer and the approving owner. That fact is recorded in
+  `docs/approvals/writing-prompts-38d84de9.json` and carried into every published row's
+  `review_manifest_json`, so the production record does not imply a reviewer who did not exist.
+  Re-running a second-party content review remains open and would require a fresh manifest.
+  Production migration applied `0016_writing_prompts.sql` and `0017_saved_translations.sql` only;
+  `0015_drop_dormant_esl_tables.sql` was already applied to production and to the development
+  database — both dormant tables were verified absent — so no `DROP` was executed in this pass.
+  Evidence: pre-migration production check returned zero duplicate `(article_id, round_number)`
+  groups, so `0016`'s unique index applied cleanly; `preflight`/`publish`/`verify` all pass on
+  local and remote; production reports 48 rows at `status='published'` with
+  `owner_approved_hash = content_hash`; the remote migration list is empty. No backup export was
+  taken (owner's explicit choice). Nothing was deployed and nothing was pushed; only the owner
+  may move the roadmap items to accepted.
+
+- 2026-08-10 — **in_review: English Studio acceptance-review hardening.** Fixed the reported
+  local Writing crash at both layers: the development D1 state now has additive migrations
+  `0016`/`0017`, and parallel child loaders degrade to the Writing unavailable state instead
+  of overriding the layout guard with `no such table`. Local workflow docs now point at
+  `apps/web/.wrangler/state`, the state actually used by `pnpm dev`. Review follow-ups decouple
+  a successful long translation from optional Save-proof creation; server-pin anonymous
+  Writing to the one featured assignment; keep first-submit idempotency keys stable across
+  loader revalidation; restore recoverable soft deletion for Writing articles and revisions;
+  use hydration-safe recent dates; scope mobile touch sizing; and make destructive form
+  triggers inert without the JavaScript confirmation path. The prompt pipeline now separates
+  reusable domain validation from the authorized first-48 editorial policy, uses
+  locale-independent canonical sorting and explicit publish-SQL quoting, and participates in
+  root typecheck/tests. Evidence: 558/558 tests, clean Web + seed typecheck, production build,
+  current 48-prompt/12-asset/review-pack checks, local trial GET 200, forged featured slug 409,
+  Translate GET 200, and a local schema query confirming both additive tables. No prompt was
+  published, no remote migration ran, and nothing was deployed. Follow-up inspection found
+  both `0015` target tables already absent, so its missing local ledger record was reconciled
+  without executing a DROP; the local migration list is now clean.
+
+- 2026-08-10 — **in_review: English Studio landing-page copy refresh.** The public hero now
+  describes focused practice across reading, writing, listening, speaking, and translation,
+  and explains the recitation, AI writing coach, audio/shadowing, and in-workspace translation
+  workflows in clearer learner-facing language. The page metadata carries the same product
+  positioning. Evidence: web typecheck and production build.
+
+- 2026-08-10 — **in_review: English Studio material, memory, and interaction iteration
+  (D1-D5).** Writing is now material-led: a versioned D1 prompt contract, immutable article
+  assignment snapshots, 48-source-prompt editorial pipeline (24 General English across
+  A2/B1/B2/C1, 12 IELTS Academic Task 1 with content-addressed accessible assets, 12 Task 2),
+  catalogue/detail/freeform/trial entry points, atomic idempotent first submission, distinct
+  Task 1 factual evaluation, and generation-safe feedback retries. The current content batch
+  hash is `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`;
+  it was unpublished when this entry was written — see the batch-publication entry above for
+  when and how it was approved and published.
+  Translate now persists text only through an explicit signed-in Save backed by a short-lived
+  HMAC completion proof. `/translate/saved` adds private owner-scoped list/detail/copy,
+  25-row keyset pagination, idempotent retries, popup-auth handoff without losing the result,
+  no-JavaScript redirect parity, and confirmed hard delete. Partial, expired, tampered,
+  changed-snapshot, or wrong-subject results cannot write.
+  Shared interaction work adds a focus-trapped/inert mobile drawer, accessible branded confirm
+  dialog, stateful Reading record names, one migrated Reading/Writing feedback-language
+  preference, honest Writing evaluation progress, safe LLM logging, and removal of new
+  `next_drills` generation with legacy read compatibility. Standard browser QA found and fixed
+  two remaining mobile touch-target defects (`036d2fc`, `984c27b`). Evidence: 552/552 tests,
+  clean typecheck and production build, deterministic 48-prompt/12-asset/review-pack checks,
+  all 17 migrations on a fresh local D1 with no foreign-key violations and indexed saved-list
+  query plan, plus authenticated browser/D1 coverage at 375/768/1280px for preview/start/retry,
+  explicit Save/replay/isolation/pagination/dialogs, focus restoration, and failure states with
+  no console errors. Lint remains a placeholder (`lint not configured`). No prompts were
+  published, no remote migration ran, and nothing was deployed; only the owner may accept the
+  roadmap items and approve the content manifest.
+
 - 2026-08-06 — **in_review: Mapdown Theme differentiation step 3 — the theme splits into
   shape × palette, and text colour becomes designed data.** The single theme id is now two
   orthogonal fields, both persisted in Markdown front matter (`shape:` / `palette:`): shape =
