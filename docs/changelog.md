@@ -9,6 +9,11 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: Dictation catalogue band spacing.** Restored the shared band-body
+  wrapper around each `/dictation` card grid, so the band description divider no longer sits
+  directly against the first row of passage cards. Evidence: Web typecheck and production
+  build.
+
 - 2026-08-10 — **in_review: Writing prompt batch approved and published; migrations `0016`/`0017`
   applied to production.** Batch `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`
   was approved and published to both the development D1 (`apps/web/.wrangler/state`) and
