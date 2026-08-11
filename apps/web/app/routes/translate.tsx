@@ -19,7 +19,12 @@ import {
 } from "~/utils/translate-languages";
 import { openLoginPopup } from "~/utils/login-popup";
 import { StudioShell } from "~/components/StudioShell";
-import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import {
+  StudioPage,
+  StudioPageBody,
+  StudioPageHeader,
+  StudioPageTabs
+} from "~/components/StudioPage";
 import { TranslateWorkspaceTabs } from "~/components/TranslateWorkspaceTabs";
 import {
   tryCreateTranslationSaveProof,
@@ -401,14 +406,15 @@ export default function TranslatePage() {
 
   return (
     <StudioShell user={user} canvasClassName="translate-shell-canvas">
-      <StudioPage width="workspace">
+      <StudioPage width="wide">
         <StudioPageHeader
           title="Translate"
-          description="LLM-powered translation. Natural phrasing, formatting preserved."
+          description="Translate text with natural phrasing and preserved formatting."
         />
+        <StudioPageTabs>
+          <TranslateWorkspaceTabs active="translate" />
+        </StudioPageTabs>
         <StudioPageBody className="translate-page">
-      <TranslateWorkspaceTabs active="translate" />
-
       {!authed ? (
         <div className="translate-quota-banner">
           <span>
@@ -433,7 +439,8 @@ export default function TranslatePage() {
         }}
       >
         <div className="translate-toolbar">
-          <div className="translate-lang-group">
+          <label className="translate-lang-group">
+            <span className="translate-lang-caption">From</span>
             <select
               className="translate-lang-select"
               name="source"
@@ -452,7 +459,7 @@ export default function TranslatePage() {
                 </option>
               ))}
             </select>
-          </div>
+          </label>
 
           <button
             type="button"
@@ -465,7 +472,8 @@ export default function TranslatePage() {
             &#8646;
           </button>
 
-          <div className="translate-lang-group">
+          <label className="translate-lang-group">
+            <span className="translate-lang-caption">To</span>
             <select
               className="translate-lang-select"
               name="target"
@@ -482,7 +490,7 @@ export default function TranslatePage() {
                 </option>
               ))}
             </select>
-          </div>
+          </label>
         </div>
 
         <div className="translate-panes">
@@ -615,7 +623,7 @@ export default function TranslatePage() {
               ) : null}
             </span>
           ) : (
-            <span className="translate-hint">Tip: press ⌘/Ctrl + Enter to translate.</span>
+            <span className="translate-hint"><kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd></span>
           )}
           <button
             type="submit"
