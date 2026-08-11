@@ -18,7 +18,9 @@ make the final transition; see `AGENTS.md`.
   first page preserves the previous card design for three non-duplicated “Start here” prompts,
   then switches to compact rows so the pattern can scale. Documented the reusable
   hub → catalogue → detail contract for future Reading and Dictation libraries without
-  imposing it on Translate or Speech. Evidence: 561 tests, Web typecheck, production build,
+  imposing it on Translate or Speech. Owner-review follow-up places shallow detail returns at
+  the leading edge and adds category-aware breadcrumbs to Writing's real three-level material
+  hierarchy. Evidence: 561 tests, Web typecheck, production build,
   local D1 collection census (24 General, 12 Task 1, 12 Task 2), and authenticated browser QA
   at 375/768/1280px covering pagination, no horizontal overflow, 44px mobile actions, visible
   focus, and mobile drawer focus restoration. Codex's in-app browser injects a third child into

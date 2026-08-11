@@ -98,6 +98,9 @@ specialised:
   outer margin.
 - Bounded session/editor workspaces may keep their own inner grid, but expose a clear return
   to the owning tool and keep the page title as the workspace heading.
+- Location context starts at the page frame's leading edge, above the title. A shallow detail
+  page uses one return link; a real three-level hierarchy uses a compact breadcrumb. Return
+  navigation never occupies the trailing page-action position.
 
 ## Material directory contract
 

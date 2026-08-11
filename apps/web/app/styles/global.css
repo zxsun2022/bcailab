@@ -5572,11 +5572,14 @@ select.input:focus {
   overscroll-behavior-y: contain;
 }
 
-/* Session pages keep a consistent exit in the upper-right of their project canvas. */
+/* Shallow detail pages keep a consistent exit at the leading edge of their canvas. */
 .session-project-return {
-  display: block;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
   width: max-content;
-  margin: 0 0 var(--space-sm) auto;
+  max-width: 100%;
+  margin: 0 0 var(--space-md);
   color: var(--text-muted);
   font-size: 0.8125rem;
   text-decoration: none;
@@ -5589,6 +5592,55 @@ select.input:focus {
 
 .session-project-return:hover {
   color: var(--color-action);
+}
+
+.studio-breadcrumbs {
+  max-width: 100%;
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+}
+
+.studio-breadcrumbs ol {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.studio-breadcrumbs li {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.studio-breadcrumbs li + li::before {
+  margin-inline-end: 6px;
+  color: var(--text-faint);
+  content: "/";
+}
+
+.studio-breadcrumbs a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.studio-breadcrumbs a:hover {
+  color: var(--color-action);
+}
+
+.studio-breadcrumbs [aria-current="page"] {
+  overflow: hidden;
+  max-width: min(42ch, 70vw);
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- Sidebar toggle (mobile) --- */
@@ -6121,8 +6173,7 @@ select.input:focus {
   font-size: 0.86rem;
 }
 
-.writing-text-action,
-.writing-library-back {
+.writing-text-action {
   color: var(--text-muted);
   text-decoration: none;
 }
@@ -6136,8 +6187,7 @@ select.input:focus {
   font-weight: 650;
 }
 
-.writing-text-action:hover,
-.writing-library-back:hover {
+.writing-text-action:hover {
   color: var(--color-action);
 }
 
@@ -6198,14 +6248,6 @@ select.input:focus {
 .writing-library-arrow {
   color: var(--color-action);
   font-size: 1.15rem;
-}
-
-.writing-library-back {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  margin-bottom: 20px;
-  font-size: 0.86rem;
 }
 
 .writing-library-header {

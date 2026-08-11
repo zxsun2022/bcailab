@@ -11,6 +11,7 @@ import {
   type WritingAssignmentSnapshot
 } from "@bcailab/db";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
 import { WritingEditor } from "~/components/WritingEditor";
 import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
@@ -138,6 +139,11 @@ function WritingPromptReadyPage({
   const draftKey = `writing-prompt-draft:${assignment.promptId}:${assignment.contentHash}`;
   const [text, setText] = React.useState("");
   const agent = getWritingAgentOrDefault(assignment.coachId);
+  const collection = assignment.taskType === "academic_task_1"
+    ? { label: "Visual reports", to: "/writing/library?category=task1" }
+    : assignment.taskType === "academic_task_2"
+      ? { label: "Academic essays", to: "/writing/library?category=task2" }
+      : { label: "Everyday writing", to: "/writing/library?category=general" };
 
   React.useEffect(() => {
     try { setText(localStorage.getItem(draftKey) ?? ""); } catch {}
@@ -156,7 +162,11 @@ function WritingPromptReadyPage({
   return (
     <div className="writing-main-scroll">
       <StudioPage width="standard">
-        <Link to="/writing" className="session-project-return">All assignments</Link>
+        <StudioBreadcrumbs items={[
+          { label: "Writing", to: "/writing" },
+          collection,
+          { label: assignment.title }
+        ]} />
         <StudioPageHeader
           title={assignment.title}
           description={`${assignment.cefrBand ? `${assignment.cefrBand} discovery level · ` : ""}${assignment.topic} · ${assignment.targetMinutes} minutes · ${assignment.targetWords}+ words`}

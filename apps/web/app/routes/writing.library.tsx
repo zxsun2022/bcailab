@@ -8,6 +8,7 @@ import {
   type WritingPromptSummary
 } from "@bcailab/db";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
+import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
@@ -155,7 +156,10 @@ export default function WritingLibraryPage() {
   return (
     <div className="writing-main-scroll">
       <StudioPage width="wide">
-        <Link to="/writing" className="writing-library-back">← All writing collections</Link>
+        <StudioBreadcrumbs items={[
+          { label: "Writing", to: "/writing" },
+          { label: collection.title }
+        ]} />
         <StudioPageHeader
           title={collection.title}
           description={collection.description}
