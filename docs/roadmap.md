@@ -153,6 +153,36 @@ Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, 
 and schema tests prove new Reading evaluations neither request nor generate the field. The
 full repository suite passes 558 tests.
 
+### E. Scalable Studio navigation and material discovery — authorized
+
+The owner authorized this follow-up on 2026-08-10 after reviewing the current desktop Writing
+and Coach Home surfaces. It changes information architecture and presentation, not the
+underlying learning, recommendation, or evaluation policies.
+
+- Replace the heavy desktop rail treatment with a quieter, narrower navigation spine. Keep
+  destinations, active state, account access, mobile drawer behavior, keyboard behavior, and
+  the existing English Studio product boundary intact.
+- Make `/english/home` action-first: continuation is primary, the coach recommendation is
+  secondary, level/practice/coverage form a compact status summary, and detailed skills and
+  recent activity read as lists rather than a dashboard card mosaic. Preserve the current
+  recommendation seam and all null-level/no-locking invariants.
+- Make `/writing` a category hub instead of rendering the complete prompt bank. It must expose
+  General English, IELTS Academic Task 1, IELTS Academic Task 2, recent learner work, and the
+  freeform path; a category selection opens a bounded catalogue and every published prompt
+  remains reachable regardless of CEFR band.
+- Keep catalogue state in the URL, query only the selected family/task and page, and use a
+  bounded continuation mechanism rather than a client-side fetch of the whole bank. The
+  resulting material-directory contract must be reusable by future Reading and Dictation
+  catalogues without forcing material taxonomy onto Translate or Speech.
+- Preserve the established editorial design tokens, responsive reading order, 44px primary
+  touch targets, visible keyboard focus, reduced-motion behavior, and accessible names.
+
+Acceptance evidence: focused query/filter/pagination tests; browser coverage at 375, 768, and
+1280px for rail, Home, Writing hub, category catalogue, prompt detail, and continuation;
+keyboard-only and reduced-motion checks; no new console errors; and the full repository test,
+typecheck, and production build. New materials, Reading/Dictation catalogue implementation,
+global search, and a taxonomy/schema expansion are explicitly outside this follow-up.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;
