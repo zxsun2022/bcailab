@@ -5625,10 +5625,14 @@ select.input:focus {
 
 .studio-breadcrumbs a {
   display: inline-flex;
+  overflow: hidden;
   align-items: center;
   min-height: 44px;
+  max-width: min(42ch, 70vw);
   color: inherit;
+  text-overflow: ellipsis;
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .studio-breadcrumbs a:hover {

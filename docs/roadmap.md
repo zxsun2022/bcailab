@@ -192,7 +192,8 @@ Coach Home, Writing hub, catalogue, second-page continuation, drawer focus/Escap
 visible keyboard focus, and 44px mobile actions at 375/768/1280px with no horizontal overflow.
 Owner-review follow-up moves shallow detail return links to the leading edge and uses compact
 breadcrumbs for Writing's real hub → collection → prompt hierarchy, including category-aware
-prompt return destinations.
+prompt return destinations. Prompt-backed learner work extends that context through the source
+assignment to the current piece; freeform work keeps a compact Writing → piece trail.
 The in-app browser injects `#codex-browser-sidebar-comments-root` as a third child of `<html>`,
 which produces Remix hydration warnings in that test surface; standalone browser checks are
 clean, and no application runtime error was observed. The full suite passes 561 tests, Web
