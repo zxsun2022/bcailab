@@ -1853,6 +1853,21 @@ select.input:focus {
   margin-bottom: var(--space-3xl);
 }
 
+.landing-module-groups {
+  display: grid;
+  gap: var(--space-xl);
+}
+
+.landing-module-group-title {
+  margin: 0 0 12px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
 .landing-module-list {
   display: flex;
   flex-direction: column;
