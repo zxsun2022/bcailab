@@ -69,9 +69,14 @@ Review evidence (2026-08-10): deterministic validation passes for all 48 source 
 batch hash `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`.
 Fresh local D1 applies all 17 migrations with no foreign-key violations; browser/D1 fixtures
 cover no-write preview, atomic/idempotent first submission, immutable snapshots, feedback
-retry generations, failure recovery, trial, and responsive catalogue/detail layouts. The
-batch remains deliberately unpublished until independent review and owner approval are
-recorded in the owner manifest.
+retry generations, failure recovery, trial, and responsive catalogue/detail layouts.
+
+Publication status (2026-08-10): the batch is approved and published to development and
+production D1; `/writing` serves all 48 assignments. The approval was recorded by a single
+reviewer — the owner acted as both independent content reviewer and approving owner, with no
+second party — in `docs/approvals/writing-prompts-38d84de9.json`. A second-party content
+review is therefore still outstanding as a quality step, and would need a fresh manifest.
+Publication does not by itself make this item accepted; only the owner makes that transition.
 
 ### B. Saved translations — in_review
 

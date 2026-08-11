@@ -9,6 +9,26 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: Writing prompt batch approved and published; migrations `0016`/`0017`
+  applied to production.** Batch `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`
+  was approved and published to both the development D1 (`apps/web/.wrangler/state`) and
+  production, so `/writing` now serves 24 General English (A2-C1), 12 IELTS Academic Task 1 and
+  12 Task 2 assignments instead of the "preparing" empty state. **The batch had one reviewer, not
+  two:** no second-party content review was performed, and the owner acted as both the
+  independent content reviewer and the approving owner. That fact is recorded in
+  `docs/approvals/writing-prompts-38d84de9.json` and carried into every published row's
+  `review_manifest_json`, so the production record does not imply a reviewer who did not exist.
+  Re-running a second-party content review remains open and would require a fresh manifest.
+  Production migration applied `0016_writing_prompts.sql` and `0017_saved_translations.sql` only;
+  `0015_drop_dormant_esl_tables.sql` was already applied to production and to the development
+  database — both dormant tables were verified absent — so no `DROP` was executed in this pass.
+  Evidence: pre-migration production check returned zero duplicate `(article_id, round_number)`
+  groups, so `0016`'s unique index applied cleanly; `preflight`/`publish`/`verify` all pass on
+  local and remote; production reports 48 rows at `status='published'` with
+  `owner_approved_hash = content_hash`; the remote migration list is empty. No backup export was
+  taken (owner's explicit choice). Nothing was deployed and nothing was pushed; only the owner
+  may move the roadmap items to accepted.
+
 - 2026-08-10 — **in_review: English Studio acceptance-review hardening.** Fixed the reported
   local Writing crash at both layers: the development D1 state now has additive migrations
   `0016`/`0017`, and parallel child loaders degrade to the Writing unavailable state instead
@@ -41,7 +61,8 @@ make the final transition; see `AGENTS.md`.
   catalogue/detail/freeform/trial entry points, atomic idempotent first submission, distinct
   Task 1 factual evaluation, and generation-safe feedback retries. The current content batch
   hash is `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`;
-  it remains unpublished until independent and owner review are recorded.
+  it was unpublished when this entry was written — see the batch-publication entry above for
+  when and how it was approved and published.
   Translate now persists text only through an explicit signed-in Save backed by a short-lived
   HMAC completion proof. `/translate/saved` adds private owner-scoped list/detail/copy,
   25-row keyset pagination, idempotent retries, popup-auth handoff without losing the result,

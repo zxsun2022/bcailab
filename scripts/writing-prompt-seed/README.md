@@ -38,6 +38,12 @@ content review and owner review of the exact current batch hash:
 }
 ```
 
+Approval files are committed under `docs/approvals/writing-prompts-<short batch hash>.json` so
+the record of who approved which batch survives in history. `assertApproval` only reads the four
+fields above; any extra key inside `independentReview` / `ownerReview` is preserved into each
+published row's `review_manifest_json`, which is where a caveat belongs when the two review
+roles were not filled by two different people.
+
 Then run a target-explicit command. Remote publication has an additional typed batch-hash guard:
 
 ```sh
