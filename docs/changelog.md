@@ -9,6 +9,22 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-10 — **in_review: scalable English Studio navigation and material discovery.**
+  Reworked the shared rail into a narrower, quieter navigation spine with a line-based active
+  state; reshaped Coach Home into an action-first editorial workspace with a compact status
+  strip and list-based detail; and changed `/writing` from a 48-card wall into a collection
+  hub for General English, IELTS Academic Task 1, and Task 2. The new URL-backed
+  `/writing/library` catalogue filters server-side and uses bounded keyset continuation. Its
+  first page preserves the previous card design for three non-duplicated “Start here” prompts,
+  then switches to compact rows so the pattern can scale. Documented the reusable
+  hub → catalogue → detail contract for future Reading and Dictation libraries without
+  imposing it on Translate or Speech. Evidence: 561 tests, Web typecheck, production build,
+  local D1 collection census (24 General, 12 Task 1, 12 Task 2), and authenticated browser QA
+  at 375/768/1280px covering pagination, no horizontal overflow, 44px mobile actions, visible
+  focus, and mobile drawer focus restoration. Codex's in-app browser injects a third child into
+  `<html>` and consequently reports Remix hydration warnings; standalone browser checks are
+  clean and no application runtime error was observed.
+
 - 2026-08-10 — **in_review: English Studio navigation and mobile-action polish.** The public
   module directory now mirrors the product rail’s information architecture by separating
   Practice (Dictation, Reading, Writing) from Tools (Translate, Speech, planned Dictionary),

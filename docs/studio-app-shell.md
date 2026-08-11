@@ -99,6 +99,37 @@ specialised:
 - Bounded session/editor workspaces may keep their own inner grid, but expose a clear return
   to the owning tool and keep the page title as the workspace heading.
 
+## Material directory contract
+
+Material-led tools use progressive disclosure instead of placing their complete bank on the
+tool homepage:
+
+```text
+tool hub → collection catalogue → material detail → practice workspace
+```
+
+The hub explains the available collections and keeps learner work visible. The catalogue owns
+URL-backed filters and requests one bounded server-side page; it never downloads the full bank
+and filters it in the browser. Continuation state is opaque to the UI, stable for the selected
+sort, and carried in the URL so refresh and browser history remain useful. The detail route is
+the canonical entry to a material item.
+
+A catalogue may promote a small, non-duplicated subset from its first page into richer cards
+when those cards help a learner choose where to begin. The rest of the page remains a compact
+list, and continuation pages do not repeat the promotional shelf. Cards are therefore a
+discovery emphasis, not the storage shape of the whole library.
+
+Writing is the first implementation: `/writing` is the hub,
+`/writing/library?category=general|task1|task2` is the bounded catalogue, and
+`/writing/prompt/:slug` is the assignment detail. General English can narrow by CEFR discovery
+band; IELTS collections narrow by task family. A filter only changes discovery order and
+visibility for that view. It never locks material, and a null learner or material level is
+never presented as B1.
+
+Reading and Dictation may reuse the same structural contract with their own dimensions, such
+as topic, level, and practice state. Translate and Speech are workspaces rather than material
+directories and must not acquire an invented category layer merely for visual consistency.
+
 ## Scroll and responsive rules
 
 - Ordinary pages have one owner for vertical scrolling: the main inset.

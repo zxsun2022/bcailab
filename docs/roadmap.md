@@ -153,7 +153,7 @@ Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, 
 and schema tests prove new Reading evaluations neither request nor generate the field. The
 full repository suite passes 558 tests.
 
-### E. Scalable Studio navigation and material discovery — authorized
+### E. Scalable Studio navigation and material discovery — in_review
 
 The owner authorized this follow-up on 2026-08-10 after reviewing the current desktop Writing
 and Coach Home surfaces. It changes information architecture and presentation, not the
@@ -182,6 +182,18 @@ Acceptance evidence: focused query/filter/pagination tests; browser coverage at 
 keyboard-only and reduced-motion checks; no new console errors; and the full repository test,
 typecheck, and production build. New materials, Reading/Dictation catalogue implementation,
 global search, and a taxonomy/schema expansion are explicitly outside this follow-up.
+
+Review evidence (2026-08-10): `/writing` now queries three collection counts instead of the
+complete prompt bank; `/writing/library` keeps category, level/task-family, and opaque keyset
+continuation state in the URL and reads at most 13 rows to render a 12-item page. The first
+page promotes three non-duplicated assignments into the retained prompt-card treatment, then
+uses compact rows for the remaining bank. Authenticated browser checks cover the rail, cold
+Coach Home, Writing hub, catalogue, second-page continuation, drawer focus/Escape restoration,
+visible keyboard focus, and 44px mobile actions at 375/768/1280px with no horizontal overflow.
+The in-app browser injects `#codex-browser-sidebar-comments-root` as a third child of `<html>`,
+which produces Remix hydration warnings in that test surface; standalone browser checks are
+clean, and no application runtime error was observed. The full suite passes 561 tests, Web
+typecheck passes, and the production build succeeds.
 
 ### Explicitly excluded from this iteration
 

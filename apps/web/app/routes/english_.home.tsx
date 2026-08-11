@@ -329,12 +329,15 @@ export default function EnglishHome() {
     <StudioShell user={user}>
       <StudioPage width="wide">
         <StudioPageHeader
-          title={firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+          title="Today"
           description={
             isCold
               ? "Let's find your level — it takes about three minutes."
-              : "Pick up where you left off, or start something new."
+              : firstName
+                ? `Good to see you, ${firstName}. Pick up one useful piece of practice.`
+                : "Pick up one useful piece of practice."
           }
+          className="home-page-header"
         />
         <StudioPageBody className="home-page">
 
@@ -346,7 +349,7 @@ export default function EnglishHome() {
 
       {isCold ? (
         <section className="home-cold">
-          <div className="home-card is-primary">
+          <div className="home-focus-primary">
             <p className="home-card-kicker">Start here</p>
             <h2 className="home-card-title">Take one dictation passage</h2>
             <p className="home-card-meta">
@@ -365,7 +368,7 @@ export default function EnglishHome() {
         <>
           <section className="home-actions" aria-label="What to do now">
             {continueAction ? (
-              <div className="home-card is-primary">
+              <article className="home-focus-primary">
                 <p className="home-card-kicker">Continue</p>
                 <h2 className="home-card-title">{continueAction.title}</h2>
                 <p className="home-card-meta">
@@ -378,12 +381,12 @@ export default function EnglishHome() {
                     Continue
                   </Link>
                 </div>
-              </div>
+              </article>
             ) : null}
 
             {primary ? (
-              <div className={`home-card${continueAction ? "" : " is-primary"}`}>
-                <p className="home-card-kicker">Next</p>
+              <article className={continueAction ? "home-focus-secondary" : "home-focus-primary"}>
+                <p className="home-card-kicker">Coach recommendation</p>
                 <h2 className="home-card-title">{primary.title}</h2>
                 <p className="home-card-meta">
                   {[
@@ -407,11 +410,11 @@ export default function EnglishHome() {
                     </Link>
                   ))}
                 </div>
-              </div>
+              </article>
             ) : null}
 
             {!continueAction && !primary ? (
-              <div className="home-card">
+              <article className="home-focus-primary">
                 <p className="home-card-kicker">Practice</p>
                 <h2 className="home-card-title">Choose what to work on</h2>
                 <p className="home-card-meta">
@@ -425,11 +428,9 @@ export default function EnglishHome() {
                     Reading
                   </Link>
                 </div>
-              </div>
+              </article>
             ) : null}
           </section>
-
-          <hr className="home-split" />
 
           <section className="home-status" aria-label="Your status">
             <div className="home-status-head">
@@ -439,8 +440,8 @@ export default function EnglishHome() {
               </Link>
             </div>
 
-            <div className="home-grid">
-              <div className="home-panel">
+            <div className="home-status-strip">
+              <div className="home-stat">
                 <div className="home-panel-title">Level</div>
                 {/* Never assert a level the system has not established (§3.5). */}
                 <div className="home-panel-value">{level ?? "—"}</div>
@@ -453,7 +454,7 @@ export default function EnglishHome() {
                 </div>
               </div>
 
-              <div className="home-panel">
+              <div className="home-stat">
                 <div className="home-panel-title">Practice</div>
                 <div className="home-panel-value">{totalAttempts}</div>
                 <div className="home-panel-note">
@@ -461,7 +462,7 @@ export default function EnglishHome() {
                 </div>
               </div>
 
-              <div className="home-panel">
+              <div className="home-stat">
                 <div className="home-panel-title">Coverage</div>
                 <div className="home-coverage">
                   {CEFR_LEVELS.filter((band) => band !== "A1" && band !== "C2").map((band) => (
@@ -478,8 +479,12 @@ export default function EnglishHome() {
                 </div>
               </div>
 
-              {ability.length > 0 ? (
-                <div className="home-panel is-wide">
+            </div>
+
+            {(ability.length > 0 || recent.length > 0) ? (
+              <div className="home-detail-columns">
+                {ability.length > 0 ? (
+                <section className="home-detail-section">
                   <div className="home-panel-head">
                     <span className="home-panel-title">Working on</span>
                     <Link to="/english/progress" className="home-panel-more">
@@ -503,11 +508,11 @@ export default function EnglishHome() {
                       </div>
                     </div>
                   ))}
-                </div>
+                </section>
               ) : null}
 
               {recent.length > 0 ? (
-                <div className="home-panel">
+                <section className="home-detail-section">
                   <div className="home-panel-head">
                     <span className="home-panel-title">Recent</span>
                   </div>
@@ -519,19 +524,20 @@ export default function EnglishHome() {
                       </Link>
                     ))}
                   </div>
-                </div>
+                </section>
               ) : null}
+              </div>
+            ) : null}
 
               {trend.length >= 2 ? (
-                <div className="home-panel is-full">
+                <section className="home-trend-section">
                   <div className="home-panel-head">
                     <span className="home-panel-title">Dictation accuracy</span>
                     <span className="home-panel-more">last {trend.length}</span>
                   </div>
                   <TrendChart points={trend} />
-                </div>
+                </section>
               ) : null}
-            </div>
           </section>
         </>
       )}
