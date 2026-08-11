@@ -9957,47 +9957,71 @@ a.home-panel-more:hover {
 /* --- Action-first Home: editorial hierarchy instead of a card dashboard --- */
 
 .home-page-header {
-  margin-bottom: 40px;
+  margin-bottom: 28px;
 }
 
 .home-page-header .studio-page-title {
-  font-size: clamp(2.25rem, 4vw, 3.5rem);
+  font-size: clamp(2.25rem, 3.4vw, 3.15rem);
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+  text-wrap: balance;
+}
+
+.home-page-header .studio-page-description {
+  max-width: 62ch;
+  text-wrap: pretty;
 }
 
 .home-actions {
-  grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.7fr);
-  gap: clamp(28px, 5vw, 64px);
+  grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.home-actions.is-single {
+  grid-template-columns: minmax(0, 760px);
 }
 
 .home-focus-primary,
 .home-focus-secondary {
+  display: flex;
   min-width: 0;
+  min-height: 244px;
+  flex-direction: column;
+  padding: clamp(24px, 3vw, 34px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-card);
 }
 
 .home-focus-primary {
-  padding-left: 22px;
-  border-left: 3px solid var(--color-action);
+  border-color: var(--color-action-border);
+  border-inline-start-width: 3px;
+  border-inline-start-color: var(--color-action);
+  background: linear-gradient(135deg, var(--color-action-surface), transparent 58%), var(--bg-card);
 }
 
 .home-focus-secondary {
-  padding-top: 2px;
+  background: color-mix(in srgb, var(--bg-card) 72%, var(--bg-alt));
 }
 
 .home-focus-primary .home-card-title {
-  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+  font-size: clamp(1.55rem, 2.15vw, 1.95rem);
 }
 
 .home-focus-secondary .home-card-title {
-  font-size: clamp(1.3rem, 2vw, 1.65rem);
+  font-size: clamp(1.35rem, 1.7vw, 1.6rem);
 }
 
 .home-card-title {
-  line-height: 1.16;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
 }
 
 .home-card-meta {
   max-width: 50ch;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   line-height: 1.55;
 }
 
@@ -10008,25 +10032,58 @@ a.home-panel-more:hover {
   line-height: 1.55;
 }
 
-.home-status {
-  margin-top: clamp(56px, 8vw, 88px);
-  padding-top: 22px;
+.home-focus-primary .home-card-actions,
+.home-focus-secondary .home-card-actions {
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.home-card-alternatives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid var(--border);
+}
+
+.home-card-alternative {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.home-card-alternative:hover {
+  color: var(--color-action);
+}
+
+.home-status {
+  margin-top: clamp(32px, 4vw, 48px);
 }
 
 .home-status-strip {
   display: grid;
   grid-template-columns: 0.8fr 0.8fr 1.4fr;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-card) 72%, var(--bg-alt));
 }
 
 .home-stat {
   min-width: 0;
-  padding: 6px clamp(18px, 3vw, 32px);
+  padding: 20px clamp(20px, 3vw, 30px);
 }
 
 .home-stat:first-child {
-  padding-left: 0;
+  padding-inline-start: clamp(20px, 3vw, 30px);
 }
 
 .home-stat + .home-stat {
@@ -10034,13 +10091,18 @@ a.home-panel-more:hover {
 }
 
 .home-stat .home-panel-value {
-  font-size: 2rem;
+  font-size: 1.85rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .home-detail-columns {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
-  gap: clamp(36px, 6vw, 72px);
+  gap: clamp(32px, 5vw, 64px);
+}
+
+.home-detail-columns.is-single {
+  grid-template-columns: 1fr;
 }
 
 .home-detail-section,
@@ -10069,6 +10131,12 @@ a.home-panel-more:hover {
     grid-template-columns: 1fr;
   }
 
+  .home-focus-primary,
+  .home-focus-secondary {
+    min-height: 0;
+    padding: 22px 20px;
+  }
+
   .home-status-strip {
     grid-template-columns: 1fr;
     margin-bottom: 40px;
@@ -10076,7 +10144,7 @@ a.home-panel-more:hover {
 
   .home-stat,
   .home-stat:first-child {
-    padding: 18px 0;
+    padding: 18px 20px;
   }
 
   .home-stat + .home-stat {

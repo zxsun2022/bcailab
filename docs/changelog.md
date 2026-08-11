@@ -32,6 +32,13 @@ make the final transition; see `AGENTS.md`.
   `<html>` and consequently reports Remix hydration warnings; standalone browser checks are
   clean and no application runtime error was observed.
 
+- 2026-08-10 — **in_review: English Studio Home density and hierarchy.** Grouped continuation
+  and coach recommendation into a tighter two-panel action zone, demoted recommendation
+  alternatives from competing buttons to secondary text actions, and consolidated status into
+  a bounded strip closer to today's work. Single Recent/Working on sections now use the full
+  content width instead of leaving an empty grid column. Evidence: authenticated 351px cold
+  state with 44px actions and no horizontal overflow; 564 tests, Web typecheck, production build.
+
 - 2026-08-10 — **in_review: English Studio navigation and mobile-action polish.** The public
   module directory now mirrors the product rail’s information architecture by separating
   Practice (Dictation, Reading, Writing) from Tools (Translate, Speech, planned Dictionary),

@@ -216,6 +216,13 @@ level or task-family choice as a direct URL-backed link, including All. Selectio
 loads the filtered first page without an intermediate Apply action; native link semantics keep
 the interaction available to keyboards and without JavaScript.
 
+Home-density follow-up (2026-08-10): the action zone groups continuation and recommendation
+into two lightweight, equal-height panels; recommendation alternatives become subordinate
+text actions rather than competing buttons. The status summary moves closer in one bounded
+strip, and a lone detail section uses the full available width instead of reserving an empty
+second column. Authenticated cold-state QA at 351px verifies reflow, 44px primary and level
+actions, and no horizontal overflow; the full suite, Web typecheck, and production build pass.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;

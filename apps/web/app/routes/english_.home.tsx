@@ -366,7 +366,10 @@ export default function EnglishHome() {
         </section>
       ) : (
         <>
-          <section className="home-actions" aria-label="What to do now">
+          <section
+            className={`home-actions${continueAction && primary ? "" : " is-single"}`}
+            aria-label="What to do now"
+          >
             {continueAction ? (
               <article className="home-focus-primary">
                 <p className="home-card-kicker">Continue</p>
@@ -402,14 +405,18 @@ export default function EnglishHome() {
                   <Link to={primary.href} className="btn btn-primary">
                     Start
                   </Link>
-                  {/* Directional, never a reshuffle: each swap is a choice the learner can
-                      reason about, and is only rendered when such material exists. */}
-                  {alternatives.map((alt) => (
-                    <Link key={alt.direction} to={alt.href} className="btn btn-ghost btn-sm">
-                      {alt.label}
-                    </Link>
-                  ))}
                 </div>
+                {alternatives.length > 0 ? (
+                  <div className="home-card-alternatives" aria-label="Adjust recommendation">
+                    {/* Directional, never a reshuffle: each swap is a choice the learner can
+                        reason about, and is only rendered when such material exists. */}
+                    {alternatives.map((alt) => (
+                      <Link key={alt.direction} to={alt.href} className="home-card-alternative">
+                        {alt.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
               </article>
             ) : null}
 
@@ -482,7 +489,7 @@ export default function EnglishHome() {
             </div>
 
             {(ability.length > 0 || recent.length > 0) ? (
-              <div className="home-detail-columns">
+              <div className={`home-detail-columns${ability.length > 0 && recent.length > 0 ? "" : " is-single"}`}>
                 {ability.length > 0 ? (
                 <section className="home-detail-section">
                   <div className="home-panel-head">
