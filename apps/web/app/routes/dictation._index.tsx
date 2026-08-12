@@ -61,17 +61,40 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   // Recent practice, so the tool workspace answers "what was I doing?" without a trip to
   // Progress — the section Writing's hub has and this page did not.
+  //
+  // One row per session, not per attempt: dictation has no session table, so the container
+  // is (user × passage), and these links address the passage anyway. `attempts` arrives
+  // newest-first, so the first row seen for a passage sets the session's timestamp, and
+  // `bestByPassage` above already holds the session's best score.
   const titleById = new Map(passages.map((p) => [p.id, p.title]));
-  const recent = attempts.slice(0, RECENT_ROWS).map((attempt) => ({
-    id: attempt.id,
-    passageId: attempt.passage_id,
-    title: titleById.get(attempt.passage_id) ?? "Passage",
-    state:
-      attempt.status === "in_progress"
-        ? `In progress · ${attempt.sentences_done} done`
-        : `${Math.round(attempt.accuracy * 100)}%`,
-    at: attempt.created_at
-  }));
+  const attemptsByPassage = new Map<string, number>();
+  for (const attempt of attempts) {
+    attemptsByPassage.set(
+      attempt.passage_id,
+      (attemptsByPassage.get(attempt.passage_id) ?? 0) + 1
+    );
+  }
+
+  const recent = attempts
+    .filter((attempt, index, all) =>
+      all.findIndex((other) => other.passage_id === attempt.passage_id) === index
+    )
+    .slice(0, RECENT_ROWS)
+    .map((attempt) => {
+      const best = bestByPassage.get(attempt.passage_id);
+      return {
+        id: attempt.passage_id,
+        passageId: attempt.passage_id,
+        title: titleById.get(attempt.passage_id) ?? "Passage",
+        attempts: attemptsByPassage.get(attempt.passage_id) ?? 1,
+        best: best != null ? Math.round(best * 100) : null,
+        latest:
+          attempt.status === "in_progress"
+            ? `In progress · ${attempt.sentences_done} done`
+            : `${Math.round(attempt.accuracy * 100)}%`,
+        at: attempt.created_at
+      };
+    });
 
   return json({ authed: Boolean(user), bands, recent });
 };
@@ -120,7 +143,12 @@ export default function DictationLibrary() {
                     />
                   </span>
                   <strong>{item.title}</strong>
-                  <span className="studio-row-state">{item.state}</span>
+                  <span className="studio-row-state">
+                    {/* Repeated work is the session's story; a single run has none to tell. */}
+                    {item.attempts > 1
+                      ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}%` : ""}`
+                      : item.latest}
+                  </span>
                   <span className="studio-row-arrow" aria-hidden="true">→</span>
                 </Link>
               ))}

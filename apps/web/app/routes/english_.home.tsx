@@ -56,7 +56,21 @@ const READING_HISTORY_LIMIT = 20;
 const WRITING_HISTORY_LIMIT = 1;
 const RECENT_ROWS = 3;
 
-type RecentItem = { id: string; title: string; meta: string; href: string; at: string };
+/**
+ * One practice session — the work on one passage, not one run at it. `attempts` and `best`
+ * are what make the row a session rather than a snapshot of its latest attempt.
+ */
+type RecentItem = {
+  id: string;
+  title: string;
+  mode: "Dictation" | "Reading";
+  /** State of the most recent attempt: a score, or its in-progress position. */
+  latest: string;
+  href: string;
+  at: string;
+  attempts: number;
+  best: number | null;
+};
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -156,25 +170,73 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     });
 
     const titleById = new Map(candidates.map((c) => [c.id, c.title]));
-    recent = [
-      ...dictationAttempts.map((a) => ({
-        id: a.id,
-        title: titleById.get(a.passage_id) ?? "Passage",
-        meta:
-          a.status === "in_progress"
-            ? `Dictation · ${a.sentences_done}/${titleById.has(a.passage_id) ? candidates.find((c) => c.id === a.passage_id)!.sentenceCount : "?"}`
-            : `Dictation · ${Math.round(a.accuracy * 100)}%`,
-        href: `/dictation/${a.passage_id}`,
-        at: a.created_at
-      })),
-      ...readingAttempts.map((a) => ({
-        id: a.id,
-        title: a.passage_title ?? "Passage",
-        meta: a.overall_score != null ? `Reading · ${a.overall_score}` : "Reading · pending",
-        href: `/reading/${a.passage_id}`,
-        at: a.created_at
-      }))
-    ]
+    const sentenceCountById = new Map(candidates.map((c) => [c.id, c.sentenceCount]));
+
+    /*
+      One row per session, not per attempt.
+
+      Reading and Dictation have no session table — the container is implicitly
+      (user × passage), while Writing's `writing_articles` row is the same idea made
+      explicit. Listing raw attempts therefore spent several rows on one destination:
+      three attempts at one passage rendered as three rows whose hrefs were byte-for-byte
+      identical, because these links have always addressed the passage, not the attempt.
+      A single attempt is still reachable — the passage's history rail addresses it with
+      `?attempt=<id>` — so folding here costs no reachability.
+
+      Both attempt lists arrive newest-first, so the first row seen for a passage is its
+      latest and sets the session's timestamp.
+    */
+    const sessions = new Map<string, RecentItem>();
+    const addSession = (key: string, item: RecentItem, score: number | null) => {
+      const existing = sessions.get(key);
+      if (!existing) {
+        sessions.set(key, { ...item, attempts: 1, best: score });
+        return;
+      }
+      existing.attempts += 1;
+      if (score != null && (existing.best == null || score > existing.best)) {
+        existing.best = score;
+      }
+    };
+
+    for (const a of dictationAttempts) {
+      addSession(
+        `dictation:${a.passage_id}`,
+        {
+          id: `dictation:${a.passage_id}`,
+          title: titleById.get(a.passage_id) ?? "Passage",
+          mode: "Dictation",
+          latest:
+            a.status === "in_progress"
+              ? `In progress · ${a.sentences_done}/${sentenceCountById.get(a.passage_id) ?? "?"}`
+              : `${Math.round(a.accuracy * 100)}%`,
+          href: `/dictation/${a.passage_id}`,
+          at: a.created_at,
+          attempts: 0,
+          best: null
+        },
+        a.status === "in_progress" ? null : Math.round(a.accuracy * 100)
+      );
+    }
+
+    for (const a of readingAttempts) {
+      addSession(
+        `reading:${a.passage_id}`,
+        {
+          id: `reading:${a.passage_id}`,
+          title: a.passage_title ?? "Passage",
+          mode: "Reading",
+          latest: a.overall_score != null ? `${a.overall_score}` : "Evaluating…",
+          href: `/reading/${a.passage_id}`,
+          at: a.created_at,
+          attempts: 0,
+          best: null
+        },
+        a.overall_score
+      );
+    }
+
+    recent = [...sessions.values()]
       .sort((x, y) => y.at.localeCompare(x.at))
       .slice(0, RECENT_ROWS);
 
@@ -417,7 +479,15 @@ export default function EnglishHome() {
                 {recent.map((item) => (
                   <Link key={item.id} to={item.href} className="home-recent-row">
                     <span className="home-recent-title">{item.title}</span>
-                    <span className="home-recent-meta">{item.meta}</span>
+                    <span className="home-recent-meta">
+                      {[
+                        item.mode,
+                        // Repeated work is the session's story; a single run has none to tell.
+                        item.attempts > 1
+                          ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
+                          : item.latest
+                      ].join(" · ")}
+                    </span>
                   </Link>
                 ))}
               </div>

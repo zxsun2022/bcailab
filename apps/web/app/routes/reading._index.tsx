@@ -35,6 +35,8 @@ const BAND_ORDER = ["A2", "B1", "B2", "C1"] as const;
 
 /** The workspace shows a short re-entry list; the full history lives on Progress. */
 const RECENT_ROWS = 4;
+/** Attempts to scan for those rows: they fold to one row per passage, so fetch more. */
+const RECENT_ATTEMPT_SCAN = 24;
 
 const BAND_BLURB: Record<string, string> = {
   A2: "Short everyday sentences, simple tenses.",
@@ -66,7 +68,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     listPassagesByUser(db, user.id),
     listReadingPassageStatsByUser(db, user.id),
     getEslLearnerProfile(db, user.id),
-    listRecentReadingAttempts(db, { userId: user.id, limit: RECENT_ROWS })
+    listRecentReadingAttempts(db, { userId: user.id, limit: RECENT_ATTEMPT_SCAN })
   ]);
 
   const statByPassage = new Map(stats.map((s) => [s.passage_id, s]));
@@ -111,13 +113,28 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     })),
     // Recent practice, so the tool workspace answers "what was I doing?" without a trip
     // to Progress — the section Writing's hub has and this page did not.
-    recent: recentAttempts.map((attempt) => ({
-      id: attempt.id,
-      passageId: attempt.passage_id,
-      title: attempt.passage_title ?? "Passage",
-      state: attempt.overall_score != null ? `${attempt.overall_score}` : "Evaluating…",
-      at: attempt.created_at
-    }))
+    //
+    // One row per session, not per attempt: reading has no session table, so the container
+    // is (user × passage), and these links address the passage anyway. `stats` already
+    // carries the session-level counts, so folding needs no extra query. Attempts arrive
+    // newest-first, so the first row seen for a passage sets the session's timestamp.
+    recent: recentAttempts
+      .filter((attempt, index, all) =>
+        all.findIndex((other) => other.passage_id === attempt.passage_id) === index
+      )
+      .slice(0, RECENT_ROWS)
+      .map((attempt) => {
+        const stat = statByPassage.get(attempt.passage_id);
+        return {
+          id: attempt.passage_id,
+          passageId: attempt.passage_id,
+          title: attempt.passage_title ?? "Passage",
+          attempts: stat?.attempts ?? 1,
+          best: stat?.best_score != null ? Math.round(stat.best_score) : null,
+          latest: attempt.overall_score != null ? `${attempt.overall_score}` : "Evaluating…",
+          at: attempt.created_at
+        };
+      })
   });
 };
 
@@ -205,7 +222,12 @@ export default function ReadingCatalogue() {
                     />
                   </span>
                   <strong>{item.title}</strong>
-                  <span className="studio-row-state">{item.state}</span>
+                  <span className="studio-row-state">
+                    {/* Repeated work is the session's story; a single run has none to tell. */}
+                    {item.attempts > 1
+                      ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
+                      : item.latest}
+                  </span>
                   <span className="studio-row-arrow" aria-hidden="true">→</span>
                 </Link>
               ))}
