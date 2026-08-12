@@ -324,11 +324,17 @@ export default function EslReadingPracticePage() {
   const [liveReferenceAudio, setLiveReferenceAudio] = React.useState(referenceAudio);
   const [liveSelected, setLiveSelected] = React.useState(selected);
   const [mode, setMode] = React.useState<EslReadingMode>("reading");
-  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(false);
+  // With no attempts the rail has nothing to show but its own empty state, and its
+  // New Attempt duplicates the action the centre panel is already offering. Start it
+  // folded; a stored preference still wins, and it opens itself once history exists.
+  const [historyRailCollapsed, setHistoryRailCollapsed] = React.useState(
+    attempts.length === 0
+  );
 
   React.useEffect(() => {
     try {
-      setHistoryRailCollapsed(localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY) === "true");
+      const stored = localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY);
+      if (stored !== null) setHistoryRailCollapsed(stored === "true");
     } catch {}
   }, []);
   const sortedAttempts = React.useMemo(
@@ -429,8 +435,11 @@ export default function EslReadingPracticePage() {
                       the learner is already looking at this text, which is when
                       checking how much of it they catch by ear is the natural step. */}
                   {canDictate ? (
-                    <Link to={`/dictation/${passage.id}`} className="mode-handoff-inline">
-                      Check how much you catch by ear · Dictation
+                    <Link
+                      to={`/dictation/${passage.id}`}
+                      className="studio-link-secondary mode-handoff-inline"
+                    >
+                      Also available as dictation
                     </Link>
                   ) : null}
                 </div>

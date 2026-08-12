@@ -9,6 +9,66 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-12 — **in_review: Home is prospective, Progress is retrospective.** Applied
+  `docs/learner-model-design.md` §9.4 to the two surfaces that had drifted into saying the same
+  thing. `/english/progress` first gained the two panels it lacked — Coverage, and the dictation
+  accuracy curve — after which Home's status grid was removed rather than duplicated. What
+  remains on Home is a single basis line stating what the recommendation above is worth, plus
+  the level picker and a three-row Recent list; the level picker moved out of the Level stat
+  cell, where it had made that column several times the height of its neighbours. The accuracy
+  curve was rebuilt on the way across: a fixed 0–100 axis had flattened a 26-point gain into a
+  near-straight line, so the axis now follows the data with a 20-point floor (a steady learner
+  does not read as erratic) and labels both bounds so a scaled axis cannot be misread as
+  absolute. Reading and Dictation each gained the "Recent practice" section Writing's hub
+  already had, so the three practice tools answer "what was I doing?" without a trip to
+  Progress. Also fixed: Google avatars 503'd on every render because `lh3.googleusercontent.com`
+  rejects requests carrying an unrecognised `Referer` — the three `<img>` tags now set
+  `referrerPolicy="no-referrer"`, which stops leaking the page URL to Google as well. Corrected
+  the IA v2 §3.2 claim that sessions expose an "upper-right" return; every route has always
+  placed it at the leading edge, and the bullet now states the depth rule that decides between
+  `Back to [tool]` and breadcrumbs. Evidence: root typecheck, 564-test suite, production build,
+  a dead-class sweep across CSS and TSX, and authenticated browser verification of the avatar
+  (`naturalWidth` 0 → 96) and of Reading's recent list against real attempt data.
+
+- 2026-08-12 — **in_review: practice catalogues adopt the Writing row pattern.** Dictation and
+  Reading moved from card grids to the row list Writing's library established, promoted out of
+  `writing-library-*` into a shared `studio-row*` primitive so the name no longer leaks across
+  modules. Two measurements changed the primitive on the way: row height dropped 92px → 72px
+  because passage metadata is far shorter than a writing prompt's and the taller row cut a
+  screen from eight entries to five, and the meta column became a capped `minmax(150px, 260px)`
+  because as a `0.7fr` fraction it grew to 333px against 135px of ink and pushed every title
+  away from its own metadata. Band grouping stays — Reading's fold and "your level" marker
+  depend on it, and the level is already in the section header, so the row no longer repeats a
+  band badge. Session hierarchy fixed alongside: Dictation's Play became a ghost control so
+  Check is the only filled action on the sentence, Reading's dictation hand-off dropped to the
+  shared secondary-link treatment instead of wearing the primary action's colour, and Reading's
+  history rail now starts folded when there is no history, where it had been spending 290px to
+  say "History (0)" beside a New Attempt link dimmed into looking disabled. Evidence: root
+  typecheck, 564-test suite, production build, and browser checks of column counts across
+  1400/1120/1064/1000/900/760/600/420px.
+
+- 2026-08-12 — **in_review: Studio design-system primitives applied to the pages that skipped
+  them.** `StudioPage` and `.btn` existed but the practice screens had not adopted them.
+  Dictation's session buttons moved off bespoke serif Title Case onto the shared mono
+  primitive; the rail's account row had no `font-family` at all and was rendering in the UA
+  default, the only sans-serif in the shell; Speech's bare `<select>` elements joined
+  Translate's control as a shared `.studio-select`; and Speech's submit button, unlike
+  Translate's, had never disabled on empty input. Three colour-emoji empty-state icons became a
+  typographic rule, and `.writing-main`, `.writing-dashboard`, and `.writing-dashboard-empty*`
+  were renamed to `studio-*` — all three were already shared by Reading, Dictation, and the
+  studio-wide Progress page. Added the root `ErrorBoundary` the app had never had: a bad link
+  dropped signed-in learners onto the framework's unstyled default with no navigation. Added
+  `--border-control`, a control-weight outline distinct from the divider weight, after
+  measuring the level chips at 1.37:1 in light and 1.17:1 in dark — both below the 3:1 floor
+  for non-text contrast, not just the dark theme originally reported. Fixed a dead CSS rule
+  whose comment explained that the dictation breadcrumb must not run into the band label: the
+  class had been renamed in the markup years' worth of refactors earlier, so the rule matched
+  nothing and the two ran together as "Back to DictationA2". Also: the mobile hamburger became
+  an opaque bar so content scrolls beneath it rather than behind it, and every band's fifth
+  passage stopped being stranded on its own grid row. Evidence: root typecheck, 564-test suite,
+  production build, computed-style verification of fonts and disabled states, and contrast
+  ratios computed against both theme backgrounds.
+
 - 2026-08-11 — **in_review: Translate composer focus indicator contained.** Kept the strong
   two-pixel action-color focus indicator while moving it inside the text composer, preventing
   the ring from covering the output divider and surrounding workspace borders. Evidence: Web

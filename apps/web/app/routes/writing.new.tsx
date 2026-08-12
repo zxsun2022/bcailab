@@ -112,7 +112,7 @@ export default function WritingNewPage() {
   }, [fetcher.data, navigate]);
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="standard">
         <StudioPageHeader
           title="New freeform session"

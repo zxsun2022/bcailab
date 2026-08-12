@@ -100,17 +100,17 @@ const humanizeKind = (value: string) =>
   value.split("_").map((part) => part[0]!.toUpperCase() + part.slice(1)).join(" ");
 
 const PromptRow = ({ prompt }: { prompt: WritingPromptSummary }) => (
-  <Link to={`/writing/prompt/${prompt.slug}`} className="writing-library-row">
-    <span className="writing-library-meta">
+  <Link to={`/writing/prompt/${prompt.slug}`} className="studio-row">
+    <span className="studio-row-meta">
       {prompt.cefr_band ? <span className="writing-level-badge">{prompt.cefr_band}</span> : null}
       <span>{prompt.topic}</span>
       <span>{prompt.target_minutes} min</span>
     </span>
     <strong>{prompt.title}</strong>
-    <span className="writing-library-progress">
+    <span className="studio-row-state">
       {prompt.target_words}+ words · {prompt.attempt_count === 0 ? "Not started" : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "session" : "sessions"}`}
     </span>
-    <span className="writing-library-arrow" aria-hidden="true">→</span>
+    <span className="studio-row-arrow" aria-hidden="true">→</span>
   </Link>
 );
 
@@ -161,7 +161,7 @@ export default function WritingLibraryPage() {
   const filterOptions = category === "general" ? GENERAL_LEVELS : kinds;
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioBreadcrumbs items={[
           { label: "Writing", to: "/writing" },
@@ -230,7 +230,7 @@ export default function WritingLibraryPage() {
                   <h2 id="writing-catalogue-heading">Browse assignments</h2>
                 </div>
               </div>
-              <div className="writing-library-list">{catalogueItems.map((prompt) => <PromptRow key={prompt.id} prompt={prompt} />)}</div>
+              <div className="studio-row-list">{catalogueItems.map((prompt) => <PromptRow key={prompt.id} prompt={prompt} />)}</div>
             </section>
           ) : null}
 

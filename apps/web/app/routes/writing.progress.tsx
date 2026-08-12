@@ -258,10 +258,10 @@ export default function WritingProgressPage() {
 
   if (!data.schemaReady) {
     return (
-      <div className="writing-main-scroll">
+      <div className="studio-main-scroll">
         <StudioPage width="wide">
           <StudioPageHeader title="Writing progress" />
-          <StudioPageBody className="writing-dashboard">
+          <StudioPageBody className="studio-dashboard">
             <p className="writing-status-desc">Writing tool is temporarily unavailable.</p>
           </StudioPageBody>
         </StudioPage>
@@ -273,7 +273,7 @@ export default function WritingProgressPage() {
   const isEmpty = totalRevisions === 0;
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
           title="Writing progress"
@@ -282,13 +282,13 @@ export default function WritingProgressPage() {
         <StudioPageTabs>
           <ProgressWorkspaceTabs />
         </StudioPageTabs>
-        <StudioPageBody className="writing-dashboard">
+        <StudioPageBody className="studio-dashboard">
 
         {isEmpty ? (
-          <div className="writing-dashboard-empty">
-            <div className="writing-dashboard-empty-icon">✍</div>
-            <div className="writing-dashboard-empty-title">No data yet</div>
-            <p className="writing-dashboard-empty-desc">
+          <div className="studio-empty">
+            <div className="studio-empty-mark" aria-hidden="true" />
+            <div className="studio-empty-title">No data yet</div>
+            <p className="studio-empty-desc">
               Submit your first essay and get feedback to start tracking your progress.
             </p>
             <Link to="/writing" className="btn btn-primary btn-sm">

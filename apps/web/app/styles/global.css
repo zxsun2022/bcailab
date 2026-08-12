@@ -140,6 +140,10 @@
   --text-faint: #b0a89e;
   --border: #d8d0c4;
   --border-hover: #b8b0a4;
+  /* Outline for controls that carry their own hit target (chips, segmented buttons).
+     `--border` is a divider weight (1.37:1 here) and fails the 3:1 floor for
+     non-text contrast; this clears it on both --bg and --bg-alt. */
+  --border-control: #8f8474;
   --compose-mask-base: rgba(246, 242, 235, 0.94);
   --compose-mask-stripe: rgba(196, 149, 106, 0.08);
   --compose-mask-stripe-alt: rgba(238, 232, 221, 0.14);
@@ -178,6 +182,7 @@
     --color-success-border: rgba(113, 180, 138, 0.36);
     --border: rgba(232, 226, 216, 0.08);
     --border-hover: rgba(232, 226, 216, 0.15);
+    --border-control: rgba(232, 226, 216, 0.42);
     --compose-mask-base: rgba(15, 14, 12, 0.94);
     --compose-mask-stripe: rgba(196, 149, 106, 0.11);
     --compose-mask-stripe-alt: rgba(26, 25, 23, 0.22);
@@ -221,6 +226,7 @@
   --color-success-border: rgba(113, 180, 138, 0.36);
   --border: rgba(232, 226, 216, 0.08);
   --border-hover: rgba(232, 226, 216, 0.15);
+  --border-control: rgba(232, 226, 216, 0.42);
   --compose-mask-base: rgba(15, 14, 12, 0.94);
   --compose-mask-stripe: rgba(196, 149, 106, 0.11);
   --compose-mask-stripe-alt: rgba(26, 25, 23, 0.22);
@@ -547,13 +553,15 @@ main.tool-main {
 }
 
 .btn-ghost {
-  border-color: var(--border);
+  /* The outline is the only thing that makes this button a button, so it uses the
+     control weight rather than the divider weight. */
+  border-color: var(--border-control);
   color: var(--text);
   background: transparent;
 }
 
 .btn-ghost:hover {
-  border-color: var(--border-hover);
+  border-color: var(--color-action);
   background: var(--bg-card-hover);
   color: var(--text);
 }
@@ -2085,11 +2093,13 @@ select.input:focus {
   text-transform: uppercase;
 }
 
-.translate-lang-select {
+/* The studio's select. Matches `.btn`'s mono/uppercase treatment so a form row does
+   not mix the type system with the UA's native control font. */
+.studio-select {
   appearance: none;
   width: min(100%, 240px);
   padding: 8px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-mono);
@@ -2100,12 +2110,21 @@ select.input:focus {
   transition: border-color var(--transition-fast);
 }
 
-.translate-lang-select:hover,
-.translate-lang-select:focus {
+.studio-select:hover,
+.studio-select:focus {
   border-color: var(--color-action);
 }
 
-.translate-lang-select:focus-visible,
+.studio-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.studio-select:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
+}
+
 .translate-swap:focus-visible,
 .translate-pane-action:focus-visible,
 .translate-submit:focus-visible {
@@ -2513,7 +2532,7 @@ select.input:focus {
     padding-inline: 14px;
   }
 
-  .translate-lang-select {
+  .studio-select {
     width: 100%;
     min-width: 0;
     padding-inline: 8px;
@@ -2521,7 +2540,7 @@ select.input:focus {
 
   .translate-submit,
   .translate-swap,
-  .translate-lang-select,
+  .studio-select,
   .translate-pane-action {
     min-height: 44px;
   }
@@ -4295,9 +4314,8 @@ select.input:focus {
   color: var(--text-muted);
 }
 
-.esl-history-rail.is-empty .esl-history-new {
-  color: var(--text-faint);
-}
+/* An empty history does not disable New Attempt, so it must not be dimmed into
+   looking disabled. `.is-disabled` is the real state and styles itself. */
 
 .esl-history-new.is-active {
   border-color: rgba(196, 149, 106, 0.45);
@@ -4529,7 +4547,7 @@ select.input:focus {
 /* --- ESL Desktop: sidebar + 2-col practice --- */
 
 @media (min-width: 1024px) {
-  .writing-main.is-workspace {
+  .studio-main.is-workspace {
     padding: 0;
   }
 
@@ -4874,6 +4892,11 @@ select.input:focus {
 
 .tts-select-field {
   min-width: 0;
+}
+
+/* The grid already sizes these columns, so let the select fill its own. */
+.tts-select-field .studio-select {
+  width: 100%;
 }
 
 .tts-generate-wrap {
@@ -5565,7 +5588,7 @@ select.input:focus {
   position: relative;
 }
 
-.writing-main {
+.studio-main {
   flex: 1;
   min-width: 0;
   padding: 52px var(--container-padding) var(--space-lg);
@@ -5586,7 +5609,7 @@ select.input:focus {
   max-width: none;
 }
 
-.writing-main-scroll {
+.studio-main-scroll {
   width: 100%;
   min-width: 0;
   overscroll-behavior-y: contain;
@@ -6299,7 +6322,7 @@ select.input:focus {
 }
 
 .writing-collection-arrow,
-.writing-library-arrow {
+.studio-row-arrow {
   color: var(--color-action);
   font-size: 1.15rem;
 }
@@ -6364,34 +6387,87 @@ select.input:focus {
   transform: scale(0.96);
 }
 
-.writing-library-list {
+/* Section head for a tool workspace: eyebrow + title on the left, one escape on the
+   right. Writing's hub established the shape; Reading and Dictation reuse it so the
+   three practice tools have the same workspace structure. */
+.studio-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+
+.studio-section-eyebrow {
+  margin: 0 0 4px;
+  color: var(--color-action);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.studio-section-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.studio-section-more {
+  flex: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.studio-section-more:hover {
+  color: var(--color-action);
+}
+
+.studio-section-empty {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 0.875rem;
+}
+
+.studio-row-list {
   border-top: 1px solid var(--border);
 }
 
-.writing-library-row {
+/* Inside a band the section header already draws the opening rule. */
+.passage-band-body .studio-row-list {
+  border-top: none;
+}
+
+.studio-row {
   display: grid;
-  grid-template-columns: minmax(160px, 0.7fr) minmax(220px, 1.3fr) auto 24px;
+  /* The meta column is capped rather than proportional: as a fraction it grew to
+     ~330px against ~135px of ink, which pushed titles away from their metadata. */
+  grid-template-columns: minmax(150px, 260px) minmax(220px, 1fr) auto 24px;
   align-items: center;
   gap: 24px;
-  min-height: 92px;
-  padding: 18px 4px;
+  min-height: 72px;
+  padding: 14px 4px;
   border-bottom: 1px solid var(--border);
   color: var(--text);
   text-decoration: none;
   transition: color 150ms ease, padding-left 150ms ease;
 }
 
-.writing-library-row:hover {
+.studio-row:hover {
   padding-left: 10px;
 }
 
-.writing-library-row > strong {
+.studio-row > strong {
   font-family: var(--font-display);
   font-size: 1.12rem;
   line-height: 1.3;
 }
 
-.writing-library-meta {
+.studio-row-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -6400,20 +6476,24 @@ select.input:focus {
   font-size: 0.75rem;
 }
 
-.writing-library-meta > span + span::before {
+.studio-row-meta > span + span::before {
   margin-right: 7px;
   content: "·";
 }
 
-.writing-library-meta .writing-level-badge + span::before {
+.studio-row-meta .writing-level-badge + span::before {
   content: none;
 }
 
-.writing-library-progress {
+.studio-row-state {
   color: var(--text-muted);
   font-size: 0.76rem;
   white-space: nowrap;
 }
+
+/* A scored row has earned emphasis; an unevaluated one has not. */
+.studio-row-state.is-pending { color: var(--text-faint); }
+.studio-row-state.is-scored { color: var(--color-action); }
 
 .writing-library-empty {
   padding: 40px 0;
@@ -6436,7 +6516,7 @@ select.input:focus {
 
 @media (prefers-reduced-motion: reduce) {
   .writing-collection-row,
-  .writing-library-row,
+  .studio-row,
   .writing-library-filter {
     transition: none;
   }
@@ -6470,18 +6550,18 @@ select.input:focus {
     grid-row: 1 / span 2;
   }
 
-  .writing-library-row {
+  .studio-row {
     grid-template-columns: minmax(0, 1fr) 20px;
     gap: 8px 16px;
   }
 
-  .writing-library-meta,
-  .writing-library-row > strong,
-  .writing-library-progress {
+  .studio-row-meta,
+  .studio-row > strong,
+  .studio-row-state {
     grid-column: 1;
   }
 
-  .writing-library-arrow {
+  .studio-row-arrow {
     grid-column: 2;
     grid-row: 1 / span 3;
   }
@@ -7428,7 +7508,7 @@ select.input:focus {
     overflow: hidden;
   }
 
-  .writing-main {
+  .studio-main {
     display: flex;
     flex-direction: column;
     overflow-x: hidden;
@@ -7438,12 +7518,12 @@ select.input:focus {
     min-height: 0;
   }
 
-  .writing-main.is-detail,
-  .writing-main.is-workspace {
+  .studio-main.is-detail,
+  .studio-main.is-workspace {
     overflow: hidden;
   }
 
-  .writing-main.is-detail {
+  .studio-main.is-detail {
     padding: 0;
   }
 
@@ -7458,7 +7538,7 @@ select.input:focus {
     width: 100%;
   }
 
-  .writing-main-scroll {
+  .studio-main-scroll {
     flex: 1;
     height: 100%;
     min-height: 0;
@@ -7571,16 +7651,26 @@ select.input:focus {
    ========================================================================== */
 
 /* Mobile hamburger — inline in content flow */
+/* Opaque strip pinned to the top of the shell. `.studio-main` reserves exactly this
+   much padding, so content starts below it and then scrolls cleanly underneath. */
+.nav-rail-mobile-bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  height: 52px;
+  padding-left: var(--container-padding);
+  background: var(--bg);
+}
+
 .nav-rail-mobile-toggle {
   display: flex;
   flex-direction: column;
   gap: 4px;
   align-items: center;
   justify-content: center;
-  position: absolute;
-  top: 6px;
-  left: var(--container-padding);
-  z-index: 10;
+  margin-top: 6px;
   width: 44px;
   height: 44px;
   border-radius: 6px;
@@ -7662,6 +7752,7 @@ select.input:focus {
 
 /* Desktop: persistent rail */
 @media (min-width: 1024px) {
+  .nav-rail-mobile-bar,
   .nav-rail-mobile-toggle {
     display: none;
   }
@@ -7849,6 +7940,9 @@ select.input:focus {
   cursor: pointer;
   text-align: left;
   color: var(--text-muted);
+  /* Buttons do not inherit the document font; without this the rail's account row
+     falls back to the UA default and is the only sans-serif text in the shell. */
+  font-family: var(--font-body);
   font-size: 13px;
   transition: background var(--transition-fast), color var(--transition-fast);
   overflow: hidden;
@@ -8037,32 +8131,58 @@ select.input:focus {
    WRITING DASHBOARD
    ========================================================================== */
 
-.writing-dashboard {
+/* Progress body shared by Writing, Reading, and the Studio-wide Progress page. */
+.studio-dashboard {
   max-width: 760px;
   margin: 0 auto;
   padding: var(--space-lg) 0 var(--space-xl);
 }
 
-.writing-dashboard-header {
-  margin-bottom: var(--space-lg);
-  padding-left: var(--mobile-nav-offset, 0);
-}
-
-.writing-dashboard-header h2 {
-  font-family: var(--font-display);
-  font-size: 24px;
-  margin: 0 0 4px;
-}
-
-.writing-dashboard-subtitle {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 14px;
-}
-
 /* Empty state */
 
-.writing-dashboard-empty {
+/* --- Root error boundary --- */
+
+.app-error {
+  display: flex;
+  max-width: 46ch;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: clamp(48px, 10vh, 120px) 0;
+}
+
+.app-error-status {
+  margin: 0 0 var(--space-md);
+  color: var(--color-action);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+}
+
+.app-error-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.app-error-detail {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
+.app-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: var(--space-xl);
+}
+
+/* Shared by every module's "nothing recorded yet" panel — not writing-specific. */
+.studio-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -8071,18 +8191,22 @@ select.input:focus {
   gap: var(--space-md);
 }
 
-.writing-dashboard-empty-icon {
-  font-size: 48px;
-  line-height: 1;
+/* A typographic rule, not an icon: the studio has no illustration vocabulary, and
+   OS colour emoji sit outside its palette. */
+.studio-empty-mark {
+  width: 40px;
+  height: 1px;
+  background: var(--color-action);
+  opacity: 0.55;
 }
 
-.writing-dashboard-empty-title {
+.studio-empty-title {
   font-family: var(--font-display);
   font-size: 20px;
   color: var(--text);
 }
 
-.writing-dashboard-empty-desc {
+.studio-empty-desc {
   margin: 0;
   color: var(--text-muted);
   font-size: 14px;
@@ -8548,6 +8672,13 @@ select.input:focus {
   margin-bottom: var(--space-lg);
 }
 
+/* Sits above the library, separated from it: it answers "what was I doing?", which is a
+   different question from "what should I do next?". The row list already closes with a
+   rule, so the separation is space rather than a second line. */
+.passage-recent {
+  margin-bottom: var(--space-2xl);
+}
+
 /* A band header is a fold control now: your level opens, the rest collapse. Folded,
    never locked — see the catalogue route for why that distinction matters. */
 .passage-band-header {
@@ -8585,12 +8716,18 @@ select.input:focus {
   color: var(--text-faint);
 }
 
+/* The whole row is the toggle, so the caret has to carry that affordance on its
+   own — at --text-faint it read as a stray glyph rather than a control. */
 .passage-band-caret {
   font-family: var(--font-mono);
   font-size: 0.875rem;
-  color: var(--text-faint);
+  color: var(--text-muted);
   width: 1em;
   text-align: center;
+}
+
+.passage-band-header:hover .passage-band-caret {
+  color: var(--color-action);
 }
 
 .passage-band-body {
@@ -8610,69 +8747,6 @@ select.input:focus {
   font-size: 0.875rem;
   color: var(--text-faint);
 }
-
-.passage-card-grid {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-md);
-}
-
-.passage-card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  padding: var(--space-md);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg-card);
-  text-decoration: none;
-  transition: border-color var(--transition-fast), background var(--transition-fast);
-  height: 100%;
-}
-
-.passage-card:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-card-hover);
-}
-
-.passage-card-title {
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.35;
-}
-
-.passage-card-meta {
-  font-size: 0.8125rem;
-  color: var(--text-faint);
-}
-
-.passage-card-best,
-.passage-card-start {
-  margin-top: auto;
-  padding-top: var(--space-sm);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-}
-
-.passage-card-best { color: var(--color-action); }
-.passage-card-start { color: var(--text-faint); }
-
-/* Practice state is card state, not a separate "completed" section. */
-.passage-card-state {
-  margin-top: auto;
-  padding-top: var(--space-sm);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  letter-spacing: 0.04em;
-}
-
-.passage-card-state.is-new { color: var(--text-faint); }
-.passage-card-state.is-pending { color: var(--text-muted); }
-.passage-card-state.is-scored { color: var(--color-action); }
 
 /* Own texts: visible and secondary. Separate from the library because they carry no band
    or tags, cannot be dictated, and feed no mastery — a capability boundary, not a label. */
@@ -8707,10 +8781,17 @@ select.input:focus {
   position: relative;
 }
 
+/* The row runs the full width, so reserve a lane for Delete rather than letting it
+   sit on top of the state and arrow. */
+.passage-own-item .studio-row {
+  padding-right: 76px;
+}
+
 .passage-own-item form {
   position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
   opacity: 0;
   transition: opacity var(--transition-fast);
 }
@@ -8748,19 +8829,13 @@ select.input:focus {
 /* --- Session --- */
 
 .dictation-session-header {
+  /* Column, not the default block flow: `.session-project-return` is an inline-flex
+     shared primitive, so the band label would otherwise run onto the same line. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
   margin-bottom: var(--space-xl);
 }
-
-.dictation-breadcrumb {
-  /* Block, not inline: the band label follows it and must start a new line. */
-  display: block;
-  font-size: 0.875rem;
-  color: var(--text-muted);
-  text-decoration: none;
-  margin-bottom: var(--space-md);
-}
-
-.dictation-breadcrumb:hover { color: var(--color-action); }
 
 .dictation-session-band,
 .dictation-summary-band {
@@ -8799,25 +8874,20 @@ select.input:focus {
 
 /* Play button: label reflects state, and a progress bar fills underneath. Landing on
    the page never autoplays — the first listen is always the learner's choice. */
+/* Composes with `.btn.btn-ghost`; only the play affordance lives here. */
 .dictation-play {
   position: relative;
-  display: inline-flex;
-  align-items: center;
   gap: var(--space-sm);
-  padding: 10px 20px;
   min-width: 132px;
-  border: 1px solid var(--color-action);
-  border-radius: 4px;
-  background: var(--color-action);
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.9375rem;
-  cursor: pointer;
   overflow: hidden;
-  transition: background var(--transition-fast);
+  color: var(--color-action);
 }
 
-.dictation-play:hover { background: var(--color-action-hover); }
+/* The triangle/bar is drawn from currentColor, so it follows the label. */
+.dictation-play:hover {
+  border-color: var(--color-action);
+  color: var(--color-action);
+}
 
 .dictation-play-icon {
   width: 0;
@@ -8853,7 +8923,8 @@ select.input:focus {
   bottom: 0;
   width: 100%;
   height: 3px;
-  background: rgba(255, 255, 255, 0.55);
+  /* Reads against the ghost button's transparent fill, not against the action red. */
+  background: var(--color-action);
   transform-origin: left center;
   transform: scaleX(0);
   transition: transform 0.1s linear;
@@ -8864,21 +8935,6 @@ select.input:focus {
   font-size: 0.75rem;
   color: var(--text-faint);
 }
-
-.dictation-primary {
-  padding: 10px 20px;
-  border: 1px solid var(--color-action);
-  border-radius: 4px;
-  background: var(--color-action);
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.9375rem;
-  cursor: pointer;
-  transition: background var(--transition-fast);
-}
-
-.dictation-primary:hover:not(:disabled) { background: var(--color-action-hover); }
-.dictation-primary:disabled { opacity: 0.55; cursor: default; }
 
 .dictation-secondary {
   display: inline-block;
@@ -8892,7 +8948,7 @@ select.input:focus {
 
 .dictation-speed {
   display: inline-flex;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -9100,7 +9156,6 @@ select.input:focus {
   .dictation-canvas { padding-top: var(--space-lg); }
   .passage-catalogue-title { font-size: 1.875rem; }
   .dictation-summary-score { font-size: 2.75rem; }
-  .passage-card-grid { grid-template-columns: 1fr; }
 }
 
 /* Desktop: the rail is persistent and the hamburger is hidden (see the 1024px
@@ -9465,15 +9520,10 @@ select.input:focus {
   line-height: 1.6;
 }
 
+/* Composes with `.studio-link-secondary`; only the spacing is local. */
 .mode-handoff-inline {
-  display: inline-block;
-  margin-top: var(--space-sm);
-  font-size: 0.875rem;
-  color: var(--color-action);
-  text-decoration: none;
+  margin-top: 2px;
 }
-
-.mode-handoff-inline:hover { text-decoration: underline; }
 
 /* ==========================================================================
    English Studio Home (IA v2 §3.3–3.5)
@@ -9593,7 +9643,7 @@ select.input:focus {
 
 /* Retire the one-off page coordinate systems as each route adopts StudioPage. */
 .studio-page-body.home-page,
-.studio-page-body.writing-dashboard,
+.studio-page-body.studio-dashboard,
 .studio-page-body.writing-index,
 .studio-page-body.passage-catalogue,
 .studio-page-body.translate-page {
@@ -9752,7 +9802,7 @@ select.input:focus {
   min-width: 44px;
   min-height: 44px;
   padding: 5px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-control);
   border-radius: 999px;
   background: transparent;
   color: var(--text);
@@ -9762,8 +9812,8 @@ select.input:focus {
 }
 
 .home-level-chip:hover:not(:disabled) {
-  border-color: var(--border-hover);
-  background: var(--bg-card);
+  border-color: var(--color-action);
+  color: var(--color-action);
 }
 
 .home-level-chip:disabled {
@@ -9771,15 +9821,20 @@ select.input:focus {
   cursor: default;
 }
 
+/* Sits on its own line under the status strip, so it runs as one row: label first,
+   then the bands. It no longer has to wrap inside a narrow stat cell. */
 .home-level-picker.is-compact {
-  max-width: 280px;
-  gap: 6px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 20px;
+  margin-bottom: 36px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
 }
 
 .home-level-picker.is-compact .home-level-picker-label {
-  flex-basis: 100%;
-  color: var(--color-action);
+  margin-right: 4px;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
 }
 
 .home-level-picker.is-compact .home-level-chip {
@@ -9790,36 +9845,15 @@ select.input:focus {
 
 /* ---------- the break between doing and knowing ---------- */
 
-.home-split {
-  border: none;
-  border-top: 1px solid var(--border);
-  margin: var(--space-xl) 0 var(--space-lg);
-}
-
-.home-status-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: var(--space-md);
-}
-
-.home-status-label {
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-}
-
-.home-status-more,
-.home-panel-more {
+.home-basis-more {
+  flex: none;
   color: var(--text-muted);
   font-size: 0.75rem;
   text-decoration: none;
+  white-space: nowrap;
 }
 
-.home-status-more:hover,
-a.home-panel-more:hover {
+.home-basis-more:hover {
   color: var(--color-action);
 }
 
@@ -9872,28 +9906,15 @@ a.home-panel-more:hover {
   color: var(--text-faint);
 }
 
-.home-panel-value {
-  font-family: var(--font-display);
-  font-size: 1.75rem;
-  line-height: 1.1;
-  margin-top: 4px;
-}
-
-.home-panel-note {
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-}
-
 /* Coverage: bands practised. Rendered because CEFR confidence depends on band
    spread, so nudging a learner sideways has to look purposeful, not random. */
-.home-coverage {
+.studio-coverage {
   display: flex;
   gap: 4px;
   margin: 8px 0 0;
 }
 
-.home-coverage-band {
+.studio-coverage-band {
   display: grid;
   flex: 1;
   gap: 5px;
@@ -9903,60 +9924,18 @@ a.home-panel-more:hover {
   color: var(--text-faint);
 }
 
-.home-coverage-band::before {
+.studio-coverage-band::before {
   width: 100%;
   height: 3px;
   background: var(--border);
   content: "";
 }
 
-.home-coverage-band.is-on {
+.studio-coverage-band.is-on {
   color: var(--text);
 }
 
-.home-coverage-band.is-on::before {
-  background: var(--copper);
-}
-
-/* ---------- ability bars ---------- */
-
-.home-bar-row {
-  margin-bottom: 10px;
-}
-
-.home-bar-row:last-child {
-  margin-bottom: 0;
-}
-
-.home-bar-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-sm);
-  margin-bottom: 4px;
-  font-size: 0.8125rem;
-}
-
-.home-bar-label {
-  color: var(--text-muted);
-}
-
-.home-bar-value {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-faint);
-  white-space: nowrap;
-}
-
-.home-bar-track {
-  height: 5px;
-  border-radius: 3px;
-  background: var(--bg-alt);
-  overflow: hidden;
-}
-
-.home-bar-fill {
-  height: 100%;
+.studio-coverage-band.is-on::before {
   background: var(--copper);
 }
 
@@ -9993,10 +9972,27 @@ a.home-panel-more:hover {
   white-space: nowrap;
 }
 
-.home-trend-svg {
+/* The axis follows the data, so its bounds are labelled rather than assumed. */
+.studio-trend {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.studio-trend-axis {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+.studio-trend-svg {
   display: block;
   width: 100%;
-  height: 70px;
+  height: 84px;
 }
 
 /* --- Action-first Home: editorial hierarchy instead of a card dashboard --- */
@@ -10017,9 +10013,13 @@ a.home-panel-more:hover {
   text-wrap: pretty;
 }
 
+/* Capped rather than full-bleed: stretched across the whole canvas the two columns
+   sat ~200px apart with dead space on both sides of the gap, and stopped reading as
+   one composition. */
 .home-actions {
-  grid-template-columns: minmax(0, 1.16fr) minmax(320px, 0.84fr);
-  gap: clamp(40px, 6vw, 80px);
+  max-width: 1000px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
+  gap: clamp(32px, 4vw, 56px);
   align-items: start;
 }
 
@@ -10074,6 +10074,9 @@ a.home-panel-more:hover {
   margin-top: 22px;
 }
 
+/* Touch-height column by default. Stacked at 44px each these three links massed
+   more than the primary they qualify, so on pointer widths they collapse to one
+   quiet row (see the min-width query below). */
 .home-card-alternatives {
   display: flex;
   max-width: 240px;
@@ -10082,7 +10085,22 @@ a.home-panel-more:hover {
   margin-top: 16px;
 }
 
-.home-card-alternative {
+@media (min-width: 768px) and (pointer: fine) {
+  .home-card-alternatives {
+    max-width: none;
+    flex-flow: row wrap;
+    gap: 0 20px;
+    margin-top: 10px;
+  }
+
+  .home-card-alternatives .studio-link-secondary {
+    min-height: 30px;
+  }
+}
+
+/* The studio's secondary link: a real option, but never competing with the page's
+   own primary action for the action colour. */
+.studio-link-secondary {
   display: inline-flex;
   min-height: 44px;
   align-items: center;
@@ -10094,62 +10112,34 @@ a.home-panel-more:hover {
   text-transform: uppercase;
 }
 
-.home-card-alternative:hover {
+.studio-link-secondary:hover {
   color: var(--color-action);
 }
 
-.home-status {
-  margin-top: clamp(32px, 4vw, 48px);
-}
-
-.home-status-strip {
-  display: grid;
-  grid-template-columns: 0.8fr 0.8fr 1.4fr;
-  margin-bottom: 32px;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.home-stat {
-  min-width: 0;
-  padding: 22px clamp(20px, 3vw, 30px);
-}
-
-.home-stat:first-child {
-  padding-inline-start: 0;
-}
-
-.home-stat:last-child {
-  padding-inline-end: 0;
-}
-
-.home-stat + .home-stat {
-  border-left: 1px solid var(--border);
-}
-
-.home-stat .home-panel-value {
-  font-size: 1.85rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.home-detail-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
-  gap: clamp(32px, 5vw, 64px);
-}
-
-.home-detail-columns.is-single {
-  grid-template-columns: 1fr;
-}
-
-.home-detail-section,
-.home-trend-section {
+/* One line, same measure as the action zone, carrying what the recommendation above
+   is worth. Replaced the status grid on 2026-08-11; the grid is on /english/progress. */
+.home-basis {
+  display: flex;
+  max-width: 1000px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-top: clamp(28px, 3.5vw, 40px);
   padding-top: 18px;
   border-top: 1px solid var(--border);
 }
 
-.home-trend-section {
-  margin-top: 48px;
+.home-basis-line {
+  margin: 0;
+  max-width: 74ch;
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.home-recent-section {
+  max-width: 1000px;
+  margin-top: clamp(28px, 3.5vw, 40px);
 }
 
 .home-recent-row {
@@ -10163,8 +10153,7 @@ a.home-panel-more:hover {
     min-height: 44px;
   }
 
-  .home-actions,
-  .home-detail-columns {
+  .home-actions {
     grid-template-columns: 1fr;
   }
 
@@ -10181,19 +10170,9 @@ a.home-panel-more:hover {
     padding-inline: 0;
   }
 
-  .home-status-strip {
-    grid-template-columns: 1fr;
-    margin-bottom: 40px;
-  }
-
-  .home-stat,
-  .home-stat:first-child {
-    padding: 18px 0;
-  }
-
-  .home-stat + .home-stat {
-    border-top: 1px solid var(--border);
-    border-left: 0;
+  .home-basis {
+    flex-direction: column;
+    gap: 10px;
   }
 
   .home-level-picker.is-compact .home-level-chip {

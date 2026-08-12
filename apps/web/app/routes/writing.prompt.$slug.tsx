@@ -160,7 +160,7 @@ function WritingPromptReadyPage({
   }, [draftKey, fetcher.data, navigate]);
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="standard">
         <StudioBreadcrumbs items={[
           { label: "Writing", to: "/writing" },

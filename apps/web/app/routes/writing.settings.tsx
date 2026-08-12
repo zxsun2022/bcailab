@@ -25,7 +25,7 @@ export default function WritingSettingsPage() {
   const displayName = user?.name ?? user?.email ?? "Account";
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="standard">
         <StudioPageHeader
           title="Writing settings"

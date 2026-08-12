@@ -3,6 +3,7 @@ import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
 import { listDictationAttemptsByUser, listLibraryPassages } from "@bcailab/db";
 import { getOptionalUser } from "~/utils/auth.server";
+import { LocalDateTime } from "~/components/LocalDateTime";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 
 export const meta: MetaFunction = () => [
@@ -16,6 +17,9 @@ export const meta: MetaFunction = () => [
 
 /** Display order for the CEFR bands; passages outside this list sort last. */
 const BAND_ORDER = ["A2", "B1", "B2", "C1"] as const;
+
+/** The workspace shows a short re-entry list; the full history lives on Progress. */
+const RECENT_ROWS = 4;
 
 const BAND_BLURB: Record<string, string> = {
   A2: "Short everyday sentences, simple tenses.",
@@ -55,11 +59,25 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       }))
   })).filter((group) => group.passages.length > 0);
 
-  return json({ authed: Boolean(user), bands });
+  // Recent practice, so the tool workspace answers "what was I doing?" without a trip to
+  // Progress — the section Writing's hub has and this page did not.
+  const titleById = new Map(passages.map((p) => [p.id, p.title]));
+  const recent = attempts.slice(0, RECENT_ROWS).map((attempt) => ({
+    id: attempt.id,
+    passageId: attempt.passage_id,
+    title: titleById.get(attempt.passage_id) ?? "Passage",
+    state:
+      attempt.status === "in_progress"
+        ? `In progress · ${attempt.sentences_done} done`
+        : `${Math.round(attempt.accuracy * 100)}%`,
+    at: attempt.created_at
+  }));
+
+  return json({ authed: Boolean(user), bands, recent });
 };
 
 export default function DictationLibrary() {
-  const { authed, bands } = useLoaderData<typeof loader>();
+  const { authed, bands, recent } = useLoaderData<typeof loader>();
 
   return (
     <StudioPage width="wide">
@@ -75,6 +93,41 @@ export default function DictationLibrary() {
       />
 
       <StudioPageBody className="passage-catalogue">
+        {authed && recent.length > 0 ? (
+          <section className="passage-recent" aria-labelledby="dictation-recent-heading">
+            <div className="studio-section-head">
+              <div>
+                <p className="studio-section-eyebrow">Your workspace</p>
+                <h2 id="dictation-recent-heading" className="studio-section-title">
+                  Recent practice
+                </h2>
+              </div>
+              <Link to="/english/progress" className="studio-section-more">
+                Full progress &rarr;
+              </Link>
+            </div>
+            <div className="studio-row-list">
+              {recent.map((item) => (
+                <Link
+                  key={item.id}
+                  to={`/dictation/${item.passageId}`}
+                  className="studio-row"
+                >
+                  <span className="studio-row-meta">
+                    <LocalDateTime
+                      value={item.at}
+                      options={{ month: "short", day: "numeric" }}
+                    />
+                  </span>
+                  <strong>{item.title}</strong>
+                  <span className="studio-row-state">{item.state}</span>
+                  <span className="studio-row-arrow" aria-hidden="true">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {bands.length === 0 ? (
           <p className="passage-catalogue-empty">No passages are available yet.</p>
         ) : (
@@ -85,25 +138,29 @@ export default function DictationLibrary() {
                 <span className="passage-band-blurb">{group.blurb}</span>
               </div>
               <div className="passage-band-body">
-                <ul className="passage-card-grid">
+                {/* Rows, not cards: the band header already carries the level, so each
+                    entry only has to be scannable against its siblings. */}
+                <div className="studio-row-list">
                   {group.passages.map((passage) => (
-                    <li key={passage.id}>
-                      <Link to={`/dictation/${passage.id}`} className="passage-card">
-                        <span className="passage-card-title">{passage.title}</span>
-                        <span className="passage-card-meta">
-                          {passage.topic} · {passage.sentenceCount} sentences
-                        </span>
-                        {passage.bestAccuracy !== null ? (
-                          <span className="passage-card-best">
-                            Best {Math.round(passage.bestAccuracy * 100)}%
-                          </span>
-                        ) : (
-                          <span className="passage-card-start">Start</span>
-                        )}
-                      </Link>
-                    </li>
+                    <Link
+                      key={passage.id}
+                      to={`/dictation/${passage.id}`}
+                      className="studio-row"
+                    >
+                      <span className="studio-row-meta">
+                        <span>{passage.topic}</span>
+                        <span>{passage.sentenceCount} sentences</span>
+                      </span>
+                      <strong>{passage.title}</strong>
+                      <span className="studio-row-state">
+                        {passage.bestAccuracy !== null
+                          ? `Best ${Math.round(passage.bestAccuracy * 100)}%`
+                          : "Not started"}
+                      </span>
+                      <span className="studio-row-arrow" aria-hidden="true">→</span>
+                    </Link>
                   ))}
-                </ul>
+                </div>
               </div>
             </section>
           ))

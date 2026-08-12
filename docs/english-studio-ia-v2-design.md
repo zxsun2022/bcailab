@@ -189,8 +189,15 @@ bcailab                            ← all products
 - Speech follows the workspace pattern directly: `Generate / History` is local navigation
   above the Speech canvas, and `/speech/history` renders the generation list in the main
   content area. Neither tab nor any generation record appears in the product rail.
-- A concrete session keeps the global rail and exposes an explicit upper-right
-  **Back to [tool]** action.
+- A concrete session keeps the global rail and exposes an explicit return at the **leading
+  edge** of its canvas. Which control depends on depth, and the two are not alternatives:
+  a session one level below its tool root gets **Back to [tool]** (`.session-project-return`);
+  a session two or more levels down gets `StudioBreadcrumbs`, because a breadcrumb with a
+  single ancestor is a back link carrying false hierarchy. Today only Writing is deep enough
+  to earn breadcrumbs (`Writing / collection / prompt / draft`); Reading and Dictation are
+  catalogue → session and use the back link. They switch to breadcrumbs when their collection
+  tier lands, not before. Corrected 2026-08-11: this bullet previously said "upper-right",
+  which no route has ever implemented.
 - The shell owns viewport height. The main content column is the default and only page
   scroller; session layouts may opt into bounded inner scrollers where their editor or
   feedback rail genuinely needs them.

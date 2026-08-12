@@ -1,11 +1,20 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
-import { getEslLearnerProfile } from "@bcailab/db";
+import {
+  getEslLearnerProfile,
+  listDictationAttemptsByUser,
+  listPractisedPassageBandsByUser
+} from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { StudioShell } from "~/components/StudioShell";
 import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
-import { resolveCefr, TAG_DESCRIPTIONS, type TagMastery } from "~/utils/learner-model";
+import {
+  CEFR_LEVELS,
+  resolveCefr,
+  TAG_DESCRIPTIONS,
+  type TagMastery
+} from "~/utils/learner-model";
 import {
   StudioPage,
   StudioPageBody,
@@ -22,6 +31,14 @@ export const handle = {
 export const meta: MetaFunction = () => [{ title: "Progress · English Studio · bcailab" }];
 
 type TagRow = { tag: string; label: string; mastery: TagMastery };
+
+/** Bounded inputs; this page summarises a profile, it does not replay history. */
+const DICTATION_HISTORY_LIMIT = 40;
+const TREND_POINTS = 12;
+/** A1 and C2 carry no library material, so they cannot be "covered". */
+const COVERAGE_BANDS: readonly string[] = CEFR_LEVELS.filter(
+  (band) => band !== "A1" && band !== "C2"
+);
 
 const parseTagMastery = (jsonText: string): Record<string, TagMastery> => {
   try {
@@ -43,7 +60,25 @@ const parseStringArray = (jsonText: string): string[] => {
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
-  const profile = await getEslLearnerProfile(context.env.DB, user.id);
+  const db = context.env.DB;
+
+  // Coverage and the accuracy curve moved here from Home (2026-08-11): retrospective
+  // detail belongs on the progress centre, Home keeps only what qualifies its
+  // recommendation. See docs/learner-model-design.md §9.
+  const [profile, practisedBands, dictationAttempts] = await Promise.all([
+    getEslLearnerProfile(db, user.id),
+    listPractisedPassageBandsByUser(db, user.id),
+    listDictationAttemptsByUser(db, { userId: user.id, limit: DICTATION_HISTORY_LIMIT })
+  ]);
+
+  const coverage = practisedBands.filter((band) => COVERAGE_BANDS.includes(band));
+
+  // Dictation only: it is the deterministic signal (learner-model-design §2).
+  const trend = dictationAttempts
+    .filter((a) => a.status === "completed")
+    .slice(0, TREND_POINTS)
+    .reverse()
+    .map((a) => a.accuracy);
 
   const tagMastery = profile ? parseTagMastery(profile.tag_mastery_json) : {};
   const rows: TagRow[] = Object.entries(tagMastery)
@@ -71,9 +106,65 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     namedStrengths: profile ? parseStringArray(profile.strengths_json) : [],
     workingOn,
     strengths,
+    coverage,
+    trend,
     hasData: rows.length > 0 || (profile?.total_attempts ?? 0) > 0
   });
 };
+
+/** Never let the axis span less than this, so a steady learner does not read as erratic. */
+const TREND_MIN_SPAN = 0.2;
+
+function trendDomain(points: number[]): { low: number; high: number } {
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const centre = (min + max) / 2;
+  const span = Math.max(max - min, TREND_MIN_SPAN);
+  // Keep the padded window inside 0..1 without letting it collapse at either end.
+  const low = Math.max(0, Math.min(centre - span * 0.75, 1 - span * 1.5));
+  return { low, high: Math.min(1, low + span * 1.5) };
+}
+
+/**
+ * Accuracy over the last completed dictation attempts. Moved from Home so the growth
+ * curve — the retrospective payoff of recording observations — lives on the surface
+ * built for it (learner-model-design §9.1).
+ */
+function AccuracyTrend({ points }: { points: number[] }) {
+  if (points.length < 2) return null;
+  // A fixed 0–100 axis flattened real movement — a 26-point gain rendered as a nearly
+  // straight line. The axis follows the data instead, and the endpoints are labelled so a
+  // scaled axis cannot be misread as absolute.
+  const { low, high } = trendDomain(points);
+  const range = high - low || 1;
+  const coords = points.map((value, index) => {
+    const x = (index / (points.length - 1)) * 100;
+    const y = 100 - ((Math.min(high, Math.max(low, value)) - low) / range) * 100;
+    return `${x},${y}`;
+  });
+  return (
+    <div className="studio-trend">
+      <span className="studio-trend-axis">{Math.round(high * 100)}%</span>
+      <svg
+        className="studio-trend-svg"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`Accuracy across the last ${points.length} completed passages, from ${Math.round(points[0]! * 100)} to ${Math.round(points[points.length - 1]! * 100)} percent.`}
+      >
+        <polyline
+          points={coords.join(" ")}
+          fill="none"
+          stroke="var(--copper)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      <span className="studio-trend-axis">{Math.round(low * 100)}%</span>
+    </div>
+  );
+}
 
 function formatPracticeTime(seconds: number): string {
   if (seconds <= 0) return "0m";
@@ -134,6 +225,8 @@ export default function EnglishProgressPage() {
     namedStrengths,
     workingOn,
     strengths,
+    coverage,
+    trend,
     hasData
   } = useLoaderData<typeof loader>();
 
@@ -147,13 +240,13 @@ export default function EnglishProgressPage() {
         <StudioPageTabs>
           <ProgressWorkspaceTabs />
         </StudioPageTabs>
-        <StudioPageBody className="writing-dashboard">
+        <StudioPageBody className="studio-dashboard">
 
         {!hasData ? (
-          <div className="writing-dashboard-empty">
-            <div className="writing-dashboard-empty-icon">📈</div>
-            <div className="writing-dashboard-empty-title">No data yet</div>
-            <p className="writing-dashboard-empty-desc">
+          <div className="studio-empty">
+            <div className="studio-empty-mark" aria-hidden="true" />
+            <div className="studio-empty-title">No data yet</div>
+            <p className="studio-empty-desc">
               Practise a dictation passage to start building your profile — it doubles as a
               level check.
             </p>
@@ -180,6 +273,37 @@ export default function EnglishProgressPage() {
                 </div>
               </div>
               <p className="dash-section-hint">{levelBasisNote(level, levelBasis)}</p>
+            </div>
+
+            {trend.length >= 2 ? (
+              <div className="dash-section">
+                <h3 className="dash-section-title">Dictation accuracy</h3>
+                <p className="dash-section-hint">
+                  Your last {trend.length} completed passages, oldest first.
+                </p>
+                <AccuracyTrend points={trend} />
+              </div>
+            ) : null}
+
+            <div className="dash-section">
+              <h3 className="dash-section-title">Coverage</h3>
+              <p className="dash-section-hint">
+                Which levels you have practised. A wider spread makes the level estimate
+                more confident, so working a band above or below is useful.
+              </p>
+              <div className="studio-coverage">
+                {COVERAGE_BANDS.map((band) => (
+                  <span
+                    key={band}
+                    className={`studio-coverage-band${coverage.includes(band) ? " is-on" : ""}`}
+                  >
+                    {band}
+                  </span>
+                ))}
+              </div>
+              <p className="dash-section-hint">
+                {coverage.length} of {COVERAGE_BANDS.length} levels practised
+              </p>
             </div>
 
             {namedIssues.length > 0 || namedStrengths.length > 0 ? (

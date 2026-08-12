@@ -574,7 +574,7 @@ export default function DictationSession() {
         <h1 className="dictation-gate-title">Come back tomorrow</h1>
         <p className="dictation-gate-body">{gate}</p>
         {!authed ? (
-          <button type="button" className="dictation-primary" onClick={() => openLoginPopup()}>
+          <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
             Sign in — it's free
           </button>
         ) : null}
@@ -626,7 +626,7 @@ export default function DictationSession() {
               You know the words now. Read the same passage aloud and get feedback on your
               pronunciation and rhythm.
             </p>
-            <Link to={`/reading/${passage.id}`} className="dictation-primary">
+            <Link to={`/reading/${passage.id}`} className="btn btn-primary">
               Read it aloud
             </Link>
           </div>
@@ -637,7 +637,7 @@ export default function DictationSession() {
             <p className="dictation-cta-text">
               Sign in to save your progress and get coach feedback on your error patterns.
             </p>
-            <button type="button" className="dictation-primary" onClick={() => openLoginPopup()}>
+            <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
               Sign in — it's free
             </button>
           </div>
@@ -685,9 +685,11 @@ export default function DictationSession() {
       ) : null}
 
       <div className="dictation-controls">
+        {/* Play is ghost, not primary: Check is the sentence's one commit action, and
+            two filled buttons on screen read as two equal choices. */}
         <button
           type="button"
-          className={`dictation-play${audioState === "playing" ? " is-playing" : ""}`}
+          className={`btn btn-ghost dictation-play${audioState === "playing" ? " is-playing" : ""}`}
           onClick={play}
           aria-label={currentPlays === 0 ? "Play sentence" : "Play sentence again"}
         >
@@ -763,11 +765,11 @@ export default function DictationSession() {
 
       <div className="dictation-actions">
         {currentChecked ? (
-          <button type="button" className="dictation-primary" onClick={next} disabled={busy}>
+          <button type="button" className="btn btn-primary" onClick={next} disabled={busy}>
             {isLast ? (busy ? "Scoring…" : "Finish") : "Next sentence"}
           </button>
         ) : (
-          <button type="button" className="dictation-primary" onClick={check} disabled={busy}>
+          <button type="button" className="btn btn-primary" onClick={check} disabled={busy}>
             {busy ? "Checking…" : "Check"}
           </button>
         )}

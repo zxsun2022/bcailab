@@ -583,7 +583,8 @@ export default function TtsIndexPage() {
     [content]
   );
   const isOverLimit = contentByteLength > MAX_TTS_SSML_BYTES;
-  const canGenerate = !!voiceName && !isSubmitting && !isOverLimit;
+  const canGenerate =
+    content.trim().length > 0 && !!voiceName && !isSubmitting && !isOverLimit;
   const transcriptModel = React.useMemo(
     () => (activeAlignment ? buildTranscriptModel(activeAlignment) : null),
     [activeAlignment]
@@ -809,7 +810,7 @@ export default function TtsIndexPage() {
                         <select
                           id="languageCode"
                           name="languageCode"
-                          className="input"
+                          className="studio-select"
                           value={selectedLanguage?.code ?? ""}
                           onChange={(event) => setLanguageCode(event.currentTarget.value)}
                         >
@@ -833,7 +834,7 @@ export default function TtsIndexPage() {
                         <select
                           id="voiceName"
                           name="voiceName"
-                          className="input"
+                          className="studio-select"
                           value={voiceName}
                           onChange={(event) => setVoiceName(event.currentTarget.value)}
                           disabled={voiceOptions.length === 0}

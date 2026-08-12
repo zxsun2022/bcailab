@@ -83,7 +83,7 @@ export default function WritingHomePage() {
   const latest = data.articles[0] ?? null;
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
           title="Writing"

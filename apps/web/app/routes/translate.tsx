@@ -442,7 +442,7 @@ export default function TranslatePage() {
           <label className="translate-lang-group">
             <span className="translate-lang-caption">From</span>
             <select
-              className="translate-lang-select"
+              className="studio-select"
               name="source"
               value={source}
               onChange={(e) => setSource(e.target.value)}
@@ -475,7 +475,7 @@ export default function TranslatePage() {
           <label className="translate-lang-group">
             <span className="translate-lang-caption">To</span>
             <select
-              className="translate-lang-select"
+              className="studio-select"
               name="target"
               value={target}
               onChange={(e) => {
