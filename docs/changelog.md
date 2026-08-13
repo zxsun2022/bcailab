@@ -9,7 +9,7 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-08-12 — **in_review: rejected a cross-tool practice-session entity; kept each tool's
+- 2026-08-12 — **accepted: rejected a cross-tool practice-session entity; kept each tool's
   native model.** Recorded as [ADR 0007](decisions/0007-no-cross-tool-practice-session-entity.md).
   The Recent-list dedup below raised a modelling question — what does a folded row represent?
   — and a full contract was drafted (`docs/practice-session-contract.md`, revised once after a
@@ -28,7 +28,7 @@ make the final transition; see `AGENTS.md`.
   production build, and authenticated verification that the basis line and Writing's own
   "Session"/"Round" vocabulary are each correct after the copy sweep.
 
-- 2026-08-12 — **fix: Recent lists show distinct destinations, not repeated ones.** Home and
+- 2026-08-12 — **accepted: Recent lists show distinct destinations, not repeated ones.** Home and
   the Reading/Dictation workspaces listed raw attempts, so practising one passage three times
   produced three Recent rows whose links were byte-for-byte identical — three slots spent on
   one destination. Folded to one row per passage instead, carrying attempt count and best
