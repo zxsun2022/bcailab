@@ -57,8 +57,8 @@ const WRITING_HISTORY_LIMIT = 1;
 const RECENT_ROWS = 3;
 
 /**
- * One practice session — the work on one passage, not one run at it. `attempts` and `best`
- * are what make the row a session rather than a snapshot of its latest attempt.
+ * One row of recent practice: all the work on one passage, not one run at it. `attempts`
+ * and `best` are what make it a summary rather than a snapshot of the latest attempt.
  */
 type RecentItem = {
   id: string;
@@ -173,24 +173,26 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     const sentenceCountById = new Map(candidates.map((c) => [c.id, c.sentenceCount]));
 
     /*
-      One row per session, not per attempt.
+      One row per material, not per attempt.
 
-      Reading and Dictation have no session table — the container is implicitly
-      (user × passage), while Writing's `writing_articles` row is the same idea made
-      explicit. Listing raw attempts therefore spent several rows on one destination:
-      three attempts at one passage rendered as three rows whose hrefs were byte-for-byte
-      identical, because these links have always addressed the passage, not the attempt.
-      A single attempt is still reachable — the passage's history rail addresses it with
-      `?attempt=<id>` — so folding here costs no reachability.
+      Listing raw attempts spent several rows on one destination: three attempts at one
+      passage rendered as three rows whose hrefs were byte-for-byte identical, because these
+      links have always addressed the passage, not the attempt. A single attempt is still
+      reachable — the passage's history rail addresses it with `?attempt=<id>` — so folding
+      here costs no reachability.
+
+      The studio has no cross-tool session entity and deliberately will not grow one
+      (ADR 0007), so these rows answer "what material was I working on?" and are named for
+      that rather than borrowing Writing's workspace vocabulary.
 
       Both attempt lists arrive newest-first, so the first row seen for a passage is its
-      latest and sets the session's timestamp.
+      latest and sets the row's timestamp.
     */
-    const sessions = new Map<string, RecentItem>();
-    const addSession = (key: string, item: RecentItem, score: number | null) => {
-      const existing = sessions.get(key);
+    const byMaterial = new Map<string, RecentItem>();
+    const addAttempt = (key: string, item: RecentItem, score: number | null) => {
+      const existing = byMaterial.get(key);
       if (!existing) {
-        sessions.set(key, { ...item, attempts: 1, best: score });
+        byMaterial.set(key, { ...item, attempts: 1, best: score });
         return;
       }
       existing.attempts += 1;
@@ -200,7 +202,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     };
 
     for (const a of dictationAttempts) {
-      addSession(
+      addAttempt(
         `dictation:${a.passage_id}`,
         {
           id: `dictation:${a.passage_id}`,
@@ -220,7 +222,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     }
 
     for (const a of readingAttempts) {
-      addSession(
+      addAttempt(
         `reading:${a.passage_id}`,
         {
           id: `reading:${a.passage_id}`,
@@ -236,7 +238,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       );
     }
 
-    recent = [...sessions.values()]
+    recent = [...byMaterial.values()]
       .sort((x, y) => y.at.localeCompare(x.at))
       .slice(0, RECENT_ROWS);
 
@@ -321,12 +323,15 @@ export default function EnglishHome() {
 
   // One line, not a grid. It states what the system knows and how far to trust it; the
   // level is never asserted before it has been established (§3.5).
-  const sessionText =
-    totalAttempts === 1 ? "1 recorded session" : `${totalAttempts} recorded sessions`;
+  //
+  // "Attempts", not "sessions": this counts `total_attempts`, and the studio has no session
+  // entity outside Writing's own workspace vocabulary (ADR 0007).
+  const attemptText =
+    totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
   const volumeText =
     totalPracticeSeconds > 0
-      ? `${sessionText} · ${formatPracticeTime(totalPracticeSeconds)}`
-      : sessionText;
+      ? `${attemptText} · ${formatPracticeTime(totalPracticeSeconds)}`
+      : attemptText;
   const basisSentence =
     level == null
       ? `${volumeText} so far — not enough yet to estimate your level.`
@@ -482,7 +487,7 @@ export default function EnglishHome() {
                     <span className="home-recent-meta">
                       {[
                         item.mode,
-                        // Repeated work is the session's story; a single run has none to tell.
+                        // Repeated work is the story here; a single run has none to tell.
                         item.attempts > 1
                           ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
                           : item.latest

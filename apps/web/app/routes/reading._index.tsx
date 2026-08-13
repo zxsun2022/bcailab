@@ -114,10 +114,10 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     // Recent practice, so the tool workspace answers "what was I doing?" without a trip
     // to Progress — the section Writing's hub has and this page did not.
     //
-    // One row per session, not per attempt: reading has no session table, so the container
-    // is (user × passage), and these links address the passage anyway. `stats` already
-    // carries the session-level counts, so folding needs no extra query. Attempts arrive
-    // newest-first, so the first row seen for a passage sets the session's timestamp.
+    // One row per material, not per attempt: these links address the passage anyway, and
+    // the studio grows no cross-tool session entity (ADR 0007). `stats` already carries the
+    // per-passage counts, so folding needs no extra query. Attempts arrive newest-first, so
+    // the first row seen for a passage sets the row's timestamp.
     recent: recentAttempts
       .filter((attempt, index, all) =>
         all.findIndex((other) => other.passage_id === attempt.passage_id) === index
@@ -223,7 +223,7 @@ export default function ReadingCatalogue() {
                   </span>
                   <strong>{item.title}</strong>
                   <span className="studio-row-state">
-                    {/* Repeated work is the session's story; a single run has none to tell. */}
+                    {/* Repeated work is the story here; a single run has none to tell. */}
                     {item.attempts > 1
                       ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
                       : item.latest}

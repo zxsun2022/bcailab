@@ -1,20 +1,35 @@
-# Practice Session Contract — Design (rev 2)
+# Practice Session Contract — Design (rev 2) — NOT ADOPTED
 
-Status: **proposed, not authorized.** Rev 1 (2026-08-12, commit `34484fb`) was reviewed the
-same day by a second tool (Codex) at the owner's request; the review invalidated several of
-rev 1's factual claims and two of its design decisions. This revision incorporates what
-survived verification. §0 records the corrections so they are not re-derived; §10 lists what
-still needs the owner's yes.
+> **Status: rejected exploration.** The owner decided on 2026-08-12 not to introduce the
+> sitting concept and not to build a cross-tool `practice_sessions` entity. Each tool keeps
+> its native model: Reading and Dictation centre on material and attempts, Writing on a
+> durable workspace with Draft and Round. Recent lists continue to aggregate by material.
+>
+> **The decision and its reasoning are
+> [ADR 0007](decisions/0007-no-cross-tool-practice-session-entity.md). Read that first.**
+> This file is kept for the investigation it contains, not as a plan. Nothing below is
+> authorized, and §10's open questions are closed by the decision not to build.
+>
+> Three findings here outlived the proposal and are worth knowing before touching this area:
+> **Round is roadmap-authorized Writing vocabulary**, not drift (§0.1); **Draft names a
+> saved-but-unevaluated state**, not a rival unit (§0.2); and **Reading's pasted texts have
+> real `passages.id` material identity** (§0.3).
+>
+> If a consumer ever needs sittings — a session-history surface, or ia-v2 §6.4's planning
+> layer — start from §0, §3.3 and §5 here; only the "no consumer" objection will have
+> expired.
 
-Implementation has **not** started and is not authorized by this document.
-`docs/roadmap.md` explicitly excludes session work from the current iteration
-("Dictation v2/session matching" under *Explicitly excluded*), and nothing here overrides
-that.
+Rev 1 (2026-08-12, commit `34484fb`) was reviewed the same day by a second tool (Codex) at
+the owner's request; the review invalidated several of rev 1's factual claims and two of its
+design decisions. This revision incorporated what survived verification.
 
-This document exists to close the gap `docs/english-studio-ia-v2-design.md` §3.2 left open:
+The gap this proposal set out to close, in `docs/english-studio-ia-v2-design.md` §3.2:
 
 > No attempt/article/generation history appears in the rail until "session" has one
 > consistent cross-tool contract (identity, resumability and lifecycle).
+
+That precondition is now permanently unmet by choice (ADR 0007), so the rail stays
+navigation-only on its own merits rather than on this gap.
 
 ## 0. What rev 1 got wrong (verified against code, 2026-08-12)
 
