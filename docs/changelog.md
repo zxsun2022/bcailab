@@ -47,7 +47,7 @@ make the final transition; see `AGENTS.md`.
   cannot edit away. Evidence: root typecheck, 564-test suite, production build, and
   authenticated verification (`distinctDestinations: 1` where it had been 3).
 
-- 2026-08-12 — **in_review: Home is prospective, Progress is retrospective.** Applied
+- 2026-08-12 — **accepted: Home is prospective, Progress is retrospective.** Applied
   `docs/learner-model-design.md` §9.4 to the two surfaces that had drifted into saying the same
   thing. `/english/progress` first gained the two panels it lacked — Coverage, and the dictation
   accuracy curve — after which Home's status grid was removed rather than duplicated. What
@@ -68,7 +68,7 @@ make the final transition; see `AGENTS.md`.
   a dead-class sweep across CSS and TSX, and authenticated browser verification of the avatar
   (`naturalWidth` 0 → 96) and of Reading's recent list against real attempt data.
 
-- 2026-08-12 — **in_review: practice catalogues adopt the Writing row pattern.** Dictation and
+- 2026-08-12 — **accepted: practice catalogues adopt the Writing row pattern.** Dictation and
   Reading moved from card grids to the row list Writing's library established, promoted out of
   `writing-library-*` into a shared `studio-row*` primitive so the name no longer leaks across
   modules. Two measurements changed the primitive on the way: row height dropped 92px → 72px
@@ -85,7 +85,7 @@ make the final transition; see `AGENTS.md`.
   typecheck, 564-test suite, production build, and browser checks of column counts across
   1400/1120/1064/1000/900/760/600/420px.
 
-- 2026-08-12 — **in_review: Studio design-system primitives applied to the pages that skipped
+- 2026-08-12 — **accepted: Studio design-system primitives applied to the pages that skipped
   them.** `StudioPage` and `.btn` existed but the practice screens had not adopted them.
   Dictation's session buttons moved off bespoke serif Title Case onto the shared mono
   primitive; the rail's account row had no `font-family` at all and was rendering in the UA

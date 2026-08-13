@@ -19,10 +19,13 @@ infrastructure and eventually its accounts, but branded and styled independently
 
 ## Now — English Studio material, memory, and interaction iteration
 
-The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation is
-**in_review** on `codex/english-studio-major-iteration`; only the owner may move it to
-accepted. The detailed design and failure registry live in
-[the iteration plan](english-studio-major-iteration-proposal.md).
+The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation
+continued past the original branch: `codex/english-studio-major-iteration` is now fully
+contained in **`codex/ui-navigation-polish`**, which carries the UI/IA work that followed and
+is the branch to review. The detailed design and failure registry live in
+[the iteration plan](english-studio-major-iteration-proposal.md); what has shipped and its
+acceptance state is in [the changelog](changelog.md). Only the owner moves an item to
+accepted.
 
 ### Product boundary and invariants
 
@@ -373,6 +376,20 @@ returns, so neither needs an IA change.
   built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
   and server-side rendering. Those remain separate directions requiring their own evidence and
   authorization.
+- **Dictation contributes practice duration** (owner-authorized 2026-08-12, not started).
+  `total_practice_seconds` counts reading only: `learner-model.server.ts` passes
+  `practiceSeconds: 0` for dictation because nothing times a dictation attempt. A learner who
+  practises both modes therefore has a duration covering half their work. The surfaces were
+  made honest rather than left overclaiming — Home dropped duration entirely, Progress renamed
+  its card to *Reading time* and hides it at zero — so this item is about restoring the
+  measurement, not about the copy. Acceptance: (a) a dictation attempt records elapsed practice
+  time and adds it to `total_practice_seconds`; (b) resuming an in-progress attempt does not
+  double-count time already recorded; (c) idle time with no interaction is excluded, by a
+  documented rule; (d) Progress presents one duration covering every mode that measures one,
+  renamed back from *Reading time*; and (e) existing rows are unaffected — historical dictation
+  attempts stay at zero rather than being back-estimated. Explicitly excluded: timing Writing,
+  whose unit of work is a submitted round rather than a timed sitting.
+
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the

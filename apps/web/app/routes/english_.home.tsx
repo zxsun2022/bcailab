@@ -256,7 +256,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     levelBasis: resolved.basis,
     levelConfidence: profile?.cefr_measured_confidence ?? 0,
     totalAttempts: profile?.total_attempts ?? 0,
-    totalPracticeSeconds: profile?.total_practice_seconds ?? 0,
     practice,
     recent,
     hasHistory,
@@ -264,13 +263,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   });
 };
 
-function formatPracticeTime(seconds: number): string {
-  if (seconds <= 0) return "0m";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${Math.max(1, minutes)}m`;
-}
 
 function LevelPicker({ compact = false }: { compact?: boolean }) {
   const fetcher = useFetcher<{ ok?: boolean }>();
@@ -308,7 +300,6 @@ export default function EnglishHome() {
     levelBasis,
     levelConfidence,
     totalAttempts,
-    totalPracticeSeconds,
     practice,
     recent,
     hasHistory,
@@ -326,12 +317,13 @@ export default function EnglishHome() {
   //
   // "Attempts", not "sessions": this counts `total_attempts`, and the studio has no session
   // entity outside Writing's own workspace vocabulary (ADR 0007).
-  const attemptText =
-    totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
+  //
+  // Attempt count only. Duration used to sit here too, but `total_practice_seconds` counts
+  // reading alone — dictation records none — so a learner using both modes read a number
+  // that silently omitted half their work. The count carries this line's whole job; the
+  // duration detail belongs on Progress, correctly labelled.
   const volumeText =
-    totalPracticeSeconds > 0
-      ? `${attemptText} · ${formatPracticeTime(totalPracticeSeconds)}`
-      : attemptText;
+    totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
   const basisSentence =
     level == null
       ? `${volumeText} so far — not enough yet to estimate your level.`

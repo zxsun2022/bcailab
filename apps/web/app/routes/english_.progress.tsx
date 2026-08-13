@@ -267,10 +267,15 @@ export default function EnglishProgressPage() {
                   <div className="dash-stat-value">{totalAttempts}</div>
                   <div className="dash-stat-label">Attempts</div>
                 </div>
-                <div className="dash-stat-card">
-                  <div className="dash-stat-value">{formatPracticeTime(totalPracticeSeconds)}</div>
-                  <div className="dash-stat-label">Practice time</div>
-                </div>
+                {/* Only reading attempts carry a duration — dictation writes 0 seconds
+                    because nothing times it. Labelling this "practice time" overclaimed,
+                    and at zero it rendered "0m" beside a real attempt count. */}
+                {totalPracticeSeconds > 0 ? (
+                  <div className="dash-stat-card">
+                    <div className="dash-stat-value">{formatPracticeTime(totalPracticeSeconds)}</div>
+                    <div className="dash-stat-label">Reading time</div>
+                  </div>
+                ) : null}
               </div>
               <p className="dash-section-hint">{levelBasisNote(level, levelBasis)}</p>
             </div>
