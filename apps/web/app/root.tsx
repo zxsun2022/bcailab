@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { LinksFunction, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import {
@@ -11,6 +12,7 @@ import {
   useMatches
 } from "@remix-run/react";
 import globalStyles from "~/styles/global.css?url";
+import { AppErrorBoundary } from "~/components/AppErrorBoundary";
 import { Header } from "~/components/Header";
 import { getOptionalUser } from "~/utils/auth.server";
 
@@ -53,6 +55,31 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return json({ user });
 };
 
+function Document({
+  children,
+  bodyClassName
+}: {
+  children: ReactNode;
+  bodyClassName?: string;
+}) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head suppressHydrationWarning>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Meta />
+        <Links />
+      </head>
+      <body className={bodyClassName}>
+        {children}
+        <ScrollRestoration />
+        <Scripts />
+      </body>
+    </html>
+  );
+}
+
 export default function App() {
   const { user } = useLoaderData<typeof loader>();
   const location = useLocation();
@@ -64,33 +91,39 @@ export default function App() {
   const hideHeader = matches.some((m) => (m.handle as RouteHandle)?.hideHeader);
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head suppressHydrationWarning>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <Meta />
-        <Links />
-      </head>
-      <body className={hideHeader ? "tool-body" : undefined}>
-        {hideHeader ? null : <Header user={user} />}
-        <main className={hideHeader ? "tool-main" : "container"}>
-          <Outlet context={{ user }} />
-        </main>
-        {showFooter ? (
-          <footer className="footer">
-            <div className="container footer-inner">
-              <span>© {new Date().getFullYear()} bcailab · Burnaby, British Columbia, Canada</span>
-              <div className="footer-links">
-                <a href="/about" className="footer-link">About</a>
-                <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
-              </div>
+    <Document bodyClassName={hideHeader ? "tool-body" : undefined}>
+      {hideHeader ? null : <Header user={user} />}
+      <main className={hideHeader ? "tool-main" : "container"}>
+        <Outlet context={{ user }} />
+      </main>
+      {showFooter ? (
+        <footer className="footer">
+          <div className="container footer-inner">
+            <span>© {new Date().getFullYear()} bcailab · Burnaby, British Columbia, Canada</span>
+            <div className="footer-links">
+              <a href="/about" className="footer-link">About</a>
+              <a href="https://x.com/Zhongxing_Sun" target="_blank" rel="noopener noreferrer" className="footer-link">X</a>
             </div>
-          </footer>
-        ) : null}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
+          </div>
+        </footer>
+      ) : null}
+    </Document>
+  );
+}
+
+/**
+ * Root-level errors lose the loader data the app shell depends on, so this renders
+ * the document itself rather than reusing `App`.
+ */
+export function ErrorBoundary() {
+  return (
+    <Document>
+      {/* No loader data here, so the header renders signed-out. It is still worth
+          keeping: an error page without the site chrome reads as a dead end. */}
+      <Header user={null} />
+      <main className="container">
+        <AppErrorBoundary />
+      </main>
+    </Document>
   );
 }

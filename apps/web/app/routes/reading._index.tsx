@@ -6,10 +6,12 @@ import {
   getEslLearnerProfile,
   listLibraryPassages,
   listPassagesByUser,
-  listReadingPassageStatsByUser
+  listReadingPassageStatsByUser,
+  listRecentReadingAttempts
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { resolveCefr } from "~/utils/learner-model";
+import { LocalDateTime } from "~/components/LocalDateTime";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
 
@@ -30,6 +32,11 @@ import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
 export const meta: MetaFunction = () => [{ title: "Reading · bcailab" }];
 
 const BAND_ORDER = ["A2", "B1", "B2", "C1"] as const;
+
+/** The workspace shows a short re-entry list; the full history lives on Progress. */
+const RECENT_ROWS = 4;
+/** Attempts to scan for those rows: they fold to one row per passage, so fetch more. */
+const RECENT_ATTEMPT_SCAN = 24;
 
 const BAND_BLURB: Record<string, string> = {
   A2: "Short everyday sentences, simple tenses.",
@@ -56,11 +63,12 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   const db = context.env.DB;
 
-  const [library, own, stats, profile] = await Promise.all([
+  const [library, own, stats, profile, recentAttempts] = await Promise.all([
     listLibraryPassages(db),
     listPassagesByUser(db, user.id),
     listReadingPassageStatsByUser(db, user.id),
-    getEslLearnerProfile(db, user.id)
+    getEslLearnerProfile(db, user.id),
+    listRecentReadingAttempts(db, { userId: user.id, limit: RECENT_ATTEMPT_SCAN })
   ]);
 
   const statByPassage = new Map(stats.map((s) => [s.passage_id, s]));
@@ -102,17 +110,41 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       title: passage.title,
       wordCount: passage.word_count,
       state: toState(passage.id)
-    }))
+    })),
+    // Recent practice, so the tool workspace answers "what was I doing?" without a trip
+    // to Progress — the section Writing's hub has and this page did not.
+    //
+    // One row per material, not per attempt: these links address the passage anyway, and
+    // the studio grows no cross-tool session entity (ADR 0007). `stats` already carries the
+    // per-passage counts, so folding needs no extra query. Attempts arrive newest-first, so
+    // the first row seen for a passage sets the row's timestamp.
+    recent: recentAttempts
+      .filter((attempt, index, all) =>
+        all.findIndex((other) => other.passage_id === attempt.passage_id) === index
+      )
+      .slice(0, RECENT_ROWS)
+      .map((attempt) => {
+        const stat = statByPassage.get(attempt.passage_id);
+        return {
+          id: attempt.passage_id,
+          passageId: attempt.passage_id,
+          title: attempt.passage_title ?? "Passage",
+          attempts: stat?.attempts ?? 1,
+          best: stat?.best_score != null ? Math.round(stat.best_score) : null,
+          latest: attempt.overall_score != null ? `${attempt.overall_score}` : "Evaluating…",
+          at: attempt.created_at
+        };
+      })
   });
 };
 
 function StateLabel({ state }: { state: CardState }) {
-  if (state.kind === "new") return <span className="passage-card-state is-new">Not started</span>;
+  if (state.kind === "new") return <span className="studio-row-state">Not started</span>;
   if (state.kind === "pending") {
-    return <span className="passage-card-state is-pending">Evaluating…</span>;
+    return <span className="studio-row-state is-pending">Evaluating…</span>;
   }
   return (
-    <span className="passage-card-state is-scored">
+    <span className="studio-row-state is-scored">
       Best {state.best}
       {state.attempts > 1 ? ` · ${state.attempts} attempts` : ""}
     </span>
@@ -121,26 +153,26 @@ function StateLabel({ state }: { state: CardState }) {
 
 function PassageGrid({ passages }: { passages: PassageCard[] }) {
   return (
-    <ul className="passage-card-grid">
+    // Rows, not cards: the band header already carries the level, so each entry
+    // only has to be scannable against its siblings.
+    <div className="studio-row-list">
       {passages.map((passage) => (
-        <li key={passage.id}>
-          <Link to={`/reading/${passage.id}`} className="passage-card">
-            <span className="passage-card-title">{passage.title}</span>
-            <span className="passage-card-meta">
-              {[passage.topic, passage.wordCount > 0 ? `${passage.wordCount} words` : null]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-            <StateLabel state={passage.state} />
-          </Link>
-        </li>
+        <Link key={passage.id} to={`/reading/${passage.id}`} className="studio-row">
+          <span className="studio-row-meta">
+            <span>{passage.topic}</span>
+            {passage.wordCount > 0 ? <span>{passage.wordCount} words</span> : null}
+          </span>
+          <strong>{passage.title}</strong>
+          <StateLabel state={passage.state} />
+          <span className="studio-row-arrow" aria-hidden="true">→</span>
+        </Link>
       ))}
-    </ul>
+    </div>
   );
 }
 
 export default function ReadingCatalogue() {
-  const { bands, yourBand, own } = useLoaderData<typeof loader>();
+  const { bands, yourBand, own, recent } = useLoaderData<typeof loader>();
 
   // Your band opens; the rest are folded. Folded, never locked.
   const [openBands, setOpenBands] = React.useState<Record<string, boolean>>(() => {
@@ -167,6 +199,42 @@ export default function ReadingCatalogue() {
       />
 
       <StudioPageBody className="passage-catalogue">
+        {recent.length > 0 ? (
+          <section className="passage-recent" aria-labelledby="reading-recent-heading">
+            <div className="studio-section-head">
+              <div>
+                <p className="studio-section-eyebrow">Your workspace</p>
+                <h2 id="reading-recent-heading" className="studio-section-title">
+                  Recent practice
+                </h2>
+              </div>
+              <Link to="/reading/progress" className="studio-section-more">
+                All reading progress &rarr;
+              </Link>
+            </div>
+            <div className="studio-row-list">
+              {recent.map((item) => (
+                <Link key={item.id} to={`/reading/${item.passageId}`} className="studio-row">
+                  <span className="studio-row-meta">
+                    <LocalDateTime
+                      value={item.at}
+                      options={{ month: "short", day: "numeric" }}
+                    />
+                  </span>
+                  <strong>{item.title}</strong>
+                  <span className="studio-row-state">
+                    {/* Repeated work is the story here; a single run has none to tell. */}
+                    {item.attempts > 1
+                      ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
+                      : item.latest}
+                  </span>
+                  <span className="studio-row-arrow" aria-hidden="true">→</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {bands.map((group) => {
         const isOpen = openBands[group.band] ?? false;
         const isYours = yourBand === group.band;
@@ -181,7 +249,9 @@ export default function ReadingCatalogue() {
               <span className="passage-band-title">{group.band}</span>
               <span className="passage-band-blurb">{group.blurb}</span>
               {isYours ? <span className="passage-band-yours">Your level</span> : null}
-              <span className="passage-band-count">{group.passages.length}</span>
+              <span className="passage-band-count">
+                {group.passages.length} {group.passages.length === 1 ? "passage" : "passages"}
+              </span>
               <span className="passage-band-caret" aria-hidden="true">
                 {isOpen ? "−" : "+"}
               </span>
@@ -208,15 +278,17 @@ export default function ReadingCatalogue() {
         {own.length === 0 ? (
           <p className="passage-own-empty">No texts of your own yet.</p>
         ) : (
-          <ul className="passage-card-grid">
+          <div className="studio-row-list">
             {own.map((passage) => (
-              <li key={passage.id} className="passage-own-item">
-                <Link to={`/reading/${passage.id}`} className="passage-card">
-                  <span className="passage-card-title">{passage.title}</span>
-                  <span className="passage-card-meta">
-                    {passage.wordCount > 0 ? `${passage.wordCount} words` : "Your text"}
+              <div key={passage.id} className="passage-own-item">
+                <Link to={`/reading/${passage.id}`} className="studio-row">
+                  <span className="studio-row-meta">
+                    <span>Your text</span>
+                    {passage.wordCount > 0 ? <span>{passage.wordCount} words</span> : null}
                   </span>
+                  <strong>{passage.title}</strong>
                   <StateLabel state={passage.state} />
+                  <span className="studio-row-arrow" aria-hidden="true">→</span>
                 </Link>
                 {/* Delete used to live in the rail's passage list. The rail no longer lists
                     passages, so the affordance moves here rather than disappearing. */}
@@ -230,9 +302,9 @@ export default function ReadingCatalogue() {
                     Delete
                   </ConfirmSubmitButton>
                 </form>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
         </section>
       </StudioPageBody>

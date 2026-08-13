@@ -114,7 +114,9 @@ describe("selectStarterPractice — null level", () => {
     const out = selectStarterPractice(base({ level: null }));
     expect(out.recommendations[0]!.passageId).toBe("b1a");
     // The reason must not assert a level the system has not established.
-    expect(out.recommendations[0]!.reason).not.toMatch(/B1/);
+    expect(out.recommendations[0]!.reason).toBe(
+      "A useful starting point — this also helps us estimate your level."
+    );
   });
 });
 
@@ -239,7 +241,11 @@ describe("selectStarterPractice — continue", () => {
         draft: { articleId: "w1", title: "Essay", updatedAt: "2026-07-09T00:00:00Z" }
       })
     );
-    expect(withNewerDraft.continueAction).toMatchObject({ kind: "writing", articleId: "w1" });
+    expect(withNewerDraft.continueAction).toMatchObject({
+      kind: "writing",
+      articleId: "w1",
+      updatedAt: "2026-07-09T00:00:00Z"
+    });
   });
 
   it("names an untitled draft rather than rendering an empty title", () => {

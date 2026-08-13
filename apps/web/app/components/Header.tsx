@@ -96,10 +96,15 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   onClick={() => setMenuOpen((prev) => !prev)}
                   aria-label="Open user menu"
                 >
+                  {/* Google serves avatars from lh3.googleusercontent.com, which answers
+                      503 to requests carrying a Referer it does not recognise. Suppressing
+                      the header is the documented fix, and it also stops leaking the page
+                      URL to Google on every render. */}
                   <img
                     className="avatar-image"
                     src={user.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp"}
                     alt={user.name ?? user.email ?? "User"}
+                    referrerPolicy="no-referrer"
                   />
                 </button>
                 {menuOpen ? (

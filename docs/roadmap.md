@@ -19,10 +19,13 @@ infrastructure and eventually its accounts, but branded and styled independently
 
 ## Now — English Studio material, memory, and interaction iteration
 
-The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation is
-**in_review** on `codex/english-studio-major-iteration`; only the owner may move it to
-accepted. The detailed design and failure registry live in
-[the iteration plan](english-studio-major-iteration-proposal.md).
+The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation
+continued past the original branch: `codex/english-studio-major-iteration` is now fully
+contained in **`codex/ui-navigation-polish`**, which carries the UI/IA work that followed and
+is the branch to review. The detailed design and failure registry live in
+[the iteration plan](english-studio-major-iteration-proposal.md); what has shipped and its
+acceptance state is in [the changelog](changelog.md). Only the owner moves an item to
+accepted.
 
 ### Product boundary and invariants
 
@@ -153,6 +156,99 @@ Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, 
 and schema tests prove new Reading evaluations neither request nor generate the field. The
 full repository suite passes 558 tests.
 
+### E. Scalable Studio navigation and material discovery — in_review
+
+The owner authorized this follow-up on 2026-08-10 after reviewing the current desktop Writing
+and Coach Home surfaces. It changes information architecture and presentation, not the
+underlying learning, recommendation, or evaluation policies.
+
+- Replace the heavy desktop rail treatment with a quieter, narrower navigation spine. Keep
+  destinations, active state, account access, mobile drawer behavior, keyboard behavior, and
+  the existing English Studio product boundary intact.
+- Make `/english/home` action-first: continuation is primary, the coach recommendation is
+  secondary, level/practice/coverage form a compact status summary, and detailed skills and
+  recent activity read as lists rather than a dashboard card mosaic. Preserve the current
+  recommendation seam and all null-level/no-locking invariants.
+- Make `/writing` a category hub instead of rendering the complete prompt bank. It must expose
+  General English, IELTS Academic Task 1, IELTS Academic Task 2, recent learner work, and the
+  freeform path; a category selection opens a bounded catalogue and every published prompt
+  remains reachable regardless of CEFR band.
+- Keep catalogue state in the URL, query only the selected family/task and page, and use a
+  bounded continuation mechanism rather than a client-side fetch of the whole bank. The
+  resulting material-directory contract must be reusable by future Reading and Dictation
+  catalogues without forcing material taxonomy onto Translate or Speech.
+- Preserve the established editorial design tokens, responsive reading order, 44px primary
+  touch targets, visible keyboard focus, reduced-motion behavior, and accessible names.
+- Use **Session** for one durable Writing workspace and **Round** for a revision inside it.
+  Rename the Writing hub's recent-work section accordingly and provide an authenticated,
+  bounded `/writing/sessions` history where every non-deleted session remains reachable.
+
+Acceptance evidence: focused query/filter/pagination tests; browser coverage at 375, 768, and
+1280px for rail, Home, Writing hub, category catalogue, prompt detail, and continuation;
+keyboard-only and reduced-motion checks; no new console errors; and the full repository test,
+typecheck, and production build. Writing session history additionally covers empty, populated,
+continued-page, and mobile layouts without loading an unbounded article collection. New materials, Reading/Dictation catalogue implementation,
+global search, and a taxonomy/schema expansion are explicitly outside this follow-up.
+
+Review evidence (2026-08-10): `/writing` now queries three collection counts instead of the
+complete prompt bank; `/writing/library` keeps category, level/task-family, and opaque keyset
+continuation state in the URL and reads at most 13 rows to render a 12-item page. The first
+page promotes three non-duplicated assignments into the retained prompt-card treatment, then
+uses compact rows for the remaining bank. Authenticated browser checks cover the rail, cold
+Coach Home, Writing hub, catalogue, second-page continuation, drawer focus/Escape restoration,
+visible keyboard focus, and 44px mobile actions at 375/768/1280px with no horizontal overflow.
+Owner-review follow-up moves shallow detail return links to the leading edge and uses compact
+breadcrumbs for Writing's real hub → collection → prompt hierarchy, including category-aware
+prompt return destinations. Prompt-backed learner work extends that context through the source
+assignment to the current piece; freeform work keeps a compact Writing → piece trail.
+The in-app browser injects `#codex-browser-sidebar-comments-root` as a third child of `<html>`,
+which produces Remix hydration warnings in that test surface; standalone browser checks are
+clean, and no application runtime error was observed. The full suite passes 561 tests, Web
+typecheck passes, and the production build succeeds.
+
+Session-history follow-up (2026-08-10): Writing now uses Session for one durable workspace
+and Round for an in-session revision. `/writing` exposes six recent sessions and links to the
+authenticated `/writing/sessions` history; the history reads 21 rows to render a 20-item page
+with a stable opaque continuation cursor. Cursor/unit coverage includes first and continued
+pages. Authenticated empty-state browser QA at a 351px content width verifies breadcrumb
+semantics, 44px actions, and no horizontal overflow. The full suite now passes 564 tests;
+Web typecheck and the production build pass.
+
+Filter-interaction follow-up (2026-08-10): bounded Writing catalogues expose every available
+level or task-family choice as a direct URL-backed link, including All. Selection immediately
+loads the filtered first page without an intermediate Apply action; native link semantics keep
+the interaction available to keyboards and without JavaScript.
+
+Home-density follow-up (2026-08-10): the action zone groups continuation and recommendation
+into two lightweight, equal-height panels; recommendation alternatives become subordinate
+text actions rather than competing buttons. The status summary moves closer in one bounded
+strip, and a lone detail section uses the full available width instead of reserving an empty
+second column. Authenticated cold-state QA at 351px verifies reflow, 44px primary and level
+actions, and no horizontal overflow; the full suite, Web typecheck, and production build pass.
+
+Owner-review correction (2026-08-11): removed the equal-height framed Home panels after they
+turned useful whitespace into visible empty card space. Continue now leads with a single
+editorial rule, the recommendation stays unboxed, alternatives form a stable vertical action
+list, and status uses open dividers instead of another container. Null-level recommendations
+no longer claim to fit a known level; learners with history but no estimate regain the direct
+level picker; Coverage reads the practised passage bands rather than the bounded recommendation
+window; and Writing continuation names its last edit. Translate and Speech now share the same
+title → workspace tabs → tool canvas rhythm: Translate uses a bounded two-pane workspace with
+visible From/To labels, while Speech uses a narrower unboxed compose surface with a persistent
+text label, linked help/count text, visible focus, and a mobile-sized editor that keeps Generate
+in the first viewport. Browser checks at a 351px content width confirm no horizontal overflow
+and first-viewport primary actions on Translate and Speech; all 564 tests, root typecheck, and
+the production build pass.
+
+History-surface follow-up (2026-08-11): Saved translations and Speech History no longer
+repeat creation actions that are already available through their workspace tabs. Saved
+translations keeps Translate as the single return path; Speech History removes its second,
+oversized History heading and begins directly with the generation list or concise empty state.
+
+Translate focus follow-up (2026-08-11): the composer keeps a clear two-pixel keyboard focus
+indicator, inset within the input so it no longer obscures the two-pane divider or workspace
+boundaries.
+
 ### Explicitly excluded from this iteration
 
 Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;
@@ -280,6 +376,20 @@ returns, so neither needs an IA change.
   built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
   and server-side rendering. Those remain separate directions requiring their own evidence and
   authorization.
+- **Dictation contributes practice duration** (owner-authorized 2026-08-12, not started).
+  `total_practice_seconds` counts reading only: `learner-model.server.ts` passes
+  `practiceSeconds: 0` for dictation because nothing times a dictation attempt. A learner who
+  practises both modes therefore has a duration covering half their work. The surfaces were
+  made honest rather than left overclaiming — Home dropped duration entirely, Progress renamed
+  its card to *Reading time* and hides it at zero — so this item is about restoring the
+  measurement, not about the copy. Acceptance: (a) a dictation attempt records elapsed practice
+  time and adds it to `total_practice_seconds`; (b) resuming an in-progress attempt does not
+  double-count time already recorded; (c) idle time with no interaction is excluded, by a
+  documented rule; (d) Progress presents one duration covering every mode that measures one,
+  renamed back from *Reading time*; and (e) existing rows are unaffected — historical dictation
+  attempts stay at zero rather than being back-estimated. Explicitly excluded: timing Writing,
+  whose unit of work is a submitted round rather than a timed sitting.
+
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the

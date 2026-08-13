@@ -24,7 +24,7 @@ export function StudioShell({
   return (
     <div className="writing-shell studio-app-shell">
       {navigation ?? <ToolNavRail user={user ?? null} />}
-      <main className={`writing-main studio-main${mainClassName ? ` ${mainClassName}` : ""}`}>
+      <main className={`studio-main${mainClassName ? ` ${mainClassName}` : ""}`}>
         <div className={`studio-canvas-host${canvasClassName ? ` ${canvasClassName}` : ""}`}>
           {children}
         </div>

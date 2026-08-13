@@ -10,6 +10,11 @@ import {
   type EnglishModule
 } from "~/english-modules";
 
+const MODULE_GROUPS = [
+  { id: "practice", label: "Practice" },
+  { id: "utility", label: "Tools" }
+] as const;
+
 export const handle = {
   breadcrumb: { label: "english", href: "/english" }
 };
@@ -79,38 +84,45 @@ export default function EnglishLanding() {
           <span className="home-tools-label">Modules</span>
           <span className="home-tools-count">{ENGLISH_MODULES.length}</span>
         </div>
-        <div className="landing-module-list">
-          {ENGLISH_MODULES.map((mod) => {
-            const destination = resolveEnglishModuleDestination(mod, Boolean(user));
-            return (
-              <Link
-                key={mod.id}
-                to={destination.href}
-                className={`landing-module${mod.status === "planned" ? " is-planned" : ""}`}
-                onClick={(e) => handleModuleClick(e, mod)}
-              >
-                <div className="landing-module-main">
-                  <div className="landing-module-head">
-                    <h2 className="landing-module-title">{mod.label}</h2>
-                    {mod.status === "planned" ? (
-                      <span className="home-tool-badge">Soon</span>
-                    ) : (
-                      <span className="home-tool-arrow">&rarr;</span>
-                    )}
-                  </div>
-                  <p className="landing-module-desc">{mod.description}</p>
-                  <p className="landing-module-detail">{mod.detail}</p>
-                  <div className="home-tool-tags">
-                    {mod.tags.map((tag) => (
-                      <span key={tag} className="home-tool-tag">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-            );
-          })}
+        <div className="landing-module-groups">
+          {MODULE_GROUPS.map((group) => (
+            <section key={group.id} className="landing-module-group">
+              <h2 className="landing-module-group-title">{group.label}</h2>
+              <div className="landing-module-list">
+                {ENGLISH_MODULES.filter((mod) => mod.group === group.id).map((mod) => {
+                  const destination = resolveEnglishModuleDestination(mod, Boolean(user));
+                  return (
+                    <Link
+                      key={mod.id}
+                      to={destination.href}
+                      className={`landing-module${mod.status === "planned" ? " is-planned" : ""}`}
+                      onClick={(e) => handleModuleClick(e, mod)}
+                    >
+                      <div className="landing-module-main">
+                        <div className="landing-module-head">
+                          <h3 className="landing-module-title">{mod.label}</h3>
+                          {mod.status === "planned" ? (
+                            <span className="home-tool-badge">Soon</span>
+                          ) : (
+                            <span className="home-tool-arrow">&rarr;</span>
+                          )}
+                        </div>
+                        <p className="landing-module-desc">{mod.description}</p>
+                        <p className="landing-module-detail">{mod.detail}</p>
+                        <div className="home-tool-tags">
+                          {mod.tags.map((tag) => (
+                            <span key={tag} className="home-tool-tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       </section>
 

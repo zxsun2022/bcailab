@@ -9,6 +9,174 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-12 — **accepted: rejected a cross-tool practice-session entity; kept each tool's
+  native model.** Recorded as [ADR 0007](decisions/0007-no-cross-tool-practice-session-entity.md).
+  The Recent-list dedup below raised a modelling question — what does a folded row represent?
+  — and a full contract was drafted (`docs/practice-session-contract.md`, revised once after a
+  second tool's review caught five factual errors in the first draft). The owner's conclusion:
+  no sitting concept, no `practice_sessions` table. Reading and Dictation stay centred on
+  material and attempts; Writing keeps its durable workspace with Draft and Round, exactly as
+  already authorized in `docs/roadmap.md`. The deciding fact was that the entity had no
+  consumer — a list folded by session but still linking `/reading/:passageId` would have
+  recreated the identical-link defect the dedup fix below removed. The contract document is
+  kept, marked not-adopted, for three findings worth having on hand if this is ever revisited:
+  Round is roadmap-authorized Writing vocabulary rather than drift, Draft names a
+  saved-but-unevaluated state rather than a rival counting unit, and Reading's pasted texts
+  carry real `passages.id` material identity. One genuine copy defect survived the rejection
+  and is fixed: Home's basis line counted `total_attempts` but labelled it "recorded
+  sessions"; it now says "recorded attempts". Evidence: root typecheck, 564-test suite,
+  production build, and authenticated verification that the basis line and Writing's own
+  "Session"/"Round" vocabulary are each correct after the copy sweep.
+
+- 2026-08-12 — **accepted: Recent lists show distinct destinations, not repeated ones.** Home and
+  the Reading/Dictation workspaces listed raw attempts, so practising one passage three times
+  produced three Recent rows whose links were byte-for-byte identical — three slots spent on
+  one destination. Folded to one row per passage instead, carrying attempt count and best
+  score so the row still tells the repeated-practice story when there is more than one
+  attempt; a single attempt stays reachable through the passage's history rail at
+  `?attempt=<id>`, so the fold costs no reachability. Neither Reading nor Dictation gained a
+  query: Reading reuses the
+  counts already in `listReadingPassageStatsByUser`, Dictation the `bestByPassage` map it
+  already built. **Commit title correction:** this shipped as `14b4a23`, titled "recent lists
+  show sessions, not attempts" — at the time, "session" seemed like the right word for a
+  passage's whole practice history. The entity that title implies was examined immediately
+  after and rejected (see the entry above; ADR 0007): the studio has no cross-tool session
+  concept, and the fold below is and always was one row per **material**, not per session.
+  The code and its comments were renamed to match (`byMaterial`, not `sessions`) in the
+  rejection commit; this note corrects the shipped title, which the append-only changelog
+  cannot edit away. Evidence: root typecheck, 564-test suite, production build, and
+  authenticated verification (`distinctDestinations: 1` where it had been 3).
+
+- 2026-08-12 — **accepted: Home is prospective, Progress is retrospective.** Applied
+  `docs/learner-model-design.md` §9.4 to the two surfaces that had drifted into saying the same
+  thing. `/english/progress` first gained the two panels it lacked — Coverage, and the dictation
+  accuracy curve — after which Home's status grid was removed rather than duplicated. What
+  remains on Home is a single basis line stating what the recommendation above is worth, plus
+  the level picker and a three-row Recent list; the level picker moved out of the Level stat
+  cell, where it had made that column several times the height of its neighbours. The accuracy
+  curve was rebuilt on the way across: a fixed 0–100 axis had flattened a 26-point gain into a
+  near-straight line, so the axis now follows the data with a 20-point floor (a steady learner
+  does not read as erratic) and labels both bounds so a scaled axis cannot be misread as
+  absolute. Reading and Dictation each gained the "Recent practice" section Writing's hub
+  already had, so the three practice tools answer "what was I doing?" without a trip to
+  Progress. Also fixed: Google avatars 503'd on every render because `lh3.googleusercontent.com`
+  rejects requests carrying an unrecognised `Referer` — the three `<img>` tags now set
+  `referrerPolicy="no-referrer"`, which stops leaking the page URL to Google as well. Corrected
+  the IA v2 §3.2 claim that sessions expose an "upper-right" return; every route has always
+  placed it at the leading edge, and the bullet now states the depth rule that decides between
+  `Back to [tool]` and breadcrumbs. Evidence: root typecheck, 564-test suite, production build,
+  a dead-class sweep across CSS and TSX, and authenticated browser verification of the avatar
+  (`naturalWidth` 0 → 96) and of Reading's recent list against real attempt data.
+
+- 2026-08-12 — **accepted: practice catalogues adopt the Writing row pattern.** Dictation and
+  Reading moved from card grids to the row list Writing's library established, promoted out of
+  `writing-library-*` into a shared `studio-row*` primitive so the name no longer leaks across
+  modules. Two measurements changed the primitive on the way: row height dropped 92px → 72px
+  because passage metadata is far shorter than a writing prompt's and the taller row cut a
+  screen from eight entries to five, and the meta column became a capped `minmax(150px, 260px)`
+  because as a `0.7fr` fraction it grew to 333px against 135px of ink and pushed every title
+  away from its own metadata. Band grouping stays — Reading's fold and "your level" marker
+  depend on it, and the level is already in the section header, so the row no longer repeats a
+  band badge. Session hierarchy fixed alongside: Dictation's Play became a ghost control so
+  Check is the only filled action on the sentence, Reading's dictation hand-off dropped to the
+  shared secondary-link treatment instead of wearing the primary action's colour, and Reading's
+  history rail now starts folded when there is no history, where it had been spending 290px to
+  say "History (0)" beside a New Attempt link dimmed into looking disabled. Evidence: root
+  typecheck, 564-test suite, production build, and browser checks of column counts across
+  1400/1120/1064/1000/900/760/600/420px.
+
+- 2026-08-12 — **accepted: Studio design-system primitives applied to the pages that skipped
+  them.** `StudioPage` and `.btn` existed but the practice screens had not adopted them.
+  Dictation's session buttons moved off bespoke serif Title Case onto the shared mono
+  primitive; the rail's account row had no `font-family` at all and was rendering in the UA
+  default, the only sans-serif in the shell; Speech's bare `<select>` elements joined
+  Translate's control as a shared `.studio-select`; and Speech's submit button, unlike
+  Translate's, had never disabled on empty input. Three colour-emoji empty-state icons became a
+  typographic rule, and `.writing-main`, `.writing-dashboard`, and `.writing-dashboard-empty*`
+  were renamed to `studio-*` — all three were already shared by Reading, Dictation, and the
+  studio-wide Progress page. Added the root `ErrorBoundary` the app had never had: a bad link
+  dropped signed-in learners onto the framework's unstyled default with no navigation. Added
+  `--border-control`, a control-weight outline distinct from the divider weight, after
+  measuring the level chips at 1.37:1 in light and 1.17:1 in dark — both below the 3:1 floor
+  for non-text contrast, not just the dark theme originally reported. Fixed a dead CSS rule
+  whose comment explained that the dictation breadcrumb must not run into the band label: the
+  class had been renamed in the markup years' worth of refactors earlier, so the rule matched
+  nothing and the two ran together as "Back to DictationA2". Also: the mobile hamburger became
+  an opaque bar so content scrolls beneath it rather than behind it, and every band's fifth
+  passage stopped being stranded on its own grid row. Evidence: root typecheck, 564-test suite,
+  production build, computed-style verification of fonts and disabled states, and contrast
+  ratios computed against both theme backgrounds.
+
+- 2026-08-11 — **in_review: Translate composer focus indicator contained.** Kept the strong
+  two-pixel action-color focus indicator while moving it inside the text composer, preventing
+  the ring from covering the output divider and surrounding workspace borders. Evidence: Web
+  typecheck, production build, and browser inspection of the focused composer geometry.
+
+- 2026-08-11 — **in_review: Translate and Speech history surfaces simplified.** Removed the
+  redundant New translation action from Saved translations and the duplicate History heading
+  plus New generation action from Speech History. Both pages now rely on their persistent
+  workspace tabs for returning to creation, so the content area has one job: show saved or
+  generated history. Empty states remain explanatory without adding another competing button.
+  Evidence: Web typecheck, production build, and authenticated 351px browser checks with no
+  horizontal overflow or duplicate creation actions.
+
+- 2026-08-11 — **in_review: Coach Home correction and utility workspace polish.** Replaced
+  Home's equal-height framed action cards with an open editorial hierarchy: Continue keeps one
+  leading accent, the recommendation is unboxed, alternatives form a stable vertical list, and
+  status is separated by rules rather than another rounded container. Fixed three underlying
+  state defects at the same time: a fallback B1 recommendation no longer says it fits an
+  unknown current level; learners with practice history but no estimate can declare a level
+  directly; and Coverage now queries the bands represented by actual Reading/Dictation history
+  instead of inferring them from a bounded recommendation window. Writing continuation also
+  shows its last edit. Translate now uses the shared page-tabs frame, a bounded 1120px canvas,
+  visible From/To labels, and a compact mobile board whose primary action remains in the first
+  viewport. Speech aligns its 780px title, tabs, and form; removes the decorative full-height
+  compose card; adds a persistent Text to speak label with described help/count content and
+  visible focus; and sizes the narrow editor so Generate remains reachable. Evidence: 21
+  focused recommendation tests; the complete 564-test suite; root typecheck; production build;
+  and authenticated 351px browser checks for all three pages with no horizontal overflow and
+  visible primary actions.
+
+- 2026-08-10 — **in_review: scalable English Studio navigation and material discovery.**
+  Reworked the shared rail into a narrower, quieter navigation spine with a line-based active
+  state; reshaped Coach Home into an action-first editorial workspace with a compact status
+  strip and list-based detail; and changed `/writing` from a 48-card wall into a collection
+  hub for General English, IELTS Academic Task 1, and Task 2. The new URL-backed
+  `/writing/library` catalogue filters server-side and uses bounded keyset continuation. Its
+  first page preserves the previous card design for three non-duplicated “Start here” prompts,
+  then switches to compact rows so the pattern can scale. Documented the reusable
+  hub → catalogue → detail contract for future Reading and Dictation libraries without
+  imposing it on Translate or Speech. Owner-review follow-up places shallow detail returns at
+  the leading edge and adds category-aware breadcrumbs to Writing's real three-level material
+  hierarchy, extending prompt-backed workspaces through their source assignment while keeping
+  freeform trails compact. Writing now consistently calls a durable workspace a Session and a
+  revision within it a Round; the hub links its recent sessions to a bounded, authenticated
+  `/writing/sessions` history. Catalogue filters now expose All and every level/task family as
+  visible URL-backed choices, so one selection applies immediately and resets continuation
+  state without requiring JavaScript. Evidence: 564 tests, Web typecheck, production build,
+  local D1 collection census (24 General, 12 Task 1, 12 Task 2), and authenticated browser QA
+  at 375/768/1280px covering pagination, no horizontal overflow, 44px mobile actions, visible
+  focus, and mobile drawer focus restoration. Codex's in-app browser injects a third child into
+  `<html>` and consequently reports Remix hydration warnings; standalone browser checks are
+  clean and no application runtime error was observed.
+
+- 2026-08-10 — **in_review: English Studio Home density and hierarchy.** Grouped continuation
+  and coach recommendation into a tighter two-panel action zone, demoted recommendation
+  alternatives from competing buttons to secondary text actions, and consolidated status into
+  a bounded strip closer to today's work. Single Recent/Working on sections now use the full
+  content width instead of leaving an empty grid column. Evidence: authenticated 351px cold
+  state with 44px actions and no horizontal overflow; 564 tests, Web typecheck, production build.
+
+- 2026-08-10 — **in_review: English Studio navigation and mobile-action polish.** The public
+  module directory now mirrors the product rail’s information architecture by separating
+  Practice (Dictation, Reading, Writing) from Tools (Translate, Speech, planned Dictionary),
+  with a coherent `h1` → group `h2` → module `h3` outline. Global signed-out header actions
+  and the landing-page start action now meet the 44px mobile touch baseline. On the anonymous
+  Writing trial, the remaining quota stays grouped immediately above the submit action on
+  narrow screens instead of wrapping to the opposite edge; the submit target is also 44px.
+  Evidence: Web typecheck; browser screenshots at 375/768/1280px for the landing directory;
+  Writing checks at 320/375/1280px with no horizontal overflow; measured 44px action targets.
+
 - 2026-08-10 — **in_review: Dictation catalogue band spacing.** Restored the shared band-body
   wrapper around each `/dictation` card grid, so the band description divider no longer sits
   directly against the first row of passage cards. Evidence: Web typecheck and production

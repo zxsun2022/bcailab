@@ -174,23 +174,29 @@ export function ToolNavRail({
     };
   }, []);
 
+  // Rendered with referrerPolicy="no-referrer": Google serves these from
+  // lh3.googleusercontent.com, which answers 503 to requests carrying a Referer it does
+  // not recognise, so the avatar breaks without it.
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? "Account";
 
   return (
     <>
-      {/* Mobile toggle — opens drawer */}
-      <button
-        ref={mobileToggleRef}
-        type="button"
-        className="nav-rail-mobile-toggle"
-        aria-label="Open navigation"
-        aria-controls="english-studio-navigation"
-        aria-expanded={mobileOpen}
-        onClick={() => setMobileOpen(true)}
-      >
-        <span /><span /><span />
-      </button>
+      {/* Mobile toggle — opens drawer. The bar around it is opaque so scrolling
+          content passes under it instead of being hidden behind a floating button. */}
+      <div className="nav-rail-mobile-bar">
+        <button
+          ref={mobileToggleRef}
+          type="button"
+          className="nav-rail-mobile-toggle"
+          aria-label="Open navigation"
+          aria-controls="english-studio-navigation"
+          aria-expanded={mobileOpen}
+          onClick={() => setMobileOpen(true)}
+        >
+          <span /><span /><span />
+        </button>
+      </div>
 
       {mobileOpen ? (
         <div className="nav-rail-backdrop" onClick={() => setMobileOpen(false)} />
@@ -287,7 +293,12 @@ export function ToolNavRail({
                 aria-expanded={userMenuOpen}
                 onClick={() => setUserMenuOpen((open) => !open)}
               >
-                <img className="nav-rail-avatar" src={avatarSrc} alt="" />
+                <img
+                  className="nav-rail-avatar"
+                  src={avatarSrc}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
                 <span className="nav-rail-user-name">{displayName}</span>
               </button>
               {userMenuOpen ? (
@@ -339,7 +350,12 @@ export function ToolNavRail({
               className="nav-rail-user-btn"
               onClick={() => openLoginPopup()}
             >
-              <img className="nav-rail-avatar" src={avatarSrc} alt="" />
+              <img
+                  className="nav-rail-avatar"
+                  src={avatarSrc}
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
               <span className="nav-rail-user-name">Sign in</span>
             </button>
           )}

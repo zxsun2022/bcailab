@@ -18,6 +18,7 @@ shipped (`docs/changelog.md`).
 | [0004](0004-dictation-v2-retrieves-rather-than-generates.md) | Dictation v2 retrieves from a library rather than generating per request | Accepted | 2026-07-20 |
 | [0005](0005-reading-grader-stays-single-call.md) | Reading grader stays a single LLM call | Accepted | 2026-07-23 |
 | [0006](0006-learner-surface-invariants.md) | Two learner-surface invariants | Accepted | 2026-07-28 |
+| [0007](0007-no-cross-tool-practice-session-entity.md) | No cross-tool practice session entity; each tool keeps its native model | Accepted | 2026-08-12 |
 
 **Mapdown's decisions live in `docs/mapdown/decisions.md`**, not here. That log predates this
 directory, is self-contained, and covers one product end to end; duplicating it would create

@@ -55,7 +55,13 @@ export type ContinueAction =
       total: number;
       href: string;
     }
-  | { kind: "writing"; articleId: string; title: string; href: string };
+  | {
+      kind: "writing";
+      articleId: string;
+      title: string;
+      updatedAt: string;
+      href: string;
+    };
 
 /** Why a passage was offered. The UI uses this for labelling; the learner sees `reason`. */
 export type Rationale = "level_fit" | "cross_mode" | "adjacent_band" | "revisit";
@@ -168,6 +174,7 @@ const pickContinue = (
         kind: "writing",
         articleId: draft.articleId,
         title: draft.title?.trim() || "Untitled draft",
+        updatedAt: draft.updatedAt,
         href: `/writing/${draft.articleId}`
       }
     : null;
@@ -247,7 +254,9 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
         topic: fresh.topic,
         sentenceCount: fresh.sentenceCount,
         rationale: "level_fit",
-        reason: "Fits your current level.",
+        reason: level
+          ? "Fits your current level."
+          : "A useful starting point — this also helps us estimate your level.",
         href: passageHref("dictation", fresh.id)
       };
     }

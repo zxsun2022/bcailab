@@ -25,6 +25,7 @@ import {
 import { WritingFeedbackPanel } from "~/components/WritingFeedback";
 import { WritingDetailAside, type AsideRound } from "~/components/WritingDetailAside";
 import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
+import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import {
@@ -556,6 +557,13 @@ function WritingArticlePageReady({
   };
 
   const displayTitle = liveTitle || "Untitled";
+  const collection = assignment?.taskType === "academic_task_1"
+    ? { label: "Visual reports", to: "/writing/library?category=task1" }
+    : assignment?.taskType === "academic_task_2"
+      ? { label: "Academic essays", to: "/writing/library?category=task2" }
+      : assignment
+        ? { label: "Everyday writing", to: "/writing/library?category=general" }
+        : null;
   const currentWordCount = isComposeView
     ? text.trim().split(/\s+/).filter(Boolean).length
     : liveActiveRevision?.word_count ?? 0;
@@ -669,9 +677,15 @@ function WritingArticlePageReady({
       <div className="writing-center-stage">
         <div className="writing-center-panel">
           <div className="writing-detail-header">
-            <Link to="/writing" className="session-project-return">
-              Back to Writing
-            </Link>
+            <StudioBreadcrumbs items={assignment && collection ? [
+              { label: "Writing", to: "/writing" },
+              collection,
+              { label: assignment.title, to: `/writing/prompt/${assignment.promptSlug}` },
+              { label: displayTitle }
+            ] : [
+              { label: "Writing", to: "/writing" },
+              { label: displayTitle }
+            ]} />
             <div className="writing-title-row">
               {editingTitle ? (
                 <input

@@ -583,7 +583,8 @@ export default function TtsIndexPage() {
     [content]
   );
   const isOverLimit = contentByteLength > MAX_TTS_SSML_BYTES;
-  const canGenerate = !!voiceName && !isSubmitting && !isOverLimit;
+  const canGenerate =
+    content.trim().length > 0 && !!voiceName && !isSubmitting && !isOverLimit;
   const transcriptModel = React.useMemo(
     () => (activeAlignment ? buildTranscriptModel(activeAlignment) : null),
     [activeAlignment]
@@ -753,18 +754,16 @@ export default function TtsIndexPage() {
   };
 
   return (
-    <StudioPage width="workspace">
+    <StudioPage width="standard">
       <StudioPageHeader
         title="Speech"
-        description="Turn text into natural-sounding audio, then revisit previous generations from this workspace."
+        description="Turn text into natural audio and revisit each generation in History."
       />
       <StudioPageTabs>
         <SpeechWorkspaceTabs />
       </StudioPageTabs>
       <StudioPageBody className="speech-workspace">
-        <div className="speech-center-stage">
-        <div className="speech-content-column">
-          <div className="tts-primary-content">
+        <div className="tts-primary-content">
             {voiceError ? (
               <div className="banner tts-warning">
                 Voice list could not be loaded: {voiceError}
@@ -773,20 +772,28 @@ export default function TtsIndexPage() {
             {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
 
             {!selected ? (
-              <Card className="tool-card-stack tts-primary-card tts-compose-card">
+              <section className="tts-primary-card tts-compose-card" aria-labelledby="speech-text-label">
                 <fetcher.Form method="post" className="tts-form speech-compose-form">
                   <input type="hidden" name="_intent" value="generate" />
+                  <label id="speech-text-label" className="tts-input-label" htmlFor="speech-content">
+                    Text to speak
+                  </label>
                   <Textarea
+                    id="speech-content"
                     name="content"
-                    placeholder="Enter text for speech generation..."
+                    placeholder="Paste a paragraph, script, or lesson text…"
+                    aria-describedby="speech-text-help speech-text-count"
                     value={content}
                     onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
                       setContent(event.currentTarget.value)
                     }
                   />
                   <div className="textarea-meta">
-                    <span>Markdown syntax is cleaned automatically before synthesis.</span>
-                    <span className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}>
+                    <span id="speech-text-help">Markdown formatting is removed before synthesis.</span>
+                    <span
+                      id="speech-text-count"
+                      className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}
+                    >
                       {content.length.toLocaleString()} chars
                       {isOverLimit
                         ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
@@ -803,7 +810,7 @@ export default function TtsIndexPage() {
                         <select
                           id="languageCode"
                           name="languageCode"
-                          className="input"
+                          className="studio-select"
                           value={selectedLanguage?.code ?? ""}
                           onChange={(event) => setLanguageCode(event.currentTarget.value)}
                         >
@@ -827,7 +834,7 @@ export default function TtsIndexPage() {
                         <select
                           id="voiceName"
                           name="voiceName"
-                          className="input"
+                          className="studio-select"
                           value={voiceName}
                           onChange={(event) => setVoiceName(event.currentTarget.value)}
                           disabled={voiceOptions.length === 0}
@@ -843,25 +850,25 @@ export default function TtsIndexPage() {
 
                       <div className="tts-generate-wrap">
                         <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
-                          {isSubmitting ? "Generating..." : "Generate"}
+                          {isSubmitting ? "Generating…" : "Generate audio"}
                         </Button>
                       </div>
                     </div>
                   </div>
 
-                  {errorMessage ? <div className="form-error">{errorMessage}</div> : null}
+                  {errorMessage ? <div className="form-error" role="alert">{errorMessage}</div> : null}
                 </fetcher.Form>
-              </Card>
+              </section>
             ) : null}
 
             {selected ? (
               <Card className="tool-card-stack tts-primary-card tts-selected-card">
                 <div className="tts-result-header">
-                  <strong>Task details</strong>
+                  <strong>Generated audio</strong>
                   <div className="tts-history-actions">
                     <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
                       {copyState === "copied"
-                        ? "Copied!"
+                        ? "Copied"
                         : copyState === "failed"
                           ? "Copy failed"
                           : "Copy text"}
@@ -902,9 +909,7 @@ export default function TtsIndexPage() {
                 {activeWarning ? <div className="banner tts-warning">{activeWarning}</div> : null}
               </Card>
             ) : null}
-          </div>
         </div>
-      </div>
       </StudioPageBody>
     </StudioPage>
   );

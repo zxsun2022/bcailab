@@ -2,9 +2,8 @@ import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { json } from "@remix-run/cloudflare";
 import { Link, useLoaderData } from "@remix-run/react";
 import {
-  listPublishedWritingPrompts,
-  listRecentWritingArticlesByUser,
-  type WritingPromptSummary
+  listPublishedWritingPromptCollections,
+  listRecentWritingArticlesByUser
 } from "@bcailab/db";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { LocalDateTime } from "~/components/LocalDateTime";
@@ -16,153 +15,143 @@ export const meta: MetaFunction = () => [
   { title: "Writing · English Studio · bcailab" },
   {
     name: "description",
-    content: "Choose a level-guided or IELTS writing assignment, or start a freeform piece."
+    content: "Choose a General English or IELTS writing collection, or continue your own work."
   }
 ];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   try {
-    const [prompts, articles] = await Promise.all([
-      listPublishedWritingPrompts(context.env.DB, { userId: user.id, limit: 100 }),
+    const [collections, articles] = await Promise.all([
+      listPublishedWritingPromptCollections(context.env.DB),
       listRecentWritingArticlesByUser(context.env.DB, { userId: user.id, limit: 6 })
     ]);
     return json({
       schemaReady: true as const,
-      prompts,
+      collections,
       articles: articles.map((article) => ({
         id: article.id,
         title: article.title,
         essayPrompt: article.essay_prompt,
         promptId: article.prompt_id,
-        agentType: article.agent_type,
         updatedAt: article.updated_at
       }))
     });
   } catch (error) {
     if (!isWritingSchemaMissingError(error)) throw error;
     logWritingSchemaMissing("writing.index.loader", error);
-    return json(
-      { schemaReady: false as const, prompts: [], articles: [] },
-      { status: 503 }
-    );
+    return json({ schemaReady: false as const, collections: [], articles: [] }, { status: 503 });
   }
 };
 
-const promptHref = (prompt: WritingPromptSummary) => `/writing/prompt/${prompt.slug}`;
-
-const PromptCard = ({ prompt }: { prompt: WritingPromptSummary }) => (
-  <Link to={promptHref(prompt)} className="writing-prompt-card">
-    <div className="writing-prompt-card-meta">
-      {prompt.cefr_band ? <span className="writing-level-badge">{prompt.cefr_band}</span> : null}
-      <span>{prompt.topic}</span>
-      <span>{prompt.target_minutes} min</span>
-    </div>
-    <h3>{prompt.title}</h3>
-    <p>
-      {prompt.task_type === "academic_task_1"
-        ? "Read the visual, identify key features, and write an accurate academic report."
-        : prompt.task_type === "academic_task_2"
-          ? "Develop a clear position and support it in an academic essay."
-          : "Practice a focused real-world writing task with guided feedback."}
-    </p>
-    <div className="writing-prompt-card-foot">
-      <span>{prompt.target_words}+ words</span>
-      <span>
-        {prompt.attempt_count === 0
-          ? "Not attempted"
-          : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "attempt" : "attempts"}`}
-      </span>
-    </div>
-  </Link>
-);
+const COLLECTIONS = [
+  {
+    key: "general",
+    eyebrow: "General English · A2 to C1",
+    title: "Everyday writing",
+    description: "Emails, stories, opinions, and descriptions for real situations.",
+    href: "/writing/library?category=general"
+  },
+  {
+    key: "task1",
+    eyebrow: "IELTS Academic · Task 1",
+    title: "Visual reports",
+    description: "Compare charts, tables, processes, and maps with reviewed source material.",
+    href: "/writing/library?category=task1"
+  },
+  {
+    key: "task2",
+    eyebrow: "IELTS Academic · Task 2",
+    title: "Academic essays",
+    description: "Develop positions across the four common IELTS essay families.",
+    href: "/writing/library?category=task2"
+  }
+] as const;
 
 export default function WritingHomePage() {
   const data = useLoaderData<typeof loader>();
   if (!data.schemaReady) return <WritingUnavailableState />;
-  const { prompts, articles } = data;
-  const general = prompts.filter((prompt) => prompt.family === "general");
-  const task1 = prompts.filter((prompt) => prompt.task_type === "academic_task_1");
-  const task2 = prompts.filter((prompt) => prompt.task_type === "academic_task_2");
+
+  const countFor = (key: (typeof COLLECTIONS)[number]["key"]) =>
+    data.collections
+      .filter((row) =>
+        key === "general"
+          ? row.family === "general"
+          : row.task_type === (key === "task1" ? "academic_task_1" : "academic_task_2")
+      )
+      .reduce((sum, row) => sum + row.prompt_count, 0);
+  const latest = data.articles[0] ?? null;
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
           title="Writing"
-          description="Start with a reviewed assignment at the level or exam task you want to practice. Levels guide discovery; they never lock material."
-          action={<Link to="/writing/new" className="btn btn-primary">New freeform piece</Link>}
+          description="Choose a kind of writing first. Inside each collection, levels and task types help you narrow the material without locking anything away."
+          action={<Link to="/writing/new" className="btn btn-primary">New freeform session</Link>}
         />
-        <StudioPageBody className="writing-home">
-          {prompts.length === 0 ? (
-            <section className="writing-catalogue-empty" aria-labelledby="writing-material-heading">
-              <p className="writing-section-eyebrow">Assignment library</p>
-              <h2 id="writing-material-heading">Reviewed material is being prepared</h2>
-              <p>
-                Only fully reviewed assignments appear here. You can keep using the freeform
-                coach while the first level-guided and IELTS batch completes review.
-              </p>
-              <Link to="/writing/new" className="btn btn-secondary">Start freeform</Link>
+        <StudioPageBody className="writing-home writing-hub">
+          {latest ? (
+            <section className="writing-continue" aria-labelledby="continue-writing-heading">
+              <div>
+                <p className="writing-section-eyebrow">Continue writing</p>
+                <h2 id="continue-writing-heading">{latest.title ?? latest.essayPrompt ?? "Untitled session"}</h2>
+                <p>{latest.promptId ? "Assignment session" : "Freeform session"}</p>
+              </div>
+              <Link to={`/writing/${latest.id}`} className="writing-text-action">Continue <span aria-hidden="true">→</span></Link>
             </section>
-          ) : (
-            <>
-              {general.length > 0 ? <section className="writing-catalogue-section" aria-labelledby="general-writing-heading">
-                <div className="writing-section-heading">
-                  <div>
-                    <p className="writing-section-eyebrow">General English · A2 to C1</p>
-                    <h2 id="general-writing-heading">Build range through real writing tasks</h2>
-                  </div>
-                  <p>Every level remains open.</p>
-                </div>
-                <div className="writing-prompt-grid">{general.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} />)}</div>
-              </section> : null}
+          ) : null}
 
-              {task1.length > 0 ? <section className="writing-catalogue-section" aria-labelledby="task-one-heading">
-                <div className="writing-section-heading">
-                  <div>
-                    <p className="writing-section-eyebrow">IELTS Academic</p>
-                    <h2 id="task-one-heading">Task 1 · Visual reports</h2>
-                  </div>
-                  <p>Canonical figures power the visual, accessible data, and feedback.</p>
-                </div>
-                <div className="writing-prompt-grid">{task1.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} />)}</div>
-              </section> : null}
+          <section aria-labelledby="writing-collections-heading">
+            <div className="writing-section-heading">
+              <div>
+                <p className="writing-section-eyebrow">Assignment library</p>
+                <h2 id="writing-collections-heading">Choose a collection</h2>
+              </div>
+              <p>All reviewed assignments remain open.</p>
+            </div>
+            {data.collections.length === 0 ? (
+              <div className="writing-catalogue-empty">
+                <h2>Reviewed material is being prepared</h2>
+                <p>You can keep using the freeform coach while new collections are reviewed.</p>
+              </div>
+            ) : (
+              <div className="writing-collection-list">
+                {COLLECTIONS.map((collection, index) => (
+                  <Link key={collection.key} to={collection.href} className="writing-collection-row">
+                    <span className="writing-collection-index" aria-hidden="true">0{index + 1}</span>
+                    <span className="writing-collection-copy">
+                      <span className="writing-section-eyebrow">{collection.eyebrow}</span>
+                      <strong>{collection.title}</strong>
+                      <small>{collection.description}</small>
+                    </span>
+                    <span className="writing-collection-count">{countFor(collection.key)} assignments</span>
+                    <span className="writing-collection-arrow" aria-hidden="true">→</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </section>
 
-              {task2.length > 0 ? <section className="writing-catalogue-section" aria-labelledby="task-two-heading">
-                <div className="writing-section-heading">
-                  <div>
-                    <p className="writing-section-eyebrow">IELTS Academic</p>
-                    <h2 id="task-two-heading">Task 2 · Essays</h2>
-                  </div>
-                  <p>Opinion, discussion, problem/solution, and advantages/disadvantages.</p>
-                </div>
-                <div className="writing-prompt-grid">{task2.map((prompt) => <PromptCard key={prompt.id} prompt={prompt} />)}</div>
-              </section> : null}
-            </>
-          )}
-
-          <section className="writing-pieces-section" aria-labelledby="your-pieces-heading">
+          <section className="writing-sessions-section" aria-labelledby="recent-sessions-heading">
             <div className="writing-section-heading">
               <div>
                 <p className="writing-section-eyebrow">Your workspace</p>
-                <h2 id="your-pieces-heading">Your pieces</h2>
+                <h2 id="recent-sessions-heading">Recent sessions</h2>
               </div>
-              <Link to="/writing/progress">View progress</Link>
+              <Link to="/writing/sessions">View all sessions</Link>
             </div>
-            {articles.length === 0 ? (
-              <p className="writing-pieces-empty">Your first submitted piece will appear here.</p>
+            {data.articles.length === 0 ? (
+              <p className="writing-sessions-empty">Your first session will appear here after you submit a draft.</p>
             ) : (
-              <div className="writing-pieces-list">
-                {articles.map((article) => (
-                  <Link key={article.id} to={`/writing/${article.id}`} className="writing-piece-row">
+              <div className="writing-sessions-list">
+                {data.articles.map((article) => (
+                  <Link key={article.id} to={`/writing/${article.id}`} className="writing-session-row">
                     <span>
-                      <strong>{article.title ?? article.essayPrompt ?? "Untitled piece"}</strong>
-                      <small>{article.promptId ? "Assignment" : "Freeform"}</small>
+                      <strong>{article.title ?? article.essayPrompt ?? "Untitled session"}</strong>
+                      <small>{article.promptId ? "Assignment session" : "Freeform session"}</small>
                     </span>
-                    <LocalDateTime
-                      value={article.updatedAt}
-                      options={{ year: "numeric", month: "short", day: "numeric" }}
-                    />
+                    <LocalDateTime value={article.updatedAt} options={{ year: "numeric", month: "short", day: "numeric" }} />
                   </Link>
                 ))}
               </div>

@@ -7,18 +7,14 @@ import {
   listDictationAttemptsByUser,
   listLibraryPassages,
   listRecentReadingAttempts,
-  listWritingArticlesByUser,
+  listRecentWritingArticlesByUser,
   setLearnerDeclaredLevel
 } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
 import { StudioShell } from "~/components/StudioShell";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
-import {
-  CEFR_LEVELS,
-  resolveCefr,
-  TAG_DESCRIPTIONS,
-  type TagMastery
-} from "~/utils/learner-model";
+import { LocalDateTime } from "~/components/LocalDateTime";
+import { CEFR_LEVELS, resolveCefr } from "~/utils/learner-model";
 import {
   selectStarterPractice,
   type CandidatePassage,
@@ -31,9 +27,14 @@ import {
  * English Studio Home — the signed-in top surface.
  * Design: `docs/english-studio-ia-v2-design.md` §3.3–§3.5.
  *
- * Action-first: what to continue or start owns the top of the page; the status grid below
- * exists to make that recommendation credible, not to be the front page. Depth lives on
- * `/english/progress`, which every panel links into rather than duplicating.
+ * Action-first: what to continue or start owns the page. Home is where the practice loop
+ * restarts, so an element earns its place here only by helping the learner begin the right
+ * thing now; everything retrospective lives on `/english/progress`.
+ *
+ * The status grid this page used to carry moved there on 2026-08-11. What remains of it is
+ * one basis line, because the data's only job on Home is to say what the recommendation
+ * above is worth (ia-v2 §3.3) — as a grid it outweighed the recommendation while saying
+ * almost nothing, which is the cold-start thinness risk in ia-v2 §5.1.
  *
  * Every query here is bounded, and personalisation failure degrades to a plain module
  * launcher — the Home must never render blank.
@@ -52,21 +53,23 @@ export const meta: MetaFunction = () => [{ title: "English Studio · bcailab" }]
 const LIBRARY_LIMIT = 60;
 const DICTATION_HISTORY_LIMIT = 40;
 const READING_HISTORY_LIMIT = 20;
-const RECENT_ROWS = 4;
-const ABILITY_ROWS = 4;
-const TREND_POINTS = 12;
+const WRITING_HISTORY_LIMIT = 1;
+const RECENT_ROWS = 3;
 
-type RecentItem = { id: string; title: string; meta: string; href: string; at: string };
-
-type AbilityRow = { tag: string; label: string; mastery: number; trend: number };
-
-const parseTagMastery = (jsonText: string): Record<string, TagMastery> => {
-  try {
-    const parsed = JSON.parse(jsonText) as Record<string, TagMastery>;
-    return parsed && typeof parsed === "object" ? parsed : {};
-  } catch {
-    return {};
-  }
+/**
+ * One row of recent practice: all the work on one passage, not one run at it. `attempts`
+ * and `best` are what make it a summary rather than a snapshot of the latest attempt.
+ */
+type RecentItem = {
+  id: string;
+  title: string;
+  mode: "Dictation" | "Reading";
+  /** State of the most recent attempt: a score, or its in-progress position. */
+  latest: string;
+  href: string;
+  at: string;
+  attempts: number;
+  best: number | null;
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
@@ -118,16 +121,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   // launcher rather than an error page or a blank screen.
   let practice: StarterPractice = { continueAction: null, recommendations: [], alternatives: [] };
   let recent: RecentItem[] = [];
-  let ability: AbilityRow[] = [];
-  let trend: number[] = [];
-  let coverage: string[] = [];
   let degraded = false;
 
   try {
     const [dictationAttempts, readingAttempts, articles] = await Promise.all([
       listDictationAttemptsByUser(db, { userId: user.id, limit: DICTATION_HISTORY_LIMIT }),
       listRecentReadingAttempts(db, { userId: user.id, limit: READING_HISTORY_LIMIT }),
-      listWritingArticlesByUser(db, user.id)
+      listRecentWritingArticlesByUser(db, {
+        userId: user.id,
+        limit: WRITING_HISTORY_LIMIT
+      })
     ]);
 
     const records: PracticeRecord[] = [
@@ -167,61 +170,81 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     });
 
     const titleById = new Map(candidates.map((c) => [c.id, c.title]));
-    recent = [
-      ...dictationAttempts.map((a) => ({
-        id: a.id,
-        title: titleById.get(a.passage_id) ?? "Passage",
-        meta:
-          a.status === "in_progress"
-            ? `Dictation · ${a.sentences_done}/${titleById.has(a.passage_id) ? candidates.find((c) => c.id === a.passage_id)!.sentenceCount : "?"}`
-            : `Dictation · ${Math.round(a.accuracy * 100)}%`,
-        href: `/dictation/${a.passage_id}`,
-        at: a.created_at
-      })),
-      ...readingAttempts.map((a) => ({
-        id: a.id,
-        title: a.passage_title ?? "Passage",
-        meta: a.overall_score != null ? `Reading · ${a.overall_score}` : "Reading · pending",
-        href: `/reading/${a.passage_id}`,
-        at: a.created_at
-      }))
-    ]
+    const sentenceCountById = new Map(candidates.map((c) => [c.id, c.sentenceCount]));
+
+    /*
+      One row per material, not per attempt.
+
+      Listing raw attempts spent several rows on one destination: three attempts at one
+      passage rendered as three rows whose hrefs were byte-for-byte identical, because these
+      links have always addressed the passage, not the attempt. A single attempt is still
+      reachable — the passage's history rail addresses it with `?attempt=<id>` — so folding
+      here costs no reachability.
+
+      The studio has no cross-tool session entity and deliberately will not grow one
+      (ADR 0007), so these rows answer "what material was I working on?" and are named for
+      that rather than borrowing Writing's workspace vocabulary.
+
+      Both attempt lists arrive newest-first, so the first row seen for a passage is its
+      latest and sets the row's timestamp.
+    */
+    const byMaterial = new Map<string, RecentItem>();
+    const addAttempt = (key: string, item: RecentItem, score: number | null) => {
+      const existing = byMaterial.get(key);
+      if (!existing) {
+        byMaterial.set(key, { ...item, attempts: 1, best: score });
+        return;
+      }
+      existing.attempts += 1;
+      if (score != null && (existing.best == null || score > existing.best)) {
+        existing.best = score;
+      }
+    };
+
+    for (const a of dictationAttempts) {
+      addAttempt(
+        `dictation:${a.passage_id}`,
+        {
+          id: `dictation:${a.passage_id}`,
+          title: titleById.get(a.passage_id) ?? "Passage",
+          mode: "Dictation",
+          latest:
+            a.status === "in_progress"
+              ? `In progress · ${a.sentences_done}/${sentenceCountById.get(a.passage_id) ?? "?"}`
+              : `${Math.round(a.accuracy * 100)}%`,
+          href: `/dictation/${a.passage_id}`,
+          at: a.created_at,
+          attempts: 0,
+          best: null
+        },
+        a.status === "in_progress" ? null : Math.round(a.accuracy * 100)
+      );
+    }
+
+    for (const a of readingAttempts) {
+      addAttempt(
+        `reading:${a.passage_id}`,
+        {
+          id: `reading:${a.passage_id}`,
+          title: a.passage_title ?? "Passage",
+          mode: "Reading",
+          latest: a.overall_score != null ? `${a.overall_score}` : "Evaluating…",
+          href: `/reading/${a.passage_id}`,
+          at: a.created_at,
+          attempts: 0,
+          best: null
+        },
+        a.overall_score
+      );
+    }
+
+    recent = [...byMaterial.values()]
       .sort((x, y) => y.at.localeCompare(x.at))
       .slice(0, RECENT_ROWS);
 
-    // Coverage: which bands the learner has actually practised. Displayed because CEFR
-    // confidence depends on band spread, so exploring adjacent bands has to look
-    // purposeful rather than arbitrary (design §1.4).
-    const bandById = new Map(candidates.map((c) => [c.id, c.band]));
-    coverage = [
-      ...new Set(
-        records.map((r) => bandById.get(r.passageId)).filter((b): b is string => Boolean(b))
-      )
-    ];
-
-    // Accuracy trend, oldest → newest, dictation only: it is the deterministic signal.
-    trend = dictationAttempts
-      .filter((a) => a.status === "completed")
-      .slice(0, TREND_POINTS)
-      .reverse()
-      .map((a) => a.accuracy);
   } catch (error) {
     console.error("english home personalisation failed:", error);
     degraded = true;
-  }
-
-  if (profile) {
-    const mastery = parseTagMastery(profile.tag_mastery_json);
-    ability = Object.entries(mastery)
-      .filter(([, m]) => m.exposure > 0)
-      .map(([tag, m]) => ({
-        tag,
-        label: TAG_DESCRIPTIONS[tag] ?? tag,
-        mastery: m.mastery,
-        trend: m.trend
-      }))
-      .sort((a, b) => a.mastery - b.mastery)
-      .slice(0, ABILITY_ROWS);
   }
 
   const hasHistory = (profile?.total_attempts ?? 0) > 0 || recent.length > 0;
@@ -233,57 +256,25 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     levelBasis: resolved.basis,
     levelConfidence: profile?.cefr_measured_confidence ?? 0,
     totalAttempts: profile?.total_attempts ?? 0,
-    totalPracticeSeconds: profile?.total_practice_seconds ?? 0,
     practice,
     recent,
-    ability,
-    trend,
-    coverage,
     hasHistory,
     degraded
   });
 };
 
-function formatPracticeTime(seconds: number): string {
-  if (seconds <= 0) return "0m";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${Math.max(1, minutes)}m`;
-}
 
-function TrendChart({ points }: { points: number[] }) {
-  if (points.length < 2) return null;
-  const coords = points.map((value, index) => {
-    const x = (index / (points.length - 1)) * 100;
-    const y = 100 - Math.min(100, Math.max(0, value * 100));
-    return `${x},${y}`;
-  });
-  return (
-    <svg
-      className="home-trend-svg"
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <polyline
-        points={coords.join(" ")}
-        fill="none"
-        stroke="var(--copper)"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-      />
-    </svg>
-  );
-}
-
-function LevelPicker() {
+function LevelPicker({ compact = false }: { compact?: boolean }) {
   const fetcher = useFetcher<{ ok?: boolean }>();
   const saving = fetcher.state !== "idle";
   return (
-    <fetcher.Form method="post" className="home-level-picker">
-      <span className="home-level-picker-label">Or pick your level:</span>
+    <fetcher.Form
+      method="post"
+      className={`home-level-picker${compact ? " is-compact" : ""}`}
+    >
+      <span className="home-level-picker-label">
+        {compact ? "Pick your level" : "Or pick your level:"}
+      </span>
       {CEFR_LEVELS.map((level) => (
         <button
           key={level}
@@ -309,12 +300,8 @@ export default function EnglishHome() {
     levelBasis,
     levelConfidence,
     totalAttempts,
-    totalPracticeSeconds,
     practice,
     recent,
-    ability,
-    trend,
-    coverage,
     hasHistory,
     degraded
   } = useLoaderData<typeof loader>();
@@ -325,16 +312,38 @@ export default function EnglishHome() {
   // wall of "no data yet", so the page becomes a single call to action instead (§3.5).
   const isCold = !level && !hasHistory;
 
+  // One line, not a grid. It states what the system knows and how far to trust it; the
+  // level is never asserted before it has been established (§3.5).
+  //
+  // "Attempts", not "sessions": this counts `total_attempts`, and the studio has no session
+  // entity outside Writing's own workspace vocabulary (ADR 0007).
+  //
+  // Attempt count only. Duration used to sit here too, but `total_practice_seconds` counts
+  // reading alone — dictation records none — so a learner using both modes read a number
+  // that silently omitted half their work. The count carries this line's whole job; the
+  // duration detail belongs on Progress, correctly labelled.
+  const volumeText =
+    totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
+  const basisSentence =
+    level == null
+      ? `${volumeText} so far — not enough yet to estimate your level.`
+      : levelBasis === "measured"
+        ? `Level ${level}, measured from your dictation accuracy at ${Math.round(levelConfidence * 100)}% confidence · ${volumeText}`
+        : `Level ${level} — the level you picked; it adjusts as you practise · ${volumeText}`;
+
   return (
     <StudioShell user={user}>
       <StudioPage width="wide">
         <StudioPageHeader
-          title={firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+          title="Today"
           description={
             isCold
               ? "Let's find your level — it takes about three minutes."
-              : "Pick up where you left off, or start something new."
+              : firstName
+                ? `Good to see you, ${firstName}. Pick up one useful piece of practice.`
+                : "Pick up one useful piece of practice."
           }
+          className="home-page-header"
         />
         <StudioPageBody className="home-page">
 
@@ -346,7 +355,7 @@ export default function EnglishHome() {
 
       {isCold ? (
         <section className="home-cold">
-          <div className="home-card is-primary">
+          <div className="home-focus-primary">
             <p className="home-card-kicker">Start here</p>
             <h2 className="home-card-title">Take one dictation passage</h2>
             <p className="home-card-meta">
@@ -363,27 +372,34 @@ export default function EnglishHome() {
         </section>
       ) : (
         <>
-          <section className="home-actions" aria-label="What to do now">
+          <section
+            className={`home-actions${continueAction && primary ? "" : " is-single"}`}
+            aria-label="What to do now"
+          >
             {continueAction ? (
-              <div className="home-card is-primary">
+              <article className="home-focus-primary">
                 <p className="home-card-kicker">Continue</p>
                 <h2 className="home-card-title">{continueAction.title}</h2>
                 <p className="home-card-meta">
                   {continueAction.kind === "dictation"
                     ? `Dictation · ${continueAction.done} of ${continueAction.total} sentences`
-                    : "Writing · draft in progress"}
+                    : (
+                      <>
+                        Writing · edited <LocalDateTime value={continueAction.updatedAt} />
+                      </>
+                    )}
                 </p>
                 <div className="home-card-actions">
                   <Link to={continueAction.href} className="btn btn-primary">
                     Continue
                   </Link>
                 </div>
-              </div>
+              </article>
             ) : null}
 
             {primary ? (
-              <div className={`home-card${continueAction ? "" : " is-primary"}`}>
-                <p className="home-card-kicker">Next</p>
+              <article className={continueAction ? "home-focus-secondary" : "home-focus-primary"}>
+                <p className="home-card-kicker">Coach recommendation</p>
                 <h2 className="home-card-title">{primary.title}</h2>
                 <p className="home-card-meta">
                   {[
@@ -399,19 +415,23 @@ export default function EnglishHome() {
                   <Link to={primary.href} className="btn btn-primary">
                     Start
                   </Link>
-                  {/* Directional, never a reshuffle: each swap is a choice the learner can
-                      reason about, and is only rendered when such material exists. */}
-                  {alternatives.map((alt) => (
-                    <Link key={alt.direction} to={alt.href} className="btn btn-ghost btn-sm">
-                      {alt.label}
-                    </Link>
-                  ))}
                 </div>
-              </div>
+                {alternatives.length > 0 ? (
+                  <div className="home-card-alternatives" aria-label="Adjust recommendation">
+                    {/* Directional, never a reshuffle: each swap is a choice the learner can
+                        reason about, and is only rendered when such material exists. */}
+                    {alternatives.map((alt) => (
+                      <Link key={alt.direction} to={alt.href} className="studio-link-secondary">
+                        {alt.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
+              </article>
             ) : null}
 
             {!continueAction && !primary ? (
-              <div className="home-card">
+              <article className="home-focus-primary">
                 <p className="home-card-kicker">Practice</p>
                 <h2 className="home-card-title">Choose what to work on</h2>
                 <p className="home-card-meta">
@@ -425,114 +445,51 @@ export default function EnglishHome() {
                     Reading
                   </Link>
                 </div>
-              </div>
+              </article>
             ) : null}
           </section>
 
-          <hr className="home-split" />
+          {/*
+            The status grid used to live here. It now lives on /english/progress.
 
-          <section className="home-status" aria-label="Your status">
-            <div className="home-status-head">
-              <span className="home-status-label">Your status</span>
-              <Link to="/english/progress" className="home-status-more">
-                Full progress &rarr;
-              </Link>
-            </div>
-
-            <div className="home-grid">
-              <div className="home-panel">
-                <div className="home-panel-title">Level</div>
-                {/* Never assert a level the system has not established (§3.5). */}
-                <div className="home-panel-value">{level ?? "—"}</div>
-                <div className="home-panel-note">
-                  {level == null
-                    ? "Practise a little more and we'll estimate it."
-                    : levelBasis === "measured"
-                      ? `Measured from your dictation accuracy · ${Math.round(levelConfidence * 100)}% confidence`
-                      : "The level you picked. It adjusts as you practise."}
-                </div>
-              </div>
-
-              <div className="home-panel">
-                <div className="home-panel-title">Practice</div>
-                <div className="home-panel-value">{totalAttempts}</div>
-                <div className="home-panel-note">
-                  {formatPracticeTime(totalPracticeSeconds)} recorded
-                </div>
-              </div>
-
-              <div className="home-panel">
-                <div className="home-panel-title">Coverage</div>
-                <div className="home-coverage">
-                  {CEFR_LEVELS.filter((band) => band !== "A1" && band !== "C2").map((band) => (
-                    <span
-                      key={band}
-                      className={`home-coverage-band${coverage.includes(band) ? " is-on" : ""}`}
-                    >
-                      {band}
-                    </span>
-                  ))}
-                </div>
-                <div className="home-panel-note">
-                  {coverage.length} of 4 levels practised
-                </div>
-              </div>
-
-              {ability.length > 0 ? (
-                <div className="home-panel is-wide">
-                  <div className="home-panel-head">
-                    <span className="home-panel-title">Working on</span>
-                    <Link to="/english/progress" className="home-panel-more">
-                      All features &rarr;
-                    </Link>
-                  </div>
-                  {ability.map((row) => (
-                    <div key={row.tag} className="home-bar-row">
-                      <div className="home-bar-head">
-                        <span className="home-bar-label">{row.label}</span>
-                        <span className="home-bar-value">
-                          {Math.round(row.mastery * 100)}
-                          {row.trend >= 0.05 ? " ↑" : row.trend <= -0.05 ? " ↓" : ""}
-                        </span>
-                      </div>
-                      <div className="home-bar-track">
-                        <div
-                          className="home-bar-fill"
-                          style={{ width: `${Math.round(row.mastery * 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {recent.length > 0 ? (
-                <div className="home-panel">
-                  <div className="home-panel-head">
-                    <span className="home-panel-title">Recent</span>
-                  </div>
-                  <div className="home-recent">
-                    {recent.map((item) => (
-                      <Link key={item.id} to={item.href} className="home-recent-row">
-                        <span className="home-recent-title">{item.title}</span>
-                        <span className="home-recent-meta">{item.meta}</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {trend.length >= 2 ? (
-                <div className="home-panel is-full">
-                  <div className="home-panel-head">
-                    <span className="home-panel-title">Dictation accuracy</span>
-                    <span className="home-panel-more">last {trend.length}</span>
-                  </div>
-                  <TrendChart points={trend} />
-                </div>
-              ) : null}
-            </div>
+            Home is where the loop restarts, so the only job this data has on this page is
+            to say what the recommendation above is worth — the IA calls the grid evidence
+            for the recommendation, not the front page (ia-v2 §3.3). Rendered as a grid it
+            outweighed the recommendation while saying almost nothing, because the model
+            needs several attempts before panels mean anything (ia-v2 §5.1).
+          */}
+          <section className="home-basis" aria-label="What this is based on">
+            <p className="home-basis-line">{basisSentence}</p>
+            <Link to="/english/progress" className="home-basis-more">
+              Full progress &rarr;
+            </Link>
           </section>
+
+          {level == null ? <LevelPicker compact /> : null}
+
+          {recent.length > 0 ? (
+            <section className="home-recent-section" aria-label="Recent practice">
+              <div className="home-panel-head">
+                <span className="home-panel-title">Recent</span>
+              </div>
+              <div className="home-recent">
+                {recent.map((item) => (
+                  <Link key={item.id} to={item.href} className="home-recent-row">
+                    <span className="home-recent-title">{item.title}</span>
+                    <span className="home-recent-meta">
+                      {[
+                        item.mode,
+                        // Repeated work is the story here; a single run has none to tell.
+                        item.attempts > 1
+                          ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
+                          : item.latest
+                      ].join(" · ")}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </>
       )}
         </StudioPageBody>

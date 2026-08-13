@@ -237,7 +237,7 @@ export default function ReadingProgressPage() {
   const isEmpty = totalAttempts === 0;
 
   return (
-    <div className="writing-main-scroll">
+    <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
           title="Reading progress"
@@ -246,13 +246,13 @@ export default function ReadingProgressPage() {
         <StudioPageTabs>
           <ProgressWorkspaceTabs />
         </StudioPageTabs>
-        <StudioPageBody className="writing-dashboard">
+        <StudioPageBody className="studio-dashboard">
 
         {isEmpty ? (
-          <div className="writing-dashboard-empty">
-            <div className="writing-dashboard-empty-icon">🎙</div>
-            <div className="writing-dashboard-empty-title">No data yet</div>
-            <p className="writing-dashboard-empty-desc">
+          <div className="studio-empty">
+            <div className="studio-empty-mark" aria-hidden="true" />
+            <div className="studio-empty-title">No data yet</div>
+            <p className="studio-empty-desc">
               Submit your first recording and get feedback to start tracking progress.
             </p>
             <Link to="/reading" className="btn btn-primary btn-sm">
