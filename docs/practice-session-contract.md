@@ -1,116 +1,150 @@
-# Practice Session Contract — Design
+# Practice Session Contract — Design (rev 2)
 
-Status: **proposed, not authorized.** Written 2026-08-12 after the owner settled the identity
-question (option A below). Nothing here is implemented; `docs/roadmap.md` is unchanged.
+Status: **proposed, not authorized.** Rev 1 (2026-08-12, commit `34484fb`) was reviewed the
+same day by a second tool (Codex) at the owner's request; the review invalidated several of
+rev 1's factual claims and two of its design decisions. This revision incorporates what
+survived verification. §0 records the corrections so they are not re-derived; §10 lists what
+still needs the owner's yes.
 
-This closes the gap `docs/english-studio-ia-v2-design.md` §3.2 left open:
+Implementation has **not** started and is not authorized by this document.
+`docs/roadmap.md` explicitly excludes session work from the current iteration
+("Dictation v2/session matching" under *Explicitly excluded*), and nothing here overrides
+that.
+
+This document exists to close the gap `docs/english-studio-ia-v2-design.md` §3.2 left open:
 
 > No attempt/article/generation history appears in the rail until "session" has one
 > consistent cross-tool contract (identity, resumability and lifecycle).
 
-That rule has been blocking a feature for two iterations because the contract was never
-written. This document writes it.
+## 0. What rev 1 got wrong (verified against code, 2026-08-12)
 
-## 1. What is broken, factually
+Recorded because this repo's docs are how tools hand work to each other; a correction that
+is not written down gets re-litigated.
 
-**"Session" is a UI word with no entity behind it.** `sessions` in the schema is the login
-table. No practice session table exists. Writing calls one `writing_articles` row a
-"session"; Reading and Dictation have no name for the same idea and expose only attempts.
+1. **"Round" is not a leak — it is authorized vocabulary.** `docs/roadmap.md` (Writing hub
+   item): "Use **Session** for one durable Writing workspace and **Round** for a revision
+   inside it." The UI uses it deliberately: "Feedback from Round {n}"
+   (`writing.$id.tsx:578`), "Viewing Round {n} of {m}" (`:724`). Rev 1's survey missed these
+   because its regex could not see template interpolation. Consequence: rev 1's "retire
+   round" instruction contradicted an owner-authorized vocabulary.
+2. **"Draft" does not mean unsubmitted.** "Draft saved — preparing feedback" renders on a
+   *persisted, submitted* revision whose `feedback_status` is `pending`. Rev 1's narrowed
+   definition (draft = unsubmitted text) is falsified by the very string it cited as
+   compatible.
+3. **Reading's own texts have material identity.** User-pasted texts are rows in `passages`
+   (migration 0012, "User-created reading passages"). Rev 1 claimed their material is NULL;
+   only freeform writing genuinely lacks a material row.
+4. **The Writing schema decision was self-contradictory.** Rev 1 defined session = sitting,
+   then attached `session_id` to `writing_articles` 1:1. An article with Round 1 on Monday
+   and Round 2 on Wednesday spans two sittings; one column on the article cannot say so.
+5. **Immutability and re-derivation contradicted each other** ("`session_id` never changes"
+   vs "delete the sessions and re-derive when the window changes"), and "written in the same
+   statement" is impossible across two tables — atomicity was asserted, not designed.
+6. Metric hygiene: the round count is **64 grep lines**, not 64 references; a line can carry
+   several.
 
-**The single-run level has four user-facing words.** Verified across `apps/web/app`:
+## 1. The model: two layers, not one
 
-| Word | Where |
-|---|---|
-| attempt | Reading, Dictation |
-| revision | Writing — "Each dot is one submitted revision", "New Revision" |
-| draft | Writing — "after you submit your first draft" |
-| round | Writing internals (64 code references) and one leaked string |
+The Writing conflict in §0.4 dissolves once the two ideas rev 1 conflated are separated:
 
-The leak is the clearest evidence that these are not distinct concepts:
+- **Workspace** — a durable container for work on one piece. Writing has this today:
+  `writing_articles`, carrying the title, the prompt reference, the immutable assignment
+  snapshot. It lives as long as the learner keeps returning to it. Reading and Dictation
+  have no workspace entity and do not need one — their durable container is the passage
+  itself.
+- **Session** — one *sitting*: a bounded stretch of practice. Owner decision (option A,
+  2026-08-12): practising the same material again later is a new session. A workspace can
+  span many sessions.
+- **Attempt** — one evaluated run inside a session: a dictation pass, a recording, a
+  submitted revision.
 
-> "Finish the latest **round** analysis before starting a new **revision**."
+So for Writing: `writing_articles` = workspace, `writing_revisions` = attempts, and the
+sitting association belongs **on the revision**, not the article. For Reading and Dictation
+the attempt tables (`esl_reading_attempts`, `dictation_attempts`) associate the same way.
 
-**Two authorized behaviours already contradict each other.** `docs/roadmap.md` specifies for
-Writing "repeated attempts as distinct articles" — practising the same prompt twice creates
-two containers. Commit `14b4a23` folded Reading/Dictation recents on `(user × passage)` —
-practising the same passage twice stays one container. Same product, opposite rules.
+## 2. Vocabulary
 
-## 2. The decision
+Canonical terms for the data layer, schema, docs, and any cross-tool surface (Home,
+Progress): **session** (sitting), **attempt** (evaluated run), **workspace** (durable
+container, where one exists).
 
-**Option A (owner, 2026-08-12): a session is one sitting.** Practising the same material
-again later starts a new session. This matches the everyday meaning of the word, matches the
-Writing behaviour already authorized, and is the only option under which a session row
-carries information its attempts do not.
+**Mode-local surface vocabulary is permitted** where the owner has authorized it. Writing's
+UI keeps **Round** for its attempts — it is roadmap-authorized, live in the UI, and a domain
+word learners see numbered ("Round 2 of 3"). The data layer still treats a revision as an
+attempt; the two claims are compatible because one names a row's role and the other names
+what the learner sees.
 
-Option B (session = lifetime container per material) was rejected for the second reason: with
-attempts already timestamped, a lifetime container is a materialised `GROUP BY` and does not
-earn a table.
+**One genuine collision remains, and only the owner can settle it (§10.1):** the roadmap
+gives Writing's UI "Session" *as the workspace word*, while this contract makes "session"
+mean a sitting product-wide. The same word cannot mean a durable container in Writing and a
+bounded sitting everywhere else. The options are renaming Writing's surface word (e.g.
+"piece") or renaming the cross-tool entity; this document deliberately does not choose.
 
-## 3. Vocabulary
+**Draft** stays, defined by what the code already means by it: the learner's text as a saved
+work product whose feedback has not (yet) arrived. It is a state, not a countable practice
+unit; nothing counts "3 drafts".
 
-Two words, product-wide, in code, schema, docs and UI:
+The one string that mixes synonyms — "Finish the latest round analysis before starting a new
+revision." — should say Round twice. That is a copy fix, not a vocabulary reform.
 
-- **session** — one sitting at one piece of material in one mode. The container.
-- **attempt** — one run inside a session: one dictation pass, one recording, one submitted
-  piece of writing. Attempts are what get evaluated.
+## 3. Identity and lifecycle
 
-Retired as synonyms for attempt: **round**, **revision**.
+### 3.1 Identity
 
-**`draft` is kept, with a narrowed meaning.** A draft is unsubmitted text — a state of the
-attempt being composed, not a countable noun. "Draft saved — preparing feedback" stays;
-"after you submit your first draft" becomes "…your first attempt". The distinction is real
-and worth keeping: a draft has no evaluation, an attempt does.
+A session is `(user, mode, material, sitting)`. `material` is a `passages.id` for Reading
+and Dictation (including user-pasted texts, per §0.3), a `writing_prompts.id` for assigned
+writing, and NULL only for freeform writing — where each sitting still forms its own
+session.
 
-## 4. Identity and lifecycle
+### 3.2 The idle rule, derived at write time
 
-### 4.1 Identity
-
-A session is identified by `(user, mode, material, sitting)`. The first three are columns;
-the fourth is what the idle rule below decides.
-
-`material` is nullable: freeform writing and Reading's own pasted texts have no library
-material. A null material still produces distinct sessions per sitting.
-
-### 4.2 Lifecycle is derived at write time, not scheduled
-
-When an attempt is created, look up the learner's most recent session for the same
+When an attempt is created, resolve against the learner's most recent session for the same
 `(user, mode, material)`:
 
-- last attempt within `SESSION_IDLE_WINDOW` → join that session
-- otherwise, or none exists → open a new one
+- `now − last_attempt_at < SESSION_IDLE_WINDOW` → join it
+- otherwise → open a new one
 
-**There is no background job and no `status` column.** "Open" is not stored; it is
-`now - last_attempt_at < SESSION_IDLE_WINDOW`. A closed session is one nothing has been
-added to recently. This removes an entire class of failure — no cron, no stuck state, no
-reconciliation.
+No background job, no `status` column: "open" is a comparison, not a state. This removes the
+stuck-state/reconciliation failure class entirely.
 
-`SESSION_IDLE_WINDOW = 2 hours`, as one named constant.
+`SESSION_IDLE_WINDOW = 2 hours`, one named constant. A judgement, not a measurement — there
+are no real users to measure. Revisit trigger: first real data, look for a bimodal gap
+distribution, move the constant to the trough.
 
-The value is a judgement, not a measurement: long enough that a coffee break does not split
-a sitting, short enough that morning and evening practice are different sittings. **There are
-no real users, so this is unvalidated.** Trigger to revisit: the first time real session data
-exists, check the distribution of inter-attempt gaps for a bimodal split and move the
-constant to the trough. Changing it later is a constant edit plus a backfill re-run (§6),
-not a migration.
+**`last_attempt_at` tracks activity, not merely creation.** It is bumped when an attempt is
+created *and* when one completes. This is for Dictation, whose attempts are resumable over
+hours: if only creation counted, finishing a long attempt and immediately starting the next
+would wrongly open a new session.
 
-### 4.3 Resumability
+### 3.3 Atomicity and races
 
-`session_id` is assigned when the attempt row is **created** and never changes.
+Session resolution and attempt insert run in **one D1 `batch()`** (atomic, rolls back
+together): resolve-or-create the session row, insert the attempt with its `session_id`, bump
+`last_attempt_at`. Concurrent inserts for the same learner can still race between resolve
+and create and yield two sessions for one sitting. This is **accepted, not prevented**: the
+outcome is benign (a split sitting, no data loss), a uniqueness constraint cannot express
+"within a time window", and re-derivation (§5) merges such splits. The race is documented
+here so nobody adds a lock for it later.
 
-This matters for Dictation, whose attempts are themselves resumable: an attempt started at
-09:00 and finished at 14:00 stays in its original session. The session groups when work
-*started*, which is the only reading that keeps `session_id` immutable.
+### 3.4 Assignment stability
 
-## 5. Schema
+`session_id` on an attempt does not change **in normal operation** — no request path updates
+it. It is *derived data*, though, and §5's re-derivation (window change, split-merge) may
+rewrite it as an explicit bulk rebuild. Rev 1 called this column immutable and was wrong to;
+the honest contract is "stable except under re-derivation, which is an offline rebuild, not
+an update path". Consumers must key long-lived references (bookmarks, observations) on
+attempts — which genuinely are immutable — never on sessions.
+
+## 4. Schema
 
 ```sql
 CREATE TABLE practice_sessions (
   id              TEXT PRIMARY KEY,
   user_id         TEXT NOT NULL REFERENCES users(id),
   mode            TEXT NOT NULL,     -- 'dictation' | 'reading' | 'writing'
-  material_id     TEXT,              -- passage or prompt id; NULL for freeform / own text
+  material_id     TEXT,              -- passages.id / writing_prompts.id; NULL = freeform
   started_at      TEXT NOT NULL,
-  last_attempt_at TEXT NOT NULL,
+  last_attempt_at TEXT NOT NULL,     -- bumped on attempt creation and completion (§3.2)
   deleted_at      TEXT
 );
 
@@ -120,100 +154,88 @@ CREATE INDEX idx_practice_sessions_recent
   ON practice_sessions(user_id, last_attempt_at DESC) WHERE deleted_at IS NULL;
 ```
 
-Then, on each attempt table: `session_id TEXT REFERENCES practice_sessions(id)`, on
-`dictation_attempts`, `esl_reading_attempts`, and `writing_articles`.
+`session_id TEXT REFERENCES practice_sessions(id)` — nullable — on the three **attempt**
+tables: `dictation_attempts`, `esl_reading_attempts`, `writing_revisions`. Each gets an
+index on `session_id`. **`writing_articles` is untouched** (§1): it is the workspace, not
+the session.
 
-### 5.1 What is stored versus derived
+Counts and best scores are **derived at read time** — bounded, indexed queries; a stored
+counter is a cache that can drift (`docs/learner-model-design.md` §2's reasoning). The
+observation layer is untouched: `learner_tag_observations.attempt_id` keys on attempts,
+which gain only a nullable column.
 
-`last_attempt_at` is **stored**, because the write path needs it: every attempt insert asks
-"is there an open session?", and that must be one indexed lookup rather than a join and an
-aggregate. It is written in the same statement as the attempt.
+## 5. Backfill and rollout order
 
-Attempt count and best score are **derived** at read time. They are bounded, indexed queries,
-and a stored counter is a cache that can drift — the same reasoning that keeps the tagger
-deterministic and re-runnable rather than storing its opinion
-(`docs/learner-model-design.md` §2).
+Rollout order matters more than rev 1 allowed; its "backfill, then write paths" left a
+deploy window minting new NULLs. Correct order:
 
-### 5.2 Writing keeps its article, and gains a session
+1. **Schema** — nullable columns, new table. Nothing reads or writes sessions.
+2. **Dual-write** — attempt creation resolves/opens sessions (§3.2–3.3). New rows carry
+   `session_id`; old rows are NULL.
+3. **Backfill** — script under `scripts/` derives sessions for NULL rows: per
+   `(user, mode, material)` walk attempts oldest-first, splitting where the gap exceeds the
+   window. **Writing backfills by the same rule over revisions** — not 1:1 per article,
+   which was rev 1's option-B leftover.
+4. **Reconcile** — assert zero NULL `session_id`, re-run backfill for stragglers written by
+   not-yet-deployed code.
+5. **Reads** — only now may consumers use sessions.
 
-`writing_articles` is not replaced. It keeps the columns only writing needs — title,
-`prompt_id`, the immutable assignment snapshot — and gains `session_id` pointing at the
-canonical row. One `practice_sessions` table with a `mode` column is the same shape
-`learner_tag_observations` already uses for cross-mode data, so this adds no new pattern.
+The backfill is deterministic and re-runnable from immutable attempt timestamps — the
+tagger's property. Production holds a handful of attempts across two accounts; the blast
+radius argument for doing this early still stands.
 
-`writing_revisions` becomes writing's attempt table: `round_number → attempt_number`, and
-`idx_writing_revisions_article_round_unique` renames with it.
+## 6. The missing consumer, and the honest minimal alternative
 
-### 5.3 The observation layer is untouched
+The review's sharpest point: **sessions currently have no navigable identity and no
+consumer.** If recent lists folded by `session_id` but still linked `/reading/:passageId`,
+three sittings on one passage would again render three identical links — the exact defect
+`14b4a23` fixed. Writing already addresses attempts via `?round=`; an equivalent
+(`?session=` filtering the history rail, or a session detail surface) must be designed
+*with its consumer*, not speculatively here.
 
-`learner_tag_observations.attempt_id` keys on the attempt, and attempts are unchanged apart
-from a nullable new column. Sessions add a grouping above observations; they do not move,
-reshape, or reinterpret any of them. `docs/learner-model-design.md` §10 forward-compatibility
-holds unchanged.
+Until such a consumer is authorized, the shipped material-level fold is **correct as-is** —
+its rows honestly answer "what material was I working on?", they just should not be labelled
+sessions. Rev 1's §8 ("correction required in shipped code") is withdrawn: relabel, don't
+refold.
 
-## 6. Backfill
+This creates a real option the owner should weigh (§10.4): **defer the entire entity** until
+a consumer exists (session history surface, or the planning layer in ia-v2 §6.4), and ship
+only the relabel now. The contract above loses nothing by waiting; attempts carry the
+timestamps it derives from.
 
-Existing attempts have no `session_id`. Reconstruct sessions from history with the same idle
-rule: per `(user, mode, material)`, walk attempts oldest-first and start a new session
-whenever the gap to the previous attempt exceeds `SESSION_IDLE_WINDOW`. Writing is simpler —
-one session per existing article, 1:1, since an article already is a sitting.
+## 7. What this unblocks — and does not
 
-The backfill is **deterministic and re-runnable**: it reads immutable attempt timestamps and
-writes only `session_id` and session rows. If `SESSION_IDLE_WINDOW` changes, delete the
-sessions and re-derive rather than migrating them — the same property the tagger has.
+With identity, lifecycle and resumability defined, ia-v2 §3.2's precondition for rail
+history is met. Whether the rail *should* carry history is a separate decision; the
+rail-answers-"where", workspace-answers-"what" argument is untouched.
 
-Production currently holds roughly twenty library passages, about fourteen user passages, and
-a handful of attempts across two accounts. The backfill's blast radius is small now and will
-not be later; this is an argument for doing it in this iteration rather than after launch.
+## 8. Implementation order
 
-## 7. What this unblocks
+§5's five steps, then: the copy fix from §2 (the round/revision mixed string), then the UI
+copy sweep — which now **preserves Round** in Writing and touches only genuine synonym drift
+("New Revision" → "New Round" or per §10.1's outcome; "submitted revision" → "submitted
+round"). `round_number` the column is **not renamed** (§10.5).
 
-IA v2 §3.2 withheld attempt/article/generation history from the product rail until this
-contract existed. With identity, lifecycle and resumability defined, that rule's condition is
-met and the restriction can be revisited on its own merits — **but that is a separate
-decision, not a consequence.** `ToolNavRail` still has no list slot, and the argument that
-the rail answers "where can I go?" while the workspace answers "what can I do here?" is
-untouched by this document.
+## 9. Acceptance criteria (for the owner to ratify with authorization)
 
-## 8. Correction required in shipped code
-
-Commit `14b4a23` folds recent lists on `(user × passage)` — option B semantics. Under option A
-the fold key becomes `session_id`, and the row's "3 attempts · best 75" becomes per-session
-rather than per-material. The deduplication itself was right and stays; only the grouping
-boundary moves.
-
-## 9. Implementation order
-
-Each step is independently verifiable and leaves the product working.
-
-1. **Migration + backfill.** New table, three nullable `session_id` columns, backfill script
-   under `scripts/`. Nothing reads sessions yet.
-2. **Write paths.** Attempt creation resolves or opens a session. Verify by practising the
-   same passage twice inside and outside the window.
-3. **Read paths.** Recent lists on Home, Reading and Dictation fold on `session_id` (§8).
-4. **`round → attempt` rename.** Column, index, and the 64 code references. No user-visible
-   change; it is internal vocabulary catching up.
-5. **UI copy sweep.** §3's two words, everywhere. Inventory below.
-6. **Doc sync.** IA v2 §3.2, `docs/architecture.md`, `docs/changelog.md`.
-
-### 9.1 UI copy inventory for step 5
-
-| Current | Becomes |
-|---|---|
-| "Each dot is one submitted revision. Click to view." | …one submitted attempt… |
-| "New Revision" | "New attempt" |
-| "Finish the latest round analysis before starting a new revision." | …the latest attempt's analysis before starting a new attempt. |
-| "after you submit your first draft" | "after you submit your first attempt" |
-| "The assignment is saved only when you submit this first draft." | …this first attempt. |
-| "Freeform session" / "Assignment session" | unchanged — these are sessions |
-| "Draft saved — preparing feedback" | unchanged — draft is a state (§3) |
+- Same passage practised twice inside the window → one session, two attempts; outside → two
+  sessions. Verified for all three modes.
+- A resumed dictation attempt completed hours later keeps its `session_id`, and completing
+  it bumps `last_attempt_at` (§3.2).
+- Backfill: zero NULL `session_id` after step 4; re-running is a no-op; Writing revisions
+  Monday/Wednesday on one article yield two sessions.
+- No consumer reads sessions until step 5 (grep-verifiable).
+- Observation rows and their aggregation outputs are byte-identical before and after.
 
 ## 10. Decisions that need the owner's yes
 
-1. `SESSION_IDLE_WINDOW = 2 hours` (§4.2) — the one unvalidated number here.
-2. Writing keeps `writing_articles` alongside a session row (§5.2), rather than collapsing
-   the two tables.
-3. Attempt count and best score derived rather than stored (§5.1).
-4. Whether step 4's rename is worth a migration for zero user-visible change, or whether
-   `round_number` stays as a historical column name with the vocabulary fixed only in new
-   code and UI.
+1. **The "Session" word collision (§2).** Writing's authorized UI word for the *workspace*
+   vs this contract's *sitting*. Rename one; which? This also supersedes the owner's earlier
+   in-chat "rename round → attempt" — Round stays in Writing's UI per the review's argument,
+   unless the owner re-confirms the rename against their own roadmap authorization.
+2. `SESSION_IDLE_WINDOW = 2h`, with `last_attempt_at` bumped on creation *and* completion.
+3. Counts/best derived, never stored.
+4. **Build now vs defer until a consumer exists (§6).** Deferring costs nothing
+   technically; building now front-loads the backfill while production data is tiny.
+5. `round_number` stays as a column name — vocabulary is fixed at the boundaries (UI, new
+   code), not by migrating a working schema for zero user-visible change.
