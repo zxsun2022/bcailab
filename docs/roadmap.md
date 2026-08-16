@@ -40,7 +40,7 @@ accepted.
 - New Reading evaluations stop requesting `next_drills`; stored historical feedback that has
   the field must remain readable.
 
-### A. Writing prompt bank and guided entry — in_review
+### A. Writing prompt bank and guided entry — accepted
 
 - Add a reviewable `writing_prompts` contract with stable identity, family/task type, prompt
   text, optional CEFR discovery band, topic, target words, optional reviewed asset, provenance,
@@ -81,7 +81,7 @@ second party — in `docs/approvals/writing-prompts-38d84de9.json`. A second-par
 review is therefore still outstanding as a quality step, and would need a fresh manifest.
 Publication does not by itself make this item accepted; only the owner makes that transition.
 
-### B. Saved translations — in_review
+### B. Saved translations — accepted
 
 - Add private, user-owned saved translations containing the source/result language metadata
   and timestamps. Saving is explicit, signed-in only, retry/double-click idempotent, and
@@ -104,7 +104,7 @@ same-result 404s, 25-row keyset pagination, confirmed hard delete, no-JavaScript
 failed streams, and consecutive results that do not inherit `Saved` state. Private responses
 use `Cache-Control: private, no-store`; no remote migration or deployment was performed.
 
-### C. Shared interaction and layout correctness — in_review
+### C. Shared interaction and layout correctness — accepted
 
 - On narrow Translate layouts, keep the primary action reachable and reveal completed output;
   long input grows to a bounded height and the page owns ordinary reading scroll. Preserve
@@ -144,7 +144,7 @@ independent, publish SQL has explicit typed quoting, and the seed pipeline joins
 typecheck/tests. Mobile touch sizing is scoped to intended Studio controls, and destructive
 form triggers cannot submit without the confirmation JavaScript path.
 
-### D. Reading evaluation dead output — in_review
+### D. Reading evaluation dead output — accepted
 
 Remove `next_drills` from new evaluation prompts and generated schemas. Keep read compatibility
 for existing stored payloads and leave the future one-tap drill/session lifecycle deferred.
@@ -156,7 +156,7 @@ Review evidence (2026-08-10): compatibility fixtures load legacy `next_drills`, 
 and schema tests prove new Reading evaluations neither request nor generate the field. The
 full repository suite passes 558 tests.
 
-### E. Scalable Studio navigation and material discovery — in_review
+### E. Scalable Studio navigation and material discovery — accepted
 
 The owner authorized this follow-up on 2026-08-10 after reviewing the current desktop Writing
 and Coach Home surfaces. It changes information architecture and presentation, not the
@@ -260,13 +260,13 @@ Reading/Dictation library expansion.
 
 The owner authorized Mapdown implementation through the Phase 2 production-MVP exit criteria
 on 2026-08-04. Phase 1 merged in PR #26; Phase 2 implementation and deployment are complete
-and **in_review**, not accepted until the owner makes that transition. Its acceptance criteria
+and **accepted** (owner, 2026-08-15). Its acceptance criteria
 are `docs/mapdown/spec/phases.md` §4 plus the scenario matrix in
 `docs/mapdown/spec/testing-acceptance.md`.
 
 The owner additionally authorized three Mapdown stabilization checkpoints on 2026-08-04:
 
-- **P0 active-draft persistence — in_review.** Text visible in the editing textarea must be
+- **P0 active-draft persistence — accepted.** Text visible in the editing textarea must be
   included in the debounced local snapshot before the editing session commits; direct refresh
   inside and after the debounce window must restore it; the saved indicator must track the
   visible draft; typing must retain one undo group; the textarea, node box and connectors must
@@ -274,14 +274,14 @@ The owner additionally authorized three Mapdown stabilization checkpoints on 202
   leaving the empty node created by Enter must remove only that empty node, never the text that
   Enter just committed. Double-clicking a node must continue editing at the end of its existing
   label; `F2` remains the select-all replacement path.
-- **Visual polish — in_review.** Reduce the top-level toolbar to a
+- **Visual polish — accepted.** Reduce the top-level toolbar to a
   clear 6–7-control information hierarchy without losing commands; establish primary,
   secondary and quiet control styles; replace the unstyled theme picker; distinguish selection
   from node type; improve connector and collapse-control legibility; and establish consistent
   chrome spacing, typography and focus treatment. Keep chrome visuals out of document themes
   and exported SVG/PNG. Before increasing node typography, align layout measurement with
   rendered font metrics. Verify desktop, tablet, mobile, keyboard and reduced-motion behavior.
-- **Interaction-state clarification — in_review.** Editing Enter must commit only and return
+- **Interaction-state clarification — accepted.** Editing Enter must commit only and return
   the same node to selected mode; selected-mode Enter must create exactly one sibling/root
   child; a new empty leaf must not multiply on repeated Enter. The state machine must be
   recorded as an event/guard/action/next-state table. Markdown, SVG and PNG downloads must use
@@ -290,7 +290,7 @@ The owner additionally authorized three Mapdown stabilization checkpoints on 202
 
 The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
 
-- **Canvas affordances — in_review.** Four independent items, each shippable
+- **Canvas affordances — accepted.** Four independent items, each shippable
   alone. (a) Move the zoom control out of the status bar and View menu into a floating
   bottom-left capsule (− percent +), where clicking the percentage restores 100%; the View
   menu keeps its entries. (b) Show a dismissable hint line on an untouched empty map naming
@@ -303,7 +303,7 @@ The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
   four: chrome visuals stay out of document themes and exported SVG/PNG; keyboard and
   screen-reader behaviour is unchanged; verified at desktop, tablet and mobile widths and
   under reduced-motion.
-- **Theme differentiation — in_review, all three steps.** The four presets read as hue variants
+- **Theme differentiation — accepted, all three steps.** The four presets read as hue variants
   of one design because the branch palette reaches only connector strokes: `branchColorFor()`
   is consumed for stroke colour alone, so node fills always come from a single per-role token
   and no theme can look structurally different from another. Three ordered steps, each

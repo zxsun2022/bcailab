@@ -9,6 +9,16 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-15 — **accepted: owner sweep of all outstanding `in_review` items.** The owner
+  reviewed every remaining `in_review` entry one by one and accepted them all. This closes
+  the English Studio iteration items A–E (writing prompt bank, saved translations, shared
+  interaction/layout correctness, reading-evaluation dead output, scalable Studio navigation)
+  and the Mapdown production MVP plus its five stabilization checkpoints (P0 active-draft
+  persistence, visual polish, interaction-state clarification, canvas affordances, theme
+  differentiation). The single-reviewer gap on the writing-prompt batch recorded under
+  2026-08-10 is accepted as-is; no second-party content review was added. The 26 `in_review`
+  changelog entries below are now `accepted` to match.
+
 - 2026-08-12 — **accepted: rejected a cross-tool practice-session entity; kept each tool's
   native model.** Recorded as [ADR 0007](decisions/0007-no-cross-tool-practice-session-entity.md).
   The Recent-list dedup below raised a modelling question — what does a folded row represent?
@@ -107,12 +117,12 @@ make the final transition; see `AGENTS.md`.
   production build, computed-style verification of fonts and disabled states, and contrast
   ratios computed against both theme backgrounds.
 
-- 2026-08-11 — **in_review: Translate composer focus indicator contained.** Kept the strong
+- 2026-08-11 — **accepted: Translate composer focus indicator contained.** Kept the strong
   two-pixel action-color focus indicator while moving it inside the text composer, preventing
   the ring from covering the output divider and surrounding workspace borders. Evidence: Web
   typecheck, production build, and browser inspection of the focused composer geometry.
 
-- 2026-08-11 — **in_review: Translate and Speech history surfaces simplified.** Removed the
+- 2026-08-11 — **accepted: Translate and Speech history surfaces simplified.** Removed the
   redundant New translation action from Saved translations and the duplicate History heading
   plus New generation action from Speech History. Both pages now rely on their persistent
   workspace tabs for returning to creation, so the content area has one job: show saved or
@@ -120,7 +130,7 @@ make the final transition; see `AGENTS.md`.
   Evidence: Web typecheck, production build, and authenticated 351px browser checks with no
   horizontal overflow or duplicate creation actions.
 
-- 2026-08-11 — **in_review: Coach Home correction and utility workspace polish.** Replaced
+- 2026-08-11 — **accepted: Coach Home correction and utility workspace polish.** Replaced
   Home's equal-height framed action cards with an open editorial hierarchy: Continue keeps one
   leading accent, the recommendation is unboxed, alternatives form a stable vertical list, and
   status is separated by rules rather than another rounded container. Fixed three underlying
@@ -137,7 +147,7 @@ make the final transition; see `AGENTS.md`.
   and authenticated 351px browser checks for all three pages with no horizontal overflow and
   visible primary actions.
 
-- 2026-08-10 — **in_review: scalable English Studio navigation and material discovery.**
+- 2026-08-10 — **accepted: scalable English Studio navigation and material discovery.**
   Reworked the shared rail into a narrower, quieter navigation spine with a line-based active
   state; reshaped Coach Home into an action-first editorial workspace with a compact status
   strip and list-based detail; and changed `/writing` from a 48-card wall into a collection
@@ -160,14 +170,14 @@ make the final transition; see `AGENTS.md`.
   `<html>` and consequently reports Remix hydration warnings; standalone browser checks are
   clean and no application runtime error was observed.
 
-- 2026-08-10 — **in_review: English Studio Home density and hierarchy.** Grouped continuation
+- 2026-08-10 — **accepted: English Studio Home density and hierarchy.** Grouped continuation
   and coach recommendation into a tighter two-panel action zone, demoted recommendation
   alternatives from competing buttons to secondary text actions, and consolidated status into
   a bounded strip closer to today's work. Single Recent/Working on sections now use the full
   content width instead of leaving an empty grid column. Evidence: authenticated 351px cold
   state with 44px actions and no horizontal overflow; 564 tests, Web typecheck, production build.
 
-- 2026-08-10 — **in_review: English Studio navigation and mobile-action polish.** The public
+- 2026-08-10 — **accepted: English Studio navigation and mobile-action polish.** The public
   module directory now mirrors the product rail’s information architecture by separating
   Practice (Dictation, Reading, Writing) from Tools (Translate, Speech, planned Dictionary),
   with a coherent `h1` → group `h2` → module `h3` outline. Global signed-out header actions
@@ -177,12 +187,12 @@ make the final transition; see `AGENTS.md`.
   Evidence: Web typecheck; browser screenshots at 375/768/1280px for the landing directory;
   Writing checks at 320/375/1280px with no horizontal overflow; measured 44px action targets.
 
-- 2026-08-10 — **in_review: Dictation catalogue band spacing.** Restored the shared band-body
+- 2026-08-10 — **accepted: Dictation catalogue band spacing.** Restored the shared band-body
   wrapper around each `/dictation` card grid, so the band description divider no longer sits
   directly against the first row of passage cards. Evidence: Web typecheck and production
   build.
 
-- 2026-08-10 — **in_review: Writing prompt batch approved and published; migrations `0016`/`0017`
+- 2026-08-10 — **accepted: Writing prompt batch approved and published; migrations `0016`/`0017`
   applied to production.** Batch `38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078`
   was approved and published to both the development D1 (`apps/web/.wrangler/state`) and
   production, so `/writing` now serves 24 General English (A2-C1), 12 IELTS Academic Task 1 and
@@ -202,7 +212,7 @@ make the final transition; see `AGENTS.md`.
   taken (owner's explicit choice). Nothing was deployed and nothing was pushed; only the owner
   may move the roadmap items to accepted.
 
-- 2026-08-10 — **in_review: English Studio acceptance-review hardening.** Fixed the reported
+- 2026-08-10 — **accepted: English Studio acceptance-review hardening.** Fixed the reported
   local Writing crash at both layers: the development D1 state now has additive migrations
   `0016`/`0017`, and parallel child loaders degrade to the Writing unavailable state instead
   of overriding the layout guard with `no such table`. Local workflow docs now point at
@@ -221,13 +231,13 @@ make the final transition; see `AGENTS.md`.
   both `0015` target tables already absent, so its missing local ledger record was reconciled
   without executing a DROP; the local migration list is now clean.
 
-- 2026-08-10 — **in_review: English Studio landing-page copy refresh.** The public hero now
+- 2026-08-10 — **accepted: English Studio landing-page copy refresh.** The public hero now
   describes focused practice across reading, writing, listening, speaking, and translation,
   and explains the recitation, AI writing coach, audio/shadowing, and in-workspace translation
   workflows in clearer learner-facing language. The page metadata carries the same product
   positioning. Evidence: web typecheck and production build.
 
-- 2026-08-10 — **in_review: English Studio material, memory, and interaction iteration
+- 2026-08-10 — **accepted: English Studio material, memory, and interaction iteration
   (D1-D5).** Writing is now material-led: a versioned D1 prompt contract, immutable article
   assignment snapshots, 48-source-prompt editorial pipeline (24 General English across
   A2/B1/B2/C1, 12 IELTS Academic Task 1 with content-addressed accessible assets, 12 Task 2),
@@ -254,7 +264,7 @@ make the final transition; see `AGENTS.md`.
   published, no remote migration ran, and nothing was deployed; only the owner may accept the
   roadmap items and approve the content manifest.
 
-- 2026-08-06 — **in_review: Mapdown Theme differentiation step 3 — the theme splits into
+- 2026-08-06 — **accepted: Mapdown Theme differentiation step 3 — the theme splits into
   shape × palette, and text colour becomes designed data.** The single theme id is now two
   orthogonal fields, both persisted in Markdown front matter (`shape:` / `palette:`): shape =
   shape language + canvas appearance + role base tokens + type scale; palette = the branch
@@ -290,7 +300,7 @@ make the final transition; see `AGENTS.md`.
   colours; the Style menu fits 375px width and scrolls internally at 375×667. Only the owner
   may mark this checkpoint accepted/shipped.
 
-- 2026-08-06 — **in_review: Mapdown Canvas affordances.** Four independent items. (a) Zoom
+- 2026-08-06 — **accepted: Mapdown Canvas affordances.** Four independent items. (a) Zoom
   now lives in a floating bottom-left capsule (− / percentage / +); clicking the percentage
   restores 100% without moving the viewport centre. The status-bar percentage and the View
   menu's inline zoom controls are gone; the View menu keeps Fit map, Centre selection and
@@ -316,7 +326,7 @@ make the final transition; see `AGENTS.md`.
   and the fresh starter renders the system-appropriate theme. Only the owner may mark this
   checkpoint accepted/shipped.
 
-- 2026-08-06 — **in_review: Mapdown Theme differentiation steps 1–2.** Step 1 — the branch
+- 2026-08-06 — **accepted: Mapdown Theme differentiation steps 1–2.** Step 1 — the branch
   palette reaches the nodes: in `by-first-level-branch` mode the first-level node fill is the
   branch colour (previously it tinted connector strokes only), and node text is switched to
   the accessible partner of that fill (white or `#16181c`, whichever clears WCAG AA).
@@ -341,7 +351,7 @@ make the final transition; see `AGENTS.md`.
   textarea on a branch-coloured node matches its fill, text, 15px/500 and padding at
   <0.01px alignment. Only the owner may mark this checkpoint accepted/shipped.
 
-- 2026-08-06 — **in_review: Mapdown three-tier type scale (Theme differentiation, step 2).**
+- 2026-08-06 — **accepted: Mapdown three-tier type scale (Theme differentiation, step 2).**
   Node hierarchy is now expressed through type size, not indentation alone: the shared
   `TYPOGRAPHY` constant in `presets.ts` moves to root 18px/600, first level 15px/500, and
   every deeper node 13px/400, with line height fixed at 1.45. The four presets' root
@@ -359,7 +369,7 @@ make the final transition; see `AGENTS.md`.
   editing textarea font/padding matches its covered node at every scale. Only the owner may
   mark this checkpoint accepted/shipped.
 
-- 2026-08-06 — **in_review: Mapdown two-sided connector mirror fix.** In two-sided layout the
+- 2026-08-06 — **accepted: Mapdown two-sided connector mirror fix.** In two-sided layout the
   root's single stored `outwardEdgeX` always pointed at the right edge, so a left first-level
   connector started at the root's right edge, spanned the whole root, and placed its bézier
   control points at that long span's midpoint — the left curve then did not mirror the right
@@ -376,7 +386,7 @@ make the final transition; see `AGENTS.md`.
   render differs only in glyph antialiasing), and the before/after pixel diff is confined to
   the visible left connector region. Only the owner may mark this checkpoint accepted/shipped.
 
-- 2026-08-05 — **in_review: Mapdown editing-state fidelity.** The editing textarea now overlays
+- 2026-08-05 — **accepted: Mapdown editing-state fidelity.** The editing textarea now overlays
   its node exactly: the highlight ring is a box-shadow drawn *outside* the box instead of a
   2px border that consumed 4px of content width, so two full-width CJK characters ("一二",
   28px of text in a 52px box) no longer wrap into two lines. Fill, text, corner radius and
@@ -397,7 +407,7 @@ make the final transition; see `AGENTS.md`.
   #f6f7f8/#1c1e21, Soft Branch Colors #ffffff/#2b2a27, Business #eef2f7/#12263f, Dark
   #24272c/#e8eaed). Only the owner may mark this checkpoint accepted/shipped.
 
-- 2026-08-05 — **in_review: Mapdown layout-switch and editing-fidelity fixes.** The Arrange
+- 2026-08-05 — **accepted: Mapdown layout-switch and editing-fidelity fixes.** The Arrange
   layout toggle now visibly balances first-level branches when entering two-sided mode from
   the right-only placeholder state (all branches share one side), and presents as two
   selected-state options (Right-only / Two-sided) like the Document theme picker instead of a
@@ -415,7 +425,7 @@ make the final transition; see `AGENTS.md`.
   14px/500 matching the rendered roles. Only the owner may mark this checkpoint
   accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown interaction-state clarification.** Split the execution
+- 2026-08-04 — **accepted: Mapdown interaction-state clarification.** Split the execution
   paths that the keymap already called `commit-edit` and `create-sibling`: Enter in an active
   textarea now commits only and returns the same node to selected mode, while a later Enter
   creates exactly one sibling/root child. A newly created empty leaf remains protected from
@@ -429,7 +439,7 @@ make the final transition; see `AGENTS.md`.
   preserved across a `156% → 100%` reset, generated Help discovery and zero console warnings.
   Only the owner may mark this checkpoint accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown live-editing correctness.** Fixed the production path where
+- 2026-08-04 — **accepted: Mapdown live-editing correctness.** Fixed the production path where
   Enter correctly committed a label and created the next empty node, but clicking away let the
   canvas selection handler and textarea blur both cancel that empty session; the second
   cancellation silently removed the label that Enter had just committed. Editing sessions are
@@ -442,7 +452,7 @@ make the final transition; see `AGENTS.md`.
   next node, and accept appended text after a double-click. Only the owner may mark this
   checkpoint accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown visual-polish checkpoint.** Replaced fifteen equal-weight
+- 2026-08-04 — **accepted: Mapdown visual-polish checkpoint.** Replaced fifteen equal-weight
   toolbar controls with seven top-level actions and grouped Arrange, View, Style and File
   popovers; added theme previews, clear action hierarchy, restrained chrome tokens, responsive
   mobile panels, status treatment and deterministic Escape/focus restoration. Selection now
@@ -452,7 +462,7 @@ make the final transition; see `AGENTS.md`.
   checks, and visual QA on the 72-node Chinese fixture. Only the owner may mark this checkpoint
   accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown active-draft persistence.** Autosave snapshots now include
+- 2026-08-04 — **accepted: Mapdown active-draft persistence.** Autosave snapshots now include
   the text currently visible in the editing textarea before Enter, Escape or blur commits the
   editing session. The snapshot-only overlay keeps one undo group per session and avoids
   per-keypress layout, while `visibilitychange` and `pagehide` flush the latest draft and
@@ -461,7 +471,7 @@ make the final transition; see `AGENTS.md`.
   recovery after both a settled debounced save and a refresh roughly 100ms after typing. Only
   the owner may mark this checkpoint accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown production deployment (D-03).** Created the
+- 2026-08-04 — **accepted: Mapdown production deployment (D-03).** Created the
   Git-connected `mapdown` Cloudflare Pages project from the shared repository, with `main`
   production builds rooted at `apps/mapdown`, the documented monorepo build command, and an
   app-local Wrangler output configuration. Bound `map.bcailab.com` and narrowed build watch
@@ -471,7 +481,7 @@ make the final transition; see `AGENTS.md`.
   URL returns HTTP/2 200 with the current Mapdown assets. Only the owner may mark this
   checkpoint accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown production interaction gates.** Completes Steps 15–17:
+- 2026-08-04 — **accepted: Mapdown production interaction gates.** Completes Steps 15–17:
   a searchable Help/Command Center generated from the executable keymap and command registry;
   platform-aware shortcuts, disabled-command explanations, focus trapping and restoration;
   semantic document-order tree items with level, side, expansion and selection metadata;
@@ -483,7 +493,7 @@ make the final transition; see `AGENTS.md`.
   performance baselines in `docs/mapdown/performance.md`. Only the owner may mark this
   checkpoint accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown Phase 2 checkpoint — layout, export, parser and move
+- 2026-08-04 — **accepted: Mapdown Phase 2 checkpoint — layout, export, parser and move
   interaction.** Adds sticky two-sided branches, document themes, pan/zoom/fit, SVG/PNG export,
   a real CommonMark parser with a mutation check that proves escaping is parser-visible, and
   the complete Step 10 move path. Pointer dragging now has a label/subtree-count preview,
@@ -493,7 +503,7 @@ make the final transition; see `AGENTS.md`.
   browser regression checks for threshold, valid reorder, invalid no-op, cancel, preview and
   cross-root side movement. Only the owner may mark this checkpoint accepted/shipped.
 
-- 2026-08-04 — **in_review: Mapdown Phase 1 semantic editor (PR #26).** The review candidate
+- 2026-08-04 — **accepted: Mapdown Phase 1 semantic editor (PR #26).** The review candidate
   contains the document model and ten enforced tree invariants, pure invertible commands,
   session-grouped undo/redo, right-only variable-size layout, keyboard-first editing with IME
   protection, canonical Markdown import/export, and IndexedDB autosave with validated snapshot
