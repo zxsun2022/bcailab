@@ -41,21 +41,6 @@ export type TtsGeneration = {
   deleted_at: string | null;
 };
 
-export type EslPassage = {
-  id: string;
-  user_id: string;
-  title: string | null;
-  content_text: string;
-  reference_tts_status: "pending" | "completed" | "failed" | null;
-  reference_tts_voice_name: string | null;
-  reference_tts_r2_key: string | null;
-  reference_tts_audio_bytes: number | null;
-  reference_tts_created_at: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
-};
-
 export type EslReadingAttempt = {
   id: string;
   passage_id: string;
@@ -175,31 +160,6 @@ const mapTtsGeneration = (row: Record<string, unknown>): TtsGeneration => ({
   r2_key: String(row.r2_key),
   audio_bytes: Number(row.audio_bytes),
   created_at: String(row.created_at),
-  deleted_at: row.deleted_at ? String(row.deleted_at) : null
-});
-
-const mapEslPassage = (row: Record<string, unknown>): EslPassage => ({
-  id: String(row.id),
-  user_id: String(row.user_id),
-  title: row.title ? String(row.title) : null,
-  content_text: String(row.content_text),
-  reference_tts_status:
-    row.reference_tts_status === "pending" ||
-    row.reference_tts_status === "completed" ||
-    row.reference_tts_status === "failed"
-      ? row.reference_tts_status
-      : null,
-  reference_tts_voice_name: row.reference_tts_voice_name
-    ? String(row.reference_tts_voice_name)
-    : null,
-  reference_tts_r2_key: row.reference_tts_r2_key ? String(row.reference_tts_r2_key) : null,
-  reference_tts_audio_bytes:
-    row.reference_tts_audio_bytes != null ? Number(row.reference_tts_audio_bytes) : null,
-  reference_tts_created_at: row.reference_tts_created_at
-    ? String(row.reference_tts_created_at)
-    : null,
-  created_at: String(row.created_at),
-  updated_at: String(row.updated_at),
   deleted_at: row.deleted_at ? String(row.deleted_at) : null
 });
 
@@ -502,132 +462,6 @@ export async function softDeleteTtsGeneration(
 ): Promise<void> {
   await db
     .prepare("UPDATE tts_generations SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?")
-    .bind(input.id, input.userId)
-    .run();
-}
-
-export async function createEslPassage(
-  db: Db,
-  input: { id?: string; userId: string; title?: string | null; contentText: string }
-): Promise<EslPassage> {
-  const id = input.id ?? crypto.randomUUID();
-  await db
-    .prepare(
-      "INSERT INTO esl_passages (id, user_id, title, content_text) VALUES (?, ?, ?, ?)"
-    )
-    .bind(id, input.userId, input.title ?? null, input.contentText)
-    .run();
-
-  const created = await getEslPassageById(db, id, { includeDeleted: true });
-  if (!created) {
-    throw new Error("Failed to create esl passage.");
-  }
-  return created;
-}
-
-export async function getEslPassageById(
-  db: Db,
-  id: string,
-  options: { includeDeleted?: boolean } = {}
-): Promise<EslPassage | null> {
-  const { includeDeleted = false } = options;
-  const query = includeDeleted
-    ? "SELECT * FROM esl_passages WHERE id = ? LIMIT 1"
-    : "SELECT * FROM esl_passages WHERE id = ? AND deleted_at IS NULL LIMIT 1";
-  const result = await db.prepare(query).bind(id).first();
-  return result ? mapEslPassage(result) : null;
-}
-
-export async function listEslPassagesByUser(db: Db, userId: string): Promise<EslPassage[]> {
-  const result = await db
-    .prepare(
-      "SELECT * FROM esl_passages WHERE user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC, created_at DESC"
-    )
-    .bind(userId)
-    .all();
-  if (!result.results) return [];
-  return result.results.map(mapEslPassage);
-}
-
-export async function updateEslPassage(
-  db: Db,
-  input: { id: string; userId: string; title?: string | null; contentText: string }
-): Promise<EslPassage | null> {
-  await db
-    .prepare(
-      "UPDATE esl_passages SET title = ?, content_text = ?, updated_at = datetime('now') WHERE id = ? AND user_id = ?"
-    )
-    .bind(input.title ?? null, input.contentText, input.id, input.userId)
-    .run();
-  return getEslPassageById(db, input.id, { includeDeleted: true });
-}
-
-export async function markEslPassageReferenceTtsPending(
-  db: Db,
-  input: { id: string; userId: string }
-): Promise<boolean> {
-  try {
-    await db
-      .prepare(
-        "UPDATE esl_passages SET reference_tts_status = 'pending', reference_tts_voice_name = NULL, reference_tts_r2_key = NULL, reference_tts_audio_bytes = NULL, reference_tts_created_at = NULL WHERE id = ? AND user_id = ?"
-      )
-      .bind(input.id, input.userId)
-      .run();
-    return true;
-  } catch (error) {
-    if (isMissingColumnError(error, "reference_tts_status")) return false;
-    throw error;
-  }
-}
-
-export async function markEslPassageReferenceTtsCompleted(
-  db: Db,
-  input: {
-    id: string;
-    userId: string;
-    voiceName: string;
-    r2Key: string;
-    audioBytes: number;
-  }
-): Promise<boolean> {
-  try {
-    await db
-      .prepare(
-        "UPDATE esl_passages SET reference_tts_status = 'completed', reference_tts_voice_name = ?, reference_tts_r2_key = ?, reference_tts_audio_bytes = ?, reference_tts_created_at = datetime('now') WHERE id = ? AND user_id = ?"
-      )
-      .bind(input.voiceName, input.r2Key, input.audioBytes, input.id, input.userId)
-      .run();
-    return true;
-  } catch (error) {
-    if (isMissingColumnError(error, "reference_tts_status")) return false;
-    throw error;
-  }
-}
-
-export async function markEslPassageReferenceTtsFailed(
-  db: Db,
-  input: { id: string; userId: string }
-): Promise<boolean> {
-  try {
-    await db
-      .prepare(
-        "UPDATE esl_passages SET reference_tts_status = 'failed', reference_tts_voice_name = NULL, reference_tts_r2_key = NULL, reference_tts_audio_bytes = NULL WHERE id = ? AND user_id = ?"
-      )
-      .bind(input.id, input.userId)
-      .run();
-    return true;
-  } catch (error) {
-    if (isMissingColumnError(error, "reference_tts_status")) return false;
-    throw error;
-  }
-}
-
-export async function softDeleteEslPassage(
-  db: Db,
-  input: { id: string; userId: string }
-): Promise<void> {
-  await db
-    .prepare("UPDATE esl_passages SET deleted_at = datetime('now') WHERE id = ? AND user_id = ?")
     .bind(input.id, input.userId)
     .run();
 }
