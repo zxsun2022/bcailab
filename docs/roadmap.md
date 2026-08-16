@@ -348,15 +348,67 @@ Also still open, and the natural successors at the seam Phase 2 left: the **matc
 `selectStarterPractice()` and inherit its callers — the Home renders whatever that seam
 returns, so neither needs an IA change.
 
+## Now — Engineering quality iteration
+
+The owner authorized this iteration on 2026-08-15 after reviewing the project diagnosis.
+It is engineering-only: no external behavior, contract, schema, or UX change. Each item
+ships as its own commit, in the order listed. Report each as `in_review` with evidence;
+only the owner marks it accepted.
+
+### 1. Remove dead `EslPassage` code — accepted (2026-08-15)
+
+Shipped as `66a85c1`: removed the eight `EslPassage` CRUD functions, the `EslPassage` type,
+and `mapEslPassage` — all zero callers after migration 0012 moved user reading passages
+into the unified `passages` table. `docs/material-layer-design.md` §8 still names
+`listEslPassagesByUser` as pre-migration design prose and is intentionally unchanged.
+
+### 2. Configure ESLint across the monorepo — not started
+
+- Cover the whole monorepo — `apps/web`, `apps/mapdown`, `packages/*`, `scripts/` — with a
+  per-package TypeScript version (web/scripts 5.9.3, mapdown 7.x), not one root override.
+- Acceptance: a single `pnpm lint` runs everything and passes with **zero errors**; the
+  existing `pnpm test`, `pnpm typecheck`, and production builds stay green.
+- Enable `eslint-plugin-react-hooks` for the React surfaces. Do **not** enable type-aware
+  (typed) linting in this pass — that is a later enhancement, not this item.
+- **Prettier is out of scope.** This item is ESLint only.
+- Do not rewrite business code to silence rules; fix mechanical violations only, and where a
+  rule genuinely does not fit, disable it narrowly with a reason rather than changing behavior.
+
+### 3. Split `@bcailab/db` into per-domain modules — not started
+
+- One internal module per complete domain (the full set in `index.ts`, not just four).
+- `src/index.ts` stays the public barrel; every existing call site keeps importing from
+  `@bcailab/db` unchanged. No new subpath public API.
+- No change to SQL, return types, or error semantics — a pure mechanical move. The N+1 fix
+  (item 4) is deliberately **not** folded into this item.
+
+### 4. Fix the evaluation-history N+1 query — not started
+
+- First locate the exact query (or queries) and record the current and target query counts
+  per page load; acceptance is a fixture/test proving the target bound is met.
+- Scope is the identified query only, not a general query audit.
+
+### 5. Session cleanup cron — not started
+
+- Before writing code, record: frequency (proposed daily), batch-size ceiling per run,
+  idempotency (delete only `expires_at < now`), and the deployment mechanism (Cloudflare
+  cron trigger). Re-running must be safe.
+
+### 6. Session secret rotation — not started
+
+- Before writing code, record: the old/new secret compatibility window (Remix cookie storage
+  already accepts a secrets array), the rollback path, the final removal step for the old
+  secret, and the Cloudflare secret operations plus the infra-doc update.
+
 ## Next
-- **Mapdown — production MVP in review.** A static, local-first, keyboard-first
+- **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:
   keyboard authoring (Enter/Tab/Shift+Tab), two-sided layout, four document themes,
   Markdown/SVG/PNG export, IndexedDB autosave with validated recovery, pan/zoom/fit,
   searchable Help/Command Center, and accessible tree semantics.
   All seventeen implementation steps and D-03 deployment are complete with evidence in
-  `docs/mapdown/README.md` and `docs/changelog.md`; owner acceptance is the remaining roadmap
-  transition, while the authorized stabilization checkpoints above continue separately. Read
+  `docs/mapdown/README.md` and `docs/changelog.md`. The production deployment and all five
+  stabilization checkpoints were accepted by the owner on 2026-08-15. Read
   `docs/mapdown/decisions.md` before reopening any settled question — it has nineteen records,
   several of which correct an earlier
   mistake of mine and say so.
@@ -438,8 +490,10 @@ returns, so neither needs an IA change.
   conflated with v2 matching.
 - Decided 2026-07-16: Translate stays inside English Studio as its free funnel (not a
   standalone homepage product); revisit only if usage data shows a distinct audience.
-- Engineering quality: vitest for LLM-output parsers + ESLint; fix evaluation-history N+1
-  query; audio Range request support; session cleanup cron; session secret rotation.
+- Engineering quality (remaining): vitest for LLM-output parsers; audio Range request
+  support. ESLint, the evaluation-history N+1 query, session cleanup cron, and session
+  secret rotation were promoted to "Now — Engineering quality iteration" (authorized
+  2026-08-15) with acceptance criteria.
 - Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
   data to fall back on — noted 2026-07-20, not urgent.
 - **Library expansion — first batch shipped 2026-07-28 (20 → 40 passages, ten per band); keep
