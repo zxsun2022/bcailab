@@ -23,6 +23,12 @@ make the final transition; see `AGENTS.md`.
   Evidence: 564 passing tests, Web/scripts and Mapdown typechecks, zero lint errors, and
   successful Web and Mapdown production builds.
 
+- 2026-08-17 — **in_review: removed the Reading evaluation-history N+1 query.** The passage
+  page and evaluation worker now load latest evaluations for all attempts with one scoped D1
+  query instead of one query per attempt plus a selected-attempt repeat. The page is bounded at
+  three D1 queries and the worker at four. Evidence: a one-prepare fixture, 565 passing tests,
+  typechecks, lint, and both production builds.
+
 - 2026-08-15 — **accepted: removed dead `EslPassage` database code.** Deleted the eight
   zero-caller CRUD functions, the legacy `EslPassage` type, and its mapper from
   `packages/db/src/index.ts`; migration 0012 moved user reading passages to the unified

@@ -4,11 +4,11 @@ import {
   createEslReadingEvaluation,
   getEslLearnerProfile,
   getEslReadingAttemptById,
-  getLatestEslReadingEvaluationByAttemptId,
   getPassageTags,
   incrementEslLearnerProfileCounters,
   insertLearnerTagObservations,
   listEslReadingAttemptsByPassage,
+  listLatestEslReadingEvaluationsByPassage,
   recordPassageAttemptStat,
   updateEslReadingAttemptEvaluationStatus,
   type Passage
@@ -160,19 +160,24 @@ const runReadingAttemptEvaluation = async (
     passageId: input.passage.id
   });
   const pastAttempts = allAttempts.filter((attempt) => attempt.id !== input.attemptId);
-  const historyEntries = await Promise.all(
-    pastAttempts.map(async (attempt) => {
-      const evaluation = await getLatestEslReadingEvaluationByAttemptId(context.env.DB, attempt.id);
-      const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
-      return {
-        date: attempt.created_at,
-        mode: attempt.mode,
-        overallScore: parsed?.scores.overall ?? 0,
-        durationSeconds: attempt.duration_ms != null ? attempt.duration_ms / 1000 : null,
-        fullEvaluation: parsed ?? undefined
-      };
-    })
+  const evaluations = await listLatestEslReadingEvaluationsByPassage(context.env.DB, {
+    userId: input.userId,
+    passageId: input.passage.id
+  });
+  const evaluationByAttemptId = new Map(
+    evaluations.map((evaluation) => [evaluation.attempt_id, evaluation])
   );
+  const historyEntries = pastAttempts.map((attempt) => {
+    const evaluation = evaluationByAttemptId.get(attempt.id);
+    const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
+    return {
+      date: attempt.created_at,
+      mode: attempt.mode,
+      overallScore: parsed?.scores.overall ?? 0,
+      durationSeconds: attempt.duration_ms != null ? attempt.duration_ms / 1000 : null,
+      fullEvaluation: parsed ?? undefined
+    };
+  });
 
   const profile = await getEslLearnerProfile(context.env.DB, input.userId);
   let learnerProfile: EslLearnerProfileData | null = null;

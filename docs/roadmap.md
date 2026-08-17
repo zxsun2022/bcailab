@@ -398,11 +398,19 @@ modules, with shared public types and compatibility helpers separated from the b
 imports remain `@bcailab/db`. Tests, Web/scripts typecheck, Mapdown typecheck, lint, and both
 production builds pass.
 
-### 4. Fix the evaluation-history N+1 query — not started
+### 4. Fix the evaluation-history N+1 query — in_review
 
 - First locate the exact query (or queries) and record the current and target query counts
   per page load; acceptance is a fixture/test proving the target bound is met.
 - Scope is the identified query only, not a general query audit.
+
+Review evidence (2026-08-17): `/reading/:id` previously issued one latest-evaluation query per
+attempt plus a second query for the selected attempt (`N + 3` D1 queries after passage and
+attempt loading). The evaluation worker had the same per-history-attempt pattern (`N + 3`).
+Added `listLatestEslReadingEvaluationsByPassage`, which selects the latest row per attempt in
+one user- and passage-scoped query. Both callers now use one evaluation query: the page is 3
+D1 queries total and the worker is 4. A fixture asserts one `prepare` call and the latest-row
+ordering predicate; 565 tests pass, typecheck/lint pass, and both production builds pass.
 
 ### 5. Session cleanup cron — not started
 

@@ -15,7 +15,7 @@ import {
   deleteEslReadingEvaluationsByAttemptIds,
   getPassageForUser,
   getEslReadingAttemptById,
-  getLatestEslReadingEvaluationByAttemptId,
+  listLatestEslReadingEvaluationsByPassage,
   listEslReadingAttemptsByPassage,
   softDeleteUserPassage,
   softDeleteEslReadingAttempt,
@@ -89,12 +89,16 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     userId: user.id,
     passageId
   });
-  const evaluations = await Promise.all(
-    attempts.map((attempt) => getLatestEslReadingEvaluationByAttemptId(context.env.DB, attempt.id))
+  const evaluations = await listLatestEslReadingEvaluationsByPassage(context.env.DB, {
+    userId: user.id,
+    passageId
+  });
+  const evaluationByAttemptId = new Map(
+    evaluations.map((evaluation) => [evaluation.attempt_id, evaluation])
   );
 
-  const attemptsWithEval = attempts.map((attempt, index) => {
-    const evaluation = evaluations[index];
+  const attemptsWithEval = attempts.map((attempt) => {
+    const evaluation = evaluationByAttemptId.get(attempt.id);
     const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
     const effective = deriveEslAttemptEvaluationState({
       storedStatus: attempt.evaluation_status,
@@ -120,7 +124,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     ? attempts.find((attempt) => attempt.id === selectedAttemptId) ?? null
     : null;
   const selectedEvaluation = selectedAttempt
-    ? await getLatestEslReadingEvaluationByAttemptId(context.env.DB, selectedAttempt.id)
+    ? evaluationByAttemptId.get(selectedAttempt.id) ?? null
     : null;
   const selectedOutput = selectedEvaluation
     ? parseEslReadingEvaluationOutput(selectedEvaluation.output_json)

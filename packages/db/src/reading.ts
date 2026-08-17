@@ -306,6 +306,37 @@ export async function getLatestEslReadingEvaluationByAttemptId(
   return result ? mapEslReadingEvaluation(result) : null;
 }
 
+/**
+ * Loads the latest evaluation for every attempt on one passage in a single bounded query.
+ * Callers use this for the Reading history rail and evaluator context; querying one latest
+ * row per attempt turns a history page into an N+1 query pattern.
+ */
+export async function listLatestEslReadingEvaluationsByPassage(
+  db: Db,
+  input: { userId: string; passageId: string }
+): Promise<EslReadingEvaluation[]> {
+  const result = await db
+    .prepare(
+      `SELECT e.*
+         FROM esl_reading_evaluations e
+         JOIN esl_reading_attempts a ON a.id = e.attempt_id
+        WHERE e.user_id = ?
+          AND a.user_id = ?
+          AND a.passage_id = ?
+          AND a.deleted_at IS NULL
+          AND e.id = (
+            SELECT e2.id
+              FROM esl_reading_evaluations e2
+             WHERE e2.attempt_id = e.attempt_id
+             ORDER BY e2.created_at DESC, e2.id DESC
+             LIMIT 1
+          )`
+    )
+    .bind(input.userId, input.userId, input.passageId)
+    .all();
+  return (result.results ?? []).map(mapEslReadingEvaluation);
+}
+
 export async function listCompletedEslReadingAttemptsByUser(
   db: Db,
   userId: string
