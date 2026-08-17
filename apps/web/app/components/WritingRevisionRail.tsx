@@ -67,13 +67,19 @@ export function WritingRevisionRail({
   React.useEffect(() => {
     try {
       setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "true");
-    } catch {}
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, []);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
       const next = !prev;
-      try { localStorage.setItem(COLLAPSED_KEY, String(next)); } catch {}
+      try {
+        localStorage.setItem(COLLAPSED_KEY, String(next));
+      } catch {
+        // localStorage may be unavailable in private browsing contexts.
+      }
       return next;
     });
   };

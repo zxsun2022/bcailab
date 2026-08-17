@@ -96,18 +96,30 @@ export default function WritingNewPage() {
   const agents = listWritingAgents().filter((entry) => entry.id !== "ielts_task1");
 
   React.useEffect(() => {
-    try { setTopic(localStorage.getItem(TOPIC_KEY) ?? ""); } catch {}
+    try {
+      setTopic(localStorage.getItem(TOPIC_KEY) ?? "");
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, []);
 
   const handleTopicChange = (value: string) => {
     setTopic(value);
-    try { localStorage.setItem(TOPIC_KEY, value); } catch {}
+    try {
+      localStorage.setItem(TOPIC_KEY, value);
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   };
 
   React.useEffect(() => {
     const redirectTo = fetcher.data?.redirectTo;
     if (!redirectTo) return;
-    try { localStorage.removeItem(TOPIC_KEY); } catch {}
+    try {
+      localStorage.removeItem(TOPIC_KEY);
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
     navigate(redirectTo);
   }, [fetcher.data, navigate]);
 

@@ -60,6 +60,8 @@ const WINDOWS_RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
 export function sanitizeFilename(title: string, fallback = "mind-map"): string {
   const cleaned = title
     // Forbidden on one filesystem or another, plus C0 controls.
+    // The C0 range is intentional: these characters are invalid in exported filenames.
+    // eslint-disable-next-line no-control-regex
     .replace(/[<>:"/\\|?*\u0000-\u001F]/g, " ")
     .replace(/\s+/g, " ")
     .trim()

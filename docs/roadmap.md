@@ -362,7 +362,7 @@ and `mapEslPassage` — all zero callers after migration 0012 moved user reading
 into the unified `passages` table. `docs/material-layer-design.md` §8 still names
 `listEslPassagesByUser` as pre-migration design prose and is intentionally unchanged.
 
-### 2. Configure ESLint across the monorepo — not started
+### 2. Configure ESLint across the monorepo — in_review
 
 - Cover the whole monorepo — `apps/web`, `apps/mapdown`, `packages/*`, `scripts/` — with a
   per-package TypeScript version (web/scripts 5.9.3, mapdown 7.x), not one root override.
@@ -373,6 +373,15 @@ into the unified `passages` table. `docs/material-layer-design.md` §8 still nam
 - **Prettier is out of scope.** This item is ESLint only.
 - Do not rewrite business code to silence rules; fix mechanical violations only, and where a
   rule genuinely does not fit, disable it narrowly with a reason rather than changing behavior.
+
+Review evidence (2026-08-17): `eslint.config.mjs` uses flat config with TypeScript parsing,
+the standard ESLint recommended rules, and the traditional React Hooks rules
+(`rules-of-hooks` plus `exhaustive-deps`). The newer compiler-style Hooks rules are not enabled
+because they would require behavior-affecting ref/effect rewrites. `pnpm lint` covers the root,
+Web, Mapdown, packages, and scripts with zero errors (nine existing dependency-array warnings).
+The 564-test suite, Web/scripts typecheck, Mapdown typecheck, Web production build, and Mapdown
+production build all pass. Mechanical lint fixes only: unused bindings, intentional control
+character regexes, empty catch blocks, and equivalent escape syntax.
 
 ### 3. Split `@bcailab/db` into per-domain modules — not started
 

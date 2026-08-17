@@ -77,13 +77,21 @@ export function ToolNavRail({
   const [themePreference, setThemePreference] = useThemePreference();
 
   React.useEffect(() => {
-    try { setCollapsed(localStorage.getItem(collapsedKey) === "true"); } catch {}
+    try {
+      setCollapsed(localStorage.getItem(collapsedKey) === "true");
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, [collapsedKey]);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
       const next = !prev;
-      try { localStorage.setItem(collapsedKey, String(next)); } catch {}
+      try {
+        localStorage.setItem(collapsedKey, String(next));
+      } catch {
+        // localStorage may be unavailable in private browsing contexts.
+      }
       return next;
     });
   };

@@ -69,7 +69,9 @@ function CopyButton({ text }: { text: string }) {
       await navigator.clipboard.writeText(text);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-    } catch {}
+    } catch {
+      // Clipboard access can be denied by browser permissions.
+    }
   };
   return (
     <button type="button" className="translate-pane-action" onClick={copy}>

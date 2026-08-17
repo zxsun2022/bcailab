@@ -9,6 +9,20 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-17 — **in_review: ESLint configured across the monorepo.** Added a flat ESLint
+  configuration and root `pnpm lint` covering Web, Mapdown, packages, and scripts. React Hooks
+  rules are enabled without typed linting or compiler-style behavior rules; Prettier remains out
+  of scope. Mechanical violations were fixed without changing application behavior. Evidence:
+  zero lint errors (nine existing dependency-array warnings), 564 passing tests, Web/scripts and
+  Mapdown typechecks, and successful Web and Mapdown production builds.
+
+- 2026-08-15 — **accepted: removed dead `EslPassage` database code.** Deleted the eight
+  zero-caller CRUD functions, the legacy `EslPassage` type, and its mapper from
+  `packages/db/src/index.ts`; migration 0012 moved user reading passages to the unified
+  `passages` table. This was a pure internal removal with no SQL, route, or public API
+  behavior change. The pre-migration reference in `docs/material-layer-design.md` remains
+  historical design prose. Evidence: commit `66a85c1`; subsequent repository verification.
+
 - 2026-08-15 — **accepted: owner sweep of all outstanding `in_review` items.** The owner
   reviewed every remaining `in_review` entry one by one and accepted them all. This closes
   the English Studio iteration items A–E (writing prompt bank, saved translations, shared

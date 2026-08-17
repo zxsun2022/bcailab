@@ -7,7 +7,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "echo 'lint not configured'"
+    "lint": "eslint ."
   },
   "dependencies": {
     "commonmark": "^0.31.2",

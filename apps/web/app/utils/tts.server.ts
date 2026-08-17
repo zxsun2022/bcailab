@@ -132,7 +132,7 @@ const tokenizeByCharacters = (text: string): SpeechToken[] => {
 
 const tokenizeByWords = (text: string): SpeechToken[] => {
   const tokens: SpeechToken[] = [];
-  const pattern = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu;
+  const pattern = /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu;
   let match: RegExpExecArray | null = null;
   let markIndex = 0;
   while ((match = pattern.exec(text)) !== null) {

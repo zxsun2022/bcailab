@@ -293,7 +293,7 @@ export function importMarkdown(source: string): ImportResult {
     };
   }
   // §10.1–§10.2 — strip a BOM and normalise line endings before anything else looks at the text.
-  const text = source.replace(/^﻿/, "").replace(/\r\n?/g, "\n");
+  const text = source.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n");
   const lines = text.split("\n");
   const warnings: ImportWarning[] = [];
 

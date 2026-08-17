@@ -76,6 +76,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   const [internalMode, setInternalMode] = React.useState<EslReadingMode>("reading");
   const mode = controlledMode ?? internalMode;
   const setMode = onModeChange ?? setInternalMode;
+  void setMode;
   const [recordingState, setRecordingState] = React.useState<RecordingState>("idle");
   const [elapsedMs, setElapsedMs] = React.useState(0);
   const [recordedAudioUrl, setRecordedAudioUrl] = React.useState<string | null>(null);

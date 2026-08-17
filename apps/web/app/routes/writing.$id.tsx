@@ -341,13 +341,19 @@ function WritingArticlePageReady({
   React.useEffect(() => {
     try {
       setAsideCollapsed(localStorage.getItem(ASIDE_COLLAPSED_KEY) === "true");
-    } catch {}
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, []);
 
   const handleAsideToggle = React.useCallback(() => {
     setAsideCollapsed((current) => {
       const next = !current;
-      try { localStorage.setItem(ASIDE_COLLAPSED_KEY, String(next)); } catch {}
+      try {
+        localStorage.setItem(ASIDE_COLLAPSED_KEY, String(next));
+      } catch {
+        // localStorage may be unavailable in private browsing contexts.
+      }
       return next;
     });
   }, []);

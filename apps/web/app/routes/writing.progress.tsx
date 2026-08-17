@@ -52,7 +52,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       if (r.feedback_json) {
         try {
           feedback = JSON.parse(r.feedback_json) as WritingFeedback;
-        } catch {}
+        } catch {
+          // Ignore malformed historical feedback and keep the revision visible.
+        }
       }
       return { ...r, feedback };
     });

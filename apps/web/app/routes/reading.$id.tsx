@@ -335,7 +335,9 @@ export default function EslReadingPracticePage() {
     try {
       const stored = localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY);
       if (stored !== null) setHistoryRailCollapsed(stored === "true");
-    } catch {}
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, []);
   const sortedAttempts = React.useMemo(
     () => [...liveAttempts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
@@ -355,7 +357,11 @@ export default function EslReadingPracticePage() {
   const handleHistoryRailToggle = React.useCallback(() => {
     setHistoryRailCollapsed((current) => {
       const next = !current;
-      try { localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next)); } catch {}
+      try {
+        localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next));
+      } catch {
+        // localStorage may be unavailable in private browsing contexts.
+      }
       return next;
     });
   }, []);

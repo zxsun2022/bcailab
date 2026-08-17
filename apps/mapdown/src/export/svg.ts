@@ -99,7 +99,8 @@ export function exportSvg(
 
   // §12.2 — bounds include the collapse badge, or a collapsed branch on the outer edge would
   // be clipped by exactly the thing that says it is collapsed.
-  let { minX, minY, maxX, maxY } = result.bounds;
+  let { minX, maxX } = result.bounds;
+  const { minY, maxY } = result.bounds;
   for (const box of Object.values(result.boxes)) {
     if (!box.collapsed || box.directChildCount === 0) continue;
     const reach = theme.controls.collapseSize;

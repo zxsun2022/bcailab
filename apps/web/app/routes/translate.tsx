@@ -399,7 +399,9 @@ export default function TranslatePage() {
       await navigator.clipboard.writeText(translation);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1500);
-    } catch {}
+    } catch {
+      // Clipboard access can be denied by browser permissions.
+    }
   };
 
   const overLimit = text.length > quota.maxChars;

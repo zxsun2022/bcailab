@@ -60,7 +60,15 @@ export function HelpCenter({ mode, commands, onClose }: HelpCenterProps) {
   const searchRef = useRef<HTMLInputElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const isMac = isMacPlatform();
-  const definitions = useMemo(() => commands.map(({ execute: _execute, disabledReason: _reason, ...command }) => command), [commands]);
+  const definitions = useMemo(
+    () =>
+      commands.map(({ execute, disabledReason, ...command }) => {
+        void execute;
+        void disabledReason;
+        return command;
+      }),
+    [commands]
+  );
   const matchedIds = useMemo(
     () => new Set(searchCommands(query, definitions).map((command) => command.id)),
     [definitions, query]

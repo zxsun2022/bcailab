@@ -80,6 +80,7 @@ export function WritingFeedbackPanel({
   roundNumber,
   assessmentPrefix
 }: WritingFeedbackProps) {
+  void roundNumber;
   const grouped = {
     critical: feedback.annotations.filter((a) => a.severity === "critical"),
     improvement: feedback.annotations.filter((a) => a.severity === "improvement"),

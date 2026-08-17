@@ -56,6 +56,8 @@ export function normalizeText(text: string): string {
       // newline, tab and Unicode line/paragraph separator collapses to a space.
       .replace(/[\r\n\t\u2028\u2029]/g, " ")
       // Strip C0/C1 controls, which would otherwise survive into Markdown and into SVG text.
+      // Control ranges are intentionally stripped from node labels.
+      // eslint-disable-next-line no-control-regex
       .replace(/[\u0000-\u0008\u000B-\u001F\u007F-\u009F]/g, "")
       .trim()
   );

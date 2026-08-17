@@ -9,11 +9,6 @@ import { MAX_POST_LENGTH, extractTitle, normalizePostContent, stripMarkdown } fr
 import * as React from "react";
 import { ConfirmActionButton } from "~/components/ConfirmDialog";
 
-type ComposerNotice = {
-  id: string;
-  status: string;
-};
-
 const previewText = (md: string, maxLen = 84): string => {
   const plain = stripMarkdown(md);
   return plain.length > maxLen ? `${plain.slice(0, maxLen)}...` : plain;

@@ -105,7 +105,9 @@ export default function LoginPage() {
         window.close();
         return;
       }
-    } catch {}
+    } catch {
+      // Popup messaging is best effort; fall back to in-page navigation.
+    }
     navigate("/", { replace: true });
   }, [navigate]);
 

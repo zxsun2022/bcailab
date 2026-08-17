@@ -95,13 +95,19 @@ export default function EslReadingIndexPage() {
     try {
       const stored = localStorage.getItem(HISTORY_RAIL_COLLAPSED_KEY);
       setHistoryRailCollapsed(stored === null ? true : stored === "true");
-    } catch {}
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, []);
 
   const handleHistoryRailToggle = React.useCallback(() => {
     setHistoryRailCollapsed((current) => {
       const next = !current;
-      try { localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next)); } catch {}
+      try {
+        localStorage.setItem(HISTORY_RAIL_COLLAPSED_KEY, String(next));
+      } catch {
+        // localStorage may be unavailable in private browsing contexts.
+      }
       return next;
     });
   }, []);

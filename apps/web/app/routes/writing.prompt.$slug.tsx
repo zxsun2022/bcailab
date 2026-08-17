@@ -146,16 +146,28 @@ function WritingPromptReadyPage({
       : { label: "Everyday writing", to: "/writing/library?category=general" };
 
   React.useEffect(() => {
-    try { setText(localStorage.getItem(draftKey) ?? ""); } catch {}
+    try {
+      setText(localStorage.getItem(draftKey) ?? "");
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   }, [draftKey]);
   const updateText = (value: string) => {
     setText(value);
-    try { localStorage.setItem(draftKey, value); } catch {}
+    try {
+      localStorage.setItem(draftKey, value);
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
   };
   React.useEffect(() => {
     const redirectTo = fetcher.data?.redirectTo;
     if (!redirectTo) return;
-    try { localStorage.removeItem(draftKey); } catch {}
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
     navigate(redirectTo);
   }, [draftKey, fetcher.data, navigate]);
 

@@ -8,7 +8,7 @@ export const normalizePostContent = (content: string): string =>
  */
 export const extractTitle = (md: string): string | null => {
   const match = /^#{1,6}\s+(.+)$/m.exec(md);
-  return match ? match[1].replace(/[*_`~\[\]]/g, "").trim() : null;
+  return match ? match[1].replace(/[*_`~[\]]/g, "").trim() : null;
 };
 
 /**

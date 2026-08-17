@@ -337,7 +337,8 @@ export function resolveTheme(shapeId: string, paletteId: string): MindMapTheme {
   const palette = isKnownPaletteId(paletteId)
     ? paletteById(paletteId)
     : paletteById(shape.defaultPaletteId);
-  const { defaultPaletteId: _ignored, ...tokens } = shape;
+  const { defaultPaletteId, ...tokens } = shape;
+  void defaultPaletteId;
   return { ...tokens, branches: palette };
 }
 

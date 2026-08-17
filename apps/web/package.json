@@ -6,7 +6,7 @@
     "dev": "remix vite:dev",
     "build": "remix vite:build",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "lint": "echo 'lint not configured'"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@bcailab/auth": "workspace:*",
