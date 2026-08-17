@@ -10,6 +10,8 @@ export type AuthEnv = {
   GOOGLE_CLIENT_SECRET: string;
   OAUTH_REDIRECT_URL: string;
   SESSION_SECRET: string;
+  /** Previous signing secret accepted during a bounded rotation window. */
+  SESSION_SECRET_PREVIOUS?: string;
 };
 
 const SESSION_COOKIE_NAME = "bcailab_session";
@@ -66,7 +68,9 @@ const getSessionStorage = (env: AuthEnv, request: Request) => {
       // does not help: subdomains are same-*site*, so omitting Domain is what separates them.
       // Sharing the session with a second host is a reviewable change, not a default:
       // see docs/mapdown/decisions.md D-10. Locked by session-cookie.test.ts.
-      secrets: [env.SESSION_SECRET]
+      secrets: [env.SESSION_SECRET, env.SESSION_SECRET_PREVIOUS].filter(
+        (secret): secret is string => Boolean(secret)
+      )
     }
   });
 };

@@ -412,17 +412,21 @@ one user- and passage-scoped query. Both callers now use one evaluation query: t
 D1 queries total and the worker is 4. A fixture asserts one `prepare` call and the latest-row
 ordering predicate; 565 tests pass, typecheck/lint pass, and both production builds pass.
 
-### 5. Session cleanup cron — not started
+### 5. Session cleanup cron — in_review
 
-- Before writing code, record: frequency (proposed daily), batch-size ceiling per run,
-  idempotency (delete only `expires_at < now`), and the deployment mechanism (Cloudflare
-  cron trigger). Re-running must be safe.
+- Recorded implementation parameters before coding: daily at 03:17 UTC, a maximum of 100
+  deletes per run, strict `expires_at < now` deletion, and a separate Cloudflare Worker Cron
+  Trigger because the app deployment is Pages. The delete is idempotent and uses the same D1
+  binding as the app. Unit coverage asserts the strict predicate and batch ceiling.
 
-### 6. Session secret rotation — not started
+### 6. Session secret rotation — in_review
 
-- Before writing code, record: the old/new secret compatibility window (Remix cookie storage
-  already accepts a secrets array), the rollback path, the final removal step for the old
-  secret, and the Cloudflare secret operations plus the infra-doc update.
+- Recorded implementation parameters before coding: `SESSION_SECRET` signs new cookies while
+  optional `SESSION_SECRET_PREVIOUS` verifies old cookies for the current 30-day maximum cookie
+  lifetime; rollback restores the former value as primary before removing the compatibility
+  value; final removal uses Cloudflare Pages secret management. Infra operations and the
+  compatibility window are documented in `docs/infra-cloudflare.md`, with a cookie test proving
+  old-secret verification.
 
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first

@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
-    "typecheck": "pnpm --filter web typecheck && pnpm typecheck:scripts",
+    "typecheck": "pnpm --filter web typecheck && pnpm typecheck:scripts && pnpm typecheck:session-cleanup",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json --noEmit",
+    "typecheck:session-cleanup": "tsc -p workers/session-cleanup/tsconfig.json --noEmit",
     "lint": "eslint .",
     "db:migrate:local": "wrangler d1 migrations apply bcailab-db --local --persist-to apps/web/.wrangler/state",
     "writing-prompts": "tsx scripts/writing-prompt-seed/cli.ts",

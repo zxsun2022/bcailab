@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { clearSessionCookie, createSessionCookie, type AuthEnv } from "./index";
+import {
+  clearSessionCookie,
+  createSessionCookie,
+  getSessionId,
+  type AuthEnv
+} from "./index";
 
 /**
  * The session cookie must stay host-only. A `Domain` attribute reaches every subdomain
@@ -51,5 +56,24 @@ describe("session cookie scope", () => {
   it("omits Secure on localhost so local development still signs in", async () => {
     const cookie = await createSessionCookie(requestFrom("http://localhost:5173/"), env, "sid-4");
     expect(cookie).not.toMatch(/secure/i);
+  });
+
+  it("accepts cookies signed with the previous secret during rotation", async () => {
+    const oldCookie = await createSessionCookie(
+      requestFrom("https://bcailab.com/"),
+      { ...env, SESSION_SECRET: "old-session-secret" },
+      "sid-old"
+    );
+
+    const request = new Request("https://bcailab.com/", {
+      headers: { Cookie: oldCookie }
+    });
+    await expect(
+      getSessionId(request, {
+        ...env,
+        SESSION_SECRET: "new-session-secret",
+        SESSION_SECRET_PREVIOUS: "old-session-secret"
+      })
+    ).resolves.toBe("sid-old");
   });
 });

@@ -13,6 +13,7 @@ export type Env = {
   RESEND_FROM?: string;
   OAUTH_REDIRECT_URL: string;
   SESSION_SECRET: string;
+  SESSION_SECRET_PREVIOUS?: string;
 };
 
 export type AppExecutionContext = {

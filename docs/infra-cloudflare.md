@@ -2,6 +2,24 @@
 
 This project uses Cloudflare Pages + D1 + R2.
 
+## Session maintenance Worker
+
+Pages Functions do not expose a Pages `scheduled()` entrypoint. Session cleanup therefore
+runs as the separate `bcailab-session-cleanup` Worker in `workers/session-cleanup/`, which
+uses the same production and preview D1 bindings as the Pages app. Its Wrangler Cron Trigger
+runs daily at **03:17 UTC** and deletes at most 100 rows whose `expires_at` is strictly less
+than the scheduled time. Re-running a batch is safe because the delete is idempotent.
+
+Deploy or inspect the Worker from the repository root:
+
+```sh
+pnpm exec wrangler deploy --config workers/session-cleanup/wrangler.toml
+pnpm exec wrangler tail bcailab-session-cleanup --config workers/session-cleanup/wrangler.toml
+```
+
+The Worker is intentionally separate from the Pages deployment; do not add its trigger to a
+Pages `wrangler.toml` or expect a Pages build to schedule it.
+
 ## Pages Deployment Configuration
 
 Pages **root directory** is set to `apps/web`. This is intentional:
@@ -66,6 +84,7 @@ Set the following for the Pages project:
 - `GEMINI_BASE_URL` (optional; point at Cloudflare AI Gateway instead of the Google API origin)
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
+- `SESSION_SECRET_PREVIOUS` (optional; old session signing secret during rotation only)
 - `RESEND_API_KEY` (email OTP sign-in codes; set via `wrangler pages secret put RESEND_API_KEY`)
 - `RESEND_FROM` (optional; default `bcailab <login@bcailab.com>` — the domain must be verified in Resend with SPF/DKIM DNS records)
 
@@ -75,6 +94,22 @@ server console and shown inline in the dev UI.
 Recommended additional settings:
 - `PNPM_VERSION` = `9.12.0`
 - `NODE_VERSION` = `20`
+
+### Session secret rotation
+
+The cookie signer always writes new cookies with `SESSION_SECRET` and accepts
+`SESSION_SECRET_PREVIOUS` for verification. For a rotation:
+
+1. Generate a new high-entropy secret and set it as `SESSION_SECRET` in both Pages Production
+   and Preview environments.
+2. Set the former value as `SESSION_SECRET_PREVIOUS` in the same environments. Keep this
+   compatibility value for the 30-day maximum cookie lifetime.
+3. After that window, remove `SESSION_SECRET_PREVIOUS` with the Pages secret-management UI or
+   `wrangler pages secret delete SESSION_SECRET_PREVIOUS --project-name <project>`.
+
+During the compatibility window, rollback means restoring the former value as `SESSION_SECRET`
+and redeploying before removing the previous-secret value. Never commit either secret to the
+repository or place it in `.dev.vars` shared with other developers.
 
 ## Local Development
 - `pnpm install`

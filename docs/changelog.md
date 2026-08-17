@@ -9,6 +9,15 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-17 — **in_review: added bounded session cleanup and secret rotation support.**
+  `workers/session-cleanup/` is a dedicated Cloudflare Worker with a daily 03:17 UTC Cron
+  Trigger because Pages Functions do not provide a scheduled entrypoint. Each run deletes at
+  most 100 sessions with `expires_at < scheduledTime`, and the D1 helper is idempotent. Auth
+  cookies continue signing with `SESSION_SECRET` while optionally accepting
+  `SESSION_SECRET_PREVIOUS` during the 30-day cookie lifetime; rollback and final removal are
+  documented in `docs/infra-cloudflare.md`. Tests cover strict expiry, the ceiling, empty
+  batches, and old-secret verification.
+
 - 2026-08-17 — **in_review: ESLint configured across the monorepo.** Added a flat ESLint
   configuration and root `pnpm lint` covering Web, Mapdown, packages, and scripts. React Hooks
   rules are enabled without typed linting or compiler-style behavior rules; Prettier remains out

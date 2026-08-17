@@ -1,6 +1,7 @@
 /// <reference types="@cloudflare/workers-types" />
 
 export * from "./types";
+export * from "./sessions";
 export * from "./users";
 export * from "./posts";
 export * from "./tts";

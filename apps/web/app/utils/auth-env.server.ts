@@ -6,5 +6,6 @@ export const getAuthEnv = (env: Env): AuthEnv => ({
   GOOGLE_CLIENT_ID: requireEnv(env, "GOOGLE_CLIENT_ID"),
   GOOGLE_CLIENT_SECRET: requireEnv(env, "GOOGLE_CLIENT_SECRET"),
   OAUTH_REDIRECT_URL: requireEnv(env, "OAUTH_REDIRECT_URL"),
-  SESSION_SECRET: requireEnv(env, "SESSION_SECRET")
+  SESSION_SECRET: requireEnv(env, "SESSION_SECRET"),
+  SESSION_SECRET_PREVIOUS: env.SESSION_SECRET_PREVIOUS
 });
