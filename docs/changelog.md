@@ -16,6 +16,13 @@ make the final transition; see `AGENTS.md`.
   zero lint errors (nine existing dependency-array warnings), 564 passing tests, Web/scripts and
   Mapdown typechecks, and successful Web and Mapdown production builds.
 
+- 2026-08-17 — **in_review: split the `@bcailab/db` implementation by domain.** Moved the
+  monolithic database implementation into internal users, posts, TTS, reading, learner,
+  writing, usage, dictation, and passage modules while keeping `src/index.ts` as the unchanged
+  public barrel. SQL, return types, errors, and all call-site imports remain unchanged.
+  Evidence: 564 passing tests, Web/scripts and Mapdown typechecks, zero lint errors, and
+  successful Web and Mapdown production builds.
+
 - 2026-08-15 — **accepted: removed dead `EslPassage` database code.** Deleted the eight
   zero-caller CRUD functions, the legacy `EslPassage` type, and its mapper from
   `packages/db/src/index.ts`; migration 0012 moved user reading passages to the unified

@@ -383,13 +383,20 @@ The 564-test suite, Web/scripts typecheck, Mapdown typecheck, Web production bui
 production build all pass. Mechanical lint fixes only: unused bindings, intentional control
 character regexes, empty catch blocks, and equivalent escape syntax.
 
-### 3. Split `@bcailab/db` into per-domain modules — not started
+### 3. Split `@bcailab/db` into per-domain modules — in_review
 
 - One internal module per complete domain (the full set in `index.ts`, not just four).
 - `src/index.ts` stays the public barrel; every existing call site keeps importing from
   `@bcailab/db` unchanged. No new subpath public API.
 - No change to SQL, return types, or error semantics — a pure mechanical move. The N+1 fix
   (item 4) is deliberately **not** folded into this item.
+
+Review evidence (2026-08-17): the former 2,591-line implementation is now split into internal
+`users`, `posts`, `tts`, `reading`, `learner`, `writing`, `usage`, `dictation`, and `passages`
+modules, with shared public types and compatibility helpers separated from the barrel.
+`packages/db/src/index.ts` remains a 15-line public re-export surface; all existing application
+imports remain `@bcailab/db`. Tests, Web/scripts typecheck, Mapdown typecheck, lint, and both
+production builds pass.
 
 ### 4. Fix the evaluation-history N+1 query — not started
 
