@@ -428,9 +428,10 @@ ordering predicate; 565 tests pass, typecheck/lint pass, and both production bui
   compatibility window are documented in `docs/infra-cloudflare.md`, with a cookie test proving
   old-secret verification.
 
-## Now — Account passwords and profile
+## Now — Account passwords and profile — accepted (2026-08-18)
 
-The owner authorized this on 2026-08-18. It extends the existing passwordless auth (email OTP +
+The owner authorized this on 2026-08-18 and accepted it the same day, after verifying the
+shipped behaviour in production. It extends the existing passwordless auth (email OTP +
 Google, both unchanged) rather than adopting a new auth framework; better-auth was explicitly
 considered and declined because it would require re-schema-ing and rewiring every session call
 site for features the custom system already provides. This delivers — and goes beyond — the
@@ -459,6 +460,29 @@ verification against the running dev server of email-code sign-in, setting a pas
 `typecheck`, `lint`, and the production build all pass. Explicitly out of scope: rate-limiting
 the password-login endpoint beyond PBKDF2 cost, session revocation on password change, and
 any user-supplied avatar (upload or URL).
+
+Review evidence (2026-08-18): shipped across PRs #41–#44. Password hashing is PBKDF2-HMAC-SHA256
+over WebCrypto with a per-user salt and a self-describing hash string; `users.password_hash` is
+nullable and absent from the client `User` type. `/login` carries Google, email-code, password,
+and code-based reset; `/profile` edits the display name and sets or changes the password, with
+an entry in both the site header and the Studio rail avatar menus. A review pass additionally
+made `consumeLoginCode` an atomic compare-and-swap so a concurrent reset cannot consume one code
+twice, and stopped Google sign-in from clobbering a user-set display name. 579 tests, typecheck,
+lint (0 errors), and both production builds pass; the local-D1 checks cover avatar preservation
+on a name save and a real SQL `NULL` when the name is cleared.
+
+Two items are carried forward rather than closed by this acceptance:
+
+- **Password-login throttling remains absent** — only PBKDF2 cost stands between an attacker and
+  online brute force. Scoped out deliberately; it is the first thing to add if password sign-in
+  sees real use (NIST 800-63B expects rate limiting on a password verifier).
+- **PBKDF2 is pinned at 100,000 iterations**, below OWASP's current 600,000, to stay inside the
+  Workers per-request CPU budget on the sign-in path. Revisit against a measured budget rather
+  than raising it blindly.
+
+Operational note: migration `0018` reached production *after* the code deploy, so `/profile`
+returned an error until it was applied. Apply the migration before deploying code that reads a
+new column — see the deploy-ordering note in `docs/changelog.md`.
 
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
