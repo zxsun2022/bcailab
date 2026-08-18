@@ -362,7 +362,7 @@ and `mapEslPassage` — all zero callers after migration 0012 moved user reading
 into the unified `passages` table. `docs/material-layer-design.md` §8 still names
 `listEslPassagesByUser` as pre-migration design prose and is intentionally unchanged.
 
-### 2. Configure ESLint across the monorepo — in_review
+### 2. Configure ESLint across the monorepo — accepted (2026-08-17)
 
 - Cover the whole monorepo — `apps/web`, `apps/mapdown`, `packages/*`, `scripts/` — with a
   per-package TypeScript version (web/scripts 5.9.3, mapdown 7.x), not one root override.
@@ -383,7 +383,7 @@ The 564-test suite, Web/scripts typecheck, Mapdown typecheck, Web production bui
 production build all pass. Mechanical lint fixes only: unused bindings, intentional control
 character regexes, empty catch blocks, and equivalent escape syntax.
 
-### 3. Split `@bcailab/db` into per-domain modules — in_review
+### 3. Split `@bcailab/db` into per-domain modules — accepted (2026-08-17)
 
 - One internal module per complete domain (the full set in `index.ts`, not just four).
 - `src/index.ts` stays the public barrel; every existing call site keeps importing from
@@ -398,7 +398,7 @@ modules, with shared public types and compatibility helpers separated from the b
 imports remain `@bcailab/db`. Tests, Web/scripts typecheck, Mapdown typecheck, lint, and both
 production builds pass.
 
-### 4. Fix the evaluation-history N+1 query — in_review
+### 4. Fix the evaluation-history N+1 query — accepted (2026-08-17)
 
 - First locate the exact query (or queries) and record the current and target query counts
   per page load; acceptance is a fixture/test proving the target bound is met.
@@ -412,14 +412,14 @@ one user- and passage-scoped query. Both callers now use one evaluation query: t
 D1 queries total and the worker is 4. A fixture asserts one `prepare` call and the latest-row
 ordering predicate; 565 tests pass, typecheck/lint pass, and both production builds pass.
 
-### 5. Session cleanup cron — in_review
+### 5. Session cleanup cron — accepted (2026-08-17)
 
 - Recorded implementation parameters before coding: daily at 03:17 UTC, a maximum of 100
   deletes per run, strict `expires_at < now` deletion, and a separate Cloudflare Worker Cron
   Trigger because the app deployment is Pages. The delete is idempotent and uses the same D1
   binding as the app. Unit coverage asserts the strict predicate and batch ceiling.
 
-### 6. Session secret rotation — in_review
+### 6. Session secret rotation — accepted (2026-08-17)
 
 - Recorded implementation parameters before coding: `SESSION_SECRET` signs new cookies while
   optional `SESSION_SECRET_PREVIOUS` verifies old cookies for the current 30-day maximum cookie

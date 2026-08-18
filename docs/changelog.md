@@ -9,7 +9,7 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-08-17 — **in_review: added bounded session cleanup and secret rotation support.**
+- 2026-08-17 — **accepted: added bounded session cleanup and secret rotation support.**
   `workers/session-cleanup/` is a dedicated Cloudflare Worker with a daily 03:17 UTC Cron
   Trigger because Pages Functions do not provide a scheduled entrypoint. Each run deletes at
   most 100 sessions with `expires_at < scheduledTime`, and the D1 helper is idempotent. Auth
@@ -18,21 +18,21 @@ make the final transition; see `AGENTS.md`.
   documented in `docs/infra-cloudflare.md`. Tests cover strict expiry, the ceiling, empty
   batches, and old-secret verification.
 
-- 2026-08-17 — **in_review: ESLint configured across the monorepo.** Added a flat ESLint
+- 2026-08-17 — **accepted: ESLint configured across the monorepo.** Added a flat ESLint
   configuration and root `pnpm lint` covering Web, Mapdown, packages, and scripts. React Hooks
   rules are enabled without typed linting or compiler-style behavior rules; Prettier remains out
   of scope. Mechanical violations were fixed without changing application behavior. Evidence:
   zero lint errors (nine existing dependency-array warnings), 564 passing tests, Web/scripts and
   Mapdown typechecks, and successful Web and Mapdown production builds.
 
-- 2026-08-17 — **in_review: split the `@bcailab/db` implementation by domain.** Moved the
+- 2026-08-17 — **accepted: split the `@bcailab/db` implementation by domain.** Moved the
   monolithic database implementation into internal users, posts, TTS, reading, learner,
   writing, usage, dictation, and passage modules while keeping `src/index.ts` as the unchanged
   public barrel. SQL, return types, errors, and all call-site imports remain unchanged.
   Evidence: 564 passing tests, Web/scripts and Mapdown typechecks, zero lint errors, and
   successful Web and Mapdown production builds.
 
-- 2026-08-17 — **in_review: removed the Reading evaluation-history N+1 query.** The passage
+- 2026-08-17 — **accepted: removed the Reading evaluation-history N+1 query.** The passage
   page and evaluation worker now load latest evaluations for all attempts with one scoped D1
   query instead of one query per attempt plus a selected-attempt repeat. The page is bounded at
   three D1 queries and the worker at four. Evidence: a one-prepare fixture, 565 passing tests,
