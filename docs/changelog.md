@@ -9,6 +9,19 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-18 — **in_review: optional account passwords and a `/profile` page.** Extended the
+  existing passwordless auth (email OTP + Google, unchanged) instead of adopting better-auth,
+  which was considered and declined. Added a nullable `users.password_hash` (migration 0018)
+  and PBKDF2-HMAC-SHA256 hashing via WebCrypto (`apps/web/app/utils/password.server.ts`), kept
+  off the client `User` type. `/login` gained an email + password mode and a code-based
+  "forgot/never set a password" reset that reuses the email OTP; the new authenticated
+  `/profile`, reached from the avatar menu, edits display name and avatar and sets or changes
+  the password (changing requires the current password). Evidence: 8 new password unit tests
+  (576 total pass), typecheck, lint (0 errors), and production build all green, plus end-to-end
+  browser verification of email-code sign-in, set-password, profile edit, password sign-in, and
+  reset against the local dev server. Out of scope: password-login rate limiting beyond PBKDF2
+  cost, session revocation on password change, and avatar upload. Awaiting owner acceptance.
+
 - 2026-08-17 — **accepted: added bounded session cleanup and secret rotation support.**
   `workers/session-cleanup/` is a dedicated Cloudflare Worker with a daily 03:17 UTC Cron
   Trigger because Pages Functions do not provide a scheduled entrypoint. Each run deletes at

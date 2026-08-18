@@ -113,6 +113,9 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                       <div className="menu-name">{user.name ?? "Signed in"}</div>
                       <div className="menu-muted">{user.email}</div>
                     </div>
+                    <Link to="/profile" className="menu-item" onClick={() => setMenuOpen(false)}>
+                      Profile
+                    </Link>
                     <div className="menu-section">
                       <div className="menu-label">Theme</div>
                       <div className="menu-theme-options">

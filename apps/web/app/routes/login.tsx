@@ -3,9 +3,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remi
 import { json } from "@remix-run/cloudflare";
 import { useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import { createSession, createSessionCookie } from "@bcailab/auth";
+import { getUserCredentialByEmail, setUserPassword } from "@bcailab/db";
 import { getAuthEnv } from "~/utils/auth-env.server";
 import { getOptionalUser } from "~/utils/auth.server";
 import { normalizeEmail, requestLoginCode, verifyLoginCode } from "~/utils/email-otp.server";
+import { hashPassword, verifyPassword } from "~/utils/password.server";
+import { validatePasswordStrength, MIN_PASSWORD_LENGTH } from "~/utils/password";
 import { getClientIp } from "~/utils/translate-quota.server";
 import { useThemePreference } from "~/utils/use-theme-preference";
 
@@ -22,21 +25,74 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   return json({ alreadySignedIn: Boolean(user) });
 };
 
+type Intent = "request" | "verify" | "password" | "reset";
+
 type ActionData =
   | { intent: "request"; ok: true; email: string; devCode?: string }
-  | { intent: "verify"; ok: true }
-  | { intent: "request" | "verify"; ok: false; error: string };
+  | { intent: "verify" | "password" | "reset"; ok: true }
+  | { intent: Intent; ok: false; error: string };
+
+const asIntent = (raw: string): Intent =>
+  raw === "verify" || raw === "password" || raw === "reset" ? raw : "request";
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const formData = await request.formData();
-  const intent = String(formData.get("intent") ?? "");
+  const intent = asIntent(String(formData.get("intent") ?? ""));
   const email = normalizeEmail(String(formData.get("email") ?? ""));
 
   if (!email) {
     return json<ActionData>(
-      { intent: intent === "verify" ? "verify" : "request", ok: false, error: "Enter a valid email address." },
+      { intent, ok: false, error: "Enter a valid email address." },
       { status: 400 }
     );
+  }
+
+  if (intent === "password") {
+    const password = String(formData.get("password") ?? "");
+    // Deliberately generic: never reveal whether the email exists or has a password.
+    // PBKDF2's cost is the primary brute-force mitigation on this endpoint.
+    const invalid = json<ActionData>(
+      { intent: "password", ok: false, error: "Incorrect email or password." },
+      { status: 400 }
+    );
+    if (!password) return invalid;
+    const credential = await getUserCredentialByEmail(context.env.DB, email);
+    if (!credential?.passwordHash) return invalid;
+    if (!(await verifyPassword(password, credential.passwordHash))) return invalid;
+    const session = await createSession(context.env.DB, credential.userId);
+    const setCookie = await createSessionCookie(request, getAuthEnv(context.env), session.id);
+    return json<ActionData>({ intent: "password", ok: true }, { headers: { "Set-Cookie": setCookie } });
+  }
+
+  if (intent === "reset") {
+    // Reset reuses the same email OTP as login: request a code (intent "request"), then
+    // submit it here with a new password. A valid code both sets the password and signs in.
+    const code = String(formData.get("code") ?? "").trim();
+    const newPassword = String(formData.get("password") ?? "");
+    if (!/^\d{6}$/.test(code)) {
+      return json<ActionData>(
+        { intent: "reset", ok: false, error: "Enter the 6-digit code from the email." },
+        { status: 400 }
+      );
+    }
+    if (validatePasswordStrength(newPassword)) {
+      return json<ActionData>(
+        {
+          intent: "reset",
+          ok: false,
+          error: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`
+        },
+        { status: 400 }
+      );
+    }
+    const result = await verifyLoginCode({ db: context.env.DB, env: context.env, email, code });
+    if (!result.ok) {
+      return json<ActionData>({ intent: "reset", ok: false, error: result.error }, { status: 400 });
+    }
+    await setUserPassword(context.env.DB, result.user.id, await hashPassword(newPassword));
+    const session = await createSession(context.env.DB, result.user.id);
+    const setCookie = await createSessionCookie(request, getAuthEnv(context.env), session.id);
+    return json<ActionData>({ intent: "reset", ok: true }, { headers: { "Set-Cookie": setCookie } });
   }
 
   if (intent === "request") {
@@ -85,11 +141,15 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return json<ActionData>({ intent: "request", ok: false, error: "Unknown action." }, { status: 400 });
 };
 
+type Mode = "code" | "password" | "reset";
+
 export default function LoginPage() {
   const { alreadySignedIn } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
+  const [mode, setMode] = React.useState<Mode>("code");
+  // For the code and reset flows: "email" collects the address, "code" collects the OTP.
   const [step, setStep] = React.useState<"email" | "code">("email");
   useThemePreference();
 
@@ -97,6 +157,11 @@ export default function LoginPage() {
   const data = fetcher.data;
   const errorMessage = data && !data.ok ? data.error : null;
   const devCode = data?.ok && data.intent === "request" ? data.devCode : undefined;
+
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setStep("email");
+  };
 
   const finishLogin = React.useCallback(() => {
     try {
@@ -113,12 +178,33 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     if (data?.ok && data.intent === "request") setStep("code");
-    if (data?.ok && data.intent === "verify") finishLogin();
+    if (data?.ok && (data.intent === "verify" || data.intent === "password" || data.intent === "reset")) {
+      finishLogin();
+    }
   }, [data, finishLogin]);
 
   React.useEffect(() => {
     if (alreadySignedIn) finishLogin();
   }, [alreadySignedIn, finishLogin]);
+
+  const emailField = (
+    <>
+      <label className="login-label" htmlFor="login-email">
+        Email address
+      </label>
+      <input
+        id="login-email"
+        className="login-input"
+        type="email"
+        name="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        placeholder="you@example.com"
+        autoComplete="email"
+        required
+      />
+    </>
+  );
 
   return (
     <div className="login-page">
@@ -147,25 +233,94 @@ export default function LoginPage() {
           <span>or use email</span>
         </div>
 
-        {step === "email" ? (
+        {mode === "password" ? (
           <fetcher.Form method="post" className="login-form">
-            <input type="hidden" name="intent" value="request" />
-            <label className="login-label" htmlFor="login-email">
-              Email address
+            <input type="hidden" name="intent" value="password" />
+            {emailField}
+            <label className="login-label" htmlFor="login-password">
+              Password
             </label>
             <input
-              id="login-email"
+              id="login-password"
               className="login-input"
-              type="email"
-              name="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoComplete="email"
+              type="password"
+              name="password"
+              autoComplete="current-password"
               required
             />
             <button type="submit" className="login-submit" disabled={busy || !email.trim()}>
+              {busy ? "Signing in…" : "Sign in"}
+            </button>
+            <button type="button" className="login-alt" onClick={() => switchMode("code")}>
+              Sign in with an email code instead
+            </button>
+            <button type="button" className="login-alt" onClick={() => switchMode("reset")}>
+              Forgot or never set a password?
+            </button>
+          </fetcher.Form>
+        ) : mode === "reset" ? (
+          step === "email" ? (
+            <fetcher.Form method="post" className="login-form">
+              <input type="hidden" name="intent" value="request" />
+              {emailField}
+              <button type="submit" className="login-submit" disabled={busy || !email.trim()}>
+                {busy ? "Sending…" : "Send reset code"}
+              </button>
+              <button type="button" className="login-alt" onClick={() => switchMode("password")}>
+                Back to password sign-in
+              </button>
+            </fetcher.Form>
+          ) : (
+            <fetcher.Form method="post" className="login-form">
+              <input type="hidden" name="intent" value="reset" />
+              <input type="hidden" name="email" value={email} />
+              <label className="login-label" htmlFor="reset-code">
+                Enter the 6-digit code sent to {email}
+              </label>
+              <input
+                id="reset-code"
+                className="login-input login-input-code"
+                type="text"
+                name="code"
+                inputMode="numeric"
+                pattern="\d{6}"
+                maxLength={6}
+                placeholder="000000"
+                autoComplete="one-time-code"
+                autoFocus
+                required
+              />
+              <label className="login-label" htmlFor="reset-password">
+                New password
+              </label>
+              <input
+                id="reset-password"
+                className="login-input"
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                required
+              />
+              {devCode ? <p className="login-devcode">Dev mode: your code is {devCode}</p> : null}
+              <button type="submit" className="login-submit" disabled={busy}>
+                {busy ? "Saving…" : "Set password & sign in"}
+              </button>
+              <button type="button" className="login-alt" onClick={() => setStep("email")}>
+                Use a different email
+              </button>
+            </fetcher.Form>
+          )
+        ) : step === "email" ? (
+          <fetcher.Form method="post" className="login-form">
+            <input type="hidden" name="intent" value="request" />
+            {emailField}
+            <button type="submit" className="login-submit" disabled={busy || !email.trim()}>
               {busy ? "Sending…" : "Send sign-in code"}
+            </button>
+            <button type="button" className="login-alt" onClick={() => switchMode("password")}>
+              Sign in with a password instead
             </button>
           </fetcher.Form>
         ) : (

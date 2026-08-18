@@ -159,3 +159,68 @@ export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile
   }
   return created;
 }
+
+/**
+ * Reads the stored password credential for a user. Kept off the public `User` type on
+ * purpose: `User` is handed to the client via the root loader, so the hash never travels
+ * with it. Only server-side auth code reads this. `null` means no password is set.
+ */
+export async function getUserPasswordHash(db: Db, userId: string): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT password_hash FROM users WHERE id = ? LIMIT 1")
+    .bind(userId)
+    .first();
+  const hash = row?.password_hash;
+  return hash ? String(hash) : null;
+}
+
+/** Same as {@link getUserPasswordHash} but keyed by email, for password sign-in. */
+export async function getUserCredentialByEmail(
+  db: Db,
+  email: string
+): Promise<{ userId: string; passwordHash: string | null } | null> {
+  const row = await db
+    .prepare("SELECT id, password_hash FROM users WHERE email = ? LIMIT 1")
+    .bind(email)
+    .first();
+  if (!row) return null;
+  return {
+    userId: String(row.id),
+    passwordHash: row.password_hash ? String(row.password_hash) : null
+  };
+}
+
+/** Sets or clears (pass `null`) a user's password credential. */
+export async function setUserPassword(
+  db: Db,
+  userId: string,
+  passwordHash: string | null
+): Promise<void> {
+  await db
+    .prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(passwordHash, userId)
+    .run();
+}
+
+/** Updates the editable profile fields (nickname, avatar). `undefined` leaves a field as-is. */
+export async function updateUserProfile(
+  db: Db,
+  userId: string,
+  input: { name?: string | null; avatar_url?: string | null }
+): Promise<User> {
+  await db
+    .prepare(
+      "UPDATE users SET name = COALESCE(?, name), avatar_url = COALESCE(?, avatar_url), updated_at = datetime('now') WHERE id = ?"
+    )
+    .bind(
+      input.name === undefined ? null : input.name,
+      input.avatar_url === undefined ? null : input.avatar_url,
+      userId
+    )
+    .run();
+  const updated = await getUserById(db, userId);
+  if (!updated) {
+    throw new Error("Failed to load updated user.");
+  }
+  return updated;
+}

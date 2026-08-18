@@ -428,6 +428,34 @@ ordering predicate; 565 tests pass, typecheck/lint pass, and both production bui
   compatibility window are documented in `docs/infra-cloudflare.md`, with a cookie test proving
   old-secret verification.
 
+## Now — Account passwords and profile
+
+The owner authorized this on 2026-08-18. It extends the existing passwordless auth (email OTP +
+Google, both unchanged) rather than adopting a new auth framework; better-auth was explicitly
+considered and declined because it would require re-schema-ing and rewiring every session call
+site for features the custom system already provides. This delivers — and goes beyond — the
+Later item "Profile settings (avatar + nickname) for email-OTP users".
+
+- Add an **optional** account password. Accounts stay passwordless by default; a user may set a
+  password from their profile and then also sign in with email + password. Passwords are stored
+  as PBKDF2-HMAC-SHA256 hashes with a per-user salt in `users.password_hash` (nullable), never
+  exposed on the client `User` type. Minimum length 8.
+- `/login` keeps Google and email-code sign-in and adds a password mode plus a "Forgot or never
+  set a password?" reset that reuses the existing email OTP: a verified code sets a new password
+  and signs the user in.
+- Add an authenticated `/profile` page reached from the avatar menu. It edits display name and
+  avatar URL and sets or changes the password; changing an existing password requires the
+  current one, while setting the first password only requires the authenticated session.
+- Google sign-in continues to attach to an existing email account by matching email (unchanged).
+
+Acceptance evidence: unit tests for password hashing round-trip, malformed-hash safety, and
+strength validation; a local migration adding the nullable column; and end-to-end browser
+verification against the running dev server of email-code sign-in, setting a password in
+`/profile`, editing profile info, password sign-in, and code-based reset. `pnpm test`,
+`typecheck`, `lint`, and the production build all pass. Explicitly out of scope: rate-limiting
+the password-login endpoint beyond PBKDF2 cost, session revocation on password change, and
+avatar file upload (URL only).
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:
@@ -522,8 +550,9 @@ ordering predicate; 565 tests pass, typecheck/lint pass, and both production bui
   support. ESLint, the evaluation-history N+1 query, session cleanup cron, and session
   secret rotation were promoted to "Now — Engineering quality iteration" (authorized
   2026-08-15) with acceptance criteria.
-- Profile settings (avatar + nickname) for email-OTP users, who have no Google profile
-  data to fall back on — noted 2026-07-20, not urgent.
+- ~~Profile settings (avatar + nickname) for email-OTP users~~ — promoted to
+  "Now — Account passwords and profile" (authorized 2026-08-18), which delivers profile
+  editing plus optional passwords.
 - **Library expansion — first batch shipped 2026-07-28 (20 → 40 passages, ten per band); keep
   going.** The IA v2 design assumes material eventually grows ~100× (roughly 500 per band),
   because at five per band a motivated learner exhausted their level in two sittings and the
