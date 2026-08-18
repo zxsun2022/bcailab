@@ -120,13 +120,14 @@ export async function getUserByGoogleSub(db: Db, sub: string): Promise<User | nu
 export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile): Promise<User> {
   const existing = await getUserByGoogleSub(db, profile.sub);
   if (existing) {
-    // Email is identity and always refreshed from Google. Name/avatar use COALESCE(name, ?)
-    // so they are only *filled* when empty, never overwritten — otherwise a Google login
-    // would clobber a nickname/avatar the user set on /profile. (Clearing a field on /profile
-    // sets it NULL, which lets the next Google login re-populate it.)
+    // Email is identity and always refreshed from Google. So is the avatar: it is not
+    // user-editable, so Google is its only source and must stay current — COALESCE here would
+    // freeze a stale picture forever. The name uses COALESCE(name, ?) so it is only *filled*
+    // when empty and a Google login never clobbers a display name set on /profile. (Clearing
+    // the name on /profile sets it NULL, which lets the next Google login re-populate it.)
     await db
       .prepare(
-        "UPDATE users SET email = ?, name = COALESCE(name, ?), avatar_url = COALESCE(avatar_url, ?), updated_at = datetime('now') WHERE id = ?"
+        "UPDATE users SET email = ?, name = COALESCE(name, ?), avatar_url = ?, updated_at = datetime('now') WHERE id = ?"
       )
       .bind(profile.email ?? null, profile.name ?? null, profile.picture ?? null, existing.id)
       .run();
@@ -137,14 +138,15 @@ export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile
     return updated;
   }
 
-  // Merge with an existing email-login account so both methods share one user. Keep any
-  // name/avatar the email user already set (COALESCE(name, ?)); only fill from Google when empty.
+  // Merge with an existing email-login account so both methods share one user. Keep any display
+  // name the email user already set (COALESCE(name, ?)); the avatar is not user-editable, so
+  // Google supplies it outright.
   if (profile.email) {
     const byEmail = await getUserByEmail(db, profile.email);
     if (byEmail) {
       await db
         .prepare(
-          "UPDATE users SET google_sub = ?, name = COALESCE(name, ?), avatar_url = COALESCE(avatar_url, ?), updated_at = datetime('now') WHERE id = ?"
+          "UPDATE users SET google_sub = ?, name = COALESCE(name, ?), avatar_url = ?, updated_at = datetime('now') WHERE id = ?"
         )
         .bind(profile.sub, profile.name ?? null, profile.picture ?? null, byEmail.id)
         .run();
@@ -214,20 +216,21 @@ export async function setUserPassword(
 }
 
 /**
- * Sets the editable profile fields (nickname, avatar) to exactly the given values. Passing
- * `null` clears a field — the profile form always submits both, so a blank input genuinely
- * empties the stored value rather than silently keeping the old one.
+ * Sets the editable profile fields to exactly the given values. `null` clears a field, so a
+ * blank input genuinely empties the stored value rather than silently keeping the old one.
+ *
+ * Only the display name is user-editable. The avatar is not: it comes from Google or falls
+ * back to a default placeholder, so it is deliberately absent here and never written by the
+ * profile form.
  */
 export async function updateUserProfile(
   db: Db,
   userId: string,
-  input: { name: string | null; avatar_url: string | null }
+  input: { name: string | null }
 ): Promise<User> {
   await db
-    .prepare(
-      "UPDATE users SET name = ?, avatar_url = ?, updated_at = datetime('now') WHERE id = ?"
-    )
-    .bind(input.name, input.avatar_url, userId)
+    .prepare("UPDATE users SET name = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(input.name, userId)
     .run();
   const updated = await getUserById(db, userId);
   if (!updated) {

@@ -91,8 +91,9 @@ only). Both share the routing table, so a task streams or not without changing w
 - `/translate/stream` SSE endpoint backing the Translate page's streaming output (POST only)
 - `/login` sign-in popup page (Google OAuth, email OTP code, or email + password; includes the
   code-based password reset)
-- `/profile` authenticated account page reached from the avatar menu: edit display name and
-  avatar, and set or change the account password
+- `/profile` authenticated account page reached from the avatar menu: edit the display name,
+  and set or change the account password. The avatar is deliberately **not** editable — it
+  comes from Google, or falls back to a default placeholder
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
 - `/posts` posts tool (compose + history rail + in-place editing)
 - `/posts/:id` public post view

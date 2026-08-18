@@ -443,9 +443,13 @@ Later item "Profile settings (avatar + nickname) for email-OTP users".
 - `/login` keeps Google and email-code sign-in and adds a password mode plus a "Forgot or never
   set a password?" reset that reuses the existing email OTP: a verified code sets a new password
   and signs the user in.
-- Add an authenticated `/profile` page reached from the avatar menu. It edits display name and
-  avatar URL and sets or changes the password; changing an existing password requires the
-  current one, while setting the first password only requires the authenticated session.
+- Add an authenticated `/profile` page reached from the avatar menu. It edits the display name
+  and sets or changes the password; changing an existing password requires the current one,
+  while setting the first password only requires the authenticated session.
+- The avatar is **not** user-editable (owner decision, 2026-08-18): asking a user to paste an
+  image URL is poor UX, so the avatar comes from Google or falls back to a default placeholder.
+  Because Google is then its only source, a Google sign-in refreshes the avatar outright; the
+  display name keeps its no-clobber protection since it *is* user-editable.
 - Google sign-in continues to attach to an existing email account by matching email (unchanged).
 
 Acceptance evidence: unit tests for password hashing round-trip, malformed-hash safety, and
@@ -454,7 +458,7 @@ verification against the running dev server of email-code sign-in, setting a pas
 `/profile`, editing profile info, password sign-in, and code-based reset. `pnpm test`,
 `typecheck`, `lint`, and the production build all pass. Explicitly out of scope: rate-limiting
 the password-login endpoint beyond PBKDF2 cost, session revocation on password change, and
-avatar file upload (URL only).
+any user-supplied avatar (upload or URL).
 
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
