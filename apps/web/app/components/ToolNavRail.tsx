@@ -317,6 +317,9 @@ export function ToolNavRail({
                       <div className="nav-rail-user-email">{user.email}</div>
                     ) : null}
                   </div>
+                  <Link to="/profile" className="menu-item" role="menuitem">
+                    Profile
+                  </Link>
                   <div className="nav-rail-user-section">
                     <div className="menu-label">Theme</div>
                     <div className="menu-theme-options">
