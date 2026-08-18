@@ -127,10 +127,14 @@ pnpm exec wrangler d1 migrations apply bcailab-db --preview  # 测试
 
 - **`--remote`。** wrangler 4.x 下不带参数的 `wrangler d1 ... bcailab-db` 作用于**本地**数据库
   （输出会显示 `Resource location: local`），命令照样成功，却完全没碰到生产。
-- **`pnpm exec`。** 直接敲 `wrangler` 会用机器上全局安装的版本，而仓库 `package.json` 锁定的是
-  另一个版本。全局版本可能带着 scope 不匹配的旧 OAuth token，报
-  `[code: 7403] not authorized to access this service`——看起来像权限或账号问题，实际只是版本漂移。
-  `pnpm exec` 始终使用仓库锁定的版本。若确实要修全局版本，重新登录即可：`wrangler logout && wrangler login`。
+- **`pnpm exec`。** 直接敲 `wrangler` 会用机器上全局安装的版本，与仓库 `package.json` 锁定的
+  版本可能不同，行为和默认参数都可能不一致。`pnpm exec` 始终使用仓库锁定的版本。
+
+**关于 `[code: 7403] not authorized to access this service`：** 这个错误是**间歇性**的，
+来自 Cloudflare API 而非本地配置。实测同一版本、同一命令会偶发失败一次、随后连续成功，
+且 OAuth token 存放在 `~/Library/Preferences/.wrangler/config/default.toml`，为所有版本共用，
+因此与 wrangler 版本无关。**直接重试即可**，不要据此去 logout/login 或改动账号权限。
+若连续多次都失败，再用 `pnpm exec wrangler whoami` 确认登录状态与账号 ID。
 
 Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 migration 后，需要在三个环境中
 分别手动应用，且在每个环境都**先迁移、后部署**。

@@ -23,10 +23,7 @@ Three separate things made that outcome easy to reach, and each would have cause
 3. **The documented command silently targeted the wrong database.** Under wrangler 4.x,
    `wrangler d1 migrations apply bcailab-db` without `--remote` operates on the *local*
    database and exits successfully. Following the documentation exactly would leave production
-   unmigrated while printing every sign of success. A later `--remote` invocation also failed
-   with `[code: 7403] not authorized`, which turned out to be neither an account nor a permission
-   fault: the machine had four wrangler versions installed and the shell resolved to a global one
-   whose OAuth token predated a scope change, while the repo-pinned version worked.
+   unmigrated while printing every sign of success.
 
 The common thread is that each failure *looked like success* — a green command, a merged PR, an
 authoritative-sounding doc — so none of them surfaced until a user hit the page.
