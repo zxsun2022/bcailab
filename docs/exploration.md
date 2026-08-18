@@ -26,3 +26,10 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   *separate* need from model routing hot-config (see Later in `docs/roadmap.md`), which does **not** require
   an admin system and has an earlier trigger. Owner view 2026-07-21.
 
+- **Mapdown — document library, account save, and publish** (owner-raised 2026-08-18). Three
+  independently shippable stages: a local, no-account document library (`spec/phases.md` §7);
+  explicit per-document cloud save behind a Mapdown-owned backend on `map.bcailab.com`; and
+  frozen-snapshot publishing to a separate host (§8). Design, draft acceptance criteria and the
+  five decisions it would create are in
+  [`docs/mapdown/save-publish-proposal.md`](mapdown/save-publish-proposal.md). **A proposal, not
+  authorization** — nothing starts until the owner moves a stage into `docs/roadmap.md`.
