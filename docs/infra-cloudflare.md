@@ -69,10 +69,10 @@ otherwise discovers the root `pages_build_output_dir` for the wrong app.
 
 ## Setup
 1. Create D1 database:
-   - `wrangler d1 create bcailab-db`
+   - `pnpm exec wrangler d1 create bcailab-db`
 2. Apply migrations:
    - `pnpm db:migrate:local` (uses the same `apps/web/.wrangler/state` as `pnpm dev`)
-   - `wrangler d1 migrations apply bcailab-db --remote` — **`--remote` is required.** Without
+   - `pnpm exec wrangler d1 migrations apply bcailab-db --remote` — **`--remote` is required.** Without
      it, wrangler 4.x targets the *local* database and reports success while production stays
      unmigrated. Always apply a migration **before** deploying code that reads the new column
      or table; see `docs/workflow.md` §正式环境上线.
@@ -129,10 +129,10 @@ Pushing code is not enough for integration testing. You also need preview data r
 Recommended setup:
 - Use Cloudflare Pages **Preview** as the test runtime (no separate Workers service needed for this app).
 - Create separate staging resources:
-  - D1: `wrangler d1 create bcailab-db-staging`
+  - D1: `pnpm exec wrangler d1 create bcailab-db-staging`
   - R2: `wrangler r2 bucket create bcailab-assets-staging`
 - Apply schema to staging D1:
-  - `wrangler d1 migrations apply bcailab-db-staging --remote`
+  - `pnpm exec wrangler d1 migrations apply bcailab-db-staging --remote`
 - In Pages project settings, configure **Preview** bindings/env vars:
   - `DB` -> staging D1
   - `R2` -> staging R2 bucket

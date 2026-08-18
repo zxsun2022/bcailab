@@ -54,7 +54,7 @@ git commit -m "描述你的改动"
 ```bash
 # 1. 如果有新的 migration，先应用到测试数据库
 #    必须在推送之前：推送会触发自动构建部署，新代码一旦上线就会查询新列/新表
-wrangler d1 migrations apply bcailab-db --preview
+pnpm exec wrangler d1 migrations apply bcailab-db --preview
 
 # 2. 推送功能分支到 GitHub
 git push origin feature/my-feature
@@ -81,10 +81,11 @@ git push origin staging
 ```bash
 # 1. 如果有新的 migration，先应用到生产数据库
 #    注意 --remote：不加这个参数，wrangler 会作用于本地库，生产其实没被迁移
-wrangler d1 migrations apply bcailab-db --remote
+#    注意 pnpm exec：用仓库锁定的 wrangler 版本，而不是机器上的全局版本
+pnpm exec wrangler d1 migrations apply bcailab-db --remote
 
 # 2. 确认迁移已生效，再推代码
-wrangler d1 migrations list bcailab-db --remote   # 应显示 No migrations to apply
+pnpm exec wrangler d1 migrations list bcailab-db --remote   # 应显示 No migrations to apply
 
 # 3. 从 staging 合并到 main（推送即触发自动构建部署）
 git checkout main
@@ -102,25 +103,34 @@ git push origin main
 - 迁移命令**必须带 `--remote`**。wrangler 4.x 默认作用于本地数据库，漏掉这个参数会
   让人误以为生产已迁移，实际没有。
 - 曾经踩过：`0018_user_password.sql` 在代码上线后才应用，导致 `/profile` 报错
-  （见 `docs/changelog.md` 2026-08-18 条目）。
+  （见 `docs/changelog.md` 2026-08-18 条目）。这条顺序已固化为
+  [ADR 0008](decisions/0008-schema-migrations-precede-deploys.md)，其中也说明了
+  **不向后兼容**的 migration（删列、改名、加 NOT NULL）为什么不能套用这个顺序，
+  而必须拆成多次发布。
 - 正式环境的 `OAUTH_REDIRECT_URL` 应为 `https://bcailab.com/auth/callback`。
 
 ## 数据库 Migration 速查
 
 ```bash
 # 查看 migration 状态
-wrangler d1 migrations list bcailab-db --remote   # 生产
-wrangler d1 migrations list bcailab-db --local --persist-to apps/web/.wrangler/state  # 本地
-wrangler d1 migrations list bcailab-db --preview  # 测试
+pnpm exec wrangler d1 migrations list bcailab-db --remote   # 生产
+pnpm exec wrangler d1 migrations list bcailab-db --local --persist-to apps/web/.wrangler/state  # 本地
+pnpm exec wrangler d1 migrations list bcailab-db --preview  # 测试
 
 # 应用 migration
-wrangler d1 migrations apply bcailab-db --remote   # 生产
-pnpm db:migrate:local                              # 本地
-wrangler d1 migrations apply bcailab-db --preview  # 测试
+pnpm exec wrangler d1 migrations apply bcailab-db --remote   # 生产
+pnpm db:migrate:local                                        # 本地
+pnpm exec wrangler d1 migrations apply bcailab-db --preview  # 测试
 ```
 
-**`--remote` 不可省略。** wrangler 4.x 下不带参数的 `wrangler d1 ... bcailab-db` 作用于
-**本地**数据库（输出会显示 `Resource location: local`），命令照样成功，却完全没碰到生产。
+**两个参数都不能省：**
+
+- **`--remote`。** wrangler 4.x 下不带参数的 `wrangler d1 ... bcailab-db` 作用于**本地**数据库
+  （输出会显示 `Resource location: local`），命令照样成功，却完全没碰到生产。
+- **`pnpm exec`。** 直接敲 `wrangler` 会用机器上全局安装的版本，而仓库 `package.json` 锁定的是
+  另一个版本。全局版本可能带着 scope 不匹配的旧 OAuth token，报
+  `[code: 7403] not authorized to access this service`——看起来像权限或账号问题，实际只是版本漂移。
+  `pnpm exec` 始终使用仓库锁定的版本。若确实要修全局版本，重新登录即可：`wrangler logout && wrangler login`。
 
 Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 migration 后，需要在三个环境中
 分别手动应用，且在每个环境都**先迁移、后部署**。
@@ -156,7 +166,7 @@ Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 
 检查 Pages Preview 环境变量中 `OAUTH_REDIRECT_URL` 是否匹配 preview 域名，以及 Google OAuth 应用的 Authorized redirect URIs 是否包含该地址。
 
 **Q: 新功能在测试环境不可用？**
-检查是否有新 migration 未应用到 preview 数据库：`wrangler d1 migrations list bcailab-db --preview`。
+检查是否有新 migration 未应用到 preview 数据库：`pnpm exec wrangler d1 migrations list bcailab-db --preview`。
 
 **Q: 本地 D1 数据丢失？**
 `pnpm dev` 使用的本地数据存储在 `apps/web/.wrangler/state/`。根目录默认的
