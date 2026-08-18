@@ -72,7 +72,10 @@ otherwise discovers the root `pages_build_output_dir` for the wrong app.
    - `wrangler d1 create bcailab-db`
 2. Apply migrations:
    - `pnpm db:migrate:local` (uses the same `apps/web/.wrangler/state` as `pnpm dev`)
-   - `wrangler d1 migrations apply bcailab-db`
+   - `wrangler d1 migrations apply bcailab-db --remote` — **`--remote` is required.** Without
+     it, wrangler 4.x targets the *local* database and reports success while production stays
+     unmigrated. Always apply a migration **before** deploying code that reads the new column
+     or table; see `docs/workflow.md` §正式环境上线.
 
 ## Pages Environment Variables
 Set the following for the Pages project:
@@ -129,7 +132,7 @@ Recommended setup:
   - D1: `wrangler d1 create bcailab-db-staging`
   - R2: `wrangler r2 bucket create bcailab-assets-staging`
 - Apply schema to staging D1:
-  - `wrangler d1 migrations apply bcailab-db-staging`
+  - `wrangler d1 migrations apply bcailab-db-staging --remote`
 - In Pages project settings, configure **Preview** bindings/env vars:
   - `DB` -> staging D1
   - `R2` -> staging R2 bucket

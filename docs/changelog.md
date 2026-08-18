@@ -44,7 +44,10 @@ make the final transition; see `AGENTS.md`.
   - **Deploy ordering (required):** migration `0018` must be applied to the target D1 *before*
     the new code is deployed, because the code reads `users.password_hash` immediately. The
     column is nullable and backward-compatible, so applying it ahead of deploy is safe for the
-    old code still running. This inverts the push-then-migrate order in `docs/workflow.md` §Deploy.
+    old code still running. `docs/workflow.md` has since been corrected: its numbered commands
+    pushed first and migrated second, contradicting the migrate-first advice in its own footnote,
+    and its production migration command omitted `--remote`, which makes wrangler 4.x target the
+    local database and report success while production stays unmigrated.
   - **Known residual risk (owner decision):** the password-login endpoint has no per-account/IP
     failed-attempt throttling — only PBKDF2 cost. The roadmap scoped throttling out; flagging it
     because online brute-force protection is a release-level concern (NIST 800-63B). PBKDF2 is

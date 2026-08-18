@@ -52,14 +52,15 @@ git commit -m "描述你的改动"
 ### 第二步：Cloudflare 测试环境验证
 
 ```bash
-# 1. 推送功能分支到 GitHub
+# 1. 如果有新的 migration，先应用到测试数据库
+#    必须在推送之前：推送会触发自动构建部署，新代码一旦上线就会查询新列/新表
+wrangler d1 migrations apply bcailab-db --preview
+
+# 2. 推送功能分支到 GitHub
 git push origin feature/my-feature
 
-# 2. Cloudflare Pages 自动构建，生成 preview URL
+# 3. Cloudflare Pages 自动构建，生成 preview URL
 #    格式：https://<commit-hash>.bcailab.pages.dev
-
-# 3. 如果有新的 migration，手动应用到测试数据库
-wrangler d1 migrations apply bcailab-db --preview
 
 # 4. 在 preview URL 上验证功能
 
@@ -78,38 +79,51 @@ git push origin staging
 ### 第三步：正式环境上线
 
 ```bash
-# 1. 从 staging 合并到 main
+# 1. 如果有新的 migration，先应用到生产数据库
+#    注意 --remote：不加这个参数，wrangler 会作用于本地库，生产其实没被迁移
+wrangler d1 migrations apply bcailab-db --remote
+
+# 2. 确认迁移已生效，再推代码
+wrangler d1 migrations list bcailab-db --remote   # 应显示 No migrations to apply
+
+# 3. 从 staging 合并到 main（推送即触发自动构建部署）
 git checkout main
 git pull origin main
 git merge staging
 git push origin main
 
-# 2. 如果有新的 migration，应用到生产数据库
-wrangler d1 migrations apply bcailab-db
-
-# 3. Cloudflare Pages 自动构建部署到正式环境
+# 4. Cloudflare Pages 自动构建部署到正式环境
 ```
 
 **正式环境注意事项：**
-- Migration 必须在部署**之前或之后立即**执行。如果新代码依赖新表但 migration 未执行，功能会报错。
-- 建议顺序：先执行 migration → 再 push 代码触发部署。
+- **Migration 必须在部署之前执行，不能在之后。** 推送到 `main` 会立即触发 Pages 自动构建，
+  新代码一上线就会查询新列/新表；此时若 migration 还没跑，该功能会直接报错。
+  新增可空列这类改动是向后兼容的，提前应用对仍在运行的旧代码无影响。
+- 迁移命令**必须带 `--remote`**。wrangler 4.x 默认作用于本地数据库，漏掉这个参数会
+  让人误以为生产已迁移，实际没有。
+- 曾经踩过：`0018_user_password.sql` 在代码上线后才应用，导致 `/profile` 报错
+  （见 `docs/changelog.md` 2026-08-18 条目）。
 - 正式环境的 `OAUTH_REDIRECT_URL` 应为 `https://bcailab.com/auth/callback`。
 
 ## 数据库 Migration 速查
 
 ```bash
 # 查看 migration 状态
-wrangler d1 migrations list bcailab-db          # 生产
+wrangler d1 migrations list bcailab-db --remote   # 生产
 wrangler d1 migrations list bcailab-db --local --persist-to apps/web/.wrangler/state  # 本地
 wrangler d1 migrations list bcailab-db --preview  # 测试
 
 # 应用 migration
-wrangler d1 migrations apply bcailab-db          # 生产
+wrangler d1 migrations apply bcailab-db --remote   # 生产
 pnpm db:migrate:local                              # 本地
 wrangler d1 migrations apply bcailab-db --preview  # 测试
 ```
 
-Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 migration 后，需要在三个环境中分别手动应用。
+**`--remote` 不可省略。** wrangler 4.x 下不带参数的 `wrangler d1 ... bcailab-db` 作用于
+**本地**数据库（输出会显示 `Resource location: local`），命令照样成功，却完全没碰到生产。
+
+Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 migration 后，需要在三个环境中
+分别手动应用，且在每个环境都**先迁移、后部署**。
 
 ## 需要保持同步的配置
 
