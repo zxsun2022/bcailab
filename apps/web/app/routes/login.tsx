@@ -361,7 +361,11 @@ export default function LoginPage() {
           </fetcher.Form>
         )}
 
-        {errorMessage ? <p className="login-error">{errorMessage}</p> : null}
+        {errorMessage ? (
+          <p className="login-error" role="alert">
+            {errorMessage}
+          </p>
+        ) : null}
       </div>
     </div>
   );

@@ -21,6 +21,23 @@ make the final transition; see `AGENTS.md`.
   browser verification of email-code sign-in, set-password, profile edit, password sign-in, and
   reset against the local dev server. Out of scope: password-login rate limiting beyond PBKDF2
   cost, session revocation on password change, and avatar upload. Awaiting owner acceptance.
+  - Review follow-up (2026-08-18): Google sign-in no longer overwrites a name/avatar the user
+    set on `/profile` — both merge paths use `COALESCE(name, ?)` so Google only fills empty
+    fields. `consumeLoginCode` is now an atomic compare-and-swap (`WHERE … AND consumed_at IS
+    NULL`, returns whether it consumed) and `verifyLoginCode` refuses a code that a concurrent
+    request already consumed, closing a double-consume race the reset flow would have widened.
+    Profile fields can now be genuinely cleared (direct `SET`, no `COALESCE`), so "Saved." is
+    honest. Added `referrerPolicy="no-referrer"` to the profile avatar and `role="status"`/
+    `role="alert"` to the login/profile status messages. 3 new `consumeLoginCode` tests.
+  - **Deploy ordering (required):** migration `0018` must be applied to the target D1 *before*
+    the new code is deployed, because the code reads `users.password_hash` immediately. The
+    column is nullable and backward-compatible, so applying it ahead of deploy is safe for the
+    old code still running. This inverts the push-then-migrate order in `docs/workflow.md` §Deploy.
+  - **Known residual risk (owner decision):** the password-login endpoint has no per-account/IP
+    failed-attempt throttling — only PBKDF2 cost. The roadmap scoped throttling out; flagging it
+    because online brute-force protection is a release-level concern (NIST 800-63B). PBKDF2 is
+    held at 100,000 iterations deliberately, to stay inside the Workers per-request CPU budget on
+    the sign-in path rather than tracking OWASP's 600,000 blindly; revisit with a measured budget.
 
 - 2026-08-17 — **accepted: added bounded session cleanup and secret rotation support.**
   `workers/session-cleanup/` is a dedicated Cloudflare Worker with a daily 03:17 UTC Cron

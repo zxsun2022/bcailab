@@ -105,7 +105,12 @@ export default function ProfilePage() {
       <div className="tool-settings-card">
         <section className="tool-settings-section">
           <div className="settings-user-profile">
-            <img className="settings-user-avatar" src={avatarSrc} alt={displayName} />
+            <img
+              className="settings-user-avatar"
+              src={avatarSrc}
+              alt={displayName}
+              referrerPolicy="no-referrer"
+            />
             <div className="settings-user-info">
               <div className="settings-user-name">{displayName}</div>
               {user.email ? <div className="settings-user-email">{user.email}</div> : null}
@@ -144,8 +149,16 @@ export default function ProfilePage() {
             <button type="submit" className="login-submit" disabled={profileBusy}>
               {profileBusy ? "Saving…" : "Save changes"}
             </button>
-            {profileData?.ok ? <p className="login-devcode">Saved.</p> : null}
-            {profileData && !profileData.ok ? <p className="login-error">{profileData.error}</p> : null}
+            {profileData?.ok ? (
+              <p className="login-devcode" role="status">
+                Saved.
+              </p>
+            ) : null}
+            {profileData && !profileData.ok ? (
+              <p className="login-error" role="alert">
+                {profileData.error}
+              </p>
+            ) : null}
           </profileFetcher.Form>
         </section>
 
@@ -196,9 +209,15 @@ export default function ProfilePage() {
             <button type="submit" className="login-submit" disabled={passwordBusy}>
               {passwordBusy ? "Saving…" : hasPassword ? "Update password" : "Set password"}
             </button>
-            {passwordData?.ok ? <p className="login-devcode">Password saved.</p> : null}
+            {passwordData?.ok ? (
+              <p className="login-devcode" role="status">
+                Password saved.
+              </p>
+            ) : null}
             {passwordData && !passwordData.ok ? (
-              <p className="login-error">{passwordData.error}</p>
+              <p className="login-error" role="alert">
+                {passwordData.error}
+              </p>
             ) : null}
           </passwordFetcher.Form>
         </section>
