@@ -7,7 +7,6 @@ import { hashPassword, verifyPassword } from "~/utils/password.server";
 import { validatePasswordStrength, MIN_PASSWORD_LENGTH } from "~/utils/password";
 
 const MAX_NAME_LENGTH = 80;
-const MAX_AVATAR_LENGTH = 500;
 
 export const meta: MetaFunction = () => [{ title: "Profile · bcailab" }];
 
@@ -28,24 +27,15 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   if (intent === "update-profile") {
     const name = String(form.get("name") ?? "").trim();
-    const avatar = String(form.get("avatar_url") ?? "").trim();
     if (name.length > MAX_NAME_LENGTH) {
       return json<ActionData>(
         { section: "profile", ok: false, error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` },
         { status: 400 }
       );
     }
-    if (avatar.length > MAX_AVATAR_LENGTH || (avatar && !/^https?:\/\//i.test(avatar))) {
-      return json<ActionData>(
-        { section: "profile", ok: false, error: "Enter a valid http(s) image URL, or leave it blank." },
-        { status: 400 }
-      );
-    }
-    // Empty means "leave unchanged" (updateUserProfile COALESCEs null), so a blank field is a no-op.
-    await updateUserProfile(context.env.DB, user.id, {
-      name: name || null,
-      avatar_url: avatar || null
-    });
+    // The avatar is not user-editable: it comes from Google, or falls back to the default
+    // placeholder. This update deliberately touches the display name only.
+    await updateUserProfile(context.env.DB, user.id, { name: name || null });
     return json<ActionData>({ section: "profile", ok: true });
   }
 
@@ -140,22 +130,6 @@ export default function ProfilePage() {
               placeholder="Your name"
             />
             <p className="profile-hint">Leave blank to fall back to your email address.</p>
-          </div>
-
-          <div className="profile-field">
-            <label className="profile-label" htmlFor="profile-avatar">
-              Avatar image URL
-            </label>
-            <input
-              id="profile-avatar"
-              className="profile-input"
-              type="url"
-              name="avatar_url"
-              defaultValue={user.avatar_url ?? ""}
-              maxLength={MAX_AVATAR_LENGTH}
-              placeholder="https://…"
-            />
-            <p className="profile-hint">Leave blank to use the default avatar.</p>
           </div>
 
           <div className="profile-actions">

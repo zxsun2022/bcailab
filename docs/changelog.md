@@ -15,7 +15,7 @@ make the final transition; see `AGENTS.md`.
   and PBKDF2-HMAC-SHA256 hashing via WebCrypto (`apps/web/app/utils/password.server.ts`), kept
   off the client `User` type. `/login` gained an email + password mode and a code-based
   "forgot/never set a password" reset that reuses the email OTP; the new authenticated
-  `/profile`, reached from the avatar menu, edits display name and avatar and sets or changes
+  `/profile`, reached from the avatar menu, edits the display name and sets or changes
   the password (changing requires the current password). Evidence: 8 new password unit tests
   (576 total pass), typecheck, lint (0 errors), and production build all green, plus end-to-end
   browser verification of email-code sign-in, set-password, profile edit, password sign-in, and
@@ -29,6 +29,17 @@ make the final transition; see `AGENTS.md`.
     Profile fields can now be genuinely cleared (direct `SET`, no `COALESCE`), so "Saved." is
     honest. Added `referrerPolicy="no-referrer"` to the profile avatar and `role="status"`/
     `role="alert"` to the login/profile status messages. 3 new `consumeLoginCode` tests.
+  - Design follow-up (2026-08-18): rebuilt `/profile` on a scoped `.profile-*` layout with its
+    own 640px measure. It had been rendering in the 1400px site container while reusing the
+    login popup's form styles, so inputs stretched the full viewport and two full-bleed red
+    submits competed; "Saved." even reused the dev-mode OTP style. Kept as a page rather than a
+    modal: it is a linkable destination with two independent forms and its own state.
+  - Avatar customization removed (owner decision, 2026-08-18): the "Avatar image URL" field is
+    gone — asking a user to paste an image URL is poor UX. The avatar now comes from Google or
+    the default placeholder, so `updateUserProfile` writes the display name only and Google
+    sign-in refreshes the avatar outright rather than `COALESCE`-ing it, which would otherwise
+    freeze a stale picture with no way to update it. The display name keeps its no-clobber
+    protection because it remains user-editable.
   - **Deploy ordering (required):** migration `0018` must be applied to the target D1 *before*
     the new code is deployed, because the code reads `users.password_hash` immediately. The
     column is nullable and backward-compatible, so applying it ahead of deploy is safe for the
