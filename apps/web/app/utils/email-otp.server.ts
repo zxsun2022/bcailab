@@ -145,7 +145,11 @@ export const verifyLoginCode = async (input: {
     return { ok: false, error: "Incorrect code. Please check and try again." };
   }
 
-  await consumeLoginCode(input.db, record.id);
+  const consumed = await consumeLoginCode(input.db, record.id);
+  if (!consumed) {
+    // Another concurrent request already consumed this exact code; refuse to honor it twice.
+    return { ok: false, error: "Code expired or not found. Request a new one." };
+  }
 
   const existing = await getUserByEmail(input.db, input.email);
   const user = existing ?? (await createUserWithEmail(input.db, input.email));

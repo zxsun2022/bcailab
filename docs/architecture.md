@@ -50,12 +50,19 @@ still overrides tasks flagged `envModelOverride`.
 only). Both share the routing table, so a task streams or not without changing which model serves it.
 
 ## Key Flows
-- Sign-in happens in a popup at `/login`: Google OAuth, or an email one-time code (for users
-  who cannot reach Google). Email is the primary identity; a Google login with a matching
+- Sign-in happens in a popup at `/login`, offering three methods: Google OAuth, an email
+  one-time code (for users who cannot reach Google), and — once a user has set one — an
+  email + password sign-in. Email is the primary identity; a Google login with a matching
   email attaches to the same account.
+- Accounts are **passwordless by default**. A password is optional: a signed-in user can set
+  one from `/profile`, after which they may also sign in with it. "Forgot or never set a
+  password?" on `/login` reuses the same email OTP to verify ownership and set a new password,
+  signing the user in. Passwords are stored as PBKDF2-HMAC-SHA256 hashes (WebCrypto, per-user
+  salt) in `users.password_hash`; the hash never reaches the client (`User` omits it).
 - Google OAuth handled in the Remix app; sessions are stored in D1 and referenced by a secure cookie.
 - Email OTP codes are sent via Resend (`RESEND_API_KEY`); in local dev without the key, the
-  code is logged to the server console and shown in the dev UI.
+  code is logged to the server console and shown in the dev UI. The same OTP backs both
+  code sign-in and password reset.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
 - Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or tool settings pages; the preference is stored locally in the browser.
 
@@ -82,7 +89,10 @@ only). Both share the routing table, so a task streams or not without changing w
   docs/english-studio-ia-v2-design.md §3.6)
 - `/translate` LLM-powered translation tool (public with daily quota for anonymous users; signed-in users get higher limits — see docs/tools/translate.md)
 - `/translate/stream` SSE endpoint backing the Translate page's streaming output (POST only)
-- `/login` sign-in popup page (Google OAuth or email OTP code)
+- `/login` sign-in popup page (Google OAuth, email OTP code, or email + password; includes the
+  code-based password reset)
+- `/profile` authenticated account page reached from the avatar menu: edit display name and
+  avatar, and set or change the account password
 - `/auth/google`, `/auth/callback`, `/logout` auth endpoints
 - `/posts` posts tool (compose + history rail + in-place editing)
 - `/posts/:id` public post view

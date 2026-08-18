@@ -69,11 +69,17 @@ export async function incrementLoginCodeAttempts(db: Db, id: string): Promise<vo
   await db.prepare("UPDATE login_codes SET attempts = attempts + 1 WHERE id = ?").bind(id).run();
 }
 
-export async function consumeLoginCode(db: Db, id: string): Promise<void> {
-  await db
-    .prepare("UPDATE login_codes SET consumed_at = datetime('now') WHERE id = ?")
+/**
+ * Atomically consumes a login code. Guarded by `consumed_at IS NULL` and reports whether this
+ * call was the one that consumed it, so concurrent verifications of the same code cannot both
+ * succeed: D1 serializes the writes, so exactly one caller sees a changed row.
+ */
+export async function consumeLoginCode(db: Db, id: string): Promise<boolean> {
+  const result = await db
+    .prepare("UPDATE login_codes SET consumed_at = datetime('now') WHERE id = ? AND consumed_at IS NULL")
     .bind(id)
     .run();
+  return (result.meta?.changes ?? 0) > 0;
 }
 
 export async function countRecentLoginCodes(
@@ -114,9 +120,13 @@ export async function getUserByGoogleSub(db: Db, sub: string): Promise<User | nu
 export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile): Promise<User> {
   const existing = await getUserByGoogleSub(db, profile.sub);
   if (existing) {
+    // Email is identity and always refreshed from Google. Name/avatar use COALESCE(name, ?)
+    // so they are only *filled* when empty, never overwritten — otherwise a Google login
+    // would clobber a nickname/avatar the user set on /profile. (Clearing a field on /profile
+    // sets it NULL, which lets the next Google login re-populate it.)
     await db
       .prepare(
-        "UPDATE users SET email = ?, name = ?, avatar_url = ?, updated_at = datetime('now') WHERE id = ?"
+        "UPDATE users SET email = ?, name = COALESCE(name, ?), avatar_url = COALESCE(avatar_url, ?), updated_at = datetime('now') WHERE id = ?"
       )
       .bind(profile.email ?? null, profile.name ?? null, profile.picture ?? null, existing.id)
       .run();
@@ -127,13 +137,14 @@ export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile
     return updated;
   }
 
-  // Merge with an existing email-login account so both methods share one user.
+  // Merge with an existing email-login account so both methods share one user. Keep any
+  // name/avatar the email user already set (COALESCE(name, ?)); only fill from Google when empty.
   if (profile.email) {
     const byEmail = await getUserByEmail(db, profile.email);
     if (byEmail) {
       await db
         .prepare(
-          "UPDATE users SET google_sub = ?, name = COALESCE(?, name), avatar_url = COALESCE(?, avatar_url), updated_at = datetime('now') WHERE id = ?"
+          "UPDATE users SET google_sub = ?, name = COALESCE(name, ?), avatar_url = COALESCE(avatar_url, ?), updated_at = datetime('now') WHERE id = ?"
         )
         .bind(profile.sub, profile.name ?? null, profile.picture ?? null, byEmail.id)
         .run();
@@ -158,4 +169,69 @@ export async function upsertUserFromGoogleProfile(db: Db, profile: GoogleProfile
     throw new Error("Failed to create user.");
   }
   return created;
+}
+
+/**
+ * Reads the stored password credential for a user. Kept off the public `User` type on
+ * purpose: `User` is handed to the client via the root loader, so the hash never travels
+ * with it. Only server-side auth code reads this. `null` means no password is set.
+ */
+export async function getUserPasswordHash(db: Db, userId: string): Promise<string | null> {
+  const row = await db
+    .prepare("SELECT password_hash FROM users WHERE id = ? LIMIT 1")
+    .bind(userId)
+    .first();
+  const hash = row?.password_hash;
+  return hash ? String(hash) : null;
+}
+
+/** Same as {@link getUserPasswordHash} but keyed by email, for password sign-in. */
+export async function getUserCredentialByEmail(
+  db: Db,
+  email: string
+): Promise<{ userId: string; passwordHash: string | null } | null> {
+  const row = await db
+    .prepare("SELECT id, password_hash FROM users WHERE email = ? LIMIT 1")
+    .bind(email)
+    .first();
+  if (!row) return null;
+  return {
+    userId: String(row.id),
+    passwordHash: row.password_hash ? String(row.password_hash) : null
+  };
+}
+
+/** Sets or clears (pass `null`) a user's password credential. */
+export async function setUserPassword(
+  db: Db,
+  userId: string,
+  passwordHash: string | null
+): Promise<void> {
+  await db
+    .prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(passwordHash, userId)
+    .run();
+}
+
+/**
+ * Sets the editable profile fields (nickname, avatar) to exactly the given values. Passing
+ * `null` clears a field — the profile form always submits both, so a blank input genuinely
+ * empties the stored value rather than silently keeping the old one.
+ */
+export async function updateUserProfile(
+  db: Db,
+  userId: string,
+  input: { name: string | null; avatar_url: string | null }
+): Promise<User> {
+  await db
+    .prepare(
+      "UPDATE users SET name = ?, avatar_url = ?, updated_at = datetime('now') WHERE id = ?"
+    )
+    .bind(input.name, input.avatar_url, userId)
+    .run();
+  const updated = await getUserById(db, userId);
+  if (!updated) {
+    throw new Error("Failed to load updated user.");
+  }
+  return updated;
 }
