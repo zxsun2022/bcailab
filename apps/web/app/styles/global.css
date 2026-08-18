@@ -8043,6 +8043,196 @@ select.input:focus {
 }
 
 /* ==========================================================================
+   ACCOUNT PROFILE PAGE (/profile)
+   ==========================================================================
+   A standalone account page rendered inside the 1400px site `.container`, so it
+   owns its own reading measure. It deliberately does NOT reuse the login popup's
+   form styles: those are sized for a ~380px card and stretch badly here. */
+
+.profile-page {
+  width: min(100%, 640px);
+  margin-inline: auto;
+  padding: var(--space-xl) 0 72px;
+}
+
+.profile-header {
+  margin-bottom: var(--space-lg);
+}
+
+.profile-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.profile-description {
+  margin: var(--space-sm) 0 0;
+  color: var(--text-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.profile-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) 0 var(--space-lg);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-identity-avatar {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  object-fit: cover;
+  background: var(--bg-alt);
+}
+
+.profile-identity-copy {
+  min-width: 0;
+}
+
+.profile-identity-name {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.profile-identity-email {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.profile-section {
+  padding: var(--space-xl) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.profile-section-title {
+  margin: 0;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.profile-section-intro {
+  margin: var(--space-sm) 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.profile-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+}
+
+.profile-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.profile-label {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.profile-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-control);
+  border-radius: 0;
+  background: var(--bg-card);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.4;
+  transition: border-color var(--transition-fast);
+}
+
+.profile-input::placeholder {
+  color: var(--text-faint);
+}
+
+.profile-input:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: -2px;
+  border-color: var(--color-action);
+}
+
+.profile-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+/* The action row owns the button's size, so a section save never spans the page
+   the way the login popup's full-bleed submit does. */
+.profile-actions .btn {
+  flex-shrink: 0;
+}
+
+.profile-status,
+.profile-error {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.4px;
+}
+
+.profile-status {
+  color: var(--text-muted);
+}
+
+.profile-error {
+  color: var(--color-danger);
+}
+
+@media (max-width: 640px) {
+  .profile-page {
+    padding-top: var(--space-lg);
+  }
+
+  .profile-title {
+    font-size: 28px;
+  }
+
+  .profile-actions .btn {
+    width: 100%;
+    /* Matches the 44px primary touch target used across the Studio surfaces. */
+    min-height: 44px;
+  }
+}
+
+/* ==========================================================================
    TOOL SETTINGS PAGE (shared across Writing / Reading / Speech)
    ========================================================================== */
 

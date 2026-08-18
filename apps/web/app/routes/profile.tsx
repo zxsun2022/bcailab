@@ -100,93 +100,117 @@ export default function ProfilePage() {
   const passwordBusy = passwordFetcher.state !== "idle";
 
   return (
-    <div className="tool-settings-page">
-      <h1 className="login-title">Profile</h1>
-      <div className="tool-settings-card">
-        <section className="tool-settings-section">
-          <div className="settings-user-profile">
-            <img
-              className="settings-user-avatar"
-              src={avatarSrc}
-              alt={displayName}
-              referrerPolicy="no-referrer"
-            />
-            <div className="settings-user-info">
-              <div className="settings-user-name">{displayName}</div>
-              {user.email ? <div className="settings-user-email">{user.email}</div> : null}
-            </div>
-          </div>
-        </section>
+    <div className="profile-page">
+      <header className="profile-header">
+        <h1 className="profile-title">Profile</h1>
+        <p className="profile-description">
+          Manage how you appear across the studio and how you sign in.
+        </p>
+      </header>
 
-        <section className="tool-settings-section">
-          <div className="menu-label">Account information</div>
-          <profileFetcher.Form method="post" className="login-form">
-            <input type="hidden" name="intent" value="update-profile" />
-            <label className="login-label" htmlFor="profile-name">
+      <div className="profile-identity">
+        <img
+          className="profile-identity-avatar"
+          src={avatarSrc}
+          alt=""
+          referrerPolicy="no-referrer"
+        />
+        <div className="profile-identity-copy">
+          <div className="profile-identity-name">{displayName}</div>
+          {user.email ? <div className="profile-identity-email">{user.email}</div> : null}
+        </div>
+      </div>
+
+      <section className="profile-section">
+        <h2 className="profile-section-title">Account information</h2>
+        <profileFetcher.Form method="post" className="profile-form">
+          <input type="hidden" name="intent" value="update-profile" />
+
+          <div className="profile-field">
+            <label className="profile-label" htmlFor="profile-name">
               Display name
             </label>
             <input
               id="profile-name"
-              className="login-input"
+              className="profile-input"
               type="text"
               name="name"
               defaultValue={user.name ?? ""}
               maxLength={MAX_NAME_LENGTH}
               placeholder="Your name"
             />
-            <label className="login-label" htmlFor="profile-avatar">
+            <p className="profile-hint">Leave blank to fall back to your email address.</p>
+          </div>
+
+          <div className="profile-field">
+            <label className="profile-label" htmlFor="profile-avatar">
               Avatar image URL
             </label>
             <input
               id="profile-avatar"
-              className="login-input"
+              className="profile-input"
               type="url"
               name="avatar_url"
               defaultValue={user.avatar_url ?? ""}
               maxLength={MAX_AVATAR_LENGTH}
               placeholder="https://…"
             />
-            <button type="submit" className="login-submit" disabled={profileBusy}>
+            <p className="profile-hint">Leave blank to use the default avatar.</p>
+          </div>
+
+          <div className="profile-actions">
+            <button type="submit" className="btn btn-primary" disabled={profileBusy}>
               {profileBusy ? "Saving…" : "Save changes"}
             </button>
             {profileData?.ok ? (
-              <p className="login-devcode" role="status">
+              <p className="profile-status" role="status">
                 Saved.
               </p>
             ) : null}
             {profileData && !profileData.ok ? (
-              <p className="login-error" role="alert">
+              <p className="profile-error" role="alert">
                 {profileData.error}
               </p>
             ) : null}
-          </profileFetcher.Form>
-        </section>
+          </div>
+        </profileFetcher.Form>
+      </section>
 
-        <section className="tool-settings-section">
-          <div className="menu-label">{hasPassword ? "Change password" : "Set a password"}</div>
-          <passwordFetcher.Form method="post" className="login-form">
-            <input type="hidden" name="intent" value="set-password" />
-            {hasPassword ? (
-              <>
-                <label className="login-label" htmlFor="current-password">
-                  Current password
-                </label>
-                <input
-                  id="current-password"
-                  className="login-input"
-                  type="password"
-                  name="current_password"
-                  autoComplete="current-password"
-                  required
-                />
-              </>
-            ) : null}
-            <label className="login-label" htmlFor="new-password">
+      <section className="profile-section">
+        <h2 className="profile-section-title">
+          {hasPassword ? "Change password" : "Set a password"}
+        </h2>
+        <p className="profile-section-intro">
+          {hasPassword
+            ? "Your account can sign in with an email code, Google, or this password."
+            : "Optional. Your account already signs in with an email code or Google — a password simply adds another way in."}
+        </p>
+        <passwordFetcher.Form method="post" className="profile-form">
+          <input type="hidden" name="intent" value="set-password" />
+
+          {hasPassword ? (
+            <div className="profile-field">
+              <label className="profile-label" htmlFor="current-password">
+                Current password
+              </label>
+              <input
+                id="current-password"
+                className="profile-input"
+                type="password"
+                name="current_password"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+          ) : null}
+
+          <div className="profile-field">
+            <label className="profile-label" htmlFor="new-password">
               New password
             </label>
             <input
               id="new-password"
-              className="login-input"
+              className="profile-input"
               type="password"
               name="password"
               autoComplete="new-password"
@@ -194,34 +218,40 @@ export default function ProfilePage() {
               placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
               required
             />
-            <label className="login-label" htmlFor="confirm-password">
+          </div>
+
+          <div className="profile-field">
+            <label className="profile-label" htmlFor="confirm-password">
               Confirm new password
             </label>
             <input
               id="confirm-password"
-              className="login-input"
+              className="profile-input"
               type="password"
               name="confirm"
               autoComplete="new-password"
               minLength={MIN_PASSWORD_LENGTH}
               required
             />
-            <button type="submit" className="login-submit" disabled={passwordBusy}>
+          </div>
+
+          <div className="profile-actions">
+            <button type="submit" className="btn btn-primary" disabled={passwordBusy}>
               {passwordBusy ? "Saving…" : hasPassword ? "Update password" : "Set password"}
             </button>
             {passwordData?.ok ? (
-              <p className="login-devcode" role="status">
+              <p className="profile-status" role="status">
                 Password saved.
               </p>
             ) : null}
             {passwordData && !passwordData.ok ? (
-              <p className="login-error" role="alert">
+              <p className="profile-error" role="alert">
                 {passwordData.error}
               </p>
             ) : null}
-          </passwordFetcher.Form>
-        </section>
-      </div>
+          </div>
+        </passwordFetcher.Form>
+      </section>
     </div>
   );
 }
