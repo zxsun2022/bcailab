@@ -1,0 +1,153 @@
+import type {
+  CloudDocumentRecord,
+  CloudDocumentSummary,
+  CloudPublication,
+  CloudSessionState,
+  CloudUser
+} from "./types";
+
+interface ApiErrorPayload {
+  error?: { code?: string; message?: string; details?: unknown };
+}
+
+export class CloudApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    message: string,
+    readonly details?: unknown
+  ) {
+    super(message);
+    this.name = "CloudApiError";
+  }
+}
+
+async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    credentials: "include",
+    headers: {
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...init.headers
+    }
+  });
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // A structured fallback below keeps proxy/platform failures understandable.
+  }
+  if (!response.ok) {
+    const error = payload as ApiErrorPayload | null;
+    throw new CloudApiError(
+      response.status,
+      error?.error?.code ?? "request_failed",
+      error?.error?.message ?? "The Mapdown service could not complete this request.",
+      error?.error?.details
+    );
+  }
+  return payload as T;
+}
+
+function webOrigin(): string {
+  if (import.meta.env.VITE_WEB_ORIGIN) return String(import.meta.env.VITE_WEB_ORIGIN);
+  return location.hostname === "localhost" || location.hostname === "127.0.0.1"
+    ? "http://localhost:3001"
+    : "https://bcailab.com";
+}
+
+export async function signInToMapdown(): Promise<CloudUser> {
+  const authOrigin = webOrigin();
+  const url = new URL("/auth/mapdown", authOrigin);
+  url.searchParams.set("origin", location.origin);
+  const width = 520;
+  const height = 640;
+  const popup = window.open(
+    url,
+    "mapdown-auth",
+    `width=${width},height=${height},left=${window.screenX + (window.outerWidth - width) / 2},top=${window.screenY + (window.outerHeight - height) / 2}`
+  );
+  if (!popup) throw new CloudApiError(0, "popup", "Allow the sign-in popup, then try again.");
+  const token = await new Promise<string>((resolve, reject) => {
+    const timeout = window.setTimeout(() => finish(new CloudApiError(0, "timeout", "Sign-in took too long. Try again.")), 2 * 60_000);
+    const poll = window.setInterval(() => {
+      if (popup.closed) finish(new CloudApiError(0, "closed", "Sign-in was closed before it finished."));
+    }, 400);
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== authOrigin || event.source !== popup) return;
+      const data = event.data as { type?: unknown; token?: unknown };
+      if (data?.type === "mapdown-auth" && typeof data.token === "string") finish(null, data.token);
+    };
+    const finish = (error: Error | null, value?: string) => {
+      window.clearTimeout(timeout);
+      window.clearInterval(poll);
+      window.removeEventListener("message", onMessage);
+      if (error) reject(error);
+      else resolve(value!);
+    };
+    window.addEventListener("message", onMessage);
+  });
+  const result = await api<{ user: CloudUser }>("/api/auth/exchange", {
+    method: "POST",
+    body: JSON.stringify({ token })
+  });
+  return result.user;
+}
+
+export async function getCloudSession(): Promise<CloudSessionState> {
+  return api<CloudSessionState>("/api/auth/session");
+}
+
+export async function signOutOfMapdown(): Promise<void> {
+  await api("/api/auth/logout", { method: "POST", body: "{}" });
+}
+
+export async function listCloudDocuments(): Promise<CloudDocumentSummary[]> {
+  return (await api<{ documents: CloudDocumentSummary[] }>("/api/documents")).documents;
+}
+
+export async function getCloudDocument(id: string): Promise<CloudDocumentRecord> {
+  return (await api<{ document: CloudDocumentRecord }>(`/api/documents/${encodeURIComponent(id)}`)).document;
+}
+
+export async function createCloudDocument(input: {
+  clientDocumentId: string;
+  snapshot: CloudDocumentRecord["snapshot"];
+}): Promise<CloudDocumentRecord> {
+  return (await api<{ document: CloudDocumentRecord }>("/api/documents", {
+    method: "POST",
+    body: JSON.stringify(input)
+  })).document;
+}
+
+export async function updateCloudDocument(input: {
+  id: string;
+  baseVersion: number;
+  snapshot: CloudDocumentRecord["snapshot"];
+}): Promise<CloudDocumentRecord> {
+  return (await api<{ document: CloudDocumentRecord }>(`/api/documents/${encodeURIComponent(input.id)}`, {
+    method: "PUT",
+    body: JSON.stringify({ baseVersion: input.baseVersion, snapshot: input.snapshot })
+  })).document;
+}
+
+export async function deleteCloudDocument(id: string): Promise<void> {
+  await api(`/api/documents/${encodeURIComponent(id)}`, { method: "DELETE", body: "{}" });
+}
+
+export async function publishCloudDocument(input: {
+  id: string;
+  baseVersion: number;
+  title: string;
+  markdown: string;
+  svg: string;
+}): Promise<CloudPublication> {
+  return (await api<{ publication: CloudPublication }>(`/api/documents/${encodeURIComponent(input.id)}/publish`, {
+    method: "POST",
+    body: JSON.stringify(input)
+  })).publication;
+}
+
+export async function unpublishCloudDocument(id: string): Promise<void> {
+  await api(`/api/documents/${encodeURIComponent(id)}/unpublish`, { method: "POST", body: "{}" });
+}

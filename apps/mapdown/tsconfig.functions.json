@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "verbatimModuleSyntax": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "types": ["@cloudflare/workers-types/latest"]
+  },
+  "include": [
+    "worker-configuration.d.ts",
+    "functions/**/*.ts",
+    "src/cloud/types.ts",
+    "src/model/**/*.ts"
+  ]
+}
