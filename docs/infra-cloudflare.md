@@ -7,8 +7,9 @@ This project uses Cloudflare Pages + D1 + R2.
 Pages Functions do not expose a Pages `scheduled()` entrypoint. Session cleanup therefore
 runs as the separate `bcailab-session-cleanup` Worker in `workers/session-cleanup/`, which
 uses the same production and preview D1 bindings as the Pages app. Its Wrangler Cron Trigger
-runs daily at **03:17 UTC** and deletes at most 100 rows whose `expires_at` is strictly less
-than the scheduled time. Re-running a batch is safe because the delete is idempotent.
+runs daily at **03:17 UTC** and deletes at most 100 expired rows from each of the Studio
+sessions, Mapdown sessions and Mapdown handoff-nonce tables. Re-running a batch is safe because
+each delete is idempotent. Deploy the cleanup change only after migration 0019 exists.
 
 Deploy or inspect the Worker from the repository root:
 
@@ -42,6 +43,7 @@ Mapdown is a second Git-connected Pages project:
 |---------|-------|
 | Project | `mapdown` |
 | Production URL | `https://map.bcailab.com` |
+| Published custom domain | `https://share.bcailab.com` |
 | Root directory | `apps/mapdown` |
 | Build command | `cd ../.. && pnpm install --frozen-lockfile && pnpm --filter mapdown build` |
 | Build output directory | `dist` |
@@ -57,11 +59,11 @@ traffic: `307` (temporary) or `308` (permanent). Many clients will change the
 method to `GET` on `301/302`, and `303` always forces `GET`, so `308` is used
 here for permanent, method‑preserving canonical redirects.
 
-A `wrangler.toml` exists at the repo root (used by local `wrangler` commands), in
-`apps/web/` (picked up by the main Pages project), and in `apps/mapdown/` (picked up by
-the Mapdown Pages project). The root and `apps/web` D1/R2 bindings are identical; keep
-them in sync manually when changing. Mapdown is static and its config deliberately
-contains no bindings.
+A `wrangler.toml` exists at the repo root (used by local `wrangler` commands) and in
+`apps/web/`. Mapdown uses `apps/mapdown/wrangler.jsonc`; it binds the same D1 database and R2
+bucket for account save and publication, while keeping its own session table. Keep database
+and bucket ids in sync when resources change. `_routes.json` sends only `/api/*` and `/p/*`
+through Functions; editor assets remain static.
 
 The app-local Pages configs are required even though output directories are also set in
 the dashboard. A monorepo build command changes to the repository root, where Wrangler
@@ -88,11 +90,17 @@ Set the following for the Pages project:
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
 - `SESSION_SECRET_PREVIOUS` (optional; old session signing secret during rotation only)
+- `MAPDOWN_HANDOFF_SECRET` (dedicated high-entropy HMAC secret; must match the Mapdown Pages
+  project and must not reuse `SESSION_SECRET`)
 - `RESEND_API_KEY` (email OTP sign-in codes; set via `wrangler pages secret put RESEND_API_KEY`)
 - `RESEND_FROM` (optional; default `bcailab <login@bcailab.com>` — the domain must be verified in Resend with SPF/DKIM DNS records)
 
 Without `RESEND_API_KEY`, email sign-in still works in local dev: the code is logged to the
 server console and shown inline in the dev UI.
+
+The Mapdown Pages project requires `MAPDOWN_HANDOFF_SECRET` as a secret and the checked-in
+`WEB_ORIGIN`, `MAPDOWN_ORIGIN`, and `PUBLISHED_ORIGIN` vars. Production D1/R2 bindings are in
+`apps/mapdown/wrangler.jsonc`; confirm equivalent Preview bindings in the Pages dashboard.
 
 Recommended additional settings:
 - `PNPM_VERSION` = `9.12.0`
@@ -120,8 +128,37 @@ repository or place it in `.dev.vars` shared with other developers.
 - Use `remix vite:build` + `wrangler pages dev` for a closer Pages runtime.
 
 ## D1 & R2 Bindings
-Bindings are defined in `wrangler.toml`. See the "Pages Deployment" section
-above for which copy is used where.
+Bindings are defined in the root/Web `wrangler.toml` files and Mapdown's
+`wrangler.jsonc`. See the "Pages Deployment" section above for which copy is used where.
+
+### Mapdown save/publish release order
+
+1. Apply `0019_mapdown_cloud.sql` to Preview, verify it, then apply it to production with
+   `pnpm exec wrangler d1 migrations apply bcailab-db --remote`.
+2. Add the same new `MAPDOWN_HANDOFF_SECRET` value to both the Web and Mapdown Pages projects.
+3. Confirm Mapdown's `DB` and `R2` bindings and attach `share.bcailab.com` as a second custom
+   domain on the Mapdown Pages project.
+4. Deploy Web and Mapdown, then deploy `bcailab-session-cleanup`.
+5. Verify sign-in exchange, explicit first save, stale-version rejection, publish, public SVG,
+   and unpublish returning an uncached 404. Do not deploy code that reads the new tables before
+   step 1.
+
+### Publication reports and takedown
+
+Open reports are operational records, not product analytics. Inspect only the fields needed for
+moderation; `reporter_digest` is an HMAC digest and must not be treated as an identity. Query:
+
+```sql
+SELECT id, public_id, reason, details, created_at
+FROM mapdown_publication_reports
+WHERE status = 'open'
+ORDER BY created_at ASC;
+```
+
+After an authorized moderation decision, revoke in D1 first by setting `revoked_at` and
+`updated_at` for the exact `public_id` while `revoked_at IS NULL`; verify `/p/{public_id}` is
+404; then delete the row's exact `svg_key` from R2. Mark the matching reports `actioned` only
+after revocation. Never use an unresolved wildcard or bulk delete for takedown.
 
 ## Preview / Staging Environment
 Pushing code is not enough for integration testing. You also need preview data resources.

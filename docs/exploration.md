@@ -31,5 +31,5 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   explicit per-document cloud save behind a Mapdown-owned backend on `map.bcailab.com`; and
   frozen-snapshot publishing to a separate host (§8). Design, draft acceptance criteria and the
   five decisions it would create are in
-  [`docs/mapdown/save-publish-proposal.md`](mapdown/save-publish-proposal.md). **A proposal, not
-  authorization** — nothing starts until the owner moves a stage into `docs/roadmap.md`.
+  [`docs/mapdown/save-publish-proposal.md`](mapdown/save-publish-proposal.md). This exploration
+  was subsequently authorized in `docs/roadmap.md`; all three implementations are `in_review`.

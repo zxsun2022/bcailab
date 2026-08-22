@@ -1,11 +1,13 @@
 # Mapdown
 
 **Status (2026-08-21):** The production MVP and stabilization checkpoints were accepted by the
-owner on 2026-08-15. The Phase 5 lightweight local document library is implemented and
-`in_review`; only the owner can accept it. **421 Mapdown tests; 587 repo-wide.**
+owner on 2026-08-15. The local document library plus explicit account save and frozen publish
+are implemented and `in_review`; only the owner can accept them. **427 Mapdown tests; 593
+repo-wide.**
 The editor works — keyboard-first authoring, two-sided layout, four shapes × ten palettes
 (the theme is a shape/palette pair, D-24), Markdown/SVG/PNG export, local autosave and
 recovery, a local document library (new/open/rename/duplicate/delete with current-tab undo),
+optional account save with conflict copies, frozen publication and immediate unpublish,
 pan/zoom/fit, drag-and-drop plus accessible move commands, a real CommonMark parser, searchable
 Help/Command Center, and hardened keyboard/screen-reader semantics.
 
@@ -14,13 +16,14 @@ Help/Command Center, and hardened keyboard/screen-reader semantics.
 
 ```bash
 pnpm --filter mapdown dev      # http://localhost:5174
-pnpm --filter mapdown build    # tsc --noEmit && vite build -> dist/
+pnpm --filter mapdown build    # browser + Functions typecheck, then Vite -> dist/
 pnpm test                      # whole repo, includes apps/mapdown/src/**
 pnpm benchmark:mapdown         # deterministic 100/500/2000-node logic baseline
 ```
 
-Vite + React SPA on **TypeScript 7** (D-04, D-13). No server, no Cloudflare bindings, no
-dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` (D-05).
+Vite + React SPA on **TypeScript 7** with a small same-origin Pages Functions API (D-26).
+Mapdown binds the shared D1/R2 resources but has an independent Host-only session and no
+dependency on `@bcailab/ui`; it owns its chrome tokens in `src/styles/` (D-05).
 
 ## Progress against `spec/phases.md` §12
 
@@ -44,8 +47,8 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 16 | Accessibility hardening | ✅ semantic tree order/metadata, live feedback, single canvas tab stop, reduced motion, 44px coarse-pointer targets |
 | 17 | Performance and regression pass | ✅ import limits, lazy CommonMark loading, browser regression pass and [performance baseline](performance.md) |
 
-The Phase 5 lightweight local document-library subset is implemented and `in_review`; account
-save and public sharing remain proposal-only in
+The Phase 5 lightweight local library and Phase 6 explicit account-save/share subset are
+implemented and `in_review`; exact contracts and review evidence are in
 [`save-publish-proposal.md`](save-publish-proposal.md).
 
 The production Pages project, custom domain and repository build-watch paths described by D-03

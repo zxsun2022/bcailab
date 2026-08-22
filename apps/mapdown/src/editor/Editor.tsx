@@ -58,10 +58,12 @@ import {
 import {
   deleteLocalDocument,
   duplicateLocalDocument,
+  linkLocalDocumentToCloud,
   listLocalDocuments,
   renameLocalDocument,
   restoreLocalDocument,
-  storeLocalDocument
+  storeLocalDocument,
+  unlinkLocalDocumentFromCloud
 } from "../storage/library";
 import {
   IDENTITY,
@@ -80,9 +82,28 @@ import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
-import { DocumentLibrary, type DocumentLibraryState } from "./DocumentLibrary";
+import {
+  DocumentLibrary,
+  type CloudLibraryState,
+  type DocumentLibraryState
+} from "./DocumentLibrary";
 import { documentWithDraft, takeEditingSession } from "./draft-persistence";
 import { ToolbarMenu } from "./ToolbarMenu";
+import {
+  CloudApiError,
+  createCloudDocument,
+  deleteCloudDocument,
+  getCloudDocument,
+  getCloudSession,
+  listCloudDocuments,
+  publishCloudDocument,
+  signInToMapdown,
+  signOutOfMapdown,
+  unpublishCloudDocument,
+  updateCloudDocument
+} from "../cloud/api";
+import type { CloudDocumentRecord, CloudDocumentSummary, CloudSnapshot, CloudUser } from "../cloud/types";
+import { checkInvariants } from "../model/invariants";
 
 /**
  * The editing state machine of `interaction.md`, wired to the model, layout and canvas.
@@ -161,6 +182,9 @@ export function Editor() {
   const [libraryEntries, setLibraryEntries] = useState<DocumentIndexEntry[]>([]);
   const [libraryUnavailableMessage, setLibraryUnavailableMessage] = useState<string | null>(null);
   const [deletedDocuments, setDeletedDocuments] = useState<DocumentBundle[]>([]);
+  const [cloudLibraryState, setCloudLibraryState] = useState<CloudLibraryState>("loading");
+  const [cloudUser, setCloudUser] = useState<CloudUser | null>(null);
+  const [cloudDocuments, setCloudDocuments] = useState<CloudDocumentSummary[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
@@ -431,6 +455,45 @@ export function Editor() {
     [store]
   );
 
+  const refreshCloudLibrary = useCallback(async () => {
+    setCloudLibraryState("loading");
+    try {
+      const session = await getCloudSession();
+      setCloudUser(session.user);
+      if (!session.user) {
+        setCloudDocuments([]);
+        setCloudLibraryState("signed-out");
+        return;
+      }
+      setCloudDocuments(await listCloudDocuments());
+      setCloudLibraryState("ready");
+    } catch {
+      setCloudLibraryState("unavailable");
+    }
+  }, []);
+
+  const signInForCloudSave = useCallback(async () => {
+    setCloudLibraryState("loading");
+    try {
+      const user = await signInToMapdown();
+      setCloudUser(user);
+      setCloudDocuments(await listCloudDocuments());
+      setCloudLibraryState("ready");
+      setAnnouncement(`Signed in as ${user.name || user.email}.`);
+    } catch (error) {
+      setCloudLibraryState("signed-out");
+      throw error;
+    }
+  }, []);
+
+  const signOutFromCloudSave = useCallback(async () => {
+    await signOutOfMapdown();
+    setCloudUser(null);
+    setCloudDocuments([]);
+    setCloudLibraryState("signed-out");
+    setAnnouncement("Signed out of online save. Local maps are unchanged.");
+  }, []);
+
   const flushPendingLocalSave = useCallback(async () => {
     await autosaveRef.current?.flush();
     if (statusRef.current.kind === "failed") {
@@ -479,7 +542,8 @@ export function Editor() {
       setNotice(error instanceof Error ? error.message : "The current map could not be saved.");
     }
     await refreshDocumentLibrary();
-  }, [closeEditing, commitDraft, flushPendingLocalSave, refreshDocumentLibrary]);
+    void refreshCloudLibrary();
+  }, [closeEditing, commitDraft, flushPendingLocalSave, refreshCloudLibrary, refreshDocumentLibrary]);
 
   const createAndActivateLocalDocument = useCallback(async () => {
     await flushPendingLocalSave();
@@ -594,6 +658,161 @@ export function Editor() {
     await refreshDocumentLibrary();
     setAnnouncement(`Restored ${deleted.entry.title}.`);
   }, [deletedDocuments, refreshDocumentLibrary, store]);
+
+  const localSnapshotForCloud = useCallback(async (localDocumentId: string) => {
+    if (localDocumentId === historyRef.current.doc.id) await flushPendingLocalSave();
+    const bundle = await store.getDocumentBundle(localDocumentId);
+    if (!bundle) throw new Error("This local document could not be found.");
+    const snapshot =
+      bundle.snapshots.find((item) => item.id === bundle.entry.lastSnapshotId) ??
+      bundle.snapshots.at(-1);
+    if (!snapshot) throw new Error("This local document has no readable snapshot.");
+    const cloudSnapshot: CloudSnapshot = {
+      schemaVersion: snapshot.schemaVersion,
+      document: structuredClone(snapshot.document),
+      selectedNodeId: snapshot.selectedNodeId
+    };
+    return { entry: bundle.entry, snapshot, cloudSnapshot };
+  }, [flushPendingLocalSave, store]);
+
+  const conflictCopyTitle = useCallback((title: string) => {
+    const suffix = " (conflicted copy)";
+    const base = [...title].slice(0, 120 - [...suffix].length).join("").trimEnd();
+    return `${base}${suffix}`;
+  }, []);
+
+  const saveLocalDocumentOnline = useCallback(async (localDocumentId: string): Promise<CloudDocumentRecord> => {
+    const local = await localSnapshotForCloud(localDocumentId);
+    try {
+      const cloud = local.entry.cloudDocumentId && local.entry.cloudVersion
+        ? await updateCloudDocument({
+            id: local.entry.cloudDocumentId,
+            baseVersion: local.entry.cloudVersion,
+            snapshot: local.cloudSnapshot
+          })
+        : await createCloudDocument({
+            clientDocumentId: local.entry.id,
+            snapshot: local.cloudSnapshot
+          });
+      await linkLocalDocumentToCloud(store, localDocumentId, cloud, local.snapshot.id);
+      await refreshDocumentLibrary();
+      setCloudDocuments(await listCloudDocuments());
+      setCloudLibraryState("ready");
+      setAnnouncement(`Saved ${cloud.title} online.`);
+      return cloud;
+    } catch (error) {
+      if (error instanceof CloudApiError && error.code === "conflict") {
+        const conflictDocument = {
+          ...structuredClone(local.snapshot.document),
+          id: `doc-${crypto.randomUUID()}`,
+          title: conflictCopyTitle(local.snapshot.document.title),
+          revision: 0
+        };
+        await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId);
+        await refreshDocumentLibrary();
+        throw new Error(
+          `The online copy changed first. ${conflictDocument.title} was kept locally; nothing was overwritten.`
+        );
+      }
+      throw error;
+    }
+  }, [conflictCopyTitle, localSnapshotForCloud, refreshDocumentLibrary, store]);
+
+  const openOnlineDocument = useCallback(async (cloudDocumentId: string) => {
+    const cloud = await getCloudDocument(cloudDocumentId);
+    if (checkInvariants(cloud.snapshot.document).length > 0) {
+      throw new Error("The saved online document is inconsistent and was not opened.");
+    }
+    let document = structuredClone(cloud.snapshot.document);
+    const collision = await store.getIndexEntry(document.id);
+    if (collision && collision.cloudDocumentId !== cloud.id) {
+      document = {
+        ...document,
+        id: `doc-${crypto.randomUUID()}`,
+        title: `${[...document.title].slice(0, 108).join("").trimEnd()} online copy`,
+        revision: 0
+      };
+    }
+    const bundle = await storeLocalDocument(
+      store,
+      document,
+      cloud.snapshot.selectedNodeId
+    );
+    await linkLocalDocumentToCloud(store, document.id, cloud, bundle.entry.lastSnapshotId);
+    activateLocalDocument(document, cloud.snapshot.selectedNodeId, bundle.entry.updatedAt);
+    await refreshDocumentLibrary();
+    setCloudDocuments(await listCloudDocuments());
+    setAnnouncement(`Opened ${document.title} from online save.`);
+    closeDocumentLibrary();
+  }, [activateLocalDocument, closeDocumentLibrary, refreshDocumentLibrary, store]);
+
+  const deleteOnlineDocument = useCallback(async (cloudDocumentId: string) => {
+    const cloud = cloudDocuments.find((item) => item.id === cloudDocumentId);
+    if (!window.confirm(
+      `Delete “${cloud?.title ?? "this map"}” from online save?${cloud?.publication ? " Its public link will stop working immediately." : ""} Local copies in this browser will remain.`
+    )) return;
+    await deleteCloudDocument(cloudDocumentId);
+    const localEntries = await store.listIndexEntries();
+    for (const entry of localEntries) {
+      if (entry.cloudDocumentId === cloudDocumentId) {
+        await unlinkLocalDocumentFromCloud(store, entry.id);
+      }
+    }
+    await refreshDocumentLibrary();
+    setCloudDocuments(await listCloudDocuments());
+    setAnnouncement("The online copy was deleted. Local copies were kept.");
+  }, [cloudDocuments, refreshDocumentLibrary, store]);
+
+  const publishLocalDocument = useCallback(async (localDocumentId: string) => {
+    const local = await localSnapshotForCloud(localDocumentId);
+    const existingPublication = local.entry.cloudPublication;
+    const verb = existingPublication ? "Update the published version of" : "Publish";
+    if (!window.confirm(
+      `${verb} “${local.snapshot.document.title}” (${Object.keys(local.snapshot.document.nodes).length.toLocaleString()} nodes)? This creates a frozen public snapshot. Later edits stay private until you update it again.`
+    )) return;
+    const cloud = await saveLocalDocumentOnline(localDocumentId);
+    const { svg } = exportSvg(cloud.snapshot.document);
+    const publication = await publishCloudDocument({
+      id: cloud.id,
+      baseVersion: cloud.version,
+      title: cloud.snapshot.document.title,
+      markdown: exportMarkdown(cloud.snapshot.document),
+      svg
+    });
+    const latestEntry = await store.getIndexEntry(localDocumentId);
+    await linkLocalDocumentToCloud(
+      store,
+      localDocumentId,
+      { ...cloud, publication },
+      latestEntry?.lastSnapshotId ?? local.snapshot.id
+    );
+    await refreshDocumentLibrary();
+    setCloudDocuments(await listCloudDocuments());
+    setNotice(`Published at ${publication.publicUrl}. Later edits remain private until you update the published version.`);
+    setAnnouncement(existingPublication ? "Published version updated." : "Public link created.");
+  }, [localSnapshotForCloud, refreshDocumentLibrary, saveLocalDocumentOnline, store]);
+
+  const unpublishLocalDocument = useCallback(async (localDocumentId: string) => {
+    const entry = await store.getIndexEntry(localDocumentId);
+    if (!entry?.cloudDocumentId || !entry.cloudPublication) {
+      throw new Error("This local document has no active public link.");
+    }
+    if (!window.confirm(
+      `Unpublish “${entry.title}”? The current public URL will return 404 immediately. Republishing later creates a new URL.`
+    )) return;
+    await unpublishCloudDocument(entry.cloudDocumentId);
+    const documents = await listCloudDocuments();
+    const cloud = documents.find((item) => item.id === entry.cloudDocumentId);
+    if (cloud) await linkLocalDocumentToCloud(store, localDocumentId, cloud, entry.cloudSavedSnapshotId ?? entry.lastSnapshotId);
+    setCloudDocuments(documents);
+    await refreshDocumentLibrary();
+    setAnnouncement("The public link was revoked.");
+  }, [refreshDocumentLibrary, store]);
+
+  const copyPublishedLink = useCallback(async (url: string) => {
+    await navigator.clipboard.writeText(url);
+    setAnnouncement("Public link copied.");
+  }, []);
 
   /**
    * Escape exits the editing session. It does **not** discard what was typed.
@@ -1904,6 +2123,9 @@ export function Editor() {
           activeDocumentId={doc.id}
           unavailableMessage={libraryUnavailableMessage}
           undoTitle={deletedDocuments.at(-1)?.entry.title ?? null}
+          cloudState={cloudLibraryState}
+          cloudUser={cloudUser}
+          cloudDocuments={cloudDocuments}
           onClose={closeDocumentLibrary}
           onNew={newLocalDocument}
           onOpen={openLocalDocument}
@@ -1911,6 +2133,17 @@ export function Editor() {
           onDuplicate={duplicateStoredDocument}
           onDelete={deleteStoredDocument}
           onUndoDelete={undoDeleteStoredDocument}
+          onSignIn={signInForCloudSave}
+          onSignOut={signOutFromCloudSave}
+          onRetryCloud={refreshCloudLibrary}
+          onSaveOnline={async (localDocumentId) => {
+            await saveLocalDocumentOnline(localDocumentId);
+          }}
+          onOpenOnline={openOnlineDocument}
+          onDeleteOnline={deleteOnlineDocument}
+          onPublish={publishLocalDocument}
+          onUnpublish={unpublishLocalDocument}
+          onCopyPublishedLink={copyPublishedLink}
         />
       )}
     </div>

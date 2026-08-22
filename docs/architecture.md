@@ -5,10 +5,11 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 ## Components
 - **Remix app** (`apps/web`): Landing page, auth flows, tool UIs.
 - **Shared packages** (`packages/*`): UI primitives, auth helpers, D1 access helpers.
-- **Mapdown** (`apps/mapdown`, *scaffold — no editor yet*): a static Markdown mind-map editor
-  for `map.bcailab.com`. A client-only Vite + React SPA with no server, no bindings and no
-  visual dependency on `@bcailab/ui`; it will deploy as its own Cloudflare Pages project from
-  this repository and adopt `@bcailab/auth` only when cloud-saved documents arrive. It is the
+- **Mapdown** (`apps/mapdown`): a local-first Markdown mind-map editor for
+  `map.bcailab.com`. Its Vite + React SPA owns its visual system and uses a small same-origin
+  Pages Functions API for explicit account save. A single-use handoff creates an independent
+  Mapdown session instead of sharing the Studio cookie. Frozen public snapshots are served from
+  the cookie-free `share.bcailab.com` host. It is the
   one package on **TypeScript 7** while `apps/web` stays on 5.9.3 — `typescript` is pinned per
   package rather than in the root `pnpm.overrides` (docs/mapdown/decisions.md D-13).
   See docs/mapdown/.
@@ -26,7 +27,8 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 - **R2**: Binary storage for generated tool assets (Speech MP3 + ESL reading attempt/reference audio).
   These are private user data served behind auth. The one exception is the `dictation/` prefix:
   global app content (pre-generated per-sentence MP3s), served publicly with immutable caching —
-  see docs/tools/dictation.md.
+  see docs/tools/dictation.md. Mapdown's script-free published SVGs are also public, but only
+  while their D1 publication record remains active.
 
 ## Design System
 See [design-system.md](./design-system.md) for visual design guidelines including:

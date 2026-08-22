@@ -1,8 +1,9 @@
 # Mapdown — Document Library, Account Save, and Publish
 
-**Status:** Stage 1 was authorized by the owner on 2026-08-21 and its implementation is
-`in_review`; stages 2 and 3 remain proposals and are not authorized. Written 2026-08-18 at the
-owner's request and recorded as a pointer in `docs/exploration.md`.
+**Status:** All three stages were authorized by the owner. Stage 1 and the combined stage 2/3
+implementation are `in_review`; only the owner can accept them. Written 2026-08-18 as an
+exploration, authorized through `docs/roadmap.md` on 2026-08-21, and implemented on the
+`codex/mapdown-local-document-library` branch.
 
 Four scoping decisions were made by the owner on 2026-08-18, before this document was written,
 and they are treated here as settled inputs:
@@ -92,7 +93,7 @@ generates SVG, and (now) would host other people's content — is precisely the 
 that should not share a site boundary with an authenticated app. Publishing makes that argument
 stronger, not weaker.
 
-### 4.2 Proposed shape
+### 4.2 Implemented shape
 
 **Mapdown grows its own backend on its own origin.** `apps/mapdown/functions/` (Cloudflare
 Pages Functions) bound to the same D1 database and R2 bucket, serving a small same-origin API.
@@ -166,7 +167,7 @@ Local documents carry client-generated ids. On upload, the **server** issues the
 Mapdown stores the mapping locally. Client-supplied ids are never trusted as primary keys —
 otherwise a crafted local id becomes an ownership-collision vector.
 
-### 4.7 Draft acceptance criteria
+### 4.7 Acceptance criteria
 
 - (a) Signed out, every stage-1 behaviour is unchanged, offline, with no network request
   carrying document content.
@@ -200,8 +201,8 @@ tested, never assumed.
 ### 5.2 A separate host for published content
 
 Published maps are user-generated content. Serving them from `map.bcailab.com` would put them
-same-origin with the editor and with `mapdown_session`. They get their own host (exact name is
-an open question — a `published.` subdomain or a distinct domain).
+same-origin with the editor and with `mapdown_session`. They therefore use
+`share.bcailab.com`, which carries no authenticated cookie.
 
 Node text is plain text today — there is no rich text (`spec/phases.md` §9.1 keeps it behind a
 dedicated spec), so escaping is cheap right now and expensive later. Also required: a strict
@@ -216,13 +217,13 @@ text. Therefore the published page cannot be laid out server-side, and `og:image
 rendered on demand. This will surface as a blocker halfway through implementation if it is not
 settled first.
 
-Proposed resolution: at publish time the **client** generates the SVG with the existing
+Resolution: at publish time the **client** generates the SVG with the existing
 `src/export/svg.ts` and uploads it alongside the Markdown. The published page is the Mapdown SPA
 in read-only mode (pan / zoom / collapse, no editing); the stored SVG serves as `og:image` and
 as the `<noscript>` fallback. Spike 2 already established that canvas measurement and SVG layout
 agree to 0.000 px, so the uploaded SVG matches what the reader sees.
 
-### 5.4 Draft acceptance criteria
+### 5.4 Acceptance criteria
 
 - (a) Publishing is explicit, per-document, and shows exactly what will become public before it
   happens.
@@ -241,10 +242,9 @@ agree to 0.000 px, so the uploaded SVG matches what the reader sees.
 - (i) Publish quota and document size limits are enforced, and a report path exists.
 - (j) Keyboard- and screen-reader-operable at desktop, tablet and mobile widths.
 
-## 6. Decisions this would create
+## 6. Decisions recorded by the implementation
 
-Each needs a record in `docs/mapdown/decisions.md` (or `docs/decisions/` where it is repo-wide)
-before or alongside the implementation:
+The implementation records these as D-26 through D-30 in `docs/mapdown/decisions.md`:
 
 1. **Mapdown gains a backend on its own origin** — corrects D-04's "no server, no Cloudflare
    bindings".
@@ -267,15 +267,26 @@ before or alongside the implementation:
 - The theme sequencing constraint from 2026-08-06 that gated publish behind the shape/palette
   split **is already clear**: step 3 shipped in PR #37.
 
-## 8. Open questions for the owner
+## 8. Resolved questions
 
-1. **The published host's name.** A `published.map.bcailab.com`-style subdomain, or a distinct
-   domain? A distinct domain is the stronger brand and the cleaner boundary; a subdomain is one
-   less thing to buy and renew.
-2. **Does publish require an account?** Assumed yes — publishing without one leaves no
-   revocation path and no accountable owner. Worth confirming, because it makes publish strictly
-   downstream of stage 2.
-3. **Quotas.** Documents per user, bytes per document, published maps per user. Needs numbers
-   before implementation, in the shape of `docs/tools/`'s existing per-tool quota records.
-4. **Recovery-history UI** (`spec/phases.md` §7) — resolved for stage 1: deferred. The local
-   library exposes documents, not individual recovery snapshots.
+- Published host: `share.bcailab.com`.
+- Publishing requires an authenticated Mapdown account.
+- Limits: 100 private documents, 512 KiB private JSON, 25 active publications, 256 KiB
+  Markdown, 2 MiB SVG, 120-code-point titles, and three reports per URL/reporter digest per
+  24 hours. These are synthetic-size-based product limits, not user telemetry.
+- Recovery-history UI remains deferred; the local library exposes documents, not individual
+  recovery snapshots.
+
+## 9. Review evidence
+
+Migration `0019_mapdown_cloud.sql` applied successfully to the local D1 state (14 statements).
+Pages Functions runtime verification covered a successful handoff, rejected replay, first
+cloud save, stale-version 409 without overwrite, publication backed by local R2, public CSP and
+`noindex` headers, and an immediate 404 after unpublish. Six cross-implementation contract tests
+cover handoff tampering/expiry/audience, nonce hashing, Host-only cookies, snapshot invariants,
+canonical Markdown and safe SVG. The repository suite passes 593 tests; Mapdown and Web
+typechecks/builds pass; lint has zero errors and the same nine pre-existing Hook warnings.
+Authenticated browser QA covered online-only open, explicit publish, the frozen viewer and UI
+unpublish; screenshots at 375, 768 and 1280 px showed no horizontal overflow, and ordinary
+flows produced no console errors. No remote migration, domain configuration, secret change or
+deployment was performed.

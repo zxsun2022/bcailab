@@ -46,6 +46,15 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const result = await handleOAuthCallback(request, authEnv, context.env.DB);
   const origin = new URL(request.url).origin;
 
+  if (result.ok && result.returnTo) {
+    const redirectHeaders = new Headers(result.headers);
+    redirectHeaders.set("Location", result.returnTo);
+    return new Response(null, {
+      status: 302,
+      headers: redirectHeaders
+    });
+  }
+
   const html = result.ok
     ? renderHtml("Welcome back to bcailab.", origin, true)
     : renderHtml(result.error ?? "Authentication failed.", origin, false);

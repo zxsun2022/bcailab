@@ -780,6 +780,77 @@ UI, PWA installation, direct filesystem handles, accounts, cloud sync or publish
 
 ---
 
+## D-26 — Mapdown gains a same-origin account API without sharing the Studio session
+
+**Decided 2026-08-21** by the owner when authorizing stages 2 and 3 of the save/publish plan.
+
+**Decision.** The `mapdown` Pages project now includes Pages Functions and binds the existing
+D1 database and R2 bucket. An authenticated `bcailab.com` page creates a signed, audience-bound,
+60-second, single-use `bcailab:mapdown-signin:v1` handoff. Mapdown exchanges it for an
+independent, Host-only `mapdown_session`; `bcailab_session` remains unchanged and never reaches
+the Mapdown host. The two session types use separate tables and cannot authenticate each
+other. This corrects D-04's original static-only deployment statement without reversing D-10.
+
+**Why.** A same-origin API avoids CORS and cross-domain cookies while keeping imported content,
+SVG generation and account authority in separate security compartments. A consumed nonce makes
+popup message replay insufficient to create a second session.
+
+## D-27 — Private save is explicit, lossless JSON and server-identified
+
+**Decided 2026-08-21.**
+
+**Decision.** IndexedDB remains the primary store. A document leaves the browser only through
+an explicit **Save online** action. D1 stores a versioned internal JSON snapshot containing node
+ids, selection, collapsed state, sides and the shape/palette theme. The server issues the cloud
+id; the local id is only a user-scoped idempotency key. An account may store 100 documents, each
+at most 512 KiB UTF-8 and 10,000 nodes, with a 120-code-point title.
+
+**Why.** Canonical Markdown is deliberately lossy for private editor state. Using it for sync
+would silently discard state or pull the deferred `.mind.md` profile into this feature.
+
+## D-28 — Cloud writes use optimistic concurrency and never silently overwrite
+
+**Decided 2026-08-21.**
+
+**Decision.** Every online document has an integer version. A write succeeds only against its
+base version. On mismatch the server returns the current owner-scoped record, and the client
+keeps the rejected work locally as `Title (conflicted copy)`. Retry of an identical first save
+is idempotent, including concurrent double submission. There is no automatic merge, realtime
+collaboration, CRDT or operational transform.
+
+**Why.** The important promise is protection from invisible data loss. A visible independent
+copy is simpler to reason about and inspect than an unreliable structural merge.
+
+## D-29 — Publishing is a frozen snapshot on a cookie-free host
+
+**Decided 2026-08-21.**
+
+**Decision.** Publishing requires an account and an existing online document. It stores
+canonical Markdown in D1 and the existing client-generated, script-free SVG in R2. Public URLs
+are unlisted random ids under `https://share.bcailab.com/p/{id}`. Updates are explicit and keep
+the URL; ordinary edits and online saves do not change the frozen public version. Unpublish
+revokes immediately; republish creates a new URL. The public response is `no-store`, `noindex`,
+strict-CSP, read-only, and displays user content only as an isolated SVG image. Limits are 25
+active publications, 256 KiB Markdown and 2 MiB SVG per version.
+
+**Why.** Worker-side layout cannot reproduce the editor's canvas text measurement. Uploading
+the exact existing SVG gives JavaScript-free rendering and a preview image. A separate host
+keeps user-generated content away from `mapdown_session`, while D1 remains the serving
+authority so revocation is not defeated by an orphaned R2 object.
+
+## D-30 — Published maps are unlisted and reportable, not a public directory
+
+**Decided 2026-08-21.**
+
+**Decision.** There is no publication index or discovery page. Published responses ask robots
+not to index them. Each page exposes a bounded report form; the reporter address is retained
+only as an HMAC digest and no document content enters logs. At most three reports per public
+id and reporter digest are accepted in 24 hours. Moderation revokes the D1 publication first;
+R2 cleanup may follow asynchronously.
+
+**Boundary.** This is a minimum takedown path, not a moderation dashboard, search product,
+social feed, analytics system or public profile feature.
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

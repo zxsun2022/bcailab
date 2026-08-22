@@ -14,6 +14,7 @@ export type Env = {
   OAUTH_REDIRECT_URL: string;
   SESSION_SECRET: string;
   SESSION_SECRET_PREVIOUS?: string;
+  MAPDOWN_HANDOFF_SECRET: string;
 };
 
 export type AppExecutionContext = {

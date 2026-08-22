@@ -121,6 +121,15 @@ export function createAutosave(options: AutosaveOptions): Autosave {
         lastSnapshotId: snapshot.id,
         ...(existingEntry?.sourceFilename
           ? { sourceFilename: existingEntry.sourceFilename }
+          : {}),
+        ...(existingEntry?.cloudDocumentId
+          ? {
+              cloudDocumentId: existingEntry.cloudDocumentId,
+              cloudVersion: existingEntry.cloudVersion,
+              cloudSavedSnapshotId: existingEntry.cloudSavedSnapshotId,
+              cloudUpdatedAt: existingEntry.cloudUpdatedAt,
+              cloudPublication: existingEntry.cloudPublication
+            }
           : {})
       };
       await store.putIndexEntry(entry);

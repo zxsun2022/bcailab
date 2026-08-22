@@ -1,4 +1,5 @@
 import type { MindMapDocument, NodeId } from "../model/types";
+import type { CloudDocumentSummary } from "../cloud/types";
 import {
   makeSnapshot,
   type DocumentBundle,
@@ -88,6 +89,7 @@ export async function renameLocalDocument(
       document: { ...snapshot.document, title }
     }))
   };
+  if (renamed.entry.cloudDocumentId) delete renamed.entry.cloudSavedSnapshotId;
   await store.putDocumentBundle(renamed);
   return renamed;
 }
@@ -152,4 +154,41 @@ export async function restoreLocalDocument(
   deleted: DocumentBundle
 ): Promise<void> {
   await store.putDocumentBundle(deleted);
+}
+
+export async function linkLocalDocumentToCloud(
+  store: SnapshotStore,
+  localDocumentId: string,
+  cloud: CloudDocumentSummary,
+  savedSnapshotId: string
+): Promise<DocumentIndexEntry> {
+  const entry = await store.getIndexEntry(localDocumentId);
+  if (!entry) throw new Error("This local document could not be found.");
+  const linked: DocumentIndexEntry = {
+    ...entry,
+    cloudDocumentId: cloud.id,
+    cloudVersion: cloud.version,
+    cloudSavedSnapshotId: savedSnapshotId,
+    cloudUpdatedAt: cloud.updatedAt,
+    ...(cloud.publication ? { cloudPublication: cloud.publication } : {})
+  };
+  if (!cloud.publication) delete linked.cloudPublication;
+  await store.putIndexEntry(linked);
+  return linked;
+}
+
+export async function unlinkLocalDocumentFromCloud(
+  store: SnapshotStore,
+  localDocumentId: string
+): Promise<DocumentIndexEntry> {
+  const entry = await store.getIndexEntry(localDocumentId);
+  if (!entry) throw new Error("This local document could not be found.");
+  const localOnly = { ...entry };
+  delete localOnly.cloudDocumentId;
+  delete localOnly.cloudVersion;
+  delete localOnly.cloudSavedSnapshotId;
+  delete localOnly.cloudUpdatedAt;
+  delete localOnly.cloudPublication;
+  await store.putIndexEntry(localOnly);
+  return localOnly;
 }

@@ -51,6 +51,19 @@ Popup-based, with no standalone login page:
 The popup helper lives in `apps/web/app/utils/login-popup.ts`, and it is the same popup the
 Header login button uses.
 
+## Mapdown
+
+Mapdown's editor and local document library remain fully usable without an account or network.
+Opening the library and signing in do not upload map content. **Save online** is an explicit
+per-document action; **Publish** is explicit, requires an account and first saves the selected
+document online. Public frozen snapshots are readable without an account at unlisted
+`share.bcailab.com` URLs.
+
+Mapdown does not receive `bcailab_session`. Its popup returns a 60-second, audience-bound,
+single-use handoff from the signed-in Web app, which Mapdown exchanges for an independent
+Host-only `mapdown_session`. Signing out of Mapdown removes that session but leaves every local
+IndexedDB document unchanged.
+
 ## Related
 
 - `docs/roadmap.md` — "Free entry points made explicit" is the presentation half of this

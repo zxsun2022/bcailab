@@ -47,7 +47,7 @@ const HELP_TOPICS = [
   },
   {
     title: "Privacy",
-    body: "Mapdown is static and local-first. Document content is not uploaded by default."
+    body: "Mapdown is local-first. Document content leaves this browser only when you explicitly choose Save online or Publish."
   }
 ];
 

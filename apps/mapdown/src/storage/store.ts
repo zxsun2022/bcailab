@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION, type MindMapDocument, type NodeId } from "../model/types";
+import type { CloudPublication } from "../cloud/types";
 
 /**
  * Local persistence, per `storage-export.md` §3–§6.
@@ -29,6 +30,12 @@ export interface DocumentIndexEntry {
   /** The pointer §5.4 requires: only ever advanced after a snapshot is fully committed. */
   lastSnapshotId: string;
   sourceFilename?: string;
+  /** Present only after an explicit account-save action; local autosave never creates it. */
+  cloudDocumentId?: string;
+  cloudVersion?: number;
+  cloudSavedSnapshotId?: string;
+  cloudUpdatedAt?: number;
+  cloudPublication?: CloudPublication;
 }
 
 /** A complete local document, used for document-level operations and current-tab undo. */

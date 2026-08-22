@@ -516,6 +516,78 @@ The destructive delete/undo execution is verified in isolated storage tests rath
 the browser's live IndexedDB. Mapdown typecheck, lint, focused tests, full tests, and production
 build must pass. Finished work remains `in_review` until the owner accepts it.
 
+## Now — Mapdown account save and frozen publishing
+
+The owner authorized stages 2 and 3 of
+[the save/publish proposal](mapdown/save-publish-proposal.md) on 2026-08-21, accepting the
+recommended `share.bcailab.com` publication host and requiring an account to publish. The
+existing local document library remains the primary, fully offline workflow; signing in or
+opening the library must never upload a document implicitly. The implementation is `in_review`;
+only the owner can accept it.
+
+### Stage 2 — explicit account save
+
+- Add a small Pages Functions backend to the Mapdown project, bound to the existing D1 database
+  and R2 bucket. `bcailab_session` remains host-only and unchanged. A signed, 60-second,
+  audience-bound, single-use handoff from `bcailab.com` creates an independent host-only
+  `mapdown_session`; token replay, tampering, expiry, wrong audience and wrong subject fail.
+- Reuse the main site's Google, email-code and password sign-in UI, returning the popup to
+  `/auth/mapdown` after authentication. The handoff secret is a dedicated
+  `MAPDOWN_HANDOFF_SECRET`, configured on both Pages projects and never committed.
+- Save a versioned, lossless internal JSON snapshot only after an explicit per-document action.
+  The server issues the cloud document id; the client document id is only a user-scoped
+  idempotency key. Cloud list/read/update/delete operations are owner-scoped, with a foreign id
+  indistinguishable from a missing id and private responses marked `private, no-store`.
+- Use optimistic concurrency. Updating version N succeeds only if N is current. A stale save
+  never overwrites the remote copy and creates a separate local conflicted copy for inspection;
+  no realtime collaboration or automatic merge is introduced.
+- The local library shows Local only / Saved online / Published state, includes online-only
+  documents after sign-in, and can download an online snapshot into IndexedDB without losing
+  its node ids, collapse state, sides, selection or theme.
+
+Capacity limits, derived from synthetic 100/500/2,000-node maps rather than user telemetry:
+100 private documents per user, 512 KiB UTF-8 per private snapshot, 120 Unicode code points per
+title, and the existing 10,000-node structural ceiling. The 2,000-node representative map is
+approximately 317 KiB as JSON, leaving headroom below both this product cap and D1's 2 MB row
+limit.
+
+Acceptance: cross-implementation handoff proof tests; replay/expiry/audience/tamper tests;
+session-cookie scope tests; request-body, snapshot-schema, invariant, ownership, idempotency and
+optimistic-concurrency tests; local D1 migration and Pages Functions verification; signed-out
+offline regression; authenticated browser coverage for sign-in, first save, repeat save,
+online-only open, conflict copy and cloud delete; typechecks, lint, full tests and production
+builds. Deployment is migration-first under ADR 0008.
+
+### Stage 3 — frozen publication
+
+- Publishing requires a Mapdown account and an existing cloud document. The client explicitly
+  uploads canonical Markdown and the already-rendered, script-free SVG. The public record is a
+  frozen version; ordinary local edits and cloud saves do not change it until **Update
+  published version** is invoked.
+- Serve unlisted URLs as `https://share.bcailab.com/p/{random-id}`. The viewer host receives no
+  authenticated cookie, renders user content only through an isolated SVG `<img>`, applies a
+  strict CSP and `noindex`, and provides keyboard-operable zoom/fit controls plus a no-JavaScript
+  image fallback. The stored SVG is also the link-preview image.
+- Unpublish revokes the active record and returns uncached 404 responses immediately on the
+  next request; republishing after revocation creates a new random URL. Deleting a cloud
+  document also revokes its active publication. Old R2 objects may be cleaned after the D1
+  revocation because the database record is the serving authority.
+- Provide a bounded public report form without recording document content in logs. Reporter IP
+  addresses are stored only as a keyed digest; at most three reports per public URL and digest
+  are accepted in 24 hours. Operational takedown remains a D1 revocation, documented in the
+  infrastructure procedure.
+
+Capacity limits: 25 active publications per user, 256 KiB canonical Markdown and 2 MiB SVG per
+published version. The representative 2,000-node map is approximately 129 KiB Markdown and
+1.27 MiB SVG.
+
+Acceptance: frozen/update semantics, active-publication quota, SVG/Markdown/content-type
+validation, inert hostile labels, no authenticated cookie on the share host, CSP/noindex/OG
+metadata, report throttling, republish-new-URL behavior, and uncached 404 after unpublish;
+browser coverage at desktop and mobile widths with and without JavaScript; Mapdown and web
+typechecks, lint, full tests, and both production builds. Finished work remains `in_review`
+until the owner accepts it.
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:

@@ -22,7 +22,11 @@ export const meta: MetaFunction = () => [{ title: "Sign in · bcailab" }];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await getOptionalUser(request, context);
-  return json({ alreadySignedIn: Boolean(user) });
+  const url = new URL(request.url);
+  const handoffOrigin = url.searchParams.get("handoff") === "mapdown"
+    ? url.searchParams.get("origin")
+    : null;
+  return json({ alreadySignedIn: Boolean(user), handoffOrigin });
 };
 
 type Intent = "request" | "verify" | "password" | "reset";
@@ -144,7 +148,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 type Mode = "code" | "password" | "reset";
 
 export default function LoginPage() {
-  const { alreadySignedIn } = useLoaderData<typeof loader>();
+  const { alreadySignedIn, handoffOrigin } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const [email, setEmail] = React.useState("");
@@ -164,6 +168,10 @@ export default function LoginPage() {
   };
 
   const finishLogin = React.useCallback(() => {
+    if (handoffOrigin) {
+      navigate(`/auth/mapdown?origin=${encodeURIComponent(handoffOrigin)}`, { replace: true });
+      return;
+    }
     try {
       if (window.opener) {
         window.opener.postMessage({ type: AUTH_MESSAGE_TYPE, ok: true }, window.location.origin);
@@ -174,7 +182,7 @@ export default function LoginPage() {
       // Popup messaging is best effort; fall back to in-page navigation.
     }
     navigate("/", { replace: true });
-  }, [navigate]);
+  }, [handoffOrigin, navigate]);
 
   React.useEffect(() => {
     if (data?.ok && data.intent === "request") setStep("code");
@@ -223,7 +231,9 @@ export default function LoginPage() {
           type="button"
           className="login-google"
           onClick={() => {
-            window.location.href = "/auth/google";
+            window.location.href = handoffOrigin
+              ? `/auth/google?handoff=mapdown&origin=${encodeURIComponent(handoffOrigin)}`
+              : "/auth/google";
           }}
         >
           Continue with Google

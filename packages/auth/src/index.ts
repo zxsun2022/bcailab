@@ -142,7 +142,11 @@ export const destroySession = async (db: Db, sessionId: string | null) => {
   await db.prepare("DELETE FROM sessions WHERE id = ?").bind(sessionId).run();
 };
 
-export const startGoogleOAuth = async (request: Request, env: AuthEnv) => {
+export const startGoogleOAuth = async (
+  request: Request,
+  env: AuthEnv,
+  options: { returnTo?: string } = {}
+) => {
   const state = crypto.randomUUID();
   const verifier = generateCodeVerifier();
   const challenge = await generateCodeChallenge(verifier);
@@ -151,6 +155,11 @@ export const startGoogleOAuth = async (request: Request, env: AuthEnv) => {
   const session = await storage.getSession(request.headers.get("Cookie"));
   session.set("oauth_state", state);
   session.set("oauth_verifier", verifier);
+  if (options.returnTo && options.returnTo.startsWith("/") && !options.returnTo.startsWith("//")) {
+    session.set("oauth_return_to", options.returnTo);
+  } else {
+    session.unset("oauth_return_to");
+  }
 
   const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
@@ -178,8 +187,13 @@ export const handleOAuthCallback = async (request: Request, env: AuthEnv, db: Db
   const session = await storage.getSession(request.headers.get("Cookie"));
   const expectedState = session.get("oauth_state");
   const verifier = session.get("oauth_verifier");
+  const returnToValue = session.get("oauth_return_to");
+  const returnTo = typeof returnToValue === "string" && returnToValue.startsWith("/") && !returnToValue.startsWith("//")
+    ? returnToValue
+    : null;
   session.unset("oauth_state");
   session.unset("oauth_verifier");
+  session.unset("oauth_return_to");
 
   if (!code || !state || !expectedState || !verifier || state !== expectedState) {
     return {
@@ -261,5 +275,5 @@ export const handleOAuthCallback = async (request: Request, env: AuthEnv, db: Db
     })
   });
 
-  return { ok: true, user, headers };
+  return { ok: true, user, headers, returnTo };
 };

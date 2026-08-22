@@ -9,6 +9,24 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-21 — **in_review: added explicit Mapdown account save and frozen publishing.**
+  Mapdown now exchanges a 60-second, single-use Studio handoff for its own Host-only session;
+  the existing `bcailab_session` remains unchanged. The local-first document library can
+  explicitly save lossless JSON online, open online-only documents, show pending/current state,
+  reject stale writes without overwrite, and keep rejected work as a local conflicted copy.
+  Account-required publish uploads canonical Markdown plus the editor's script-free SVG and
+  serves an unlisted, strict-CSP, `noindex` viewer at `share.bcailab.com`; updates are frozen and
+  explicit, while unpublish and cloud delete revoke immediately. Added bounded quotas, owner
+  scoping, report throttling with keyed reporter digests, D1 migration 0019, R2 storage, session
+  cleanup and migrate-first operations docs. Evidence: local migration ran all 14 statements;
+  runtime checks returned 200 for first handoff, 401 for replay, 201 for save/publish, 409 for a
+  stale write, and 404 immediately after unpublish; authenticated browser QA covered online
+  open, publish and unpublish at 375/768/1280 px without flow console errors; 6 new contract
+  tests and 593 repo-wide tests pass; Mapdown/Web typechecks and production builds pass; lint
+  has zero errors and the same 9 pre-existing Hook warnings. No remote migration, secret/domain
+  change, deployment, push or production data mutation was performed. The owner must still
+  accept this roadmap item.
+
 - 2026-08-21 — **in_review: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,
   with new/open/rename/duplicate and confirmed delete. Duplicate preserves the full internal
@@ -16,8 +34,8 @@ make the final transition; see `AGENTS.md`.
   current-tab undo that restores the complete bundle. Imported filenames survive later
   autosaves. The dialog traps/restores focus, keeps Cancel focused for destructive confirmation,
   leaves the editor inert while open, reports storage failures without replacing the in-memory
-  map, and reflows without horizontal overflow at 375 px. Account save and public URLs remain
-  proposal-only. Evidence: 33 focused storage/IndexedDB/command tests; browser
+  map, and reflows without horizontal overflow at 375 px. Account save and public URLs were
+  deliberately kept out of that stage-1 commit. Evidence: 33 focused storage/IndexedDB/command tests; browser
   persistence/focus/mobile and confirmation-cancellation QA with no console errors; 587 passing
   tests repo-wide; Mapdown typecheck and production build; and root lint with 0 errors (the same
   9 existing Hook dependency warnings). The owner must still accept this roadmap item.

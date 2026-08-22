@@ -19,6 +19,7 @@ export default defineConfig({
     include: [
       "apps/web/app/**/*.test.ts",
       "apps/mapdown/src/**/*.test.ts",
+      "apps/mapdown/functions/**/*.test.ts",
       "packages/*/src/**/*.test.ts",
       "scripts/writing-prompt-seed/**/*.test.ts"
     ],
