@@ -1,5 +1,6 @@
 import { exportSvg, type SvgExportOptions } from "./svg";
 import type { MindMapDocument } from "../model/types";
+import { resolveTheme } from "../theme/presets";
 
 /**
  * PNG export, per `storage-export.md` §13.
@@ -17,6 +18,9 @@ import type { MindMapDocument } from "../model/types";
 /** §13.2 — browsers refuse a canvas beyond roughly this area; Safari is the strictest. */
 export const MAX_CANVAS_AREA = 16_777_216;
 export const MAX_CANVAS_DIMENSION = 16_384;
+export const LINK_PREVIEW_WIDTH = 1200;
+export const LINK_PREVIEW_HEIGHT = 630;
+const LINK_PREVIEW_PADDING = 40;
 
 export type PngScale = 1 | 2 | 3;
 
@@ -50,6 +54,21 @@ export function resolveScale(width: number, height: number, requested: PngScale)
 
 export function pixelDimensions(width: number, height: number, scale: PngScale) {
   return { width: Math.ceil(width * scale), height: Math.ceil(height * scale) };
+}
+
+export function fitPreviewDimensions(width: number, height: number) {
+  const scale = Math.min(
+    (LINK_PREVIEW_WIDTH - LINK_PREVIEW_PADDING * 2) / Math.max(width, 1),
+    (LINK_PREVIEW_HEIGHT - LINK_PREVIEW_PADDING * 2) / Math.max(height, 1)
+  );
+  const fittedWidth = Math.round(width * scale);
+  const fittedHeight = Math.round(height * scale);
+  return {
+    width: fittedWidth,
+    height: fittedHeight,
+    x: Math.round((LINK_PREVIEW_WIDTH - fittedWidth) / 2),
+    y: Math.round((LINK_PREVIEW_HEIGHT - fittedHeight) / 2)
+  };
 }
 
 export async function exportPng(
@@ -122,6 +141,47 @@ export async function exportPng(
     height: pixels.height,
     scale,
     ...(scale !== requested ? { reducedFrom: requested } : {})
+  };
+}
+
+/** A fixed social-card raster. The public viewer keeps the full-resolution SVG. */
+export async function exportLinkPreviewPng(doc: MindMapDocument): Promise<PngExportResult> {
+  const { svg, width, height } = exportSvg(doc);
+  const canvas = document.createElement("canvas");
+  canvas.width = LINK_PREVIEW_WIDTH;
+  canvas.height = LINK_PREVIEW_HEIGHT;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return { ok: false, reason: "This browser did not provide a 2D canvas context." };
+
+  const theme = resolveTheme(doc.theme.shapeId, doc.theme.paletteId);
+  ctx.fillStyle = theme.canvas.exportBackground;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const fitted = fitPreviewDimensions(width, height);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => {
+        ctx.drawImage(image, fitted.x, fitted.y, fitted.width, fitted.height);
+        resolve();
+      };
+      image.onerror = () => reject(new Error("The link preview could not be rasterised."));
+      image.src = url;
+    });
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+  }
+  URL.revokeObjectURL(url);
+
+  return {
+    ok: true,
+    dataUrl: canvas.toDataURL("image/png"),
+    width: LINK_PREVIEW_WIDTH,
+    height: LINK_PREVIEW_HEIGHT,
+    scale: fitted.width / Math.max(width, 1)
   };
 }
 

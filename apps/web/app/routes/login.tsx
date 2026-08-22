@@ -169,7 +169,7 @@ export default function LoginPage() {
 
   const finishLogin = React.useCallback(() => {
     if (handoffOrigin) {
-      navigate(`/auth/mapdown?origin=${encodeURIComponent(handoffOrigin)}`, { replace: true });
+      window.location.assign(`/auth/mapdown?origin=${encodeURIComponent(handoffOrigin)}`);
       return;
     }
     try {

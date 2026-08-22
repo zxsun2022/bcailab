@@ -141,6 +141,7 @@ export async function publishCloudDocument(input: {
   title: string;
   markdown: string;
   svg: string;
+  png: string;
 }): Promise<CloudPublication> {
   return (await api<{ publication: CloudPublication }>(`/api/documents/${encodeURIComponent(input.id)}/publish`, {
     method: "POST",

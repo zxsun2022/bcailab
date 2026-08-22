@@ -5,7 +5,9 @@ import {
   deleteLocalDocument,
   duplicateLocalDocument,
   listLocalDocuments,
+  linkLocalDocumentToCloud,
   normalizeDocumentTitle,
+  refreshLocalDocumentCloudMetadata,
   renameLocalDocument,
   restoreLocalDocument,
   storeLocalDocument
@@ -93,6 +95,53 @@ describe("local document library", () => {
     expect(second.entry.title).toBe("Plan copy 2");
     expect(first.snapshots[0]!.document.nodes).toEqual(document.nodes);
     expect(first.snapshots[0]!.document.id).toBe("doc-copy-1");
+  });
+
+  it("refreshes a conflicted cloud version without claiming pending local work was saved", async () => {
+    const store = new MemoryStore();
+    const document = namedDocument("Plan");
+    const stored = await storeLocalDocument(store, document, document.rootId, {
+      now: 100,
+      snapshotId: "saved-online"
+    });
+    const originalCloud = {
+      id: "cloud-1",
+      clientDocumentId: document.id,
+      title: document.title,
+      nodeCount: 1,
+      version: 1,
+      createdAt: 100,
+      updatedAt: 100,
+      publication: null
+    };
+    await linkLocalDocumentToCloud(store, document.id, originalCloud, stored.entry.lastSnapshotId);
+
+    const edited = { ...document, revision: 1, title: "Plan locally edited" };
+    const linked = await store.getDocumentBundle(document.id);
+    const pendingSnapshot = makeSnapshot(edited, document.rootId, "pending-local", 200);
+    await store.putDocumentBundle({
+      entry: {
+        ...linked!.entry,
+        title: edited.title,
+        updatedAt: 200,
+        lastSnapshotId: pendingSnapshot.id
+      },
+      snapshots: [...linked!.snapshots, pendingSnapshot]
+    });
+    const refreshed = await refreshLocalDocumentCloudMetadata(store, document.id, {
+      ...originalCloud,
+      title: "Plan edited elsewhere",
+      version: 2,
+      updatedAt: 300
+    });
+
+    expect(refreshed).toMatchObject({
+      cloudDocumentId: "cloud-1",
+      cloudVersion: 2,
+      lastSnapshotId: "pending-local",
+      cloudUpdatedAt: 300
+    });
+    expect(refreshed.cloudSavedSnapshotId).toBeUndefined();
   });
 
   it("deletes every snapshot and restores the complete document for current-tab undo", async () => {

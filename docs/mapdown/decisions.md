@@ -826,15 +826,17 @@ copy is simpler to reason about and inspect than an unreliable structural merge.
 **Decided 2026-08-21.**
 
 **Decision.** Publishing requires an account and an existing online document. It stores
-canonical Markdown in D1 and the existing client-generated, script-free SVG in R2. Public URLs
+canonical Markdown in D1 and two client-generated assets in R2: the existing script-free SVG
+for the full-resolution viewer, plus a fixed 1200×630 PNG for link previews. Public URLs
 are unlisted random ids under `https://share.bcailab.com/p/{id}`. Updates are explicit and keep
 the URL; ordinary edits and online saves do not change the frozen public version. Unpublish
 revokes immediately; republish creates a new URL. The public response is `no-store`, `noindex`,
 strict-CSP, read-only, and displays user content only as an isolated SVG image. Limits are 25
-active publications, 256 KiB Markdown and 2 MiB SVG per version.
+active publications, 256 KiB Markdown, 2 MiB SVG and 4 MiB PNG per version.
 
 **Why.** Worker-side layout cannot reproduce the editor's canvas text measurement. Uploading
-the exact existing SVG gives JavaScript-free rendering and a preview image. A separate host
+the exact existing SVG gives JavaScript-free rendering; rasterising the same layout on the
+client gives link unfurlers a broadly supported image type. A separate host
 keeps user-generated content away from `mapdown_session`, while D1 remains the serving
 authority so revocation is not defeated by an orphaned R2 object.
 

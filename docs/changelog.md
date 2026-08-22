@@ -26,6 +26,23 @@ make the final transition; see `AGENTS.md`.
   has zero errors and the same 9 pre-existing Hook warnings. No remote migration, secret/domain
   change, deployment, push or production data mutation was performed. The owner must still
   accept this roadmap item.
+  - Review follow-up (2026-08-21): fixed canonical Markdown validation for maps with front
+    matter; changed password/code handoff completion to a document navigation so the resource
+    route response executes; and made stale-write recovery refresh the server version while
+    retaining one explicit pending local save, preventing repeated conflicted copies. Signed-out
+    documents now trust persisted sync metadata instead of falsely reporting pending changes.
+    SVG validation inspects real tag and attribute structure, so escaped node text and ARIA labels
+    containing strings such as `url(` or `onclick =` remain publishable while executable elements,
+    event attributes and resource URLs stay blocked. The public viewer now fits already-loaded
+    images and preserves user zoom across resize. Publishing additionally uploads a fixed
+    1200×630 PNG for link unfurlers (migration 0020 and a dedicated public route); the sanitized
+    SVG remains the interactive/no-script viewer asset. Evidence: browser QA published a dark
+    front-matter map containing event/URL-looking text, loaded the 1200×630 preview, preserved a
+    1.25× user zoom through resize, showed synced state after sign-out, and recovered from a 409
+    with exactly one conflicted copy before a successful retry. Password login reached the
+    handoff resource by full document navigation. All 598 tests, three typechecks, both production
+    builds, and lint pass (zero errors; the same 9 pre-existing Hook warnings). Migration 0020 was
+    applied only to local D1; no remote migration, deployment, push, or production mutation ran.
 
 - 2026-08-21 — **in_review: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,

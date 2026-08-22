@@ -6,7 +6,14 @@ import { exportMarkdown } from "../markdown/serialize";
 import { applyCommand } from "../model/commands";
 import { createDocument, getNode, resetIdCounterForTests, type MindMapDocument } from "../model/types";
 import { PALETTES, SHAPES, resolveTheme } from "../theme/presets";
-import { MAX_CANVAS_AREA, pixelDimensions, resolveScale } from "./png";
+import {
+  LINK_PREVIEW_HEIGHT,
+  LINK_PREVIEW_WIDTH,
+  MAX_CANVAS_AREA,
+  fitPreviewDimensions,
+  pixelDimensions,
+  resolveScale
+} from "./png";
 import { exportSvg } from "./svg";
 import { escapeXml } from "./xml";
 
@@ -293,6 +300,15 @@ describe("§13.2 — PNG scale is reduced rather than producing a blank image", 
   it("keeps the requested scale for an ordinary map", () => {
     expect(resolveScale(900, 600, 2)).toBe(2);
     expect(resolveScale(900, 600, 3)).toBe(3);
+  });
+
+  it("fits wide and tall maps inside the fixed link-preview canvas", () => {
+    expect(fitPreviewDimensions(2400, 600)).toEqual({ width: 1120, height: 280, x: 40, y: 175 });
+    const tall = fitPreviewDimensions(600, 2400);
+    expect(tall.height).toBe(LINK_PREVIEW_HEIGHT - 80);
+    expect(tall.width).toBeLessThan(LINK_PREVIEW_WIDTH);
+    expect(tall.x).toBeGreaterThan(0);
+    expect(tall.y).toBe(40);
   });
 
   it("steps down when the pixel area would exceed what a canvas can hold", () => {

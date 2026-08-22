@@ -60,6 +60,7 @@ import {
   duplicateLocalDocument,
   linkLocalDocumentToCloud,
   listLocalDocuments,
+  refreshLocalDocumentCloudMetadata,
   renameLocalDocument,
   restoreLocalDocument,
   storeLocalDocument,
@@ -78,7 +79,7 @@ import {
   type ViewportSize
 } from "../canvas/viewport";
 import { exportSvg } from "../export/svg";
-import { exportPng, scaleReductionMessage } from "../export/png";
+import { exportLinkPreviewPng, exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
@@ -132,6 +133,50 @@ interface EditingState {
 }
 
 let sessionCounter = 0;
+
+function conflictCloudSummary(details: unknown): CloudDocumentSummary | null {
+  if (!details || typeof details !== "object" || Array.isArray(details)) return null;
+  const document = (details as Record<string, unknown>).document;
+  if (!document || typeof document !== "object" || Array.isArray(document)) return null;
+  const value = document as Record<string, unknown>;
+  if (
+    typeof value.id !== "string" ||
+    typeof value.clientDocumentId !== "string" ||
+    typeof value.title !== "string" ||
+    !Number.isInteger(value.nodeCount) ||
+    !Number.isInteger(value.version) ||
+    typeof value.createdAt !== "number" ||
+    typeof value.updatedAt !== "number"
+  ) return null;
+  const rawPublication = value.publication;
+  let publication: CloudDocumentSummary["publication"] = null;
+  if (rawPublication !== null) {
+    if (!rawPublication || typeof rawPublication !== "object" || Array.isArray(rawPublication)) return null;
+    const candidate = rawPublication as Record<string, unknown>;
+    if (
+      typeof candidate.publicId !== "string" ||
+      typeof candidate.publicUrl !== "string" ||
+      !Number.isInteger(candidate.version) ||
+      typeof candidate.updatedAt !== "number"
+    ) return null;
+    publication = {
+      publicId: candidate.publicId,
+      publicUrl: candidate.publicUrl,
+      version: Number(candidate.version),
+      updatedAt: candidate.updatedAt
+    };
+  }
+  return {
+    id: value.id,
+    clientDocumentId: value.clientDocumentId,
+    title: value.title,
+    nodeCount: Number(value.nodeCount),
+    version: Number(value.version),
+    createdAt: value.createdAt,
+    updatedAt: value.updatedAt,
+    publication
+  };
+}
 
 /**
  * Screen px of extra content width the editing field keeps over the measured layout width.
@@ -702,6 +747,8 @@ export function Editor() {
       return cloud;
     } catch (error) {
       if (error instanceof CloudApiError && error.code === "conflict") {
+        const currentCloud = conflictCloudSummary(error.details);
+        if (!currentCloud || currentCloud.id !== local.entry.cloudDocumentId) throw error;
         const conflictDocument = {
           ...structuredClone(local.snapshot.document),
           id: `doc-${crypto.randomUUID()}`,
@@ -709,9 +756,12 @@ export function Editor() {
           revision: 0
         };
         await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId);
+        await refreshLocalDocumentCloudMetadata(store, localDocumentId, currentCloud);
         await refreshDocumentLibrary();
+        setCloudDocuments(await listCloudDocuments());
+        setCloudLibraryState("ready");
         throw new Error(
-          `The online copy changed first. ${conflictDocument.title} was kept locally; nothing was overwritten.`
+          `The online copy changed first. ${conflictDocument.title} was kept locally; nothing was overwritten. Save changes again only if you want this browser's version to replace the current online copy.`
         );
       }
       throw error;
@@ -772,12 +822,15 @@ export function Editor() {
     )) return;
     const cloud = await saveLocalDocumentOnline(localDocumentId);
     const { svg } = exportSvg(cloud.snapshot.document);
+    const png = await exportLinkPreviewPng(cloud.snapshot.document);
+    if (!png.ok) throw new Error(png.reason);
     const publication = await publishCloudDocument({
       id: cloud.id,
       baseVersion: cloud.version,
       title: cloud.snapshot.document.title,
       markdown: exportMarkdown(cloud.snapshot.document),
-      svg
+      svg,
+      png: png.dataUrl
     });
     const latestEntry = await store.getIndexEntry(localDocumentId);
     await linkLocalDocumentToCloud(

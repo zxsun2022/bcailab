@@ -6,6 +6,21 @@ import type { CloudDocumentSummary, CloudUser } from "../cloud/types";
 export type DocumentLibraryState = "loading" | "ready" | "unavailable";
 export type CloudLibraryState = "loading" | "signed-out" | "ready" | "unavailable";
 
+export function isOnlineCopyCurrent(
+  entry: DocumentIndexEntry,
+  cloudDocument: CloudDocumentSummary | null,
+  cloudState: CloudLibraryState
+): boolean {
+  if (
+    !entry.cloudDocumentId ||
+    !entry.cloudVersion ||
+    entry.cloudSavedSnapshotId !== entry.lastSnapshotId
+  ) return false;
+  return cloudState === "ready"
+    ? entry.cloudVersion === cloudDocument?.version
+    : true;
+}
+
 interface DocumentLibraryProps {
   state: DocumentLibraryState;
   entries: DocumentIndexEntry[];
@@ -268,11 +283,7 @@ export function DocumentLibrary({
                   ? cloudDocuments.find((item) => item.id === entry.cloudDocumentId)
                   : null;
                 const publication = cloudDocument?.publication ?? entry.cloudPublication ?? null;
-                const onlineCurrent = Boolean(
-                  entry.cloudDocumentId &&
-                  entry.cloudSavedSnapshotId === entry.lastSnapshotId &&
-                  entry.cloudVersion === cloudDocument?.version
-                );
+                const onlineCurrent = isOnlineCopyCurrent(entry, cloudDocument ?? null, cloudState);
                 const isRenaming = renamingId === entry.id;
                 const isConfirmingDelete = confirmDeleteId === entry.id;
                 const isBusy = pendingAction?.endsWith(entry.id) ?? false;

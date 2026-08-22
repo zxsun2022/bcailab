@@ -1,13 +1,24 @@
 import { randomToken } from "../../../_shared/crypto";
 import { getDocument, notFound } from "../../../_shared/documents";
 import { ApiError, jsonResponse, readBoundedJson, requireSameOriginMutation, stringParam, withApiErrors } from "../../../_shared/http";
-import { PUBLICATION_LIMIT, PUBLISHED_MARKDOWN_MAX_BYTES, PUBLISHED_SVG_MAX_BYTES } from "../../../_shared/limits";
+import {
+  PUBLICATION_LIMIT,
+  PUBLISHED_MARKDOWN_MAX_BYTES,
+  PUBLISHED_PNG_MAX_BYTES,
+  PUBLISHED_SVG_MAX_BYTES
+} from "../../../_shared/limits";
 import { requireMapdownUser } from "../../../_shared/session";
-import { normalizeCloudTitle, validatePublishedMarkdown, validatePublishedSvg } from "../../../_shared/validation";
+import {
+  normalizeCloudTitle,
+  validatePublishedMarkdown,
+  validatePublishedPng,
+  validatePublishedSvg
+} from "../../../_shared/validation";
 
 interface ActivePublicationRow {
   public_id: string;
   svg_key: string;
+  png_key: string | null;
   version: number;
 }
 
@@ -24,8 +35,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => withApiError
   if (!document) throw notFound();
   const body = await readBoundedJson(
     context.request,
-    PUBLISHED_MARKDOWN_MAX_BYTES + PUBLISHED_SVG_MAX_BYTES + 32 * 1024
-  ) as { baseVersion?: unknown; title?: unknown; markdown?: unknown; svg?: unknown };
+    PUBLISHED_MARKDOWN_MAX_BYTES + PUBLISHED_SVG_MAX_BYTES +
+      Math.ceil(PUBLISHED_PNG_MAX_BYTES / 3) * 4 + 64 * 1024
+  ) as { baseVersion?: unknown; title?: unknown; markdown?: unknown; svg?: unknown; png?: unknown };
   if (!Number.isInteger(body.baseVersion) || Number(body.baseVersion) !== document.version) {
     throw new ApiError(409, "conflict", "Save the current online version before publishing.", {
       document
@@ -34,8 +46,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => withApiError
   const title = normalizeCloudTitle(body.title);
   const markdown = validatePublishedMarkdown(body.markdown);
   const svg = validatePublishedSvg(body.svg);
+  const png = validatePublishedPng(body.png);
   const active = await context.env.DB.prepare(`
-    SELECT public_id, svg_key, version
+    SELECT public_id, svg_key, png_key, version
     FROM mapdown_publications
     WHERE document_id = ? AND user_id = ? AND revoked_at IS NULL
     LIMIT 1
@@ -44,34 +57,46 @@ export const onRequestPost: PagesFunction<Env> = async (context) => withApiError
   const publicId = active?.public_id ?? randomToken(16);
   const publicationVersion = active ? Number(active.version) + 1 : 1;
   const svgKey = `mapdown/publications/${publicId}/v${publicationVersion}.svg`;
-  await context.env.R2.put(svgKey, svg, {
-    httpMetadata: { contentType: "image/svg+xml; charset=utf-8" },
-    customMetadata: { publicId, version: String(publicationVersion) }
-  });
+  const pngKey = `mapdown/publications/${publicId}/v${publicationVersion}.png`;
+  const uploads = await Promise.allSettled([
+    context.env.R2.put(svgKey, svg, {
+      httpMetadata: { contentType: "image/svg+xml; charset=utf-8" },
+      customMetadata: { publicId, version: String(publicationVersion) }
+    }),
+    context.env.R2.put(pngKey, png, {
+      httpMetadata: { contentType: "image/png" },
+      customMetadata: { publicId, version: String(publicationVersion) }
+    })
+  ]);
+  const failedUpload = uploads.find((result): result is PromiseRejectedResult => result.status === "rejected");
+  if (failedUpload) {
+    await context.env.R2.delete([svgKey, pngKey]);
+    throw failedUpload.reason;
+  }
 
   const now = Date.now();
   try {
     if (active) {
       const updated = await context.env.DB.prepare(`
         UPDATE mapdown_publications
-        SET title = ?, markdown = ?, svg_key = ?, version = ?, updated_at = ?
+        SET title = ?, markdown = ?, svg_key = ?, png_key = ?, version = ?, updated_at = ?
         WHERE public_id = ? AND document_id = ? AND user_id = ? AND revoked_at IS NULL
-      `).bind(title, markdown, svgKey, publicationVersion, now, publicId, documentId, user.id).run();
+      `).bind(title, markdown, svgKey, pngKey, publicationVersion, now, publicId, documentId, user.id).run();
       if (Number(updated.meta.changes) !== 1) {
         throw new ApiError(409, "publication_conflict", "The published version changed before this update completed.");
       }
     } else {
       const inserted = await context.env.DB.prepare(`
         INSERT INTO mapdown_publications
-          (public_id, document_id, user_id, title, markdown, svg_key, version,
+          (public_id, document_id, user_id, title, markdown, svg_key, png_key, version,
            created_at, updated_at, revoked_at)
-        SELECT ?, ?, ?, ?, ?, ?, 1, ?, ?, NULL
+        SELECT ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, NULL
         WHERE (
           SELECT COUNT(*) FROM mapdown_publications
           WHERE user_id = ? AND revoked_at IS NULL
         ) < ?
       `).bind(
-        publicId, documentId, user.id, title, markdown, svgKey, now, now,
+        publicId, documentId, user.id, title, markdown, svgKey, pngKey, now, now,
         user.id, PUBLICATION_LIMIT
       ).run();
       if (Number(inserted.meta.changes) !== 1) {
@@ -79,10 +104,15 @@ export const onRequestPost: PagesFunction<Env> = async (context) => withApiError
       }
     }
   } catch (error) {
-    await context.env.R2.delete(svgKey);
+    await context.env.R2.delete([svgKey, pngKey]);
     throw error;
   }
-  if (active?.svg_key) context.waitUntil(context.env.R2.delete(active.svg_key));
+  if (active?.svg_key) {
+    context.waitUntil(context.env.R2.delete([
+      active.svg_key,
+      ...(active.png_key ? [active.png_key] : [])
+    ]));
+  }
   return jsonResponse({
     publication: {
       publicId,

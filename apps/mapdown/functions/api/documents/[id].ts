@@ -59,10 +59,10 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => withApiErr
   const document = await getDocument(context.env.DB, user.id, id, context.env.PUBLISHED_ORIGIN);
   if (!document) throw notFound();
   const publication = await context.env.DB.prepare(`
-    SELECT public_id, svg_key FROM mapdown_publications
+    SELECT public_id, svg_key, png_key FROM mapdown_publications
     WHERE document_id = ? AND user_id = ? AND revoked_at IS NULL
     LIMIT 1
-  `).bind(id, user.id).first<{ public_id: string; svg_key: string }>();
+  `).bind(id, user.id).first<{ public_id: string; svg_key: string; png_key: string | null }>();
   const now = Date.now();
   await context.env.DB.batch([
     context.env.DB.prepare(`
@@ -71,6 +71,11 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => withApiErr
     `).bind(now, now, id, user.id),
     context.env.DB.prepare("DELETE FROM mapdown_documents WHERE id = ? AND user_id = ?").bind(id, user.id)
   ]);
-  if (publication) context.waitUntil(context.env.R2.delete(publication.svg_key));
+  if (publication) {
+    context.waitUntil(context.env.R2.delete([
+      publication.svg_key,
+      ...(publication.png_key ? [publication.png_key] : [])
+    ]));
+  }
   return jsonResponse({ ok: true, revokedPublicId: publication?.public_id ?? null });
 }, context.request);

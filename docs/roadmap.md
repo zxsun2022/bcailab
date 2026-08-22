@@ -561,13 +561,15 @@ builds. Deployment is migration-first under ADR 0008.
 ### Stage 3 — frozen publication
 
 - Publishing requires a Mapdown account and an existing cloud document. The client explicitly
-  uploads canonical Markdown and the already-rendered, script-free SVG. The public record is a
+  uploads canonical Markdown, the already-rendered script-free SVG, and a 1200×630 PNG rendered
+  from the same layout for link previews. The public record is a
   frozen version; ordinary local edits and cloud saves do not change it until **Update
   published version** is invoked.
 - Serve unlisted URLs as `https://share.bcailab.com/p/{random-id}`. The viewer host receives no
   authenticated cookie, renders user content only through an isolated SVG `<img>`, applies a
   strict CSP and `noindex`, and provides keyboard-operable zoom/fit controls plus a no-JavaScript
-  image fallback. The stored SVG is also the link-preview image.
+  image fallback. The SVG remains the reader asset; `og:image` uses the PNG because common link
+  unfurlers do not render SVG previews.
 - Unpublish revokes the active record and returns uncached 404 responses immediately on the
   next request; republishing after revocation creates a new random URL. Deleting a cloud
   document also revokes its active publication. Old R2 objects may be cleaned after the D1
@@ -577,9 +579,9 @@ builds. Deployment is migration-first under ADR 0008.
   are accepted in 24 hours. Operational takedown remains a D1 revocation, documented in the
   infrastructure procedure.
 
-Capacity limits: 25 active publications per user, 256 KiB canonical Markdown and 2 MiB SVG per
-published version. The representative 2,000-node map is approximately 129 KiB Markdown and
-1.27 MiB SVG.
+Capacity limits: 25 active publications per user, 256 KiB canonical Markdown, 2 MiB SVG and
+4 MiB PNG per published version. The fixed PNG canvas contains 3.0 MiB of raw RGBA pixels before
+compression; the representative 2,000-node map is approximately 129 KiB Markdown and 1.27 MiB SVG.
 
 Acceptance: frozen/update semantics, active-publication quota, SVG/Markdown/content-type
 validation, inert hostile labels, no authenticated cookie on the share host, CSP/noindex/OG

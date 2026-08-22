@@ -4,16 +4,17 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
   if (!isPublishedRequest(context.request, context.env)) return notFoundPage();
   const publicId = typeof context.params.publicId === "string" ? context.params.publicId : "";
   const publication = await context.env.DB.prepare(`
-    SELECT title, version, updated_at
+    SELECT title, version, updated_at, png_key
     FROM mapdown_publications
     WHERE public_id = ? AND revoked_at IS NULL
     LIMIT 1
-  `).bind(publicId).first<{ title: string; version: number; updated_at: number }>();
+  `).bind(publicId).first<{ title: string; version: number; updated_at: number; png_key: string | null }>();
   if (!publication) return notFoundPage();
 
   const url = new URL(context.request.url);
   const canonical = `${context.env.PUBLISHED_ORIGIN}/p/${publicId}`;
-  const imageUrl = `${context.env.PUBLISHED_ORIGIN}/p/${publicId}/map.svg`;
+  const imageUrl = `${context.env.PUBLISHED_ORIGIN}/p/${publicId}/${publication.png_key ? "map.png" : "map.svg"}`;
+  const imageType = publication.png_key ? "image/png" : "image/svg+xml";
   const title = escapeHtml(publication.title);
   const html = `<!doctype html>
 <html lang="en">
@@ -28,7 +29,8 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${escapeHtml(canonical)}" />
     <meta property="og:image" content="${escapeHtml(imageUrl)}" />
-    <meta property="og:image:type" content="image/svg+xml" />
+    <meta property="og:image:type" content="${imageType}" />
+    ${publication.png_key ? '<meta property="og:image:width" content="1200" /><meta property="og:image:height" content="630" />' : ""}
     <link rel="stylesheet" href="/published.css" />
     <script src="/published.js" defer></script>
   </head>

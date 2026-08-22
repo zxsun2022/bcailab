@@ -177,6 +177,31 @@ export async function linkLocalDocumentToCloud(
   return linked;
 }
 
+/**
+ * A stale save did not reach the cloud, so no local snapshot may still claim to match it.
+ * Refresh the server metadata needed for an explicit retry and clear that saved pointer.
+ */
+export async function refreshLocalDocumentCloudMetadata(
+  store: SnapshotStore,
+  localDocumentId: string,
+  cloud: CloudDocumentSummary
+): Promise<DocumentIndexEntry> {
+  const entry = await store.getIndexEntry(localDocumentId);
+  if (!entry || entry.cloudDocumentId !== cloud.id) {
+    throw new Error("This local document is not linked to the conflicted online copy.");
+  }
+  const refreshed: DocumentIndexEntry = {
+    ...entry,
+    cloudVersion: cloud.version,
+    cloudUpdatedAt: cloud.updatedAt,
+    ...(cloud.publication ? { cloudPublication: cloud.publication } : {})
+  };
+  delete refreshed.cloudSavedSnapshotId;
+  if (!cloud.publication) delete refreshed.cloudPublication;
+  await store.putIndexEntry(refreshed);
+  return refreshed;
+}
+
 export async function unlinkLocalDocumentFromCloud(
   store: SnapshotStore,
   localDocumentId: string

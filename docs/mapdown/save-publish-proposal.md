@@ -218,10 +218,12 @@ rendered on demand. This will surface as a blocker halfway through implementatio
 settled first.
 
 Resolution: at publish time the **client** generates the SVG with the existing
-`src/export/svg.ts` and uploads it alongside the Markdown. The published page is the Mapdown SPA
-in read-only mode (pan / zoom / collapse, no editing); the stored SVG serves as `og:image` and
-as the `<noscript>` fallback. Spike 2 already established that canvas measurement and SVG layout
-agree to 0.000 px, so the uploaded SVG matches what the reader sees.
+`src/export/svg.ts` and uploads it alongside the Markdown. The same client render is rasterised
+into a fixed 1200×630 PNG for link unfurlers, which commonly do not accept SVG preview images.
+The published page displays the full-resolution SVG in a read-only zoom/fit viewer; the SVG also
+works without JavaScript, while only the PNG is advertised as `og:image`. Spike 2 already
+established that canvas measurement and SVG layout agree to 0.000 px, so both public assets come
+from the layout the author saw.
 
 ### 5.4 Acceptance criteria
 

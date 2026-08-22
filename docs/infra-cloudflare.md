@@ -133,15 +133,15 @@ Bindings are defined in the root/Web `wrangler.toml` files and Mapdown's
 
 ### Mapdown save/publish release order
 
-1. Apply `0019_mapdown_cloud.sql` to Preview, verify it, then apply it to production with
-   `pnpm exec wrangler d1 migrations apply bcailab-db --remote`.
+1. Apply `0019_mapdown_cloud.sql` and `0020_mapdown_publication_png.sql` to Preview, verify them,
+   then apply them to production with `pnpm exec wrangler d1 migrations apply bcailab-db --remote`.
 2. Add the same new `MAPDOWN_HANDOFF_SECRET` value to both the Web and Mapdown Pages projects.
 3. Confirm Mapdown's `DB` and `R2` bindings and attach `share.bcailab.com` as a second custom
    domain on the Mapdown Pages project.
 4. Deploy Web and Mapdown, then deploy `bcailab-session-cleanup`.
 5. Verify sign-in exchange, explicit first save, stale-version rejection, publish, public SVG,
-   and unpublish returning an uncached 404. Do not deploy code that reads the new tables before
-   step 1.
+   PNG `og:image`, and unpublish returning an uncached 404. Do not deploy code that reads the new
+   tables or `png_key` before step 1.
 
 ### Publication reports and takedown
 
@@ -157,8 +157,9 @@ ORDER BY created_at ASC;
 
 After an authorized moderation decision, revoke in D1 first by setting `revoked_at` and
 `updated_at` for the exact `public_id` while `revoked_at IS NULL`; verify `/p/{public_id}` is
-404; then delete the row's exact `svg_key` from R2. Mark the matching reports `actioned` only
-after revocation. Never use an unresolved wildcard or bulk delete for takedown.
+404; then delete the row's exact `svg_key` and, when present, `png_key` from R2. Mark the matching
+reports `actioned` only after revocation. Never use an unresolved wildcard or bulk delete for
+takedown.
 
 ## Preview / Staging Environment
 Pushing code is not enough for integration testing. You also need preview data resources.
