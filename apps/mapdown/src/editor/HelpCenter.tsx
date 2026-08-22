@@ -35,7 +35,7 @@ const HELP_TOPICS = [
   },
   {
     title: "Local save and files",
-    body: "Work autosaves in this browser, not to a cloud file. Export Markdown for a durable complete copy. Markdown includes collapsed descendants; SVG and PNG reflect only the currently visible map."
+    body: "Work autosaves in this browser, not to a cloud file. Use File → Document library to open, create, rename, duplicate, or delete local maps. Export Markdown for a durable complete copy. Markdown includes collapsed descendants; SVG and PNG reflect only the currently visible map."
   },
   {
     title: "Markdown format",

@@ -111,13 +111,17 @@ export function createAutosave(options: AutosaveOptions): Autosave {
       await store.putSnapshot(snapshot);
 
       // 2. Only now advance the pointer. A crash before this leaves the old snapshot current.
+      const existingEntry = await store.getIndexEntry(job.document.id);
       const entry: DocumentIndexEntry = {
         id: job.document.id,
         title: job.document.title,
-        createdAt: (await store.getIndexEntry(job.document.id))?.createdAt ?? snapshot.savedAt,
+        createdAt: existingEntry?.createdAt ?? snapshot.savedAt,
         updatedAt: snapshot.savedAt,
         nodeCount: Object.keys(job.document.nodes).length,
-        lastSnapshotId: snapshot.id
+        lastSnapshotId: snapshot.id,
+        ...(existingEntry?.sourceFilename
+          ? { sourceFilename: existingEntry.sourceFilename }
+          : {})
       };
       await store.putIndexEntry(entry);
       rememberLastDocument(job.document.id);

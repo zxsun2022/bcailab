@@ -1,13 +1,13 @@
 # Mapdown
 
-**Status (2026-08-04):** Phase 0 complete, **Phase 1 merged in PR #26**, and Phase 2
-implementation complete in review. The production build is live; only the owner can mark the
-roadmap checkpoint accepted. The stabilization checkpoints are also in owner review.
-**443 tests.**
+**Status (2026-08-21):** The production MVP and stabilization checkpoints were accepted by the
+owner on 2026-08-15. The Phase 5 lightweight local document library is implemented and
+`in_review`; only the owner can accept it. **421 Mapdown tests; 587 repo-wide.**
 The editor works — keyboard-first authoring, two-sided layout, four shapes × ten palettes
 (the theme is a shape/palette pair, D-24), Markdown/SVG/PNG export, local autosave and
-recovery, pan/zoom/fit, drag-and-drop plus accessible move commands, a real CommonMark parser,
-searchable Help/Command Center, and hardened keyboard/screen-reader semantics.
+recovery, a local document library (new/open/rename/duplicate/delete with current-tab undo),
+pan/zoom/fit, drag-and-drop plus accessible move commands, a real CommonMark parser, searchable
+Help/Command Center, and hardened keyboard/screen-reader semantics.
 
 **Home:** `apps/mapdown`; deployed by the Git-connected `mapdown` Pages project at
 [map.bcailab.com](https://map.bcailab.com).
@@ -43,6 +43,10 @@ dependency on `@bcailab/ui` — Mapdown owns its chrome tokens in `src/styles/` 
 | 15 | Help / Command Center | ✅ generated from the executable command registry; searchable, platform-aware, focus trapped |
 | 16 | Accessibility hardening | ✅ semantic tree order/metadata, live feedback, single canvas tab stop, reduced motion, 44px coarse-pointer targets |
 | 17 | Performance and regression pass | ✅ import limits, lazy CommonMark loading, browser regression pass and [performance baseline](performance.md) |
+
+The Phase 5 lightweight local document-library subset is implemented and `in_review`; account
+save and public sharing remain proposal-only in
+[`save-publish-proposal.md`](save-publish-proposal.md).
 
 The production Pages project, custom domain and repository build-watch paths described by D-03
 are configured. Current stabilization scope and acceptance criteria live in

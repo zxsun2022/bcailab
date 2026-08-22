@@ -17,6 +17,7 @@ import {
   type SaveStatus
 } from "./autosave";
 import { checksumOf, makeSnapshot, MemoryStore } from "./store";
+import { storeLocalDocument } from "./library";
 
 beforeEach(() => {
   resetIdCounterForTests();
@@ -99,6 +100,22 @@ describe("§5 — autosave", () => {
     const ids = await store.listSnapshotIds(doc.id);
     expect(ids).toHaveLength(2);
     expect(new Set(ids).size).toBe(2);
+  });
+
+  it("preserves an imported source filename on later autosaves", async () => {
+    const store = new MemoryStore();
+    const document = docWith(["imported"]);
+    await storeLocalDocument(store, document, null, {
+      now: 900,
+      snapshotId: "import",
+      sourceFilename: "outline.md"
+    });
+    const autosave = harness(store).autosave;
+
+    autosave.schedule({ ...document, revision: document.revision + 1 }, null);
+    await autosave.flush();
+
+    expect((await store.getIndexEntry(document.id))?.sourceFilename).toBe("outline.md");
   });
 });
 

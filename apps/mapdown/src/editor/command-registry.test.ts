@@ -8,6 +8,7 @@ describe("Help command registry", () => {
     expect(searchCommands("子节点")[0]?.id).toBe("create-child");
     expect(searchCommands("Shift Tab")[0]?.id).toBe("promote");
     expect(searchCommands("Command 0")[0]?.id).toBe("reset-zoom");
+    expect(searchCommands("文件列表")[0]?.id).toBe("document-library");
   });
 
   it("attaches every displayed shortcut to a registered command", () => {

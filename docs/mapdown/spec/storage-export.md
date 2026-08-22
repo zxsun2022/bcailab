@@ -78,14 +78,17 @@ interface LocalDocumentIndexEntry {
 }
 ```
 
-A future recent-documents screen can use this without changing storage.
+A document-library surface uses this index without changing the document format.
 
-MVP user interface MAY expose:
+> **Amendment (2026-08-21, D-25):** The local document library MUST list every indexed
+> document newest-first and identify the current document. It exposes New, Open, Rename,
+> Duplicate and confirmed Delete. Rename, duplicate and delete update the index and snapshots
+> consistently. Delete removes every snapshot for the document and offers a current-tab undo
+> that restores the complete stored document. The library SHOULD show title, node count, last
+> local update and the imported filename when known. It remains available without an account or
+> network; recovery-history UI is not part of this amendment.
 
-- current document;
-- New;
-- Open Markdown;
-- Recover last local document.
+The editor also exposes Open Markdown and validated recovery of the last active document.
 
 A full folder/tag/library system is excluded.
 
@@ -453,9 +456,11 @@ Recommended update behavior:
 
 ## 17. Data retention and user controls
 
+The app exposes confirmed deletion of a local document through the document library, including
+the current document, with current-tab undo.
+
 The app SHOULD eventually expose:
 
-- delete current local document;
 - clear all local documents;
 - export before clearing;
 - show approximate local storage usage.

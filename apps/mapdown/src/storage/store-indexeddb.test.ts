@@ -72,4 +72,31 @@ describe("IndexedDbStore production backend", () => {
     expect(await store.getSnapshot("delete")).toBeNull();
     expect(await store.getSnapshot("keep")).not.toBeNull();
   });
+
+  it("reads, deletes, and restores a complete document across both object stores", async () => {
+    const document = createDocument("Root");
+    const first = makeSnapshot(document, null, "first", 100);
+    const second = makeSnapshot({ ...document, revision: 1 }, document.rootId, "second", 200);
+    const entry: DocumentIndexEntry = {
+      id: document.id,
+      title: "Root",
+      createdAt: 100,
+      updatedAt: 200,
+      nodeCount: 1,
+      lastSnapshotId: second.id,
+      sourceFilename: "root.md"
+    };
+
+    await store.putDocumentBundle({ entry, snapshots: [second, first] });
+    const stored = await store.getDocumentBundle(document.id);
+    expect(stored).toEqual({ entry, snapshots: [first, second] });
+
+    const deleted = await store.deleteDocumentBundle(document.id);
+    expect(deleted).toEqual(stored);
+    expect(await store.getIndexEntry(document.id)).toBeNull();
+    expect(await store.listSnapshotIds(document.id)).toEqual([]);
+
+    await store.putDocumentBundle(deleted!);
+    expect(await store.getDocumentBundle(document.id)).toEqual(stored);
+  });
 });

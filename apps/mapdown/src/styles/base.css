@@ -689,6 +689,202 @@ button:disabled {
   background: rgb(0 0 0 / 48%);
 }
 
+.document-library {
+  display: flex;
+  flex-direction: column;
+  width: min(900px, 100%);
+  max-height: min(760px, calc(100vh - 2rem));
+  overflow: hidden;
+  border: 1px solid var(--chrome-border-strong);
+  border-radius: 12px;
+  background: var(--chrome-bg-raised);
+  box-shadow: 0 18px 60px rgb(0 0 0 / 28%);
+}
+
+.document-library-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--chrome-border);
+}
+
+.document-library-header > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.document-library-header h2,
+.document-library-header p {
+  margin: 0;
+}
+
+.document-library-header h2 {
+  font-size: 1.25rem;
+}
+
+.document-library-header p {
+  color: var(--chrome-text-muted);
+}
+
+.document-library-header-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.document-primary-action {
+  border-color: var(--chrome-accent);
+  background: var(--chrome-accent);
+  color: white;
+}
+
+.document-library-undo,
+.document-library-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.8rem 1.25rem 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
+}
+
+.document-library-undo {
+  background: color-mix(in srgb, var(--chrome-accent) 9%, var(--chrome-bg));
+}
+
+.document-library-error {
+  border: 1px solid color-mix(in srgb, #a83232 35%, var(--chrome-border));
+  background: color-mix(in srgb, #a83232 8%, var(--chrome-bg));
+  color: var(--chrome-text);
+}
+
+.document-library-content {
+  flex: 1;
+  min-height: 0;
+  padding: 0.4rem 1.25rem 1.25rem;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.document-library-empty {
+  margin: 0;
+  padding: 3rem 1rem;
+  color: var(--chrome-text-muted);
+  text-align: center;
+}
+
+.document-library-empty strong {
+  display: block;
+  color: var(--chrome-text);
+}
+
+.document-library-empty p {
+  margin: 0.35rem auto 0;
+  max-width: 36rem;
+}
+
+.document-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.document-list > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.9rem 0.75rem;
+  border-bottom: 1px solid var(--chrome-border);
+}
+
+.document-list > li.is-current {
+  background: color-mix(in srgb, var(--chrome-accent) 6%, transparent);
+}
+
+.document-row-summary {
+  min-width: 0;
+}
+
+.document-row-title {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.document-row-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.document-current-badge {
+  flex: 0 0 auto;
+  padding: 0.13rem 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chrome-accent) 12%, var(--chrome-bg));
+  color: var(--chrome-accent);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.document-row-summary p,
+.document-row-summary small {
+  display: block;
+  margin: 0.2rem 0 0;
+  color: var(--chrome-text-muted);
+  font-size: 0.76rem;
+}
+
+.document-row-actions,
+.document-rename-form,
+.document-delete-confirmation {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.document-row-actions button,
+.document-rename-form button,
+.document-delete-confirmation button {
+  min-height: 40px;
+}
+
+.document-rename-form label {
+  min-width: min(15rem, 32vw);
+}
+
+.document-rename-form input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--chrome-border-strong);
+  border-radius: 8px;
+  background: var(--chrome-bg);
+  color: var(--chrome-text);
+}
+
+.document-delete-confirmation {
+  max-width: 29rem;
+  flex-wrap: wrap;
+}
+
+.document-delete-confirmation > span {
+  flex-basis: 100%;
+  color: var(--chrome-text-muted);
+  font-size: 0.8rem;
+  text-align: right;
+}
+
+.document-danger-action {
+  border-color: #a83232;
+  background: #a83232;
+  color: white;
+}
+
 .help-dialog {
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -853,6 +1049,54 @@ kbd {
     width: 100%;
     max-height: 100vh;
     border-radius: 0;
+  }
+
+  .document-library {
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .document-library-header {
+    align-items: stretch;
+  }
+
+  .document-library-header-actions {
+    flex-direction: column-reverse;
+  }
+
+  .document-library-undo,
+  .document-library-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .document-list > li {
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+
+  .document-row-actions,
+  .document-rename-form,
+  .document-delete-confirmation {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .document-row-actions button {
+    flex: 1 1 calc(50% - 0.4rem);
+  }
+
+  .document-rename-form label {
+    flex-basis: 100%;
+  }
+
+  .document-rename-form input {
+    font-size: 1rem;
+  }
+
+  .document-delete-confirmation > span {
+    text-align: left;
   }
 
   .help-content {

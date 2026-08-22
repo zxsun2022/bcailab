@@ -18,7 +18,13 @@ import {
   undo,
   type EditorHistory
 } from "../model/history";
-import { createDocument, getNode, type NodeId, type ThemeSelection } from "../model/types";
+import {
+  createDocument,
+  getNode,
+  type MindMapDocument,
+  type NodeId,
+  type ThemeSelection
+} from "../model/types";
 import {
   canDelete,
   canMoveSide,
@@ -42,7 +48,21 @@ import {
   type Autosave,
   type SaveStatus
 } from "../storage/autosave";
-import { createStore, recallLastDocument } from "../storage/store";
+import {
+  createStore,
+  recallLastDocument,
+  rememberLastDocument,
+  type DocumentBundle,
+  type DocumentIndexEntry
+} from "../storage/store";
+import {
+  deleteLocalDocument,
+  duplicateLocalDocument,
+  listLocalDocuments,
+  renameLocalDocument,
+  restoreLocalDocument,
+  storeLocalDocument
+} from "../storage/library";
 import {
   IDENTITY,
   centerOn,
@@ -60,6 +80,7 @@ import { exportPng, scaleReductionMessage } from "../export/png";
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
+import { DocumentLibrary, type DocumentLibraryState } from "./DocumentLibrary";
 import { documentWithDraft, takeEditingSession } from "./draft-persistence";
 import { ToolbarMenu } from "./ToolbarMenu";
 
@@ -118,6 +139,7 @@ export function Editor() {
   const [history, setHistory] = useState<EditorHistory>(() =>
     createHistory({
       ...createDocument("New map"),
+      title: "New map",
       theme: systemThemeSelection()
     })
   );
@@ -134,11 +156,18 @@ export function Editor() {
   const [viewport, setViewport] = useState<Viewport>(IDENTITY);
   const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
   const [helpMode, setHelpMode] = useState<"help" | "search" | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [libraryState, setLibraryState] = useState<DocumentLibraryState>("loading");
+  const [libraryEntries, setLibraryEntries] = useState<DocumentIndexEntry[]>([]);
+  const [libraryUnavailableMessage, setLibraryUnavailableMessage] = useState<string | null>(null);
+  const [deletedDocuments, setDeletedDocuments] = useState<DocumentBundle[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const surfaceRef = useRef<HTMLDivElement>(null);
   const helpButtonRef = useRef<HTMLButtonElement>(null);
   const helpInvokerRef = useRef<HTMLElement | null>(null);
+  const libraryInvokerRef = useRef<HTMLElement | null>(null);
+  const skipNextAutosaveDocumentRef = useRef<string | null>(null);
   const editingRef = useRef<EditingState | null>(editing);
   const historyRef = useRef(history);
   const restoredRef = useRef(restored);
@@ -185,15 +214,16 @@ export function Editor() {
    * .activeElement` after a keypress rather than by reading the code.
    */
   useEffect(() => {
-    if (!editing && !helpMode) surfaceRef.current?.focus();
-  }, [editing, helpMode]);
+    if (!editing && !helpMode && !libraryOpen) surfaceRef.current?.focus();
+  }, [editing, helpMode, libraryOpen]);
 
   useEffect(() => {
-    const elements = document.querySelectorAll<HTMLElement>("[data-help-background]");
+    const overlayOpen = helpMode !== null || libraryOpen;
+    const elements = document.querySelectorAll<HTMLElement>("[data-overlay-background]");
     for (const element of elements) {
-      (element as HTMLElement & { inert: boolean }).inert = helpMode !== null;
+      (element as HTMLElement & { inert: boolean }).inert = overlayOpen;
     }
-  }, [helpMode]);
+  }, [helpMode, libraryOpen]);
 
   useEffect(() => {
     if (!editing) return;
@@ -219,7 +249,13 @@ export function Editor() {
   const autosaveRef = useRef<Autosave | null>(null);
 
   useEffect(() => {
-    const instance = createAutosave({ store, onStatus: setStatus });
+    const instance = createAutosave({
+      store,
+      onStatus: (nextStatus) => {
+        statusRef.current = nextStatus;
+        setStatus(nextStatus);
+      }
+    });
     autosaveRef.current = instance;
 
     const flushLatest = () => {
@@ -280,7 +316,11 @@ export function Editor() {
       .then((outcome) => {
         if (cancelled) return;
         if (outcome.kind === "restored" || outcome.kind === "restored-earlier") {
+          skipNextAutosaveDocumentRef.current = outcome.snapshot.document.id;
           setHistory(createHistory(outcome.snapshot.document, outcome.snapshot.selectedNodeId ?? undefined));
+          const restoredStatus: SaveStatus = { kind: "saved", at: outcome.snapshot.savedAt };
+          statusRef.current = restoredStatus;
+          setStatus(restoredStatus);
         }
         setNotice(recoveryMessage(outcome));
         setRestored(true);
@@ -305,6 +345,10 @@ export function Editor() {
   // Gated on `restored` so the empty starter cannot overwrite a real recovery point.
   useEffect(() => {
     if (!restored) return;
+    if (skipNextAutosaveDocumentRef.current === history.doc.id) {
+      skipNextAutosaveDocumentRef.current = null;
+      return;
+    }
     autosaveRef.current?.schedule(
       documentWithDraft(history.doc, editing),
       history.selection
@@ -359,6 +403,197 @@ export function Editor() {
       else surfaceRef.current?.focus();
     });
   }, []);
+
+  const setSavedStatus = useCallback((at: number) => {
+    const nextStatus: SaveStatus = { kind: "saved", at };
+    statusRef.current = nextStatus;
+    setStatus(nextStatus);
+  }, []);
+
+  const refreshDocumentLibrary = useCallback(
+    async (showLoading = false) => {
+      if (showLoading) setLibraryState("loading");
+      try {
+        const entries = await listLocalDocuments(store);
+        setLibraryEntries(entries);
+        setLibraryUnavailableMessage(null);
+        setLibraryState("ready");
+        return entries;
+      } catch {
+        setLibraryEntries([]);
+        setLibraryUnavailableMessage(
+          "This browser would not open Mapdown storage. The current map still works in memory; export Markdown before leaving it."
+        );
+        setLibraryState("unavailable");
+        return null;
+      }
+    },
+    [store]
+  );
+
+  const flushPendingLocalSave = useCallback(async () => {
+    await autosaveRef.current?.flush();
+    if (statusRef.current.kind === "failed") {
+      throw new Error(
+        "The current map is not saved in this browser. Export Markdown before switching documents."
+      );
+    }
+  }, []);
+
+  const activateLocalDocument = useCallback(
+    (document: MindMapDocument, selectedNodeId: NodeId | null, savedAt: number) => {
+      skipNextAutosaveDocumentRef.current = document.id;
+      setHistory(createHistory(document, selectedNodeId ?? undefined));
+      setViewport(IDENTITY);
+      rememberLastDocument(document.id);
+      setSavedStatus(savedAt);
+    },
+    [setSavedStatus]
+  );
+
+  const closeDocumentLibrary = useCallback(() => {
+    setLibraryOpen(false);
+    requestAnimationFrame(() => {
+      const target = libraryInvokerRef.current;
+      if (target?.isConnected && target.getClientRects().length > 0) target.focus();
+      else surfaceRef.current?.focus();
+    });
+  }, []);
+
+  const openDocumentLibrary = useCallback(async () => {
+    libraryInvokerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : surfaceRef.current;
+    const session = takeEditingSession(editingRef);
+    if (session) {
+      const committed = commitDraft(historyRef.current, session);
+      historyRef.current = committed;
+      setHistory(committed);
+      autosaveRef.current?.schedule(committed.doc, committed.selection);
+      closeEditing();
+    }
+    setLibraryOpen(true);
+    setLibraryState("loading");
+    try {
+      await flushPendingLocalSave();
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "The current map could not be saved.");
+    }
+    await refreshDocumentLibrary();
+  }, [closeEditing, commitDraft, flushPendingLocalSave, refreshDocumentLibrary]);
+
+  const createAndActivateLocalDocument = useCallback(async () => {
+    await flushPendingLocalSave();
+    const document = {
+      ...createDocument("New map"),
+      title: "New map",
+      theme: systemThemeSelection()
+    };
+    const bundle = await storeLocalDocument(store, document, document.rootId);
+    activateLocalDocument(document, document.rootId, bundle.entry.updatedAt);
+    return bundle;
+  }, [activateLocalDocument, flushPendingLocalSave, store]);
+
+  const openLocalDocument = useCallback(
+    async (documentId: string) => {
+      await flushPendingLocalSave();
+      const outcome = await recoverDocument(store, documentId);
+      if (outcome.kind !== "restored" && outcome.kind !== "restored-earlier") {
+        throw new Error("This local document has no readable recovery snapshot.");
+      }
+      activateLocalDocument(
+        outcome.snapshot.document,
+        outcome.snapshot.selectedNodeId,
+        outcome.snapshot.savedAt
+      );
+      if (outcome.kind === "restored-earlier") setNotice(recoveryMessage(outcome));
+      setAnnouncement(`Opened ${outcome.snapshot.document.title}.`);
+      closeDocumentLibrary();
+    },
+    [activateLocalDocument, closeDocumentLibrary, flushPendingLocalSave, store]
+  );
+
+  const newLocalDocument = useCallback(async () => {
+    const bundle = await createAndActivateLocalDocument();
+    setAnnouncement(`Created ${bundle.entry.title}.`);
+    closeDocumentLibrary();
+  }, [closeDocumentLibrary, createAndActivateLocalDocument]);
+
+  const renameStoredDocument = useCallback(
+    async (documentId: string, title: string) => {
+      const renamed = await renameLocalDocument(store, documentId, title);
+      if (documentId === historyRef.current.doc.id) {
+        skipNextAutosaveDocumentRef.current = documentId;
+        setHistory((state) => ({
+          ...state,
+          doc: { ...state.doc, title: renamed.entry.title }
+        }));
+        setSavedStatus(renamed.entry.updatedAt);
+      }
+      await refreshDocumentLibrary();
+      setAnnouncement(`Renamed document to ${renamed.entry.title}.`);
+    },
+    [refreshDocumentLibrary, setSavedStatus, store]
+  );
+
+  const duplicateStoredDocument = useCallback(
+    async (documentId: string) => {
+      const duplicate = await duplicateLocalDocument(store, documentId);
+      await refreshDocumentLibrary();
+      setAnnouncement(`Created ${duplicate.entry.title}.`);
+    },
+    [refreshDocumentLibrary, store]
+  );
+
+  const deleteStoredDocument = useCallback(
+    async (documentId: string) => {
+      const deletingActiveDocument = documentId === historyRef.current.doc.id;
+      if (deletingActiveDocument) await flushPendingLocalSave();
+      const deleted = await deleteLocalDocument(store, documentId);
+
+      try {
+        if (deletingActiveDocument) {
+          const remaining = await listLocalDocuments(store);
+          let activated = false;
+          for (const entry of remaining) {
+            const outcome = await recoverDocument(store, entry.id);
+            if (outcome.kind === "restored" || outcome.kind === "restored-earlier") {
+              activateLocalDocument(
+                outcome.snapshot.document,
+                outcome.snapshot.selectedNodeId,
+                outcome.snapshot.savedAt
+              );
+              activated = true;
+              break;
+            }
+          }
+          if (!activated) await createAndActivateLocalDocument();
+        }
+      } catch (error) {
+        await restoreLocalDocument(store, deleted);
+        throw error;
+      }
+
+      setDeletedDocuments((documents) => [...documents, deleted]);
+      await refreshDocumentLibrary();
+      setAnnouncement(`Deleted ${deleted.entry.title}. Undo delete is available.`);
+    },
+    [
+      activateLocalDocument,
+      createAndActivateLocalDocument,
+      flushPendingLocalSave,
+      refreshDocumentLibrary,
+      store
+    ]
+  );
+
+  const undoDeleteStoredDocument = useCallback(async () => {
+    const deleted = deletedDocuments.at(-1);
+    if (!deleted) return;
+    await restoreLocalDocument(store, deleted);
+    setDeletedDocuments((documents) => documents.slice(0, -1));
+    await refreshDocumentLibrary();
+    setAnnouncement(`Restored ${deleted.entry.title}.`);
+  }, [deletedDocuments, refreshDocumentLibrary, store]);
 
   /**
    * Escape exits the editing session. It does **not** discard what was typed.
@@ -562,7 +797,7 @@ export function Editor() {
   const onGlobalKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       const primary = event.metaKey || event.ctrlKey;
-      if (helpMode) return;
+      if (helpMode || libraryOpen) return;
       if (primary && event.key === "/") {
         event.preventDefault();
         openHelp("help");
@@ -578,7 +813,7 @@ export function Editor() {
         setViewport(resetZoom);
       }
     },
-    [helpMode, openHelp]
+    [helpMode, libraryOpen, openHelp]
   );
 
   const onKeyDown = useCallback(
@@ -644,9 +879,29 @@ export function Editor() {
       }
       const title = file.name.replace(/\.(md|markdown)$/i, "") || imported.doc.title;
       const nextDoc = { ...imported.doc, title };
-      closeEditing();
-      setHistory(createHistory(nextDoc, nextDoc.rootId));
-      setViewport(IDENTITY);
+      const session = takeEditingSession(editingRef);
+      if (session) {
+        const committed = commitDraft(historyRef.current, session);
+        historyRef.current = committed;
+        setHistory(committed);
+        autosaveRef.current?.schedule(committed.doc, committed.selection);
+        closeEditing();
+      }
+      try {
+        await flushPendingLocalSave();
+        const bundle = await storeLocalDocument(store, nextDoc, nextDoc.rootId, {
+          sourceFilename: file.name
+        });
+        activateLocalDocument(nextDoc, nextDoc.rootId, bundle.entry.updatedAt);
+      } catch (error) {
+        setNotice(
+          error instanceof Error
+            ? error.message
+            : `Could not save ${file.name} in this browser. The current map was not changed.`
+        );
+        setAnnouncement("Markdown import was not opened because local storage failed.");
+        return;
+      }
       setNotice(
         imported.warnings.length > 0
           ? `Opened ${file.name} with ${imported.warnings.length} ${imported.warnings.length === 1 ? "warning" : "warnings"}. ${imported.warnings[0]!.detail}`
@@ -661,7 +916,7 @@ export function Editor() {
     } finally {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [closeEditing]);
+  }, [activateLocalDocument, closeEditing, commitDraft, flushPendingLocalSave, store]);
 
   /**
    * Canvas callbacks stay stable while a textarea draft changes. Without this, every keystroke
@@ -910,6 +1165,10 @@ export function Editor() {
           setHistory(dispatch(committed, { type: "SetLayoutMode", mode, sides }));
           break;
         }
+        case "document-library":
+          setHistory(committed);
+          void openDocumentLibrary();
+          return;
         case "open-markdown":
           setHistory(committed);
           fileInputRef.current?.click();
@@ -946,6 +1205,7 @@ export function Editor() {
       downloadSvg,
       editing,
       history,
+      openDocumentLibrary,
       result
     ]
   );
@@ -1062,6 +1322,7 @@ export function Editor() {
         canReparent(doc, selection, previousSiblingId(doc, selection)!)) ||
       (nextSiblingId(doc, selection) !== null &&
         canReparent(doc, selection, nextSiblingId(doc, selection)!)));
+  const overlayOpen = helpMode !== null || libraryOpen;
 
   return (
     <div
@@ -1069,8 +1330,8 @@ export function Editor() {
       onKeyDownCapture={onGlobalKeyDown}
     >
       <header
-        data-help-background
-        aria-hidden={helpMode ? true : undefined}
+        data-overlay-background
+        aria-hidden={overlayOpen ? true : undefined}
         className="app-toolbar"
       >
         <div className="brand-lockup" aria-label="Mapdown">
@@ -1385,6 +1646,15 @@ export function Editor() {
               type="button"
               className="menu-action"
               data-close-menu
+              onClick={() => void openDocumentLibrary()}
+            >
+              <span>Document library…</span>
+              <small>Open and manage maps saved in this browser</small>
+            </button>
+            <button
+              type="button"
+              className="menu-action"
+              data-close-menu
               onClick={() => fileInputRef.current?.click()}
             >
               <span>Open Markdown…</span>
@@ -1436,8 +1706,8 @@ export function Editor() {
 
       {notice && (
         <div
-          data-help-background
-          aria-hidden={helpMode ? true : undefined}
+          data-overlay-background
+          aria-hidden={overlayOpen ? true : undefined}
           role="status"
           className="editor-notice"
         >
@@ -1448,8 +1718,29 @@ export function Editor() {
         </div>
       )}
 
+      {!notice && deletedDocuments.at(-1) && (
+        <div
+          data-overlay-background
+          aria-hidden={overlayOpen ? true : undefined}
+          role="status"
+          className="editor-notice"
+        >
+          <span>Deleted “{deletedDocuments.at(-1)!.entry.title}” from this browser.</span>
+          <button
+            type="button"
+            onClick={() =>
+              void undoDeleteStoredDocument().catch(() => {
+                setNotice("The deleted document could not be restored in this browser.");
+              })
+            }
+          >
+            Undo delete
+          </button>
+        </div>
+      )}
+
       {/*
-        The frame — not just the surface — carries the help-background marking. The zoom
+        The frame — not just the surface — carries the overlay-background marking. The zoom
         capsule and the authoring hint are the surface's *siblings*, so marking only the
         surface left them outside the inert set: `Primary+/` would hide the canvas from
         assistive technology and still expose two floating controls to a virtual cursor. The
@@ -1458,8 +1749,8 @@ export function Editor() {
       */}
       <div
         className="canvas-frame"
-        data-help-background
-        aria-hidden={helpMode ? true : undefined}
+        data-overlay-background
+        aria-hidden={overlayOpen ? true : undefined}
       >
         <div
           ref={surfaceRef}
@@ -1574,8 +1865,8 @@ export function Editor() {
       </div>
 
       <footer
-        data-help-background
-        aria-hidden={helpMode ? true : undefined}
+        data-overlay-background
+        aria-hidden={overlayOpen ? true : undefined}
         className="editor-statusbar"
       >
         <span className="status-shortcuts">
@@ -1604,6 +1895,22 @@ export function Editor() {
           mode={helpMode}
           commands={runtimeCommands}
           onClose={closeHelp}
+        />
+      )}
+      {libraryOpen && (
+        <DocumentLibrary
+          state={libraryState}
+          entries={libraryEntries}
+          activeDocumentId={doc.id}
+          unavailableMessage={libraryUnavailableMessage}
+          undoTitle={deletedDocuments.at(-1)?.entry.title ?? null}
+          onClose={closeDocumentLibrary}
+          onNew={newLocalDocument}
+          onOpen={openLocalDocument}
+          onRename={renameStoredDocument}
+          onDuplicate={duplicateStoredDocument}
+          onDelete={deleteStoredDocument}
+          onUndoDelete={undoDeleteStoredDocument}
         />
       )}
     </div>

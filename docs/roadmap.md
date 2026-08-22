@@ -484,6 +484,38 @@ Operational note: migration `0018` reached production *after* the code deploy, s
 returned an error until it was applied. Apply the migration before deploying code that reads a
 new column — see the deploy-ordering note in `docs/changelog.md`.
 
+## Now — Mapdown local document library
+
+The owner authorized Stage 1 of
+[the save/publish proposal](mapdown/save-publish-proposal.md) on 2026-08-21. This stage closes
+the existing local-storage gap before any account, cloud-save, or public-URL contract is
+introduced. Stages 2 and 3 remain proposals and are not authorized by this item.
+
+- Add a Mapdown-native document library backed by the existing IndexedDB document index. Every
+  indexed map is listed newest-first with its title, node count, last local update, import source
+  when known, and a clear current-document state.
+- Let people open, create, rename, duplicate, and delete local maps without an account or network
+  connection. Opening or creating a map must first finish the current pending local save; a
+  storage failure must keep the current in-memory map active rather than switching and losing it.
+- Rename and duplicate update the document snapshot and index consistently. Delete requires an
+  in-product confirmation, removes every stored snapshot for that map, and offers a current-tab
+  undo that restores the complete stored document. Deleting the active map selects another local
+  map or creates a new local map so the editor never has no active document.
+- Expose the library from the File menu and the canonical command registry. The dialog traps and
+  restores focus, works by keyboard and screen reader, reflows on mobile, and respects reduced
+  motion. If IndexedDB cannot be read, the dialog shows an honest unavailable state while the
+  in-memory editor remains usable.
+- Keep folders, tags, document search, PWA installation, File System Access API, recovery-history
+  UI, accounts, cloud sync, and publish/share URLs out of this stage.
+
+Acceptance evidence: storage tests for list ordering, rename, duplicate, delete/restore, complete
+snapshot cleanup, imported filename preservation, failed-write atomicity, and IndexedDB parity;
+command-registry coverage; browser QA at desktop and mobile widths for open/new/rename/duplicate,
+persistence across reload, keyboard focus, responsive layout, and delete confirmation/cancellation.
+The destructive delete/undo execution is verified in isolated storage tests rather than against
+the browser's live IndexedDB. Mapdown typecheck, lint, focused tests, full tests, and production
+build must pass. Finished work remains `in_review` until the owner accepts it.
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:

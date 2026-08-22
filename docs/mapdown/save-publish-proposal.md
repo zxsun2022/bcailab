@@ -1,8 +1,8 @@
 # Mapdown — Document Library, Account Save, and Publish
 
-**Status: proposal. Not authorized work.** Written 2026-08-18 at the owner's request. Nothing
-here may be implemented until the owner moves a stage into `docs/roadmap.md` with its
-acceptance criteria. Recorded as a pointer in `docs/exploration.md`.
+**Status:** Stage 1 was authorized by the owner on 2026-08-21 and its implementation is
+`in_review`; stages 2 and 3 remain proposals and are not authorized. Written 2026-08-18 at the
+owner's request and recorded as a pointer in `docs/exploration.md`.
 
 Four scoping decisions were made by the owner on 2026-08-18, before this document was written,
 and they are treated here as settled inputs:
@@ -42,17 +42,17 @@ way to reach it again. Documents accumulate in IndexedDB with no door back in.
 
 Stage 1 closes that on its own, with no backend, no account, and no new decision to reverse.
 
-## 3. Stage 1 — Local document library (no account, no network)
+## 3. Stage 1 — Local document library (no account, no network; in review)
 
 **Scope.** A document list inside Mapdown, built on the existing index: open, new, rename,
 duplicate, delete (confirmed and undoable per the destructive-action rule), sorted by
 `updatedAt`, showing title and node count. `sourceFilename` shows where an imported map came
 from. Recovery-snapshot history stays out of this stage unless it falls out for free.
 
-**Where it lives.** Inside Mapdown's own chrome — the *File* menu grows an *Open…* entry that
-opens the library, and the library is a Mapdown surface, not an English Studio one (D-05).
+**Where it lives.** Inside Mapdown's own chrome — the *File* menu grows a *Document library…*
+entry, and the library is a Mapdown surface, not an English Studio one (D-05).
 
-**Draft acceptance criteria.**
+**Acceptance criteria.**
 
 - (a) Every document that exists in the local index is reachable from the library; a map made
   unreachable by *Open Markdown…* before this stage is reachable after it.
@@ -68,6 +68,14 @@ opens the library, and the library is a Mapdown surface, not an English Studio o
 **Explicitly excluded from stage 1.** Folders, tags, search across documents, PWA install,
 File System Access API, recovery-history UI. `spec/phases.md` §7 already excludes a full
 folder/tag/library system.
+
+**Review evidence (2026-08-21).** The implementation adds a Mapdown-native, newest-first
+library with open/new/rename/duplicate/delete/current-tab undo; atomic index-and-snapshot
+storage operations; imported-filename preservation; command/help integration; focus trapping,
+focus restoration and responsive layout. Storage and IndexedDB tests cover the destructive
+operation and complete restoration. Browser QA covered persistence across reload, keyboard
+focus, confirmation cancellation and the 375 px layout without console errors. The final
+typecheck, lint, test and production-build results are recorded in `docs/changelog.md`.
 
 ## 4. Stage 2 — Account save
 
@@ -269,4 +277,5 @@ before or alongside the implementation:
    downstream of stage 2.
 3. **Quotas.** Documents per user, bytes per document, published maps per user. Needs numbers
    before implementation, in the shape of `docs/tools/`'s existing per-tool quota records.
-4. **Recovery-history UI** (`spec/phases.md` §7) — inside stage 1, or deferred?
+4. **Recovery-history UI** (`spec/phases.md` §7) — resolved for stage 1: deferred. The local
+   library exposes documents, not individual recovery snapshots.

@@ -31,6 +31,12 @@ export interface DocumentIndexEntry {
   sourceFilename?: string;
 }
 
+/** A complete local document, used for document-level operations and current-tab undo. */
+export interface DocumentBundle {
+  entry: DocumentIndexEntry;
+  snapshots: Snapshot[];
+}
+
 export interface SnapshotStore {
   putSnapshot(snapshot: Snapshot): Promise<void>;
   getSnapshot(id: string): Promise<Snapshot | null>;
@@ -39,6 +45,9 @@ export interface SnapshotStore {
   putIndexEntry(entry: DocumentIndexEntry): Promise<void>;
   getIndexEntry(documentId: string): Promise<DocumentIndexEntry | null>;
   listIndexEntries(): Promise<DocumentIndexEntry[]>;
+  getDocumentBundle(documentId: string): Promise<DocumentBundle | null>;
+  putDocumentBundle(bundle: DocumentBundle): Promise<void>;
+  deleteDocumentBundle(documentId: string): Promise<DocumentBundle | null>;
 }
 
 /**
@@ -94,12 +103,16 @@ export class MemoryStore implements SnapshotStore {
   /** Test hook: make the next write fail the way a quota error would. */
   failNextWrite: string | null = null;
 
-  async putSnapshot(snapshot: Snapshot): Promise<void> {
+  private rejectFailedWrite(): void {
     if (this.failNextWrite) {
       const message = this.failNextWrite;
       this.failNextWrite = null;
       throw new Error(message);
     }
+  }
+
+  async putSnapshot(snapshot: Snapshot): Promise<void> {
+    this.rejectFailedWrite();
     this.snapshots.set(snapshot.id, structuredClone(snapshot));
   }
 
@@ -130,6 +143,32 @@ export class MemoryStore implements SnapshotStore {
 
   async listIndexEntries(): Promise<DocumentIndexEntry[]> {
     return [...this.index.values()];
+  }
+
+  async getDocumentBundle(documentId: string): Promise<DocumentBundle | null> {
+    const entry = this.index.get(documentId);
+    if (!entry) return null;
+    const snapshots = [...this.snapshots.values()]
+      .filter((snapshot) => snapshot.documentId === documentId)
+      .sort((a, b) => a.savedAt - b.savedAt);
+    return structuredClone({ entry, snapshots });
+  }
+
+  async putDocumentBundle(bundle: DocumentBundle): Promise<void> {
+    this.rejectFailedWrite();
+    for (const snapshot of bundle.snapshots) {
+      this.snapshots.set(snapshot.id, structuredClone(snapshot));
+    }
+    this.index.set(bundle.entry.id, { ...bundle.entry });
+  }
+
+  async deleteDocumentBundle(documentId: string): Promise<DocumentBundle | null> {
+    const bundle = await this.getDocumentBundle(documentId);
+    for (const [id, snapshot] of this.snapshots) {
+      if (snapshot.documentId === documentId) this.snapshots.delete(id);
+    }
+    this.index.delete(documentId);
+    return bundle;
   }
 
   /** Test helper: corrupt a stored snapshot the way a torn write would. */
@@ -182,18 +221,38 @@ export class IndexedDbStore implements SnapshotStore {
     return this.db;
   }
 
-  private async tx<T>(store: string, mode: IDBTransactionMode, run: (s: IDBObjectStore) => Promise<T>) {
+  private async txStores<T>(
+    stores: string[],
+    mode: IDBTransactionMode,
+    run: (store: (name: string) => IDBObjectStore) => Promise<T>
+  ) {
     const db = await this.open();
-    const transaction = db.transaction(store, mode);
-    const result = await run(transaction.objectStore(store));
-    // §5.4 — the write is not "done" until the transaction completes. Resolving on the request
-    // alone would let the index pointer advance past a snapshot that never landed.
-    await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction(stores, mode);
+    const completion = new Promise<void>((resolve, reject) => {
       transaction.oncomplete = () => resolve();
       transaction.onerror = () => reject(transaction.error ?? new Error("Transaction failed"));
       transaction.onabort = () => reject(transaction.error ?? new Error("Transaction aborted"));
     });
+    let result: T;
+    try {
+      result = await run((name) => transaction.objectStore(name));
+    } catch (error) {
+      try {
+        transaction.abort();
+      } catch {
+        // The transaction may already have aborted because the request failed.
+      }
+      await completion.catch(() => {});
+      throw error;
+    }
+    // §5.4 — the write is not "done" until the transaction completes. Resolving on the request
+    // alone would let the index pointer advance past a snapshot that never landed.
+    await completion;
     return result;
+  }
+
+  private tx<T>(store: string, mode: IDBTransactionMode, run: (s: IDBObjectStore) => Promise<T>) {
+    return this.txStores([store], mode, (getStore) => run(getStore(store)));
   }
 
   putSnapshot(snapshot: Snapshot) {
@@ -225,6 +284,45 @@ export class IndexedDbStore implements SnapshotStore {
 
   listIndexEntries() {
     return this.tx(INDEX, "readonly", async (s) => request<DocumentIndexEntry[]>(s.getAll()));
+  }
+
+  getDocumentBundle(documentId: string) {
+    return this.txStores([SNAPSHOTS, INDEX], "readonly", async (getStore) => {
+      const entry = await request<DocumentIndexEntry | undefined>(getStore(INDEX).get(documentId));
+      if (!entry) return null;
+      const snapshots = await request<Snapshot[]>(
+        getStore(SNAPSHOTS).index("documentId").getAll(documentId)
+      );
+      return {
+        entry,
+        snapshots: snapshots.sort((a, b) => a.savedAt - b.savedAt)
+      };
+    });
+  }
+
+  putDocumentBundle(bundle: DocumentBundle) {
+    return this.txStores([SNAPSHOTS, INDEX], "readwrite", async (getStore) => {
+      await Promise.all(
+        bundle.snapshots.map((snapshot) => request(getStore(SNAPSHOTS).put(snapshot)))
+      );
+      await request(getStore(INDEX).put(bundle.entry));
+    });
+  }
+
+  deleteDocumentBundle(documentId: string) {
+    return this.txStores([SNAPSHOTS, INDEX], "readwrite", async (getStore) => {
+      const entry = await request<DocumentIndexEntry | undefined>(getStore(INDEX).get(documentId));
+      const snapshots = await request<Snapshot[]>(
+        getStore(SNAPSHOTS).index("documentId").getAll(documentId)
+      );
+      await Promise.all(
+        snapshots.map((snapshot) => request(getStore(SNAPSHOTS).delete(snapshot.id)))
+      );
+      await request(getStore(INDEX).delete(documentId));
+      return entry
+        ? { entry, snapshots: snapshots.sort((a, b) => a.savedAt - b.savedAt) }
+        : null;
+    });
   }
 }
 

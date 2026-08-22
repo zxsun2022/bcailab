@@ -753,6 +753,33 @@ the same resolved pair as the canvas and the SVG exporter.
 
 ---
 
+## D-25 — The local document library is a lightweight index over complete stored bundles
+
+**Decided 2026-08-21** by the owner when authorizing stage 1 of the save/publish proposal.
+
+**Decision.** Mapdown exposes every locally indexed document in a newest-first library with
+New, Open, Rename, Duplicate and confirmed Delete. A stored document is an index entry plus all
+of its snapshots: rename, duplicate, deletion and current-tab undo operate on that complete
+bundle, never on the index alone. Deleting the active document opens another readable local map
+or creates a new one, so the editor always has an active in-memory document. The library is
+Mapdown chrome, available without an account or network, and sends no content.
+
+**Why.** IndexedDB already supported multiple documents, while the editor exposed only the last
+active one. Import could therefore create a stored document with no route back to it. Making the
+existing index visible closes that data-reachability gap without weakening local-first behavior
+or introducing an account contract. Atomic bundle operations prevent misleading rows, orphaned
+snapshots and partial undo.
+
+**Interaction and accessibility.** Delete requires an in-product confirmation and offers a
+persistent current-tab undo instead of a timed toast. The dialog traps and restores focus,
+focuses Cancel during destructive confirmation, makes the editor background inert and adapts to
+mobile width. These are part of the behavior, not optional polish.
+
+**Boundary.** This decision does not authorize folders, tags, document search, recovery-history
+UI, PWA installation, direct filesystem handles, accounts, cloud sync or published URLs.
+
+---
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

@@ -9,6 +9,19 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-21 — **in_review: added Mapdown's local document library.** Every IndexedDB-indexed
+  map is now reachable from File → Document library and the command/help registry, newest-first,
+  with new/open/rename/duplicate and confirmed delete. Duplicate preserves the full internal
+  document state; delete atomically removes the index entry and all snapshots, then offers a
+  current-tab undo that restores the complete bundle. Imported filenames survive later
+  autosaves. The dialog traps/restores focus, keeps Cancel focused for destructive confirmation,
+  leaves the editor inert while open, reports storage failures without replacing the in-memory
+  map, and reflows without horizontal overflow at 375 px. Account save and public URLs remain
+  proposal-only. Evidence: 33 focused storage/IndexedDB/command tests; browser
+  persistence/focus/mobile and confirmation-cancellation QA with no console errors; 587 passing
+  tests repo-wide; Mapdown typecheck and production build; and root lint with 0 errors (the same
+  9 existing Hook dependency warnings). The owner must still accept this roadmap item.
+
 - 2026-08-18 — **accepted: optional account passwords and a `/profile` page.** Extended the
   existing passwordless auth (email OTP + Google, unchanged) instead of adopting better-auth,
   which was considered and declined. Added a nullable `users.password_hash` (migration 0018)

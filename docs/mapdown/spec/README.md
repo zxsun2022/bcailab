@@ -74,6 +74,7 @@ an inline `> **Amendment (date)**` note at the point of change and a matching re
 | D-17 | `product-specification.md` §§5–6; `interaction.md` §§4, 6, 9; `keyboard.md` §4 | Normative — editing Enter commits only; selected Enter creates |
 | D-18 | `storage-export.md` §11.3 | Normative — downloads are named from the root label |
 | D-19 | `keyboard.md` §10 | Normative — `Primary+0` resets canvas zoom to 100% |
+| D-25 | `storage-export.md` §§4, 17 | Normative — lightweight local document library and complete document deletion/undo |
 
 ## 4. Normative product decisions
 
