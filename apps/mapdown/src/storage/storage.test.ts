@@ -117,6 +117,40 @@ describe("§5 — autosave", () => {
 
     expect((await store.getIndexEntry(document.id))?.sourceFilename).toBe("outline.md");
   });
+
+  it("keeps the online copy current across selection-only autosaves", async () => {
+    const store = new MemoryStore();
+    const document = docWith(["child"]);
+    const autosave = harness(store).autosave;
+    autosave.schedule(document, document.rootId);
+    await autosave.flush();
+
+    const savedOnline = (await store.getIndexEntry(document.id))!;
+    await store.putIndexEntry({
+      ...savedOnline,
+      cloudDocumentId: "cloud-1",
+      cloudVersion: 1,
+      cloudSavedSnapshotId: savedOnline.lastSnapshotId,
+      cloudUpdatedAt: 1_000
+    });
+
+    const childId = getNode(document, document.rootId).childIds[0]!;
+    autosave.schedule(document, childId);
+    await autosave.flush();
+    const selectionOnly = (await store.getIndexEntry(document.id))!;
+    expect(selectionOnly.cloudSavedSnapshotId).toBe(selectionOnly.lastSnapshotId);
+
+    const changed = applyCommand(document, {
+      type: "RenameNode",
+      nodeId: childId,
+      text: "changed"
+    }).doc;
+    autosave.schedule(changed, childId);
+    await autosave.flush();
+    const pending = (await store.getIndexEntry(document.id))!;
+    expect(pending.cloudSavedSnapshotId).toBe(selectionOnly.lastSnapshotId);
+    expect(pending.cloudSavedSnapshotId).not.toBe(pending.lastSnapshotId);
+  });
 });
 
 describe("§5.4 — atomicity", () => {

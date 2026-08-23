@@ -789,7 +789,9 @@ D1 database and R2 bucket. An authenticated `bcailab.com` page creates a signed,
 60-second, single-use `bcailab:mapdown-signin:v1` handoff. Mapdown exchanges it for an
 independent, Host-only `mapdown_session`; `bcailab_session` remains unchanged and never reaches
 the Mapdown host. The two session types use separate tables and cannot authenticate each
-other. This corrects D-04's original static-only deployment statement without reversing D-10.
+other. Production and Preview audiences are exact configured origins; arbitrary `pages.dev`
+commit previews are rejected. This corrects D-04's original static-only deployment statement
+without reversing D-10.
 
 **Why.** A same-origin API avoids CORS and cross-domain cookies while keeping imported content,
 SVG generation and account authority in separate security compartments. A consumed nonce makes
@@ -807,6 +809,8 @@ at most 512 KiB UTF-8 and 10,000 nodes, with a 120-code-point title.
 
 **Why.** Canonical Markdown is deliberately lossy for private editor state. Using it for sync
 would silently discard state or pull the deferred `.mind.md` profile into this feature.
+Selection is retained in every lossless recovery snapshot, but changing selection alone does
+not represent pending map content and therefore carries the existing synced marker forward.
 
 ## D-28 — Cloud writes use optimistic concurrency and never silently overwrite
 
@@ -833,6 +837,9 @@ the URL; ordinary edits and online saves do not change the frozen public version
 revokes immediately; republish creates a new URL. The public response is `no-store`, `noindex`,
 strict-CSP, read-only, and displays user content only as an isolated SVG image. Limits are 25
 active publications, 256 KiB Markdown, 2 MiB SVG and 4 MiB PNG per version.
+The in-product confirmation names the map and node count, states that current changes are saved
+online before the frozen public version is created or replaced, and keeps the resulting public
+URL visible inside the document library.
 
 **Why.** Worker-side layout cannot reproduce the editor's canvas text measurement. Uploading
 the exact existing SVG gives JavaScript-free rendering; rasterising the same layout on the

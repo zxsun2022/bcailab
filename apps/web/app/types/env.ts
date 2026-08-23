@@ -15,6 +15,7 @@ export type Env = {
   SESSION_SECRET: string;
   SESSION_SECRET_PREVIOUS?: string;
   MAPDOWN_HANDOFF_SECRET: string;
+  MAPDOWN_PREVIEW_ORIGIN?: string;
 };
 
 export type AppExecutionContext = {

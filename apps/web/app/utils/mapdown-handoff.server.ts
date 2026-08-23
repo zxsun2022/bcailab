@@ -19,7 +19,7 @@ function base64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 }
 
-export function allowedMapdownOrigin(value: string | null): string | null {
+function exactRootOrigin(value: string | null | undefined, protocol?: "https:"): string | null {
   if (!value) return null;
   let url: URL;
   try {
@@ -27,9 +27,29 @@ export function allowedMapdownOrigin(value: string | null): string | null {
   } catch {
     return null;
   }
-  if (url.origin === "https://map.bcailab.com" && url.pathname === "/") return url.origin;
+  if (
+    (protocol === undefined || url.protocol === protocol) &&
+    url.pathname === "/" &&
+    !url.search &&
+    !url.hash &&
+    !url.username &&
+    !url.password
+  ) return url.origin;
+  return null;
+}
+
+export function allowedMapdownOrigin(
+  value: string | null,
+  previewOrigin?: string
+): string | null {
+  const exact = exactRootOrigin(value);
+  if (!exact) return null;
+  if (exact === "https://map.bcailab.com") return exact;
+  const configuredPreview = exactRootOrigin(previewOrigin, "https:");
+  if (configuredPreview && exact === configuredPreview) return exact;
+  const url = new URL(exact);
   const local = (url.hostname === "localhost" || url.hostname === "127.0.0.1") && url.protocol === "http:";
-  return local && url.pathname === "/" ? url.origin : null;
+  return local ? url.origin : null;
 }
 
 export async function hashMapdownNonce(nonce: string): Promise<string> {
@@ -44,10 +64,15 @@ export async function createMapdownHandoff(input: {
   secret: string;
   userId: string;
   audience: string;
+  previewOrigin?: string;
   nowMs?: number;
   nonce?: string;
 }): Promise<{ token: string; nonceHash: string; expiresAt: number }> {
-  if (!input.secret || !input.userId || !allowedMapdownOrigin(input.audience)) {
+  if (
+    !input.secret ||
+    !input.userId ||
+    !allowedMapdownOrigin(input.audience, input.previewOrigin)
+  ) {
     throw new Error("Mapdown handoff is not configured.");
   }
   const issuedAt = Math.floor((input.nowMs ?? Date.now()) / 1000);

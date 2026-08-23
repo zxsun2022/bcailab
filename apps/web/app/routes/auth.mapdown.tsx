@@ -15,7 +15,10 @@ const scriptValue = (value: string): string => JSON.stringify(value).replace(/</
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
-  const audience = allowedMapdownOrigin(url.searchParams.get("origin"));
+  const audience = allowedMapdownOrigin(
+    url.searchParams.get("origin"),
+    context.env.MAPDOWN_PREVIEW_ORIGIN
+  );
   if (!audience) return new Response("Invalid Mapdown origin.", { status: 400 });
 
   const user = await getOptionalUser(request, context);
@@ -29,7 +32,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const handoff = await createMapdownHandoff({
     secret: requireEnv(context.env, "MAPDOWN_HANDOFF_SECRET"),
     userId: user.id,
-    audience
+    audience,
+    previewOrigin: context.env.MAPDOWN_PREVIEW_ORIGIN
   });
   const now = Date.now();
   await context.env.DB.prepare(`

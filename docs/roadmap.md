@@ -533,7 +533,10 @@ only the owner can accept it.
   `mapdown_session`; token replay, tampering, expiry, wrong audience and wrong subject fail.
 - Reuse the main site's Google, email-code and password sign-in UI, returning the popup to
   `/auth/mapdown` after authentication. The handoff secret is a dedicated
-  `MAPDOWN_HANDOFF_SECRET`, configured on both Pages projects and never committed.
+  `MAPDOWN_HANDOFF_SECRET`, configured on both Pages projects and never committed. Preview
+  integration requires one exact `MAPDOWN_PREVIEW_ORIGIN` matching Mapdown's Preview
+  `MAPDOWN_ORIGIN`, a build-time `VITE_WEB_ORIGIN` pointing Mapdown at the stable Web Preview,
+  and the same Preview D1 on both apps; arbitrary commit-preview hosts remain rejected.
 - Save a versioned, lossless internal JSON snapshot only after an explicit per-document action.
   The server issues the cloud document id; the client document id is only a user-scoped
   idempotency key. Cloud list/read/update/delete operations are owner-scoped, with a foreign id
@@ -543,7 +546,8 @@ only the owner can accept it.
   no realtime collaboration or automatic merge is introduced.
 - The local library shows Local only / Saved online / Published state, includes online-only
   documents after sign-in, and can download an online snapshot into IndexedDB without losing
-  its node ids, collapse state, sides, selection or theme.
+  its node ids, collapse state, sides, selection or theme. Selection-only recovery snapshots do
+  not turn Saved online into a false pending-content state.
 
 Capacity limits, derived from synthetic 100/500/2,000-node maps rather than user telemetry:
 100 private documents per user, 512 KiB UTF-8 per private snapshot, 120 Unicode code points per
@@ -565,6 +569,9 @@ builds. Deployment is migration-first under ADR 0008.
   from the same layout for link previews. The public record is a
   frozen version; ordinary local edits and cloud saves do not change it until **Update
   published version** is invoked.
+- Publish/update confirmation names the map and node count and states that current changes are
+  first saved online. The resulting public URL and Copy link stay visible inside the document
+  library; online-only rows explain that a local open is required to render public assets.
 - Serve unlisted URLs as `https://share.bcailab.com/p/{random-id}`. The viewer host receives no
   authenticated cookie, renders user content only through an isolated SVG `<img>`, applies a
   strict CSP and `noindex`, and provides keyboard-operable zoom/fit controls plus a no-JavaScript

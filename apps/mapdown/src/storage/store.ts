@@ -62,8 +62,17 @@ export interface SnapshotStore {
  * snapshot that was written partially or mangled, which is the failure §6 asks recovery to
  * survive.
  */
+function hashCanonical(canonical: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < canonical.length; i++) {
+    hash ^= canonical.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
 export function checksumOf(document: MindMapDocument): string {
-  const canonical = JSON.stringify({
+  return hashCanonical(JSON.stringify({
     rootId: document.rootId,
     nodes: Object.keys(document.nodes)
       .sort()
@@ -71,13 +80,33 @@ export function checksumOf(document: MindMapDocument): string {
         const node = document.nodes[id]!;
         return [id, node.text, node.parentId, node.childIds.join(","), node.collapsed, node.side];
       })
+  }));
+}
+
+/**
+ * Identity for the cloud-visible map content. Selection and revision are deliberately absent:
+ * selecting a node is local recovery state, while revision may change after undoing back to
+ * exactly the content already saved online.
+ */
+export function canonicalCloudContentOf(document: MindMapDocument): string {
+  return JSON.stringify({
+    schemaVersion: document.schemaVersion,
+    id: document.id,
+    title: document.title,
+    rootId: document.rootId,
+    nodes: Object.keys(document.nodes)
+      .sort()
+      .map((id) => {
+        const node = document.nodes[id]!;
+        return [id, node.text, node.parentId, node.childIds, node.collapsed, node.side];
+      }),
+    layout: document.layout.mode,
+    theme: [
+      document.theme.shapeId,
+      document.theme.paletteId,
+      document.theme.branchColorMode
+    ]
   });
-  let hash = 2166136261;
-  for (let i = 0; i < canonical.length; i++) {
-    hash ^= canonical.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return (hash >>> 0).toString(36);
 }
 
 export function makeSnapshot(

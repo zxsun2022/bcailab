@@ -43,6 +43,24 @@ make the final transition; see `AGENTS.md`.
     handoff resource by full document navigation. All 598 tests, three typechecks, both production
     builds, and lint pass (zero errors; the same 9 pre-existing Hook warnings). Migration 0020 was
     applied only to local D1; no remote migration, deployment, push, or production mutation ran.
+  - Review follow-up (2026-08-22): selection-only autosaves now carry the saved-online marker
+    to the newest local recovery snapshot by exactly comparing canonical map content without
+    selection or revision;
+    actual text, collapse, layout and theme changes still show pending. Publish, update,
+    unpublish and online-delete confirmations now live inside the document library, focus Cancel,
+    restore focus on Escape/cancel and state every online/public consequence. Publish/update
+    explicitly disclose the preceding online save, and success leaves the public URL plus Copy
+    link visible in the dialog. Online-only rows explain why the map must be opened locally
+    before publishing. Preview handoff now accepts one optional exact
+    `MAPDOWN_PREVIEW_ORIGIN`; wildcard and unrelated `pages.dev` hosts remain rejected. Evidence:
+    authenticated browser QA reproduced real-content pending, then kept Saved online after only
+    switching nodes; verified all four inline confirmation flows, focus behavior, visible publish
+    result, no native confirm, no 375 px horizontal overflow and no console errors. Exact Preview
+    audience issuance/verification is contract-tested; the runbook now also requires Mapdown's
+    build-time Web Preview origin and the same Preview D1 on both projects so nonce creation and
+    consumption cannot split across environments. It was not deployed. All 602 tests, three
+    typechecks, both production builds and lint pass (zero errors; the same 9 pre-existing Hook
+    warnings). No remote environment, secret, domain, migration, deployment or push changed.
 
 - 2026-08-21 — **in_review: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,

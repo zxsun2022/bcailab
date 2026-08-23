@@ -92,6 +92,8 @@ Set the following for the Pages project:
 - `SESSION_SECRET_PREVIOUS` (optional; old session signing secret during rotation only)
 - `MAPDOWN_HANDOFF_SECRET` (dedicated high-entropy HMAC secret; must match the Mapdown Pages
   project and must not reuse `SESSION_SECRET`)
+- `MAPDOWN_PREVIEW_ORIGIN` (optional; exact stable Mapdown Preview origin, for example
+  `https://review.mapdown.pages.dev`; never use a wildcard or an arbitrary commit-preview URL)
 - `RESEND_API_KEY` (email OTP sign-in codes; set via `wrangler pages secret put RESEND_API_KEY`)
 - `RESEND_FROM` (optional; default `bcailab <login@bcailab.com>` — the domain must be verified in Resend with SPF/DKIM DNS records)
 
@@ -101,6 +103,19 @@ server console and shown inline in the dev UI.
 The Mapdown Pages project requires `MAPDOWN_HANDOFF_SECRET` as a secret and the checked-in
 `WEB_ORIGIN`, `MAPDOWN_ORIGIN`, and `PUBLISHED_ORIGIN` vars. Production D1/R2 bindings are in
 `apps/mapdown/wrangler.jsonc`; confirm equivalent Preview bindings in the Pages dashboard.
+
+Cross-app Preview sign-in requires a stable branch alias for **both** Pages projects and these
+settings in their Preview environments:
+
+- Web: `MAPDOWN_PREVIEW_ORIGIN=<exact stable Mapdown Preview origin>`.
+- Mapdown runtime: `MAPDOWN_ORIGIN=<the same exact stable Mapdown Preview origin>`.
+- Mapdown build: `VITE_WEB_ORIGIN=<exact stable Web Preview origin>` so the popup and its nonce
+  are created by Preview Web rather than production Web.
+- Both projects: the same `MAPDOWN_HANDOFF_SECRET` and the same Preview D1 binding. The checked-in
+  configs currently share preview database id `8707dea1-f2f7-4a3c-99ee-2245cb63e22c`.
+
+All origins are HTTPS roots with no path, query, fragment, or credentials. Commit-specific
+`*.pages.dev` hosts remain rejected so an untrusted preview cannot receive a handoff token.
 
 Recommended additional settings:
 - `PNPM_VERSION` = `9.12.0`
@@ -139,9 +154,9 @@ Bindings are defined in the root/Web `wrangler.toml` files and Mapdown's
 3. Confirm Mapdown's `DB` and `R2` bindings and attach `share.bcailab.com` as a second custom
    domain on the Mapdown Pages project.
 4. Deploy Web and Mapdown, then deploy `bcailab-session-cleanup`.
-5. Verify sign-in exchange, explicit first save, stale-version rejection, publish, public SVG,
-   PNG `og:image`, and unpublish returning an uncached 404. Do not deploy code that reads the new
-   tables or `png_key` before step 1.
+5. Verify production and configured Preview sign-in exchange, explicit first save,
+   stale-version rejection, publish, public SVG, PNG `og:image`, and unpublish returning an
+   uncached 404. Do not deploy code that reads the new tables or `png_key` before step 1.
 
 ### Publication reports and takedown
 
@@ -175,6 +190,9 @@ Recommended setup:
   - `DB` -> staging D1
   - `R2` -> staging R2 bucket
   - `GEMINI_API_KEY`, `GEMINI_MODEL`, and all auth/session env vars
+  - for Mapdown handoff, the paired stable Preview origins and shared secret described under
+    "Pages Environment Variables"; Web and Mapdown must bind the same staging D1 because the
+    nonce is created by Web and consumed by Mapdown
 
 If preview/staging is missing newer D1 migrations, tool routes that depend on
 them may be unavailable. In particular, the current `/writing` catalogue requires

@@ -1,10 +1,51 @@
 import { useEffect, useRef, useState } from "react";
 import { DOCUMENT_TITLE_MAX_LENGTH } from "../storage/library";
 import type { DocumentIndexEntry } from "../storage/store";
-import type { CloudDocumentSummary, CloudUser } from "../cloud/types";
+import type { CloudDocumentSummary, CloudPublication, CloudUser } from "../cloud/types";
 
 export type DocumentLibraryState = "loading" | "ready" | "unavailable";
 export type CloudLibraryState = "loading" | "signed-out" | "ready" | "unavailable";
+
+type CloudConfirmation =
+  | {
+      kind: "publish";
+      localDocumentId: string;
+      title: string;
+      nodeCount: number;
+      updatesExisting: boolean;
+    }
+  | {
+      kind: "unpublish";
+      localDocumentId: string;
+      title: string;
+    }
+  | {
+      kind: "delete-online";
+      cloudDocumentId: string;
+      title: string;
+      revokesPublication: boolean;
+    };
+
+export function cloudConfirmationCopy(confirmation: CloudConfirmation): string {
+  if (confirmation.kind === "publish") {
+    const nodeLabel = `${confirmation.nodeCount.toLocaleString()} ${
+      confirmation.nodeCount === 1 ? "node" : "nodes"
+    }`;
+    return confirmation.updatesExisting
+      ? `Save the current changes to the online copy, then replace the frozen public version of “${confirmation.title}” (${nodeLabel})? The public URL stays the same.`
+      : `Save “${confirmation.title}” online, then publish a frozen public version (${nodeLabel})? Later edits stay private until you update the published version.`;
+  }
+  if (confirmation.kind === "unpublish") {
+    return `Unpublish “${confirmation.title}”? Its current public URL will return 404 immediately. Publishing it again later creates a new URL.`;
+  }
+  return `Delete “${confirmation.title}” from online save?${confirmation.revokesPublication ? " Its public link will stop working immediately." : ""} Local copies in this browser will remain.`;
+}
+
+function cloudConfirmationKey(confirmation: CloudConfirmation): string {
+  return confirmation.kind === "delete-online"
+    ? `${confirmation.kind}-${confirmation.cloudDocumentId}`
+    : `${confirmation.kind}-${confirmation.localDocumentId}`;
+}
 
 export function isOnlineCopyCurrent(
   entry: DocumentIndexEntry,
@@ -43,7 +84,7 @@ interface DocumentLibraryProps {
   onSaveOnline: (localDocumentId: string) => Promise<void>;
   onOpenOnline: (cloudDocumentId: string) => Promise<void>;
   onDeleteOnline: (cloudDocumentId: string) => Promise<void>;
-  onPublish: (localDocumentId: string) => Promise<void>;
+  onPublish: (localDocumentId: string) => Promise<CloudPublication>;
   onUnpublish: (localDocumentId: string) => Promise<void>;
   onCopyPublishedLink: (url: string) => Promise<void>;
 }
@@ -83,11 +124,19 @@ export function DocumentLibrary({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [cloudConfirmation, setCloudConfirmation] = useState<CloudConfirmation | null>(null);
+  const [publicationResult, setPublicationResult] = useState<{
+    title: string;
+    publication: CloudPublication;
+    updated: boolean;
+  } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const renameRef = useRef<HTMLInputElement>(null);
   const cancelDeleteRef = useRef<HTMLButtonElement>(null);
+  const cancelCloudConfirmationRef = useRef<HTMLButtonElement>(null);
+  const cloudConfirmationInvokerKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -101,6 +150,10 @@ export function DocumentLibrary({
     if (confirmDeleteId) cancelDeleteRef.current?.focus();
   }, [confirmDeleteId]);
 
+  useEffect(() => {
+    if (cloudConfirmation) cancelCloudConfirmationRef.current?.focus();
+  }, [cloudConfirmation]);
+
   const run = async (key: string, action: () => Promise<void>) => {
     setPendingAction(key);
     setActionError(null);
@@ -113,11 +166,59 @@ export function DocumentLibrary({
     }
   };
 
+  const closeCloudConfirmation = () => {
+    setCloudConfirmation(null);
+    requestAnimationFrame(() => {
+      const invokerKey = cloudConfirmationInvokerKeyRef.current;
+      const invoker = [...(dialogRef.current?.querySelectorAll<HTMLButtonElement>(
+        "button[data-cloud-action]"
+      ) ?? [])].find((button) => button.dataset.cloudAction === invokerKey);
+      if (invoker && invoker.getClientRects().length > 0) invoker.focus();
+      else headingRef.current?.focus();
+      cloudConfirmationInvokerKeyRef.current = null;
+    });
+  };
+
+  const beginCloudConfirmation = (confirmation: CloudConfirmation) => {
+    cloudConfirmationInvokerKeyRef.current = cloudConfirmationKey(confirmation);
+    setCloudConfirmation(confirmation);
+    setConfirmDeleteId(null);
+    setRenamingId(null);
+    setActionError(null);
+  };
+
+  const executeCloudConfirmation = () => {
+    const confirmation = cloudConfirmation;
+    if (!confirmation) return;
+    const id = confirmation.kind === "delete-online"
+      ? confirmation.cloudDocumentId
+      : confirmation.localDocumentId;
+    void run(`confirm-${confirmation.kind}-${id}`, async () => {
+      if (confirmation.kind === "publish") {
+        const publication = await onPublish(confirmation.localDocumentId);
+        setPublicationResult({
+          title: confirmation.title,
+          publication,
+          updated: confirmation.updatesExisting
+        });
+      } else if (confirmation.kind === "unpublish") {
+        await onUnpublish(confirmation.localDocumentId);
+        setPublicationResult(null);
+      } else {
+        await onDeleteOnline(confirmation.cloudDocumentId);
+        setPublicationResult(null);
+      }
+      closeCloudConfirmation();
+    });
+  };
+
   const trapKeys = (event: React.KeyboardEvent<HTMLDivElement>) => {
     event.stopPropagation();
     if (event.key === "Escape") {
       event.preventDefault();
-      if (confirmDeleteId) {
+      if (cloudConfirmation) {
+        closeCloudConfirmation();
+      } else if (confirmDeleteId) {
         setConfirmDeleteId(null);
       } else if (renamingId) {
         setRenamingId(null);
@@ -255,6 +356,27 @@ export function DocumentLibrary({
           </div>
         )}
 
+        {publicationResult && (
+          <div className="document-library-result" role="status">
+            <span>
+              {publicationResult.updated ? "Updated" : "Published"} “{publicationResult.title}”. Public link:{" "}
+              <a href={publicationResult.publication.publicUrl} target="_blank" rel="noreferrer">
+                {publicationResult.publication.publicUrl}
+              </a>
+            </span>
+            <button
+              type="button"
+              disabled={pendingAction !== null}
+              onClick={() => void run(
+                "copy-published-result",
+                () => onCopyPublishedLink(publicationResult.publication.publicUrl)
+              )}
+            >
+              Copy link
+            </button>
+          </div>
+        )}
+
         <div className="document-library-content">
           {state === "loading" && <p className="document-library-empty">Loading local documents…</p>}
 
@@ -286,6 +408,12 @@ export function DocumentLibrary({
                 const onlineCurrent = isOnlineCopyCurrent(entry, cloudDocument ?? null, cloudState);
                 const isRenaming = renamingId === entry.id;
                 const isConfirmingDelete = confirmDeleteId === entry.id;
+                const cloudActionConfirmation = cloudConfirmation && (
+                  (cloudConfirmation.kind !== "delete-online" &&
+                    cloudConfirmation.localDocumentId === entry.id) ||
+                  (cloudConfirmation.kind === "delete-online" &&
+                    cloudConfirmation.cloudDocumentId === entry.cloudDocumentId)
+                ) ? cloudConfirmation : null;
                 const isBusy = pendingAction?.endsWith(entry.id) ?? false;
                 return (
                   <li key={entry.id} className={isCurrent ? "is-current" : undefined}>
@@ -354,6 +482,37 @@ export function DocumentLibrary({
                           Delete map
                         </button>
                       </div>
+                    ) : cloudActionConfirmation ? (
+                      <div
+                        className="document-delete-confirmation"
+                        role="group"
+                        aria-label={cloudConfirmationCopy(cloudActionConfirmation)}
+                      >
+                        <span>{cloudConfirmationCopy(cloudActionConfirmation)}</span>
+                        <button
+                          ref={cancelCloudConfirmationRef}
+                          type="button"
+                          onClick={closeCloudConfirmation}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className={cloudActionConfirmation.kind === "publish"
+                            ? "document-primary-action"
+                            : "document-danger-action"}
+                          disabled={pendingAction !== null}
+                          onClick={executeCloudConfirmation}
+                        >
+                          {cloudActionConfirmation.kind === "publish"
+                            ? cloudActionConfirmation.updatesExisting
+                              ? "Update published version"
+                              : "Publish map"
+                            : cloudActionConfirmation.kind === "unpublish"
+                              ? "Unpublish map"
+                              : "Delete online copy"}
+                        </button>
+                      </div>
                     ) : (
                       <div className="document-row-actions">
                         <button
@@ -370,6 +529,7 @@ export function DocumentLibrary({
                             setRenameValue(entry.title);
                             setRenamingId(entry.id);
                             setConfirmDeleteId(null);
+                            setCloudConfirmation(null);
                           }}
                         >
                           Rename
@@ -393,8 +553,15 @@ export function DocumentLibrary({
                         {cloudState === "ready" && entry.cloudDocumentId && (
                           <button
                             type="button"
+                            data-cloud-action={`publish-${entry.id}`}
                             disabled={pendingAction !== null}
-                            onClick={() => void run(`publish-${entry.id}`, () => onPublish(entry.id))}
+                            onClick={() => beginCloudConfirmation({
+                              kind: "publish",
+                              localDocumentId: entry.id,
+                              title: entry.title,
+                              nodeCount: entry.nodeCount,
+                              updatesExisting: Boolean(publication)
+                            })}
                           >
                             {publication ? "Update published" : "Publish"}
                           </button>
@@ -411,8 +578,13 @@ export function DocumentLibrary({
                         {cloudState === "ready" && publication && (
                           <button
                             type="button"
+                            data-cloud-action={`unpublish-${entry.id}`}
                             disabled={pendingAction !== null}
-                            onClick={() => void run(`unpublish-${entry.id}`, () => onUnpublish(entry.id))}
+                            onClick={() => beginCloudConfirmation({
+                              kind: "unpublish",
+                              localDocumentId: entry.id,
+                              title: entry.title
+                            })}
                           >
                             Unpublish
                           </button>
@@ -420,8 +592,14 @@ export function DocumentLibrary({
                         {cloudState === "ready" && entry.cloudDocumentId && (
                           <button
                             type="button"
+                            data-cloud-action={`delete-online-${entry.cloudDocumentId}`}
                             disabled={pendingAction !== null}
-                            onClick={() => void run(`delete-online-${entry.id}`, () => onDeleteOnline(entry.cloudDocumentId!))}
+                            onClick={() => beginCloudConfirmation({
+                              kind: "delete-online",
+                              cloudDocumentId: entry.cloudDocumentId!,
+                              title: entry.title,
+                              revokesPublication: Boolean(publication)
+                            })}
                           >
                             Delete online
                           </button>
@@ -432,6 +610,7 @@ export function DocumentLibrary({
                           onClick={() => {
                             setConfirmDeleteId(entry.id);
                             setRenamingId(null);
+                            setCloudConfirmation(null);
                           }}
                         >
                           Delete
@@ -450,55 +629,95 @@ export function DocumentLibrary({
             <section className="online-only-documents" aria-labelledby="online-only-title">
               <div className="online-only-heading">
                 <h3 id="online-only-title">Saved online</h3>
-                <p>Open one to keep a local copy in this browser.</p>
+                <p>
+                  Open one in this browser before publishing so Mapdown can render its public preview.
+                </p>
               </div>
               <ul className="document-list">
                 {cloudDocuments
                   .filter((cloud) => !entries.some((entry) => entry.cloudDocumentId === cloud.id))
-                  .map((cloud) => (
-                    <li key={cloud.id}>
-                      <div className="document-row-summary">
-                        <div className="document-row-title">
-                          <strong>{cloud.title}</strong>
-                          <span className="document-cloud-badge" data-state={cloud.publication ? "published" : "online"}>
-                            {cloud.publication ? "Published · online only" : "Online only"}
-                          </span>
+                  .map((cloud) => {
+                    const cloudActionConfirmation =
+                      cloudConfirmation?.kind === "delete-online" &&
+                      cloudConfirmation.cloudDocumentId === cloud.id
+                        ? cloudConfirmation
+                        : null;
+                    return (
+                      <li key={cloud.id}>
+                        <div className="document-row-summary">
+                          <div className="document-row-title">
+                            <strong>{cloud.title}</strong>
+                            <span className="document-cloud-badge" data-state={cloud.publication ? "published" : "online"}>
+                              {cloud.publication ? "Published · online only" : "Online only"}
+                            </span>
+                          </div>
+                          <p>
+                            {cloud.nodeCount.toLocaleString()} {cloud.nodeCount === 1 ? "node" : "nodes"}
+                            <span aria-hidden="true"> · </span>
+                            <time dateTime={new Date(cloud.updatedAt).toISOString()}>
+                              {dateFormatter.format(cloud.updatedAt)}
+                            </time>
+                          </p>
                         </div>
-                        <p>
-                          {cloud.nodeCount.toLocaleString()} {cloud.nodeCount === 1 ? "node" : "nodes"}
-                          <span aria-hidden="true"> · </span>
-                          <time dateTime={new Date(cloud.updatedAt).toISOString()}>
-                            {dateFormatter.format(cloud.updatedAt)}
-                          </time>
-                        </p>
-                      </div>
-                      <div className="document-row-actions">
-                        <button
-                          type="button"
-                          disabled={pendingAction !== null}
-                          onClick={() => void run(`open-cloud-${cloud.id}`, () => onOpenOnline(cloud.id))}
-                        >
-                          Open in this browser
-                        </button>
-                        {cloud.publication && (
-                          <button
-                            type="button"
-                            disabled={pendingAction !== null}
-                            onClick={() => void run(`copy-cloud-link-${cloud.id}`, () => onCopyPublishedLink(cloud.publication!.publicUrl))}
+                        {cloudActionConfirmation ? (
+                          <div
+                            className="document-delete-confirmation"
+                            role="group"
+                            aria-label={cloudConfirmationCopy(cloudActionConfirmation)}
                           >
-                            Copy link
-                          </button>
+                            <span>{cloudConfirmationCopy(cloudActionConfirmation)}</span>
+                            <button
+                              ref={cancelCloudConfirmationRef}
+                              type="button"
+                              onClick={closeCloudConfirmation}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="button"
+                              className="document-danger-action"
+                              disabled={pendingAction !== null}
+                              onClick={executeCloudConfirmation}
+                            >
+                              Delete online copy
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="document-row-actions">
+                            <button
+                              type="button"
+                              disabled={pendingAction !== null}
+                              onClick={() => void run(`open-cloud-${cloud.id}`, () => onOpenOnline(cloud.id))}
+                            >
+                              Open in this browser
+                            </button>
+                            {cloud.publication && (
+                              <button
+                                type="button"
+                                disabled={pendingAction !== null}
+                                onClick={() => void run(`copy-cloud-link-${cloud.id}`, () => onCopyPublishedLink(cloud.publication!.publicUrl))}
+                              >
+                                Copy link
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              data-cloud-action={`delete-online-${cloud.id}`}
+                              disabled={pendingAction !== null}
+                              onClick={() => beginCloudConfirmation({
+                                kind: "delete-online",
+                                cloudDocumentId: cloud.id,
+                                title: cloud.title,
+                                revokesPublication: Boolean(cloud.publication)
+                              })}
+                            >
+                              Delete online
+                            </button>
+                          </div>
                         )}
-                        <button
-                          type="button"
-                          disabled={pendingAction !== null}
-                          onClick={() => void run(`delete-cloud-${cloud.id}`, () => onDeleteOnline(cloud.id))}
-                        >
-                          Delete online
-                        </button>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
               </ul>
             </section>
           )}

@@ -770,6 +770,7 @@ button:disabled {
 }
 
 .document-library-undo,
+.document-library-result,
 .document-library-error {
   display: flex;
   align-items: center;
@@ -782,6 +783,19 @@ button:disabled {
 
 .document-library-undo {
   background: color-mix(in srgb, var(--chrome-accent) 9%, var(--chrome-bg));
+}
+
+.document-library-result {
+  background: color-mix(in srgb, #21845b 10%, var(--chrome-bg));
+}
+
+.document-library-result span {
+  min-width: 0;
+}
+
+.document-library-result a {
+  color: inherit;
+  overflow-wrap: anywhere;
 }
 
 .document-library-error {

@@ -109,6 +109,12 @@ extracts `apps/mapdown` intact (D-02's reversibility clause).
 3. The popup posts it back; Mapdown exchanges it at its own API for a **host-only
    `mapdown_session` cookie** on `map.bcailab.com`.
 
+Production accepts only `https://map.bcailab.com`. Preview integration uses explicitly
+configured stable branch aliases: Web and the Mapdown runtime must name the exact Mapdown
+origin, while Mapdown's build-time `VITE_WEB_ORIGIN` names the exact Web origin. Both apps bind
+the same Preview D1 because Web creates the single-use nonce and Mapdown consumes it. There is
+no `*.pages.dev` wildcard, so an arbitrary commit preview cannot receive a handoff token.
+
 The signed-token mechanics already exist in this repo and should be copied rather than
 reinvented: `apps/web/app/utils/translate-save-proof.server.ts` has domain separation, a version
 field, TTL with clock-skew tolerance, subject binding and tamper tests. Proposed domain string
@@ -150,6 +156,8 @@ only the published SVG (see §5.3).
   rule the roadmap already applies to saved translations).
 - Signed out, everything in stage 1 still works, offline, with nothing transmitted.
 - The library shows one list with a per-row state: *Local only* / *Synced* / *Published*.
+  Selection remains in local recovery snapshots, but selection-only autosaves carry the synced
+  marker forward and never claim that map content is pending online.
 
 ### 4.5 Conflicts
 
@@ -184,6 +192,8 @@ otherwise a crafted local id becomes an ownership-collision vector.
 - (i) Per-user document count and per-document size limits are enforced server-side with a
   clear message, not a generic failure.
 - (j) Private responses use `Cache-Control: private, no-store`.
+- (k) A configured Preview handoff is exact-origin only; arbitrary `pages.dev` previews remain
+  rejected by both token issuance and exchange.
 
 ## 5. Stage 3 — Publish
 
@@ -228,7 +238,7 @@ from the layout the author saw.
 ### 5.4 Acceptance criteria
 
 - (a) Publishing is explicit, per-document, and shows exactly what will become public before it
-  happens.
+  happens. The confirmation also states that current changes are first saved to the online copy.
 - (b) The published URL renders the frozen version; subsequent editing does not change it until
   *Update published version* is run.
 - (c) Unpublish returns 404 for the URL within a stated, tested time bound, including through
@@ -243,6 +253,8 @@ from the layout the author saw.
   single `theme:` key still opens (D-24).
 - (i) Publish quota and document size limits are enforced, and a report path exists.
 - (j) Keyboard- and screen-reader-operable at desktop, tablet and mobile widths.
+- (k) Publish success, the public URL and Copy link remain visible inside the document-library
+  dialog rather than behind its inert overlay.
 
 ## 6. Decisions recorded by the implementation
 
@@ -284,11 +296,13 @@ The implementation records these as D-26 through D-30 in `docs/mapdown/decisions
 Migration `0019_mapdown_cloud.sql` applied successfully to the local D1 state (14 statements).
 Pages Functions runtime verification covered a successful handoff, rejected replay, first
 cloud save, stale-version 409 without overwrite, publication backed by local R2, public CSP and
-`noindex` headers, and an immediate 404 after unpublish. Six cross-implementation contract tests
-cover handoff tampering/expiry/audience, nonce hashing, Host-only cookies, snapshot invariants,
-canonical Markdown and safe SVG. The repository suite passes 593 tests; Mapdown and Web
+`noindex` headers, and an immediate 404 after unpublish. Eight cross-implementation contract tests
+cover handoff tampering/expiry/audience, exact configured Preview origins, nonce hashing,
+Host-only cookies, snapshot invariants, canonical Markdown and safe SVG. The repository suite
+passes 602 tests; Mapdown and Web
 typechecks/builds pass; lint has zero errors and the same nine pre-existing Hook warnings.
-Authenticated browser QA covered online-only open, explicit publish, the frozen viewer and UI
-unpublish; screenshots at 375, 768 and 1280 px showed no horizontal overflow, and ordinary
-flows produced no console errors. No remote migration, domain configuration, secret change or
-deployment was performed.
+Authenticated browser QA covered online-only open, selection-only autosave after an online
+save, inline publish/update/unpublish/delete confirmations, a visible publish-result URL, the
+frozen viewer and UI unpublish. At 375 px the document library had equal client/scroll width;
+ordinary flows produced no console errors. No remote migration, Preview environment change,
+domain configuration, secret change or deployment was performed.

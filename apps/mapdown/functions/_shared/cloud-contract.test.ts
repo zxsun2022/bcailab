@@ -17,6 +17,7 @@ import { createDocument, SCHEMA_VERSION } from "../../src/model/types";
 
 const SECRET = "test-secret-with-enough-entropy-for-a-contract-test";
 const AUDIENCE = "https://map.bcailab.com";
+const PREVIEW_AUDIENCE = "https://review.mapdown.pages.dev";
 const NOW = Date.UTC(2026, 7, 21, 12);
 const NONCE = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -78,11 +79,34 @@ describe("Mapdown sign-in handoff", () => {
     })).rejects.toThrow("expired handoff");
   });
 
-  it("allows only the production app origin and local HTTP development", () => {
+  it("allows only production, an explicitly configured preview, and local HTTP development", () => {
     expect(allowedMapdownOrigin("https://map.bcailab.com")).toBe(AUDIENCE);
     expect(allowedMapdownOrigin("http://localhost:5173")).toBe("http://localhost:5173");
+    expect(allowedMapdownOrigin(PREVIEW_AUDIENCE, PREVIEW_AUDIENCE)).toBe(PREVIEW_AUDIENCE);
+    expect(allowedMapdownOrigin(PREVIEW_AUDIENCE)).toBeNull();
+    expect(allowedMapdownOrigin(
+      "https://attacker.mapdown.pages.dev",
+      PREVIEW_AUDIENCE
+    )).toBeNull();
     expect(allowedMapdownOrigin("https://evil.example")).toBeNull();
     expect(allowedMapdownOrigin("https://map.bcailab.com/attacker-path")).toBeNull();
+  });
+
+  it("round-trips a handoff for the explicitly configured preview origin", async () => {
+    const created = await createMapdownHandoff({
+      secret: SECRET,
+      userId: "user-1",
+      audience: PREVIEW_AUDIENCE,
+      previewOrigin: PREVIEW_AUDIENCE,
+      nowMs: NOW,
+      nonce: NONCE
+    });
+    await expect(verifyMapdownHandoff({
+      secret: SECRET,
+      token: created.token,
+      audience: PREVIEW_AUDIENCE,
+      nowMs: NOW + 1_000
+    })).resolves.toMatchObject({ audience: PREVIEW_AUDIENCE });
   });
 });
 

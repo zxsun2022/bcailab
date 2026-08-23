@@ -2,6 +2,7 @@ import { checkInvariants } from "../model/invariants";
 import { SCHEMA_VERSION, type MindMapDocument, type NodeId } from "../model/types";
 import { normalizeThemeSelection } from "../theme/presets";
 import {
+  canonicalCloudContentOf,
   checksumOf,
   makeSnapshot,
   rememberLastDocument,
@@ -112,6 +113,17 @@ export function createAutosave(options: AutosaveOptions): Autosave {
 
       // 2. Only now advance the pointer. A crash before this leaves the old snapshot current.
       const existingEntry = await store.getIndexEntry(job.document.id);
+      let cloudSavedSnapshotId = existingEntry?.cloudSavedSnapshotId;
+      if (cloudSavedSnapshotId) {
+        const cloudSavedSnapshot = await store.getSnapshot(cloudSavedSnapshotId);
+        if (
+          cloudSavedSnapshot &&
+          canonicalCloudContentOf(cloudSavedSnapshot.document) ===
+            canonicalCloudContentOf(job.document)
+        ) {
+          cloudSavedSnapshotId = snapshot.id;
+        }
+      }
       const entry: DocumentIndexEntry = {
         id: job.document.id,
         title: job.document.title,
@@ -126,7 +138,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
           ? {
               cloudDocumentId: existingEntry.cloudDocumentId,
               cloudVersion: existingEntry.cloudVersion,
-              cloudSavedSnapshotId: existingEntry.cloudSavedSnapshotId,
+              cloudSavedSnapshotId,
               cloudUpdatedAt: existingEntry.cloudUpdatedAt,
               cloudPublication: existingEntry.cloudPublication
             }

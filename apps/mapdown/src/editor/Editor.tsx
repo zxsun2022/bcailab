@@ -797,10 +797,6 @@ export function Editor() {
   }, [activateLocalDocument, closeDocumentLibrary, refreshDocumentLibrary, store]);
 
   const deleteOnlineDocument = useCallback(async (cloudDocumentId: string) => {
-    const cloud = cloudDocuments.find((item) => item.id === cloudDocumentId);
-    if (!window.confirm(
-      `Delete “${cloud?.title ?? "this map"}” from online save?${cloud?.publication ? " Its public link will stop working immediately." : ""} Local copies in this browser will remain.`
-    )) return;
     await deleteCloudDocument(cloudDocumentId);
     const localEntries = await store.listIndexEntries();
     for (const entry of localEntries) {
@@ -811,15 +807,11 @@ export function Editor() {
     await refreshDocumentLibrary();
     setCloudDocuments(await listCloudDocuments());
     setAnnouncement("The online copy was deleted. Local copies were kept.");
-  }, [cloudDocuments, refreshDocumentLibrary, store]);
+  }, [refreshDocumentLibrary, store]);
 
   const publishLocalDocument = useCallback(async (localDocumentId: string) => {
     const local = await localSnapshotForCloud(localDocumentId);
     const existingPublication = local.entry.cloudPublication;
-    const verb = existingPublication ? "Update the published version of" : "Publish";
-    if (!window.confirm(
-      `${verb} “${local.snapshot.document.title}” (${Object.keys(local.snapshot.document.nodes).length.toLocaleString()} nodes)? This creates a frozen public snapshot. Later edits stay private until you update it again.`
-    )) return;
     const cloud = await saveLocalDocumentOnline(localDocumentId);
     const { svg } = exportSvg(cloud.snapshot.document);
     const png = await exportLinkPreviewPng(cloud.snapshot.document);
@@ -841,8 +833,8 @@ export function Editor() {
     );
     await refreshDocumentLibrary();
     setCloudDocuments(await listCloudDocuments());
-    setNotice(`Published at ${publication.publicUrl}. Later edits remain private until you update the published version.`);
     setAnnouncement(existingPublication ? "Published version updated." : "Public link created.");
+    return publication;
   }, [localSnapshotForCloud, refreshDocumentLibrary, saveLocalDocumentOnline, store]);
 
   const unpublishLocalDocument = useCallback(async (localDocumentId: string) => {
@@ -850,9 +842,6 @@ export function Editor() {
     if (!entry?.cloudDocumentId || !entry.cloudPublication) {
       throw new Error("This local document has no active public link.");
     }
-    if (!window.confirm(
-      `Unpublish “${entry.title}”? The current public URL will return 404 immediately. Republishing later creates a new URL.`
-    )) return;
     await unpublishCloudDocument(entry.cloudDocumentId);
     const documents = await listCloudDocuments();
     const cloud = documents.find((item) => item.id === entry.cloudDocumentId);
