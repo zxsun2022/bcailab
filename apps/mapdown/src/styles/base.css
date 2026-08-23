@@ -1171,6 +1171,7 @@ kbd {
   }
 
   .document-library-undo,
+  .document-library-result,
   .document-library-error {
     align-items: stretch;
     flex-direction: column;
