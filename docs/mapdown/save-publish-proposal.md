@@ -1,9 +1,8 @@
 # Mapdown — Document Library, Account Save, and Publish
 
-**Status:** All three stages were authorized by the owner. Stage 1 and the combined stage 2/3
-implementation are `in_review`; only the owner can accept them. Written 2026-08-18 as an
-exploration, authorized through `docs/roadmap.md` on 2026-08-21, and implemented on the
-`codex/mapdown-local-document-library` branch.
+**Status:** All three stages were accepted by the owner on 2026-08-23. Written 2026-08-18 as an
+exploration, authorized through `docs/roadmap.md` on 2026-08-21, implemented on the
+`codex/mapdown-local-document-library` branch, and accepted after review follow-ups.
 
 Four scoping decisions were made by the owner on 2026-08-18, before this document was written,
 and they are treated here as settled inputs:

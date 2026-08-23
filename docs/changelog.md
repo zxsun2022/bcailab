@@ -9,7 +9,7 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-08-21 — **in_review: added explicit Mapdown account save and frozen publishing.**
+- 2026-08-21 — **accepted 2026-08-23: added explicit Mapdown account save and frozen publishing.**
   Mapdown now exchanges a 60-second, single-use Studio handoff for its own Host-only session;
   the existing `bcailab_session` remains unchanged. The local-first document library can
   explicitly save lossless JSON online, open online-only documents, show pending/current state,
@@ -24,8 +24,8 @@ make the final transition; see `AGENTS.md`.
   open, publish and unpublish at 375/768/1280 px without flow console errors; 6 new contract
   tests and 593 repo-wide tests pass; Mapdown/Web typechecks and production builds pass; lint
   has zero errors and the same 9 pre-existing Hook warnings. No remote migration, secret/domain
-  change, deployment, push or production data mutation was performed. The owner must still
-  accept this roadmap item.
+  change, deployment, push or production data mutation was performed before the owner accepted
+  the completed requirement on 2026-08-23.
   - Review follow-up (2026-08-21): fixed canonical Markdown validation for maps with front
     matter; changed password/code handoff completion to a document navigation so the resource
     route response executes; and made stale-write recovery refresh the server version while
@@ -62,7 +62,7 @@ make the final transition; see `AGENTS.md`.
     typechecks, both production builds and lint pass (zero errors; the same 9 pre-existing Hook
     warnings). No remote environment, secret, domain, migration, deployment or push changed.
 
-- 2026-08-21 — **in_review: added Mapdown's local document library.** Every IndexedDB-indexed
+- 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,
   with new/open/rename/duplicate and confirmed delete. Duplicate preserves the full internal
   document state; delete atomically removes the index entry and all snapshots, then offers a
@@ -73,7 +73,7 @@ make the final transition; see `AGENTS.md`.
   deliberately kept out of that stage-1 commit. Evidence: 33 focused storage/IndexedDB/command tests; browser
   persistence/focus/mobile and confirmation-cancellation QA with no console errors; 587 passing
   tests repo-wide; Mapdown typecheck and production build; and root lint with 0 errors (the same
-  9 existing Hook dependency warnings). The owner must still accept this roadmap item.
+  9 existing Hook dependency warnings). The owner accepted the completed stage on 2026-08-23.
 
 - 2026-08-18 — **accepted: optional account passwords and a `/profile` page.** Extended the
   existing passwordless auth (email OTP + Google, unchanged) instead of adopting better-auth,

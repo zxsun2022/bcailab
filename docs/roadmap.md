@@ -484,12 +484,12 @@ Operational note: migration `0018` reached production *after* the code deploy, s
 returned an error until it was applied. Apply the migration before deploying code that reads a
 new column — see the deploy-ordering note in `docs/changelog.md`.
 
-## Now — Mapdown local document library
+## Now — Mapdown local document library — accepted (2026-08-23)
 
 The owner authorized Stage 1 of
-[the save/publish proposal](mapdown/save-publish-proposal.md) on 2026-08-21. This stage closes
-the existing local-storage gap before any account, cloud-save, or public-URL contract is
-introduced. Stages 2 and 3 remain proposals and are not authorized by this item.
+[the save/publish proposal](mapdown/save-publish-proposal.md) on 2026-08-21 and accepted the
+completed stage on 2026-08-23. This stage closes the existing local-storage gap before any
+account, cloud-save, or public-URL contract is introduced.
 
 - Add a Mapdown-native document library backed by the existing IndexedDB document index. Every
   indexed map is listed newest-first with its title, node count, last local update, import source
@@ -514,16 +514,16 @@ command-registry coverage; browser QA at desktop and mobile widths for open/new/
 persistence across reload, keyboard focus, responsive layout, and delete confirmation/cancellation.
 The destructive delete/undo execution is verified in isolated storage tests rather than against
 the browser's live IndexedDB. Mapdown typecheck, lint, focused tests, full tests, and production
-build must pass. Finished work remains `in_review` until the owner accepts it.
+build passed before owner acceptance on 2026-08-23.
 
-## Now — Mapdown account save and frozen publishing
+## Now — Mapdown account save and frozen publishing — accepted (2026-08-23)
 
 The owner authorized stages 2 and 3 of
 [the save/publish proposal](mapdown/save-publish-proposal.md) on 2026-08-21, accepting the
 recommended `share.bcailab.com` publication host and requiring an account to publish. The
 existing local document library remains the primary, fully offline workflow; signing in or
-opening the library must never upload a document implicitly. The implementation is `in_review`;
-only the owner can accept it.
+opening the library must never upload a document implicitly. The owner accepted the completed
+implementation on 2026-08-23.
 
 ### Stage 2 — explicit account save
 
@@ -594,8 +594,8 @@ Acceptance: frozen/update semantics, active-publication quota, SVG/Markdown/cont
 validation, inert hostile labels, no authenticated cookie on the share host, CSP/noindex/OG
 metadata, report throttling, republish-new-URL behavior, and uncached 404 after unpublish;
 browser coverage at desktop and mobile widths with and without JavaScript; Mapdown and web
-typechecks, lint, full tests, and both production builds. Finished work remains `in_review`
-until the owner accepts it.
+typechecks, lint, full tests, and both production builds. These checks passed before owner
+acceptance on 2026-08-23.
 
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
