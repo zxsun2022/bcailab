@@ -9,6 +9,29 @@
     "MAPDOWN_ORIGIN": "https://map.bcailab.com",
     "PUBLISHED_ORIGIN": "https://share.bcailab.com"
   },
+  "env": {
+    "preview": {
+      "vars": {
+        "WEB_ORIGIN": "https://staging.bcailab.pages.dev",
+        "MAPDOWN_ORIGIN": "https://staging.mapdown.pages.dev",
+        "PUBLISHED_ORIGIN": "https://staging.mapdown.pages.dev"
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "bcailab-db-staging",
+          "database_id": "8707dea1-f2f7-4a3c-99ee-2245cb63e22c",
+          "migrations_dir": "../../migrations"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "R2",
+          "bucket_name": "bcailab-assets-preview"
+        }
+      ]
+    }
+  },
   "d1_databases": [
     {
       "binding": "DB",

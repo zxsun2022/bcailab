@@ -92,8 +92,8 @@ Set the following for the Pages project:
 - `SESSION_SECRET_PREVIOUS` (optional; old session signing secret during rotation only)
 - `MAPDOWN_HANDOFF_SECRET` (dedicated high-entropy HMAC secret; must match the Mapdown Pages
   project and must not reuse `SESSION_SECRET`)
-- `MAPDOWN_PREVIEW_ORIGIN` (optional; exact stable Mapdown Preview origin, for example
-  `https://review.mapdown.pages.dev`; never use a wildcard or an arbitrary commit-preview URL)
+- `MAPDOWN_PREVIEW_ORIGIN` (optional; exact stable Mapdown Preview origin,
+  `https://staging.mapdown.pages.dev`; never use a wildcard or an arbitrary commit-preview URL)
 - `RESEND_API_KEY` (email OTP sign-in codes; set via `wrangler pages secret put RESEND_API_KEY`)
 - `RESEND_FROM` (optional; default `bcailab <login@bcailab.com>` — the domain must be verified in Resend with SPF/DKIM DNS records)
 
@@ -107,12 +107,12 @@ The Mapdown Pages project requires `MAPDOWN_HANDOFF_SECRET` as a secret and the 
 Cross-app Preview sign-in requires a stable branch alias for **both** Pages projects and these
 settings in their Preview environments:
 
-- Web: `MAPDOWN_PREVIEW_ORIGIN=<exact stable Mapdown Preview origin>`.
+- Web: `MAPDOWN_PREVIEW_ORIGIN=https://staging.mapdown.pages.dev`.
 - Mapdown runtime: `MAPDOWN_ORIGIN=<the same exact stable Mapdown Preview origin>` and
   `PUBLISHED_ORIGIN=<that Preview origin, or an exact dedicated Preview share origin>`. Do not
   leave `PUBLISHED_ORIGIN` pointing at production or Preview publications will resolve against
   the production deployment and database.
-- Mapdown build: `VITE_WEB_ORIGIN=<exact stable Web Preview origin>` so the popup and its nonce
+- Mapdown build: `VITE_WEB_ORIGIN=https://staging.bcailab.pages.dev` so the popup and its nonce
   are created by Preview Web rather than production Web.
 - Both projects: the same `MAPDOWN_HANDOFF_SECRET` and the same Preview D1 binding. The checked-in
   configs currently share preview database id `8707dea1-f2f7-4a3c-99ee-2245cb63e22c`.

@@ -54,7 +54,7 @@ git commit -m "描述你的改动"
 ```bash
 # 1. 如果有新的 migration，先应用到测试数据库
 #    必须在推送之前：推送会触发自动构建部署，新代码一旦上线就会查询新列/新表
-pnpm exec wrangler d1 migrations apply bcailab-db --preview
+pnpm exec wrangler d1 migrations apply bcailab-db --remote --preview
 
 # 2. 推送功能分支到 GitHub
 git push origin feature/my-feature
@@ -115,18 +115,20 @@ git push origin main
 # 查看 migration 状态
 pnpm exec wrangler d1 migrations list bcailab-db --remote   # 生产
 pnpm exec wrangler d1 migrations list bcailab-db --local --persist-to apps/web/.wrangler/state  # 本地
-pnpm exec wrangler d1 migrations list bcailab-db --preview  # 测试
+pnpm exec wrangler d1 migrations list bcailab-db --remote --preview  # 测试
 
 # 应用 migration
 pnpm exec wrangler d1 migrations apply bcailab-db --remote   # 生产
 pnpm db:migrate:local                                        # 本地
-pnpm exec wrangler d1 migrations apply bcailab-db --preview  # 测试
+pnpm exec wrangler d1 migrations apply bcailab-db --remote --preview  # 测试
 ```
 
-**两个参数都不能省：**
+**远程环境的参数不能省：**
 
 - **`--remote`。** wrangler 4.x 下不带参数的 `wrangler d1 ... bcailab-db` 作用于**本地**数据库
   （输出会显示 `Resource location: local`），命令照样成功，却完全没碰到生产。
+- **`--preview`。** 测试库必须同时带 `--remote --preview`；只写 `--preview` 会被 Wrangler
+  拒绝，而漏掉 `--preview` 会命中生产库。
 - **`pnpm exec`。** 直接敲 `wrangler` 会用机器上全局安装的版本，与仓库 `package.json` 锁定的
   版本可能不同，行为和默认参数都可能不一致。`pnpm exec` 始终使用仓库锁定的版本。
 
@@ -170,7 +172,8 @@ Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 
 检查 Pages Preview 环境变量中 `OAUTH_REDIRECT_URL` 是否匹配 preview 域名，以及 Google OAuth 应用的 Authorized redirect URIs 是否包含该地址。
 
 **Q: 新功能在测试环境不可用？**
-检查是否有新 migration 未应用到 preview 数据库：`pnpm exec wrangler d1 migrations list bcailab-db --preview`。
+检查是否有新 migration 未应用到 preview 数据库：
+`pnpm exec wrangler d1 migrations list bcailab-db --remote --preview`。
 
 **Q: 本地 D1 数据丢失？**
 `pnpm dev` 使用的本地数据存储在 `apps/web/.wrangler/state/`。根目录默认的

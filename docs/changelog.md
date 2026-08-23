@@ -61,6 +61,13 @@ make the final transition; see `AGENTS.md`.
     consumption cannot split across environments. It was not deployed. All 602 tests, three
     typechecks, both production builds and lint pass (zero errors; the same 9 pre-existing Hook
     warnings). No remote environment, secret, domain, migration, deployment or push changed.
+  - Preview deployment preparation (2026-08-23): pinned Wrangler 4.125.0 after confirming the
+    previous 4.62.0 read migration filenames in filesystem order and could place migration 0020
+    before its 0019 dependency. Added explicit Preview bindings for the shared staging D1 and
+    preview R2 bucket, plus stable `staging` branch origins for both Pages projects. Applied and
+    verified migrations 0008–0020 on Preview D1 in numeric order; no migrations remain pending
+    and all four Mapdown cloud tables exist. Production, deployment and Git remotes were not
+    changed.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,

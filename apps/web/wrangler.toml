@@ -14,3 +14,15 @@ preview_database_id = "8707dea1-f2f7-4a3c-99ee-2245cb63e22c"
 binding = "R2"
 bucket_name = "bcailab-assets"
 preview_bucket_name = "bcailab-assets-preview"
+
+[env.preview.vars]
+MAPDOWN_PREVIEW_ORIGIN = "https://staging.mapdown.pages.dev"
+
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "bcailab-db-staging"
+database_id = "8707dea1-f2f7-4a3c-99ee-2245cb63e22c"
+
+[[env.preview.r2_buckets]]
+binding = "R2"
+bucket_name = "bcailab-assets-preview"
