@@ -108,7 +108,10 @@ Cross-app Preview sign-in requires a stable branch alias for **both** Pages proj
 settings in their Preview environments:
 
 - Web: `MAPDOWN_PREVIEW_ORIGIN=<exact stable Mapdown Preview origin>`.
-- Mapdown runtime: `MAPDOWN_ORIGIN=<the same exact stable Mapdown Preview origin>`.
+- Mapdown runtime: `MAPDOWN_ORIGIN=<the same exact stable Mapdown Preview origin>` and
+  `PUBLISHED_ORIGIN=<that Preview origin, or an exact dedicated Preview share origin>`. Do not
+  leave `PUBLISHED_ORIGIN` pointing at production or Preview publications will resolve against
+  the production deployment and database.
 - Mapdown build: `VITE_WEB_ORIGIN=<exact stable Web Preview origin>` so the popup and its nonce
   are created by Preview Web rather than production Web.
 - Both projects: the same `MAPDOWN_HANDOFF_SECRET` and the same Preview D1 binding. The checked-in
