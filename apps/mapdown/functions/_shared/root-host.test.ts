@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { describe, expect, it } from "vitest";
-import { APP_PATHS, mapdownRootRedirect } from "./root-host";
+import { APP_PATHS, appShellPath, mapdownRootRedirect } from "./root-host";
 
 const PUBLISHED_ORIGIN = "https://share.bcailab.com";
 const MAPDOWN_ORIGIN = "https://map.bcailab.com";
@@ -53,19 +53,37 @@ describe("app paths on the published host", () => {
     ).toBeNull();
   });
 
-  it("keeps every routed app path in the redirect list and in the Pages route config", async () => {
-    // A path the SPA answers on but the middleware does not see is served straight off the
-    // published host by the static asset rewrite — the exact leak this rule exists to stop.
+  it("routes every app path through the middleware that guards this host", async () => {
+    // A path the SPA answers on but the middleware never sees cannot be redirected at all.
     const routes = JSON.parse(
       await readFile(`${publicDir}/_routes.json`, "utf8")
     ) as { include: string[] };
-    const redirects = await readFile(`${publicDir}/_redirects`, "utf8");
     for (const path of APP_PATHS) {
       expect(routes.include).toContain(path);
       expect(
         mapdownRootRedirect(`${PUBLISHED_ORIGIN}${path}`, PUBLISHED_ORIGIN, MAPDOWN_ORIGIN)
       ).not.toBeNull();
-      if (path !== "/") expect(redirects).toContain(`${path} /index.html 200`);
     }
+  });
+
+  it("carries no _redirects file, because the rewrite it expressed does not survive Pages", async () => {
+    // `/library /index.html 200` was resolved and then normalised into a 308 to `/`, which lost
+    // the route and turned a copy link's `?src=` into a query on the editor root.
+    await expect(readFile(`${publicDir}/_redirects`, "utf8")).rejects.toThrow();
+  });
+});
+
+describe("app shell serving", () => {
+  it("serves the shared shell for the routed paths that have no asset of their own", () => {
+    expect(appShellPath("/library")).toBe("/");
+    expect(appShellPath("/library/")).toBe("/");
+    expect(appShellPath("/import")).toBe("/");
+  });
+
+  it("leaves the root and everything unrouted to the asset pipeline", () => {
+    expect(appShellPath("/")).toBeNull();
+    expect(appShellPath("/p/abc")).toBeNull();
+    expect(appShellPath("/assets/index.js")).toBeNull();
+    expect(appShellPath("/librarys")).toBeNull();
   });
 });

@@ -67,9 +67,13 @@ never a public contract, and it is not Markdown, which stays the portable interc
 ## 3. Stage 1 — the library becomes a page
 
 **Route.** `/library`, a real path. The SPA gains a three-route client router (`/`, `/library`,
-`/import`) with `history.pushState`, a `_redirects` rewrite so Pages serves `index.html` for
-them, and those paths added to `_routes.json` so the existing `_middleware.ts` still sees them
-on the published origin and keeps the editor off `share.bcailab.com`.
+`/import`) with `history.pushState`, and those paths are added to `_routes.json` so the existing
+`_middleware.ts` sees them on the published origin and redirects them to the editor host.
+
+> **Amendment (2026-08-25).** This originally used a `_redirects` rewrite to serve `index.html`
+> for those paths. It does not work: Pages normalises the `/index.html` destination into a 308 to
+> `/`, which lost the route in production. The middleware serves the shell instead. See the
+> correction on D-31.
 
 **The editor stays mounted.** The library renders as a full-page surface above a hidden editor
 rather than replacing it. Unmounting would discard the undo history, and `vision.md` §4.8 makes
