@@ -29,6 +29,7 @@ a { color: #284bb8; }
 }
 .published-controls button:focus-visible, .published-footer :focus-visible { outline: 3px solid #7595ff; outline-offset: 2px; }
 .published-viewport {
+  position: relative;
   height: calc(100vh - 150px);
   overflow: auto;
   display: grid;
@@ -38,6 +39,25 @@ a { color: #284bb8; }
   background-size: 20px 20px;
 }
 .published-viewport img { display: block; max-width: none; transform-origin: center; transition: transform 120ms ease; }
+.published-fallback:focus-visible { outline: 3px solid #7595ff; outline-offset: 4px; }
+.published-fallback[hidden] { display: none; }
+
+/*
+ * The live layer (D-32). It covers the viewport rather than flowing inside it, so the frozen
+ * image keeps its own centring and padding for the no-JavaScript and unsupported-format paths
+ * and nothing has to be undone when the live map takes over.
+ */
+.published-live-host, .published-live { position: absolute; inset: 0; }
+.published-live { display: flex; flex-direction: column; }
+.published-surface { flex: 1; min-height: 0; outline: none; }
+.published-surface:focus-visible { outline: 3px solid #7595ff; outline-offset: -3px; }
+.published-surface svg { display: block; }
+.published-live-hint {
+  display: flex; gap: 12px; justify-content: space-between; align-items: center;
+  margin: 0; padding: 6px 12px; border-top: 1px solid #dce2ea;
+  background: #fff; color: #667085; font-size: .78rem;
+}
+.published-live-zoom { font-variant-numeric: tabular-nums; }
 .published-footer {
   min-height: 78px; padding: 12px 20px; display: flex; align-items: flex-start; gap: 24px;
   background: #fff; border-top: 1px solid #dce2ea;
@@ -54,11 +74,12 @@ a { color: #284bb8; }
   .published-brand { grid-column: 1 / -1; }
   .published-header p { display: none; }
   .published-viewport { height: calc(100vh - 164px); padding: 16px; }
+  .published-live-hint { font-size: .7rem; }
   .published-footer { min-height: 80px; padding: 12px; }
 }
 @media (prefers-color-scheme: dark) {
   :root, body { background: #10141c; color: #eef2f8; }
-  .published-header, .published-footer, .published-message { background: #181e29; border-color: #303a49; }
+  .published-header, .published-footer, .published-message, .published-live-hint { background: #181e29; border-color: #303a49; }
   .published-brand, .published-controls button, .published-footer button { color: #eef2f8; }
   .published-controls button, .published-footer button { background: #202837; border-color: #46536a; }
   .published-viewport { background-color: #10141c; background-image: radial-gradient(#303a49 1px, transparent 1px); }

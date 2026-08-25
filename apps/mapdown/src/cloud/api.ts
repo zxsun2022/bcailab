@@ -5,6 +5,7 @@ import type {
   CloudSessionState,
   CloudUser
 } from "./types";
+import type { PublishedView } from "../viewer/published-view";
 import {
   createSilentSsoAttempt,
   isSilentSsoSuppressed,
@@ -194,11 +195,21 @@ export async function publishCloudDocument(input: {
   markdown: string;
   svg: string;
   png: string;
+  /** The public view snapshot behind the live reader page (D-32). */
+  view: PublishedView;
 }): Promise<CloudPublication> {
   return (await api<{ publication: CloudPublication }>(`/api/documents/${encodeURIComponent(input.id)}/publish`, {
     method: "POST",
     body: JSON.stringify(input)
   })).publication;
+}
+
+/**
+ * The read side of **Make a copy** (D-33). Public, unauthenticated, same-origin: the published
+ * host has no write path, so the copy is fetched and made here, on the editor origin.
+ */
+export async function getPublishedMap(publicId: string): Promise<{ title: string; view: unknown }> {
+  return api<{ title: string; view: unknown }>(`/api/publications/${encodeURIComponent(publicId)}`);
 }
 
 export async function unpublishCloudDocument(id: string): Promise<void> {

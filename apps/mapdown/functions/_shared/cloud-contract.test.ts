@@ -11,9 +11,12 @@ import {
   validateCloudSnapshot,
   validatePublishedMarkdown,
   validatePublishedPng,
-  validatePublishedSvg
+  validatePublishedSvg,
+  validatePublishedView
 } from "./validation";
 import { createDocument, SCHEMA_VERSION } from "../../src/model/types";
+import { toPublishedView } from "../../src/viewer/published-view";
+import { PUBLISHED_VIEW_MAX_BYTES } from "./limits";
 
 const SECRET = "test-secret-with-enough-entropy-for-a-contract-test";
 const AUDIENCE = "https://map.bcailab.com";
@@ -173,5 +176,41 @@ describe("Mapdown cloud contracts", () => {
       60
     );
     expect(local).not.toContain("Secure");
+  });
+});
+
+describe("published view snapshot", () => {
+  const document = createDocument("Root");
+
+  it("accepts the view the client renders from the document it is publishing", () => {
+    const { view, json } = validatePublishedView(toPublishedView(document), 1);
+    expect(view.rootId).toBe(document.rootId);
+    expect(JSON.parse(json)).toEqual(view);
+  });
+
+  it("rejects a view that describes a different document than the one being published", () => {
+    // The frozen SVG and the live view are rendered from one document; a node-count mismatch
+    // means the reader would be shown something the author did not publish.
+    expect(() => validatePublishedView(toPublishedView(document), 2)).toThrow(ApiError);
+  });
+
+  it("rejects an unsupported format, a broken tree, and an oversized payload", () => {
+    expect(() => validatePublishedView({ formatVersion: 99 }, 1)).toThrow(ApiError);
+    expect(() => validatePublishedView(null, 1)).toThrow(ApiError);
+
+    const cyclic = toPublishedView(document);
+    cyclic.nodes[document.rootId]!.childIds = [document.rootId];
+    expect(() => validatePublishedView(cyclic, 1)).toThrow(ApiError);
+
+    const huge = toPublishedView(document);
+    huge.nodes[document.rootId]!.text = "x".repeat(PUBLISHED_VIEW_MAX_BYTES + 1);
+    expect(() => validatePublishedView(huge, 1)).toThrow(ApiError);
+  });
+
+  it("rejects a node id that could not have come from the editor", () => {
+    const view = toPublishedView(document);
+    view.nodes["bad id"] = { id: "bad id", text: "", parentId: document.rootId, childIds: [], collapsed: false, side: null };
+    view.nodes[document.rootId]!.childIds = ["bad id"];
+    expect(() => validatePublishedView(view, 2)).toThrow(ApiError);
   });
 });

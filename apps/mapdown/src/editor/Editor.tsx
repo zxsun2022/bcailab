@@ -83,11 +83,11 @@ import { exportLinkPreviewPng, exportPng, scaleReductionMessage } from "../expor
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
-import {
-  DocumentLibrary,
-  type CloudLibraryState,
-  type DocumentLibraryState
-} from "./DocumentLibrary";
+import { LibraryPage } from "../library/LibraryPage";
+import type { CloudLibraryState, DocumentLibraryState } from "../library/cloud-state";
+import { navigate, useRoute } from "../routing";
+import { ImportPage } from "../library/ImportPage";
+import { documentFromPublishedView, parsePublishedView, toPublishedView } from "../viewer/published-view";
 import { documentWithDraft, takeEditingSession } from "./draft-persistence";
 import { ToolbarMenu } from "./ToolbarMenu";
 import {
@@ -96,6 +96,7 @@ import {
   deleteCloudDocument,
   getCloudDocument,
   getCloudSession,
+  getPublishedMap,
   listCloudDocuments,
   publishCloudDocument,
   signInToMapdown,
@@ -222,7 +223,14 @@ export function Editor() {
   const [viewport, setViewport] = useState<Viewport>(IDENTITY);
   const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
   const [helpMode, setHelpMode] = useState<"help" | "search" | null>(null);
-  const [libraryOpen, setLibraryOpen] = useState(false);
+  const route = useRoute();
+  /** The library is a route (D-31), so Back, a bookmark and the File menu all reach the same
+   * surface. The editor stays mounted beneath it — unmounting would discard the undo history. */
+  const libraryOpen = route.name === "library";
+  const importing = route.name === "import";
+  const [importState, setImportState] = useState<"copying" | "failed">("copying");
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importAttempt, setImportAttempt] = useState(0);
   const [libraryState, setLibraryState] = useState<DocumentLibraryState>("loading");
   const [libraryEntries, setLibraryEntries] = useState<DocumentIndexEntry[]>([]);
   const [libraryUnavailableMessage, setLibraryUnavailableMessage] = useState<string | null>(null);
@@ -560,15 +568,10 @@ export function Editor() {
   );
 
   const closeDocumentLibrary = useCallback(() => {
-    setLibraryOpen(false);
-    requestAnimationFrame(() => {
-      const target = libraryInvokerRef.current;
-      if (target?.isConnected && target.getClientRects().length > 0) target.focus();
-      else surfaceRef.current?.focus();
-    });
+    navigate({ name: "editor" });
   }, []);
 
-  const openDocumentLibrary = useCallback(async () => {
+  const openDocumentLibrary = useCallback(() => {
     libraryInvokerRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : surfaceRef.current;
     const session = takeEditingSession(editingRef);
@@ -579,16 +582,51 @@ export function Editor() {
       autosaveRef.current?.schedule(committed.doc, committed.selection);
       closeEditing();
     }
-    setLibraryOpen(true);
+    navigate({ name: "library" });
+  }, [closeEditing, commitDraft]);
+
+  /**
+   * Loading is driven by the route, not by the button, because the route has three other
+   * entrances: a typed URL, a bookmark, and Back/Forward. The pending local save is flushed
+   * here for the same reason — the dialog did it on the way in, and arriving from history must
+   * not be the one path that skips it.
+   */
+  useEffect(() => {
+    if (!libraryOpen) return;
+    let cancelled = false;
     setLibraryState("loading");
-    try {
-      await flushPendingLocalSave();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "The current map could not be saved.");
+    void (async () => {
+      try {
+        await flushPendingLocalSave();
+      } catch (error) {
+        if (!cancelled) {
+          setNotice(error instanceof Error ? error.message : "The current map could not be saved.");
+        }
+      }
+      if (cancelled) return;
+      await refreshDocumentLibrary();
+      if (!cancelled) void refreshCloudLibrary();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [flushPendingLocalSave, libraryOpen, refreshCloudLibrary, refreshDocumentLibrary]);
+
+  /** Back out of the library — by button or by browser history — returns focus where it left. */
+  const libraryWasOpenRef = useRef(false);
+  useEffect(() => {
+    if (libraryOpen) {
+      libraryWasOpenRef.current = true;
+      return;
     }
-    await refreshDocumentLibrary();
-    void refreshCloudLibrary();
-  }, [closeEditing, commitDraft, flushPendingLocalSave, refreshCloudLibrary, refreshDocumentLibrary]);
+    if (!libraryWasOpenRef.current) return;
+    libraryWasOpenRef.current = false;
+    requestAnimationFrame(() => {
+      const target = libraryInvokerRef.current;
+      if (target?.isConnected && target.getClientRects().length > 0) target.focus();
+      else surfaceRef.current?.focus();
+    });
+  }, [libraryOpen]);
 
   const createAndActivateLocalDocument = useCallback(async () => {
     await flushPendingLocalSave();
@@ -755,7 +793,9 @@ export function Editor() {
           title: conflictCopyTitle(local.snapshot.document.title),
           revision: 0
         };
-        await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId);
+        await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId, {
+          conflictedCopyOf: localDocumentId
+        });
         await refreshLocalDocumentCloudMetadata(store, localDocumentId, currentCloud);
         await refreshDocumentLibrary();
         setCloudDocuments(await listCloudDocuments());
@@ -809,6 +849,61 @@ export function Editor() {
     setAnnouncement("The online copy was deleted. Local copies were kept.");
   }, [refreshDocumentLibrary, store]);
 
+  /**
+   * **Make a copy** (D-33). The published map is fetched from the editor origin's own public
+   * endpoint and rebuilt as a *local* document with a new id. Nothing is uploaded; putting the
+   * copy in an account stays the existing explicit action.
+   */
+  const copyPublishedMap = useCallback(async (publicId: string) => {
+    const { title, view } = await getPublishedMap(publicId);
+    const parsed = parsePublishedView(view);
+    if (!parsed) {
+      throw new Error("This public map uses a newer Mapdown format than this browser can open.");
+    }
+    await flushPendingLocalSave();
+    const copy = documentFromPublishedView(parsed, `doc-${crypto.randomUUID()}`);
+    copy.title = title || parsed.title;
+    if (checkInvariants(copy).length > 0) {
+      throw new Error("This public map is inconsistent and was not copied.");
+    }
+    const bundle = await storeLocalDocument(store, copy, copy.rootId, {
+      copiedFromPublicId: publicId
+    });
+    activateLocalDocument(copy, copy.rootId, bundle.entry.updatedAt);
+    await refreshDocumentLibrary();
+    setAnnouncement(`Copied ${copy.title} into this browser. It is not saved online.`);
+  }, [activateLocalDocument, flushPendingLocalSave, refreshDocumentLibrary, store]);
+
+  useEffect(() => {
+    if (!importing) return;
+    const publicId = route.name === "import" ? route.publicId : "";
+    if (!publicId) {
+      setImportState("failed");
+      setImportMessage("That link does not name a Mapdown map.");
+      return;
+    }
+    let cancelled = false;
+    setImportState("copying");
+    setImportMessage(null);
+    void (async () => {
+      try {
+        await copyPublishedMap(publicId);
+        // Replace rather than push: Back should return to wherever the reader came from, not
+        // re-run the copy and make a second document.
+        if (!cancelled) navigate({ name: "editor" }, { replace: true });
+      } catch (error) {
+        if (cancelled) return;
+        setImportState("failed");
+        setImportMessage(
+          error instanceof Error ? error.message : "This public map could not be copied."
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [copyPublishedMap, importAttempt, importing, route]);
+
   const publishLocalDocument = useCallback(async (localDocumentId: string) => {
     const local = await localSnapshotForCloud(localDocumentId);
     const existingPublication = local.entry.cloudPublication;
@@ -822,7 +917,10 @@ export function Editor() {
       title: cloud.snapshot.document.title,
       markdown: exportMarkdown(cloud.snapshot.document),
       svg,
-      png: png.dataUrl
+      png: png.dataUrl,
+      // Rendered from the same document as the SVG and the PNG, so the live reader page and
+      // the frozen image cannot disagree about sides or collapse state (D-32).
+      view: toPublishedView(cloud.snapshot.document)
     });
     const latestEntry = await store.getIndexEntry(localDocumentId);
     await linkLocalDocumentToCloud(
@@ -1583,11 +1681,12 @@ export function Editor() {
         canReparent(doc, selection, previousSiblingId(doc, selection)!)) ||
       (nextSiblingId(doc, selection) !== null &&
         canReparent(doc, selection, nextSiblingId(doc, selection)!)));
-  const overlayOpen = helpMode !== null || libraryOpen;
+  const overlayOpen = helpMode !== null || libraryOpen || importing;
 
   return (
     <div
       className="editor-shell"
+      data-page-open={libraryOpen || importing ? "" : undefined}
       onKeyDownCapture={onGlobalKeyDown}
     >
       <header
@@ -2158,8 +2257,16 @@ export function Editor() {
           onClose={closeHelp}
         />
       )}
+      {importing && (
+        <ImportPage
+          state={importState}
+          message={importMessage}
+          onCancel={() => navigate({ name: "editor" }, { replace: true })}
+          onRetry={() => setImportAttempt((attempt) => attempt + 1)}
+        />
+      )}
       {libraryOpen && (
-        <DocumentLibrary
+        <LibraryPage
           state={libraryState}
           entries={libraryEntries}
           activeDocumentId={doc.id}

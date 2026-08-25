@@ -59,6 +59,13 @@ per-document action; **Publish** is explicit, requires an account and first save
 document online. Public frozen snapshots are readable without an account at unlisted
 `share.bcailab.com` URLs.
 
+A published page is a **live read-only map**, not a picture: anyone with the link can expand and
+collapse branches, pan, zoom and fit, with no account and no session on that host. Without
+JavaScript it still renders the frozen SVG. **Make a copy** on that page is also account-free —
+it links to `map.bcailab.com/import?src=…`, and Mapdown rebuilds the map as a **local** document
+in the visitor's own browser. Putting that copy in an account remains the same explicit
+**Save online** action as any other local map; the copy itself uploads nothing.
+
 Mapdown does not receive `bcailab_session`. Its popup returns a 60-second, audience-bound,
 single-use handoff from the signed-in Web app, which Mapdown exchanges for an independent
 Host-only `mapdown_session`. Signing out of Mapdown removes that session but leaves every local

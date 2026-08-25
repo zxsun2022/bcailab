@@ -1,0 +1,5 @@
+# The SPA answers on three paths (src/routing.ts). Pages serves static assets, so every path
+# other than "/" needs an explicit rewrite or a reload lands on a 404. Listed one by one rather
+# than as /* so an unknown path stays a 404 instead of silently rendering the editor.
+/library /index.html 200
+/import /index.html 200

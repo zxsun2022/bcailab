@@ -860,6 +860,105 @@ R2 cleanup may follow asynchronously.
 **Boundary.** This is a minimum takedown path, not a moderation dashboard, search product,
 social feed, analytics system or public profile feature.
 
+---
+
+## D-31 — The document library is a route, and the editor stays mounted beneath it
+
+**Decided 2026-08-24** by the owner when authorizing the library/viewer/copy iteration.
+
+**Decision.** The document library moves from a modal dialog to `/library`, a real path in the
+Mapdown SPA alongside `/` and `/import`. Pages serves them through explicit `_redirects`
+rewrites — one line per path, never `/*` — and all three appear in `public/_routes.json` so
+`functions/_middleware.ts` sees them; on the published origin every app path is redirected to
+the editor origin with its path intact. The editor is **not** unmounted while the library is on
+screen: it is hidden by CSS and made `inert` through the existing `data-overlay-background`
+mechanism. Row state (*Local only* / *Unsaved changes* / *Saved online* / *Published* /
+*Published · outdated* / *Online only*) is computed once, as data, in `src/library/rows.ts`,
+and local and account documents sort together in one list. Publishing, updating, unpublishing
+and the resulting public URL live in a detail panel rather than in a row.
+
+**Why.** The dialog was carrying a page's worth of work inside a focus trap — which is why the
+publish result kept landing behind its own overlay, and why a map holding unsaved content could
+still read *Saved online*: the state was reassembled inline per badge and per button. Unmounting
+the editor on navigation was rejected because it would discard the undo history, and
+`spec/vision.md` §4.8 makes reliable history non-negotiable; a bookmarkable URL is not worth
+paying for with an undo stack. Listing app paths one at a time, rather than a wildcard rewrite,
+keeps an unknown path a 404 and keeps `share.bcailab.com` from serving the editor and its
+account UI — `root-host.test.ts` asserts the redirect list and the Pages route config agree.
+
+**Boundary.** This does not authorize folders, tags, cross-document search, recovery-history UI,
+a publication directory, or any change to what the editor itself does.
+
+---
+
+## D-32 — A published map ships a versioned public view snapshot, and its page is a live reader
+
+**Decided 2026-08-24** by the owner when authorizing the library/viewer/copy iteration.
+**Amends D-29**, which said the published page "displays user content only as an isolated SVG
+image".
+
+**Decision.** Publishing now uploads a third asset alongside the SVG and PNG: a versioned
+**public view snapshot** (`src/viewer/published-view.ts`) carrying tree order, node text,
+first-level sides, collapse state and the theme pair. It is stored in R2 and referenced by a
+nullable `view_key` column; D1 remains the serving authority, so unpublish revokes it in the
+same request that revokes the page. The published page loads `/published/viewer.js` — a second
+Vite entry that imports `layout/`, `theme/` and the viewport helper and nothing else — fetches
+`/p/{id}/map.json`, and renders a read-only map the reader can expand, collapse, pan, zoom and
+fit, by pointer and by keyboard. The CSP gains `connect-src 'self'` and nothing else.
+
+**Why not Markdown.** `markdown/parse.ts` assigns every first-level node `side: "right"`, and
+`storage-export.md` §14.4 requires Markdown to contain collapsed descendants with no record that
+they were collapsed. A Markdown-driven viewer would therefore contradict the frozen SVG beside
+it, and two public renderings of one publication that disagree is a correctness bug, not a
+cosmetic one.
+
+**Why not the private snapshot.** D-27 keeps the private cloud format free to change *because it
+is never a public contract*. Serving it publicly would make it one. The published format is
+separately versioned, carries no document id, revision or selection, and refuses an unknown
+newer version rather than guessing at it.
+
+**Why the SVG stays.** The image is the page; the live map is enhancement over it. No
+JavaScript, a failed fetch, an unsupported format, and every publication frozen before this
+existed all land on the same complete, readable page. The `<img>` is present in the served HTML
+rather than injected, and `published-page-html.test.ts` asserts that along with the absence of
+inline script.
+
+**Why not reuse `MapCanvas`.** It carries drag-and-drop, selection, IME and command dispatch.
+Shipping it to the host that serves other people's content would put an editing system and a
+mutation path on a public page. Fidelity is protected where it lives instead — the reader runs
+the same `layout/` and `theme/` modules the author ran — and `import-boundary.test.ts` walks the
+viewer's module graph to keep the editor, storage, account and command modules out of it.
+
+**Boundary.** The published page remains read-only, unlisted and `noindex`. This decision does
+not authorize comments, reactions, editing, a publication directory, or any account state on the
+published host.
+
+---
+
+## D-33 — Copy is a local copy, made on the editor origin
+
+**Decided 2026-08-24** by the owner when authorizing the library/viewer/copy iteration.
+
+**Decision.** A published page offers **Make a copy** as a plain link to
+`map.bcailab.com/import?src={publicId}`. The editor origin serves an unauthenticated, read-only
+`GET /api/publications/{publicId}` that returns the active publication's title and view
+snapshot; Mapdown rebuilds it as a **local** document with a new document id, stores it in
+IndexedDB with `copiedFromPublicId` as provenance, and opens it. Putting the copy in an account
+stays the existing explicit *Save online* action. A revoked id and an unknown id return the same
+404, and the endpoint exposes no author identity and no publication list.
+
+**Why local, and why not on the share host.** Copying must work signed out, and it must not
+upload anything the visitor did not ask to upload — `spec/product-specification.md` §20 applies
+to a map that arrived from someone else exactly as it applies to one they typed. Giving
+`share.bcailab.com` any path that writes to an account would undo the reason D-29 put published
+content on a cookie-free host in the first place, so the write half of the flow lives where the
+session already does.
+
+**Boundary.** Copy is not attribution and not a fork graph. The copy is an independent document:
+nothing links it back to the original cloud document, the original author is not notified, and
+no counter is kept. A second copy of the same map creates a second document rather than
+overwriting the first.
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

@@ -53,7 +53,7 @@ export const COMMANDS: CommandDefinition[] = [
   definition("center", "Center selection", "Center the selected node, or the root when none is selected.", "View", ["viewport", "root", "居中"]),
   definition("reset-zoom", "Reset zoom to 100%", "Return the canvas to actual size without changing its centre.", "View", ["zoom", "actual size", "100 percent", "缩放", "原始大小"]),
   definition("toggle-layout", "Toggle layout", "Switch between right-only and two-sided layout.", "View", ["two sided", "right only", "布局", "双侧"]),
-  definition("document-library", "Open document library", "Browse and manage maps saved in this browser.", "Files", ["documents", "recent", "rename", "duplicate", "delete", "文件列表", "文档"]),
+  definition("document-library", "Open document library", "Open the library page to browse, rename, duplicate, delete, save online and publish your maps.", "Files", ["documents", "recent", "rename", "duplicate", "delete", "publish", "library", "文件列表", "文档"]),
   definition("open-markdown", "Open Markdown", "Import a Markdown outline as a new local map.", "Files", ["import", "file", "open", "导入", "打开"]),
   definition("export-markdown", "Export Markdown", "Download the complete semantic tree, including collapsed descendants.", "Files", ["save", "download", "markdown", "导出"]),
   definition("export-svg", "Export SVG", "Download the current visible map as a vector image.", "Files", ["image", "vector", "导出"]),

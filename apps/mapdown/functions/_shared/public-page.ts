@@ -1,8 +1,14 @@
+/**
+ * `connect-src 'self'` is the only addition the live viewer needed (D-32): it fetches its own
+ * `/p/{id}/map.json` and nothing else. Everything else stays as D-29 set it — `default-src
+ * 'none'` with no inline script, no external origin, and no framing.
+ */
 export const PUBLIC_CSP = [
   "default-src 'none'",
   "img-src 'self'",
   "style-src 'self'",
   "script-src 'self'",
+  "connect-src 'self'",
   "form-action 'self'",
   "base-uri 'none'",
   "frame-ancestors 'none'"

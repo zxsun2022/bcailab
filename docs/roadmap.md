@@ -606,6 +606,96 @@ browser coverage at desktop and mobile widths with and without JavaScript; Mapdo
 typechecks, lint, full tests, and both production builds. These checks passed before owner
 acceptance on 2026-08-23.
 
+## Now — Mapdown library page, live published viewer, and copy — accepted (2026-08-25)
+
+The owner authorized this iteration on 2026-08-24 and confirmed its four scoping decisions:
+the library becomes a full-page route replacing the dialog; the published viewer is driven by a
+new public view snapshot rather than the published Markdown; **Copy** produces a local map in
+the visitor's browser; and the interaction work targets the publish flow, save/sign-in feedback,
+and the list itself, with editor canvas interaction explicitly out of scope. The design and the
+reasoning are in
+[the library and live viewer proposal](mapdown/library-and-live-viewer-proposal.md).
+
+The owner reviewed the three surfaces in a browser and accepted the completed iteration **as a
+first version** on 2026-08-25.
+
+**Acceptance did not cover the Pages Functions runtime, and that gap is still open.** No local
+run exercised the real D1/R2 handlers: `wrangler pages dev` fails to build Functions in this
+environment (an esbuild/wrangler version mismatch), so the published page and the copy endpoint
+were driven against a static harness rendering the real page markup and the real built bundle.
+Before this reaches production, migration `0021_mapdown_publication_view.sql` is applied first
+under ADR 0008, and the deploy is followed by a live check of publish → the live viewer →
+**Make a copy** → unpublish returning an uncached 404 for both `/p/{id}` and `/p/{id}/map.json`.
+That check is a deployment step, not a new authorization.
+
+### Stage 1 — the document library becomes a page
+
+- Add a three-route client router to the Mapdown SPA (`/`, `/library`, `/import`) with a Pages
+  rewrite and `_routes.json` coverage, so `_middleware.ts` keeps the editor off the published
+  origin. The editor remains the default landing surface and stays mounted beneath the library,
+  so browser Back returns to the same document, viewport and undo history.
+- Replace the modal document library with a full page: one merged local + online list, an
+  explicit per-row state (Local only / Unsaved changes / Saved online / Published / Published ·
+  outdated / Conflicted copy), title search, sort by last edited or title, inline rename, and an
+  explicit action column.
+- Move publish, update published version, unpublish, the resulting public URL and Copy link into
+  a detail panel for the selected map, so a publish result is never occluded by the surface that
+  produced it.
+- Keep every storage and cloud contract unchanged: delete stays confirmed and in-tab undoable,
+  no document is uploaded without an explicit per-document action, and the signed-out offline
+  workflow is unchanged.
+
+Acceptance: direct, menu and command-registry entry to `/library`; Back preserving editor state;
+every row state visible without opening a menu and *Saved online* never shown for a map with
+unsaved local content; publish results staying visible; search and sort reporting empty results
+honestly; keyboard and screen-reader operation at desktop, tablet and mobile widths under
+reduced motion; an honest unavailable state when IndexedDB cannot be read; and `/library` and
+`/import` not serving the editor on `share.bcailab.com`.
+
+### Stage 2 — the published page becomes a live read-only map
+
+- Publish an additional versioned **public view snapshot** (tree order, node text, first-level
+  sides, collapse state, theme pair) to R2, referenced by a new nullable `view_key` column on
+  `mapdown_publications`. The published Markdown cannot serve this role: import assigns every
+  first-level node `side: "right"` and carries no collapse state, so a Markdown-driven viewer
+  would contradict the frozen SVG beside it. Cap 512 KiB per view snapshot.
+- Build the viewer as a separate Vite entry importing only `layout/`, `theme/` and the viewport
+  helper — never the editor, model commands or storage — so no public code path can mutate a
+  document. The Pages Function keeps generating the HTML and owns `og:`, `noindex`, canonical
+  and CSP.
+- A reader can expand and collapse nodes, pan, zoom, fit and reset, by pointer and by keyboard.
+  Editing, selection commands and drag-to-move do not exist on this surface.
+- Without JavaScript, or before the bundle loads, or when `map.json` fails, the existing frozen
+  SVG `<img>` remains the rendering. Publications created before this stage keep the image
+  viewer. CSP gains `connect-src 'self'` and nothing else.
+
+Acceptance: first paint matching the frozen SVG in sides, collapse state and theme; pointer and
+keyboard collapse/pan/zoom/fit with no mutation of the publication; a working no-JavaScript page
+and PNG unfurling; pre-existing publications rendering without error; hostile node text inert in
+the live viewer; no editor/storage/model-command import reachable from the public bundle;
+uncached 404 after unpublish for both the page and `map.json`; and server-side validation of the
+view snapshot's shape, size, node ceiling and root.
+
+### Stage 3 — Copy
+
+- The published page offers **Make a copy**, linking to `map.bcailab.com/import?src={publicId}`.
+  A new unauthenticated, read-only `GET /api/publications/{publicId}` on the editor origin
+  returns the active publication's title and view snapshot; the share host gains no write path
+  and no session.
+- Mapdown builds a new local document from the snapshot, stores it in IndexedDB and opens it.
+  Putting it in an account remains the existing explicit *Save online* action. The copy records
+  its source public id as provenance; it is a new document with new ids and creates no fork
+  graph and no notification to the original author.
+
+Acceptance: copy working signed out and creating exactly one local document; structure, sides,
+collapse state and theme preserved; a revoked or unknown id failing clearly and creating
+nothing; the endpoint being read-only, `no-store`, identical 404 for revoked and unknown, and
+exposing no author identity; a second copy creating a second document; and the share host
+gaining no authenticated cookie or mutation endpoint.
+
+Migration `0021_mapdown_publication_view.sql` is applied before the code that reads it is
+deployed, `--remote` for production D1 (ADR 0008).
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:
