@@ -68,7 +68,9 @@ make the final transition; see `AGENTS.md`.
     verified migrations 0008–0020 on Preview D1 in numeric order; no migrations remain pending
     and all four Mapdown cloud tables exist. Cloudflare Preview now has Mapdown's build-time Web
     origin, Web's stable OAuth callback, and one matching encrypted `MAPDOWN_HANDOFF_SECRET` on
-    both Pages projects. Production, deployment and Git remotes were not changed.
+    both Pages projects. The first Mapdown Preview build exposed a stale Workers-only
+    `observability` block that Pages rejects during config validation; removing it lets Pages
+    use its project-level logging configuration instead. Production was not changed.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,

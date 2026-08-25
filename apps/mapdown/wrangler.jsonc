@@ -47,10 +47,5 @@
       "bucket_name": "bcailab-assets",
       "preview_bucket_name": "bcailab-assets-preview"
     }
-  ],
-  "observability": {
-    "enabled": true,
-    "logs": { "enabled": true, "head_sampling_rate": 1 },
-    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
-  }
+  ]
 }
