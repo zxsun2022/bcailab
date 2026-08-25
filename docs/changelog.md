@@ -92,6 +92,8 @@ make the final transition; see `AGENTS.md`.
     the same single-use audience-bound token; an anonymous Studio session returns no token without
     a popup or login-page flash. Explicit Mapdown sign-out suppresses another silent attempt in the
     current tab, while manual Sign in remains the fallback and clears that suppression.
+    Preview's intentionally shared editor/publication origin bypasses the production-only root
+    redirect, preventing the stable staging host from redirecting to itself.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,

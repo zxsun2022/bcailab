@@ -20,4 +20,9 @@ describe("mapdownRootRedirect", () => {
       mapdownRootRedirect(`${PUBLISHED_ORIGIN}/p/example`, PUBLISHED_ORIGIN, MAPDOWN_ORIGIN)
     ).toBeNull();
   });
+
+  it("does not redirect when Preview uses one host for editing and publishing", () => {
+    const previewOrigin = "https://staging.mapdown.pages.dev";
+    expect(mapdownRootRedirect(`${previewOrigin}/`, previewOrigin, previewOrigin)).toBeNull();
+  });
 });
