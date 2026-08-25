@@ -76,6 +76,12 @@ make the final transition; see `AGENTS.md`.
     replacing the dashboard's earlier `VITE_WEB_ORIGIN` setting. The Vite config now derives the
     stable Preview Web origin from Cloudflare's `CF_PAGES_BRANCH=staging`, with an explicit build
     variable still taking precedence; regression tests cover staging, production, and overrides.
+  - Production rollout (2026-08-24): after the owner completed the staging acceptance flow,
+    production D1 was exported before migrations 0019–0020 were applied and verified. The Web
+    and Mapdown Pages projects received one matching encrypted `MAPDOWN_HANDOFF_SECRET`, and
+    `share.bcailab.com` was attached to Mapdown for published snapshots. Production uses the
+    checked-in `bcailab-db` and `bcailab-assets` bindings; this commit promotes the accepted
+    implementation to `main` for Git-integrated Pages deployment.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,
