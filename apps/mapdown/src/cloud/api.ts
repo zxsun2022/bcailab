@@ -204,6 +204,14 @@ export async function publishCloudDocument(input: {
   })).publication;
 }
 
+/**
+ * The read side of **Make a copy** (D-33). Public, unauthenticated, same-origin: the published
+ * host has no write path, so the copy is fetched and made here, on the editor origin.
+ */
+export async function getPublishedMap(publicId: string): Promise<{ title: string; view: unknown }> {
+  return api<{ title: string; view: unknown }>(`/api/publications/${encodeURIComponent(publicId)}`);
+}
+
 export async function unpublishCloudDocument(id: string): Promise<void> {
   await api(`/api/documents/${encodeURIComponent(id)}/unpublish`, { method: "POST", body: "{}" });
 }

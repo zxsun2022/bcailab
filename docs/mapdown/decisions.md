@@ -933,6 +933,32 @@ viewer's module graph to keep the editor, storage, account and command modules o
 not authorize comments, reactions, editing, a publication directory, or any account state on the
 published host.
 
+---
+
+## D-33 — Copy is a local copy, made on the editor origin
+
+**Decided 2026-08-24** by the owner when authorizing the library/viewer/copy iteration.
+
+**Decision.** A published page offers **Make a copy** as a plain link to
+`map.bcailab.com/import?src={publicId}`. The editor origin serves an unauthenticated, read-only
+`GET /api/publications/{publicId}` that returns the active publication's title and view
+snapshot; Mapdown rebuilds it as a **local** document with a new document id, stores it in
+IndexedDB with `copiedFromPublicId` as provenance, and opens it. Putting the copy in an account
+stays the existing explicit *Save online* action. A revoked id and an unknown id return the same
+404, and the endpoint exposes no author identity and no publication list.
+
+**Why local, and why not on the share host.** Copying must work signed out, and it must not
+upload anything the visitor did not ask to upload — `spec/product-specification.md` §20 applies
+to a map that arrived from someone else exactly as it applies to one they typed. Giving
+`share.bcailab.com` any path that writes to an account would undo the reason D-29 put published
+content on a cookie-free host in the first place, so the write half of the flow lives where the
+session already does.
+
+**Boundary.** Copy is not attribution and not a fork graph. The copy is an independent document:
+nothing links it back to the original cloud document, the original author is not notified, and
+no counter is kept. A second copy of the same map creates a second document rather than
+overwriting the first.
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

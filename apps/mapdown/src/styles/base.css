@@ -697,7 +697,7 @@ button:disabled {
  * only; `data-overlay-background` already carries `inert` and `aria-hidden`, so nothing behind
  * the page is reachable by keyboard or screen reader.
  */
-.editor-shell[data-library-open] > [data-overlay-background] {
+.editor-shell[data-page-open] > [data-overlay-background] {
   display: none;
 }
 
@@ -1105,6 +1105,19 @@ button:disabled {
     border-top: 1px solid var(--chrome-border);
     border-left: none;
   }
+}
+
+.library-body-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.library-body-single .library-detail {
+  width: 100%;
+  max-width: 42rem;
+  margin: 0 auto;
+  padding-top: 2.5rem;
+  border-left: none;
+  background: none;
 }
 
 @media (pointer: coarse) {

@@ -18,6 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
     version: Number(publication.version),
     hasPngPreview: Boolean(publication.png_key),
     publishedOrigin: context.env.PUBLISHED_ORIGIN,
+    mapdownOrigin: context.env.MAPDOWN_ORIGIN,
     pathname: new URL(context.request.url).pathname
   });
   return new Response(html, { headers: publicHeaders() });

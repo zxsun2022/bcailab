@@ -8,6 +8,7 @@ const input = {
   version: 2,
   hasPngPreview: true,
   publishedOrigin: "https://share.bcailab.com",
+  mapdownOrigin: "https://map.bcailab.com",
   pathname: "/p/a1b2c3d4e5f6a7b8"
 };
 
@@ -54,5 +55,13 @@ describe("published page markup", () => {
     const html = publishedPageHtml({ ...input, title: '</title><script>alert(1)</script>' });
     expect(html).not.toContain("<script>alert(1)</script>");
     expect(html).toContain("&lt;script&gt;alert(1)&lt;/script&gt;");
+  });
+
+  it("sends Make a copy to the editor origin, never to the published host", () => {
+    const html = publishedPageHtml(input);
+    expect(html).toContain('href="https://map.bcailab.com/import?src=a1b2c3d4e5f6a7b8"');
+    // The published host must gain no path that writes anything (D-33).
+    expect(html).not.toContain("share.bcailab.com/import");
+    expect(html).not.toMatch(/<form(?![^>]*action="\/p\/)/);
   });
 });

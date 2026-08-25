@@ -22,6 +22,8 @@ export interface PublishedPageInput {
   /** Link unfurlers get the PNG when one exists; the SVG is the reader-facing asset. */
   hasPngPreview: boolean;
   publishedOrigin: string;
+  /** Where the editor lives. **Make a copy** is a plain link to it — the copy is made there. */
+  mapdownOrigin: string;
   /** The request path, so relative asset links work on a preview host too. */
   pathname: string;
 }
@@ -52,7 +54,7 @@ export function publishedPageHtml(input: PublishedPageInput): string {
   </head>
   <body>
     <header class="published-header">
-      <a class="published-brand" href="https://map.bcailab.com">Mapdown</a>
+      <a class="published-brand" href="${escapeHtml(input.mapdownOrigin)}">Mapdown</a>
       <div>
         <h1>${title}</h1>
         <p>Published version ${Number(input.version).toLocaleString()} · frozen snapshot</p>
@@ -69,6 +71,7 @@ export function publishedPageHtml(input: PublishedPageInput): string {
       </div>
     </main>
     <footer class="published-footer">
+      <a class="published-copy" href="${escapeHtml(`${input.mapdownOrigin}/import?src=${encodeURIComponent(input.publicId)}`)}">Make a copy</a>
       <a href="${escapeHtml(`${pathname}/map.md`)}">Download Markdown</a>
       <details>
         <summary>Report this map</summary>

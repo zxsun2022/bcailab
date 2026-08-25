@@ -86,6 +86,8 @@ import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
 import { LibraryPage } from "../library/LibraryPage";
 import type { CloudLibraryState, DocumentLibraryState } from "../library/cloud-state";
 import { navigate, useRoute } from "../routing";
+import { ImportPage } from "../library/ImportPage";
+import { documentFromPublishedView, parsePublishedView, toPublishedView } from "../viewer/published-view";
 import { documentWithDraft, takeEditingSession } from "./draft-persistence";
 import { ToolbarMenu } from "./ToolbarMenu";
 import {
@@ -94,6 +96,7 @@ import {
   deleteCloudDocument,
   getCloudDocument,
   getCloudSession,
+  getPublishedMap,
   listCloudDocuments,
   publishCloudDocument,
   signInToMapdown,
@@ -103,7 +106,6 @@ import {
 } from "../cloud/api";
 import type { CloudDocumentRecord, CloudDocumentSummary, CloudSnapshot, CloudUser } from "../cloud/types";
 import { checkInvariants } from "../model/invariants";
-import { toPublishedView } from "../viewer/published-view";
 
 /**
  * The editing state machine of `interaction.md`, wired to the model, layout and canvas.
@@ -225,6 +227,10 @@ export function Editor() {
   /** The library is a route (D-31), so Back, a bookmark and the File menu all reach the same
    * surface. The editor stays mounted beneath it — unmounting would discard the undo history. */
   const libraryOpen = route.name === "library";
+  const importing = route.name === "import";
+  const [importState, setImportState] = useState<"copying" | "failed">("copying");
+  const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [importAttempt, setImportAttempt] = useState(0);
   const [libraryState, setLibraryState] = useState<DocumentLibraryState>("loading");
   const [libraryEntries, setLibraryEntries] = useState<DocumentIndexEntry[]>([]);
   const [libraryUnavailableMessage, setLibraryUnavailableMessage] = useState<string | null>(null);
@@ -842,6 +848,61 @@ export function Editor() {
     setCloudDocuments(await listCloudDocuments());
     setAnnouncement("The online copy was deleted. Local copies were kept.");
   }, [refreshDocumentLibrary, store]);
+
+  /**
+   * **Make a copy** (D-33). The published map is fetched from the editor origin's own public
+   * endpoint and rebuilt as a *local* document with a new id. Nothing is uploaded; putting the
+   * copy in an account stays the existing explicit action.
+   */
+  const copyPublishedMap = useCallback(async (publicId: string) => {
+    const { title, view } = await getPublishedMap(publicId);
+    const parsed = parsePublishedView(view);
+    if (!parsed) {
+      throw new Error("This public map uses a newer Mapdown format than this browser can open.");
+    }
+    await flushPendingLocalSave();
+    const copy = documentFromPublishedView(parsed, `doc-${crypto.randomUUID()}`);
+    copy.title = title || parsed.title;
+    if (checkInvariants(copy).length > 0) {
+      throw new Error("This public map is inconsistent and was not copied.");
+    }
+    const bundle = await storeLocalDocument(store, copy, copy.rootId, {
+      copiedFromPublicId: publicId
+    });
+    activateLocalDocument(copy, copy.rootId, bundle.entry.updatedAt);
+    await refreshDocumentLibrary();
+    setAnnouncement(`Copied ${copy.title} into this browser. It is not saved online.`);
+  }, [activateLocalDocument, flushPendingLocalSave, refreshDocumentLibrary, store]);
+
+  useEffect(() => {
+    if (!importing) return;
+    const publicId = route.name === "import" ? route.publicId : "";
+    if (!publicId) {
+      setImportState("failed");
+      setImportMessage("That link does not name a Mapdown map.");
+      return;
+    }
+    let cancelled = false;
+    setImportState("copying");
+    setImportMessage(null);
+    void (async () => {
+      try {
+        await copyPublishedMap(publicId);
+        // Replace rather than push: Back should return to wherever the reader came from, not
+        // re-run the copy and make a second document.
+        if (!cancelled) navigate({ name: "editor" }, { replace: true });
+      } catch (error) {
+        if (cancelled) return;
+        setImportState("failed");
+        setImportMessage(
+          error instanceof Error ? error.message : "This public map could not be copied."
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [copyPublishedMap, importAttempt, importing, route]);
 
   const publishLocalDocument = useCallback(async (localDocumentId: string) => {
     const local = await localSnapshotForCloud(localDocumentId);
@@ -1620,12 +1681,12 @@ export function Editor() {
         canReparent(doc, selection, previousSiblingId(doc, selection)!)) ||
       (nextSiblingId(doc, selection) !== null &&
         canReparent(doc, selection, nextSiblingId(doc, selection)!)));
-  const overlayOpen = helpMode !== null || libraryOpen;
+  const overlayOpen = helpMode !== null || libraryOpen || importing;
 
   return (
     <div
       className="editor-shell"
-      data-library-open={libraryOpen ? "" : undefined}
+      data-page-open={libraryOpen || importing ? "" : undefined}
       onKeyDownCapture={onGlobalKeyDown}
     >
       <header
@@ -2194,6 +2255,14 @@ export function Editor() {
           mode={helpMode}
           commands={runtimeCommands}
           onClose={closeHelp}
+        />
+      )}
+      {importing && (
+        <ImportPage
+          state={importState}
+          message={importMessage}
+          onCancel={() => navigate({ name: "editor" }, { replace: true })}
+          onRetry={() => setImportAttempt((attempt) => attempt + 1)}
         />
       )}
       {libraryOpen && (

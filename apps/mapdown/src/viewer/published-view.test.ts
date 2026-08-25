@@ -49,7 +49,7 @@ describe("published view round trip", () => {
   });
 
   it("carries no private identity across the boundary", () => {
-    const view = toPublishedView(document) as Record<string, unknown>;
+    const view = toPublishedView(document) as unknown as Record<string, unknown>;
     expect(view.id).toBeUndefined();
     expect(view.revision).toBeUndefined();
     expect(view.selectedNodeId).toBeUndefined();
