@@ -6,6 +6,22 @@ interface SessionStorageLike {
   setItem(key: string, value: string): void;
 }
 
+export function createSilentSsoAttempt<T>(attempt: () => Promise<T>): () => Promise<T | null> {
+  let attempted = false;
+  let inFlight: Promise<T> | null = null;
+
+  return () => {
+    if (inFlight) return inFlight;
+    if (attempted) return Promise.resolve(null);
+
+    attempted = true;
+    inFlight = attempt().finally(() => {
+      inFlight = null;
+    });
+    return inFlight;
+  };
+}
+
 export function isSilentSsoSuppressed(storage: SessionStorageLike): boolean {
   try {
     return storage.getItem(SUPPRESSION_KEY) === "1";

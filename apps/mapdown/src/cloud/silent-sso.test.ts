@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createSilentSsoAttempt,
   isSilentSsoSuppressed,
   setSilentSsoSuppressed,
   silentSsoToken
@@ -15,6 +16,27 @@ function memoryStorage() {
 }
 
 describe("Mapdown silent SSO", () => {
+  it("runs at most once per page and shares an in-flight attempt", async () => {
+    let calls = 0;
+    let finish!: (value: string) => void;
+    const attempt = createSilentSsoAttempt(async () => {
+      calls += 1;
+      return new Promise<string>((resolve) => {
+        finish = resolve;
+      });
+    });
+
+    const first = attempt();
+    const concurrent = attempt();
+    expect(concurrent).toBe(first);
+    expect(calls).toBe(1);
+
+    finish("signed-in");
+    await expect(first).resolves.toBe("signed-in");
+    await expect(attempt()).resolves.toBeNull();
+    expect(calls).toBe(1);
+  });
+
   it("suppresses silent SSO after explicit sign-out until explicit sign-in", () => {
     const storage = memoryStorage();
     setSilentSsoSuppressed(storage, true);

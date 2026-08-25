@@ -5,7 +5,12 @@ import type {
   CloudSessionState,
   CloudUser
 } from "./types";
-import { isSilentSsoSuppressed, setSilentSsoSuppressed, silentSsoToken } from "./silent-sso";
+import {
+  createSilentSsoAttempt,
+  isSilentSsoSuppressed,
+  setSilentSsoSuppressed,
+  silentSsoToken
+} from "./silent-sso";
 
 interface ApiErrorPayload {
   error?: { code?: string; message?: string; details?: unknown };
@@ -100,7 +105,7 @@ export async function getCloudSession(): Promise<CloudSessionState> {
   const session = await api<CloudSessionState>("/api/auth/session");
   if (session.user || isSilentSsoSuppressed(sessionStorage)) return session;
 
-  const user = await silentlySignInToMapdown();
+  const user = await silentlySignInOnce();
   return user ? { user } : session;
 }
 
@@ -146,6 +151,8 @@ async function silentlySignInToMapdown(): Promise<CloudUser | null> {
     frame.remove();
   }
 }
+
+const silentlySignInOnce = createSilentSsoAttempt(silentlySignInToMapdown);
 
 export async function listCloudDocuments(): Promise<CloudDocumentSummary[]> {
   return (await api<{ documents: CloudDocumentSummary[] }>("/api/documents")).documents;
