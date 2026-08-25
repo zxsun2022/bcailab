@@ -82,6 +82,11 @@ make the final transition; see `AGENTS.md`.
     `share.bcailab.com` was attached to Mapdown for published snapshots. Production uses the
     checked-in `bcailab-db` and `bcailab-assets` bindings; this commit promotes the accepted
     implementation to `main` for Git-integrated Pages deployment.
+  - Production root-host fix (2026-08-24): attaching `share.bcailab.com` to the same Pages project
+    also exposed the static editor at that host, where sign-in was correctly rejected because the
+    published origin is not an authentication audience. The published host root now redirects to
+    `map.bcailab.com`; published `/p/*` pages and their same-origin assets remain on the isolated
+    share host, and the authentication allowlist remains restricted to the editor origin.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,
