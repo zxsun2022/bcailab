@@ -9,6 +9,40 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-25 — **in_review: Mapdown library page, live published viewer, and copy.** Authorized by
+  the owner on 2026-08-24 with four scoping decisions; design in
+  `docs/mapdown/library-and-live-viewer-proposal.md`. The document library moves from a modal to
+  `/library`, a real route served by an explicit Pages rewrite and covered by `_routes.json` so
+  the middleware keeps app paths off the published origin; the editor stays mounted and inert
+  beneath it, so Back returns to the same document, viewport and undo history. Row state is
+  computed once as data in `src/library/rows.ts` instead of being reassembled per badge and per
+  button, local and account documents share one searchable, sortable list, and publish/update/
+  unpublish plus the public URL move into a detail panel where the result stays visible. A
+  published map now ships a versioned public view snapshot (migration 0021, nullable `view_key`),
+  and `/p/{id}` loads a second Vite entry that renders a read-only map a reader can expand,
+  collapse, pan, zoom and fit; the frozen SVG remains the page for no-JavaScript, failed-fetch,
+  unsupported-format and pre-existing publications. Published Markdown could not drive the viewer
+  because import forces `side: "right"` and carries no collapse state. **Make a copy** links to
+  the editor origin, where a new public read-only `GET /api/publications/{id}` feeds a local copy
+  that uploads nothing and needs no account. Evidence: 660 repo-wide tests pass (up from 632),
+  including a module-graph test proving the public bundle cannot reach the editor, storage,
+  account or command modules, published-view round-trip and rejection tests, server-side view
+  validation contract tests, page-markup tests for the no-JS fallback and absence of inline
+  script, and a redirect/route-config agreement test for the published host. Mutation checks
+  confirmed the sync-state, publish-state, node-count and format-version assertions fail when
+  their rules are removed. Mapdown typecheck, Functions typecheck, lint (zero errors, the same
+  two pre-existing Hook warnings) and the production build pass. Browser QA covered the library
+  page at 1280 px and 375 px in light and dark (direct URL, File menu, Back, rename, search,
+  delete-and-undo), the live published page (fidelity against the frozen SVG, expand/collapse by
+  pointer and by keyboard, pan, zoom, fit, inert hostile node text, and the image fallback when
+  `map.json` 404s), and the copy flow (copy from the published page, a second copy creating a
+  second document, and a failed copy creating nothing). **Not verified locally:** the Pages
+  Functions runtime — `wrangler pages dev` fails to build Functions in this environment with an
+  esbuild/wrangler version mismatch, so the published page and the copy endpoint were exercised
+  against a static harness rendering the real page markup and the real built bundle, with D1/R2
+  handlers covered by typecheck and contract tests only. No remote migration, secret or domain
+  change, deployment or push was performed.
+
 - 2026-08-21 — **accepted 2026-08-23: added explicit Mapdown account save and frozen publishing.**
   Mapdown now exchanges a 60-second, single-use Studio handoff for its own Host-only session;
   the existing `bcailab_session` remains unchanged. The local-first document library can

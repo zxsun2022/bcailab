@@ -1,9 +1,9 @@
 # Mapdown
 
-**Status (2026-08-21):** The production MVP and stabilization checkpoints were accepted by the
-owner on 2026-08-15. The local document library plus explicit account save and frozen publish
-are implemented and `in_review`; only the owner can accept them. **427 Mapdown tests; 593
-repo-wide.**
+**Status (2026-08-25):** The production MVP and stabilization checkpoints were accepted by the
+owner on 2026-08-15; the local document library, account save and frozen publish were accepted
+on 2026-08-23. The library page, the live published viewer and **Make a copy** are implemented
+and `in_review`; only the owner can accept them. **660 repo-wide tests.**
 The editor works — keyboard-first authoring, two-sided layout, four shapes × ten palettes
 (the theme is a shape/palette pair, D-24), Markdown/SVG/PNG export, local autosave and
 recovery, a local document library (new/open/rename/duplicate/delete with current-tab undo),
@@ -34,7 +34,7 @@ dependency on `@bcailab/ui`; it owns its chrome tokens in `src/styles/` (D-05).
 | 3 | Selection / editing / IME | ✅ `src/editor/` |
 | 4 | Keyboard creation and navigation | ✅ `src/editor/keymap.ts` |
 | 5 | History | ✅ `src/model/history.ts` |
-| 6 | Collapse visible projection | ✅ |
+| 6 | Collapse visible projection | ✅ — also in the public reader, from the published view snapshot (D-32) |
 | 7 | Local save and recovery | ✅ `src/storage/` |
 | 8 | Markdown import/export | ✅ `src/markdown/` — real CommonMark parser landed, D-14 |
 | 9 | Two-sided sticky branches | ✅ |
@@ -47,9 +47,23 @@ dependency on `@bcailab/ui`; it owns its chrome tokens in `src/styles/` (D-05).
 | 16 | Accessibility hardening | ✅ semantic tree order/metadata, live feedback, single canvas tab stop, reduced motion, 44px coarse-pointer targets |
 | 17 | Performance and regression pass | ✅ import limits, lazy CommonMark loading, browser regression pass and [performance baseline](performance.md) |
 
-The Phase 5 lightweight local library and Phase 6 explicit account-save/share subset are
-implemented and `in_review`; exact contracts and review evidence are in
+The Phase 5 lightweight local library and Phase 6 explicit account-save/share subset shipped and
+were accepted on 2026-08-23; exact contracts and review evidence are in
 [`save-publish-proposal.md`](save-publish-proposal.md).
+
+The follow-up iteration — the library as a page at `/library`, a **live read-only published
+page** a reader can expand, collapse and pan, and **Make a copy** — is designed in
+[`library-and-live-viewer-proposal.md`](library-and-live-viewer-proposal.md) and recorded as
+D-31 through D-33. Two consequences are worth knowing before touching either surface:
+
+- **The published page is enhancement over an image.** The frozen SVG is served in the HTML and
+  is what a reader gets with no JavaScript, a failed fetch, an unsupported view format, or a
+  publication frozen before the view snapshot existed. The live map replaces it only after it
+  has one to show.
+- **The viewer bundle may not import the editor, storage, the account client or the model
+  commands.** It runs on the host that serves other people's content.
+  `src/viewer/import-boundary.test.ts` walks the module graph and fails the build's test run if
+  that changes.
 
 The production Pages project, custom domain and repository build-watch paths described by D-03
 are configured. Current stabilization scope and acceptance criteria live in
