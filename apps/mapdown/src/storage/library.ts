@@ -30,6 +30,10 @@ interface StoreDocumentOptions {
   now?: number;
   snapshotId?: string;
   sourceFilename?: string;
+  /** The document this one forked from when a stale online save was rejected. */
+  conflictedCopyOf?: string;
+  /** The published map this one was copied from, kept as provenance for the copy flow. */
+  copiedFromPublicId?: string;
 }
 
 let localSnapshotSequence = 0;
@@ -63,7 +67,9 @@ export async function storeLocalDocument(
       updatedAt: now,
       nodeCount: Object.keys(document.nodes).length,
       lastSnapshotId: snapshot.id,
-      ...(options.sourceFilename ? { sourceFilename: options.sourceFilename } : {})
+      ...(options.sourceFilename ? { sourceFilename: options.sourceFilename } : {}),
+      ...(options.conflictedCopyOf ? { conflictedCopyOf: options.conflictedCopyOf } : {}),
+      ...(options.copiedFromPublicId ? { copiedFromPublicId: options.copiedFromPublicId } : {})
     },
     snapshots: [snapshot]
   };

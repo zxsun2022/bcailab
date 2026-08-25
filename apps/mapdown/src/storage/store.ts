@@ -30,6 +30,13 @@ export interface DocumentIndexEntry {
   /** The pointer §5.4 requires: only ever advanced after a snapshot is fully committed. */
   lastSnapshotId: string;
   sourceFilename?: string;
+  /**
+   * Set on the local copy a rejected stale save produces, naming the document it forked from.
+   * Recorded rather than inferred from the " (conflicted copy)" title, which a rename erases.
+   */
+  conflictedCopyOf?: string;
+  /** The published map this document was copied from. Provenance only; it links nothing. */
+  copiedFromPublicId?: string;
   /** Present only after an explicit account-save action; local autosave never creates it. */
   cloudDocumentId?: string;
   cloudVersion?: number;

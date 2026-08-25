@@ -83,11 +83,9 @@ import { exportLinkPreviewPng, exportPng, scaleReductionMessage } from "../expor
 import { resolveKey, type EditorMode } from "./keymap";
 import { COMMANDS } from "./command-registry";
 import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
-import {
-  DocumentLibrary,
-  type CloudLibraryState,
-  type DocumentLibraryState
-} from "./DocumentLibrary";
+import { LibraryPage } from "../library/LibraryPage";
+import type { CloudLibraryState, DocumentLibraryState } from "../library/cloud-state";
+import { navigate, useRoute } from "../routing";
 import { documentWithDraft, takeEditingSession } from "./draft-persistence";
 import { ToolbarMenu } from "./ToolbarMenu";
 import {
@@ -222,7 +220,10 @@ export function Editor() {
   const [viewport, setViewport] = useState<Viewport>(IDENTITY);
   const [canvasSize, setCanvasSize] = useState<ViewportSize>({ width: 1000, height: 600 });
   const [helpMode, setHelpMode] = useState<"help" | "search" | null>(null);
-  const [libraryOpen, setLibraryOpen] = useState(false);
+  const route = useRoute();
+  /** The library is a route (D-31), so Back, a bookmark and the File menu all reach the same
+   * surface. The editor stays mounted beneath it — unmounting would discard the undo history. */
+  const libraryOpen = route.name === "library";
   const [libraryState, setLibraryState] = useState<DocumentLibraryState>("loading");
   const [libraryEntries, setLibraryEntries] = useState<DocumentIndexEntry[]>([]);
   const [libraryUnavailableMessage, setLibraryUnavailableMessage] = useState<string | null>(null);
@@ -560,15 +561,10 @@ export function Editor() {
   );
 
   const closeDocumentLibrary = useCallback(() => {
-    setLibraryOpen(false);
-    requestAnimationFrame(() => {
-      const target = libraryInvokerRef.current;
-      if (target?.isConnected && target.getClientRects().length > 0) target.focus();
-      else surfaceRef.current?.focus();
-    });
+    navigate({ name: "editor" });
   }, []);
 
-  const openDocumentLibrary = useCallback(async () => {
+  const openDocumentLibrary = useCallback(() => {
     libraryInvokerRef.current =
       document.activeElement instanceof HTMLElement ? document.activeElement : surfaceRef.current;
     const session = takeEditingSession(editingRef);
@@ -579,16 +575,51 @@ export function Editor() {
       autosaveRef.current?.schedule(committed.doc, committed.selection);
       closeEditing();
     }
-    setLibraryOpen(true);
+    navigate({ name: "library" });
+  }, [closeEditing, commitDraft]);
+
+  /**
+   * Loading is driven by the route, not by the button, because the route has three other
+   * entrances: a typed URL, a bookmark, and Back/Forward. The pending local save is flushed
+   * here for the same reason — the dialog did it on the way in, and arriving from history must
+   * not be the one path that skips it.
+   */
+  useEffect(() => {
+    if (!libraryOpen) return;
+    let cancelled = false;
     setLibraryState("loading");
-    try {
-      await flushPendingLocalSave();
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "The current map could not be saved.");
+    void (async () => {
+      try {
+        await flushPendingLocalSave();
+      } catch (error) {
+        if (!cancelled) {
+          setNotice(error instanceof Error ? error.message : "The current map could not be saved.");
+        }
+      }
+      if (cancelled) return;
+      await refreshDocumentLibrary();
+      if (!cancelled) void refreshCloudLibrary();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [flushPendingLocalSave, libraryOpen, refreshCloudLibrary, refreshDocumentLibrary]);
+
+  /** Back out of the library — by button or by browser history — returns focus where it left. */
+  const libraryWasOpenRef = useRef(false);
+  useEffect(() => {
+    if (libraryOpen) {
+      libraryWasOpenRef.current = true;
+      return;
     }
-    await refreshDocumentLibrary();
-    void refreshCloudLibrary();
-  }, [closeEditing, commitDraft, flushPendingLocalSave, refreshCloudLibrary, refreshDocumentLibrary]);
+    if (!libraryWasOpenRef.current) return;
+    libraryWasOpenRef.current = false;
+    requestAnimationFrame(() => {
+      const target = libraryInvokerRef.current;
+      if (target?.isConnected && target.getClientRects().length > 0) target.focus();
+      else surfaceRef.current?.focus();
+    });
+  }, [libraryOpen]);
 
   const createAndActivateLocalDocument = useCallback(async () => {
     await flushPendingLocalSave();
@@ -755,7 +786,9 @@ export function Editor() {
           title: conflictCopyTitle(local.snapshot.document.title),
           revision: 0
         };
-        await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId);
+        await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId, {
+          conflictedCopyOf: localDocumentId
+        });
         await refreshLocalDocumentCloudMetadata(store, localDocumentId, currentCloud);
         await refreshDocumentLibrary();
         setCloudDocuments(await listCloudDocuments());
@@ -1588,6 +1621,7 @@ export function Editor() {
   return (
     <div
       className="editor-shell"
+      data-library-open={libraryOpen ? "" : undefined}
       onKeyDownCapture={onGlobalKeyDown}
     >
       <header
@@ -2159,7 +2193,7 @@ export function Editor() {
         />
       )}
       {libraryOpen && (
-        <DocumentLibrary
+        <LibraryPage
           state={libraryState}
           entries={libraryEntries}
           activeDocumentId={doc.id}

@@ -860,6 +860,35 @@ R2 cleanup may follow asynchronously.
 **Boundary.** This is a minimum takedown path, not a moderation dashboard, search product,
 social feed, analytics system or public profile feature.
 
+---
+
+## D-31 — The document library is a route, and the editor stays mounted beneath it
+
+**Decided 2026-08-24** by the owner when authorizing the library/viewer/copy iteration.
+
+**Decision.** The document library moves from a modal dialog to `/library`, a real path in the
+Mapdown SPA alongside `/` and `/import`. Pages serves them through explicit `_redirects`
+rewrites — one line per path, never `/*` — and all three appear in `public/_routes.json` so
+`functions/_middleware.ts` sees them; on the published origin every app path is redirected to
+the editor origin with its path intact. The editor is **not** unmounted while the library is on
+screen: it is hidden by CSS and made `inert` through the existing `data-overlay-background`
+mechanism. Row state (*Local only* / *Unsaved changes* / *Saved online* / *Published* /
+*Published · outdated* / *Online only*) is computed once, as data, in `src/library/rows.ts`,
+and local and account documents sort together in one list. Publishing, updating, unpublishing
+and the resulting public URL live in a detail panel rather than in a row.
+
+**Why.** The dialog was carrying a page's worth of work inside a focus trap — which is why the
+publish result kept landing behind its own overlay, and why a map holding unsaved content could
+still read *Saved online*: the state was reassembled inline per badge and per button. Unmounting
+the editor on navigation was rejected because it would discard the undo history, and
+`spec/vision.md` §4.8 makes reliable history non-negotiable; a bookmarkable URL is not worth
+paying for with an undo stack. Listing app paths one at a time, rather than a wildcard rewrite,
+keeps an unknown path a 404 and keeps `share.bcailab.com` from serving the editor and its
+account UI — `root-host.test.ts` asserts the redirect list and the Pages route config agree.
+
+**Boundary.** This does not authorize folders, tags, cross-document search, recovery-history UI,
+a publication directory, or any change to what the editor itself does.
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.
