@@ -525,6 +525,15 @@ existing local document library remains the primary, fully offline workflow; sig
 opening the library must never upload a document implicitly. The owner accepted the completed
 implementation on 2026-08-23.
 
+The owner authorized a silent-SSO follow-up on 2026-08-24: when Mapdown has no session, it may
+perform one background, non-interactive handoff check against Studio. An existing Studio session
+creates the same short-lived, single-use, audience-bound Mapdown session; no Studio session leaves
+Mapdown visibly signed out without opening a popup or rendering the login page. Explicit Mapdown
+sign-out suppresses another silent attempt in that tab, manual Sign in remains available, and no
+document is uploaded implicitly. Acceptance requires signed-in/signed-out Studio paths, wrong
+origin rejection, explicit-sign-out suppression, existing handoff contract tests, full tests,
+typechecks, lint and both production builds.
+
 ### Stage 2 — explicit account save
 
 - Add a small Pages Functions backend to the Mapdown project, bound to the existing D1 database
