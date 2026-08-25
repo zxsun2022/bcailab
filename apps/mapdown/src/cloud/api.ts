@@ -5,6 +5,12 @@ import type {
   CloudSessionState,
   CloudUser
 } from "./types";
+import {
+  createSilentSsoAttempt,
+  isSilentSsoSuppressed,
+  setSilentSsoSuppressed,
+  silentSsoToken
+} from "./silent-sso";
 
 interface ApiErrorPayload {
   error?: { code?: string; message?: string; details?: unknown };
@@ -57,6 +63,7 @@ function webOrigin(): string {
 }
 
 export async function signInToMapdown(): Promise<CloudUser> {
+  setSilentSsoSuppressed(sessionStorage, false);
   const authOrigin = webOrigin();
   const url = new URL("/auth/mapdown", authOrigin);
   url.searchParams.set("origin", location.origin);
@@ -95,12 +102,57 @@ export async function signInToMapdown(): Promise<CloudUser> {
 }
 
 export async function getCloudSession(): Promise<CloudSessionState> {
-  return api<CloudSessionState>("/api/auth/session");
+  const session = await api<CloudSessionState>("/api/auth/session");
+  if (session.user || isSilentSsoSuppressed(sessionStorage)) return session;
+
+  const user = await silentlySignInOnce();
+  return user ? { user } : session;
 }
 
 export async function signOutOfMapdown(): Promise<void> {
   await api("/api/auth/logout", { method: "POST", body: "{}" });
+  setSilentSsoSuppressed(sessionStorage, true);
 }
+
+async function silentlySignInToMapdown(): Promise<CloudUser | null> {
+  const authOrigin = webOrigin();
+  const url = new URL("/auth/mapdown/silent", authOrigin);
+  url.searchParams.set("origin", location.origin);
+  const frame = document.createElement("iframe");
+  frame.hidden = true;
+  frame.title = "Checking Studio sign-in";
+  frame.src = url.toString();
+
+  try {
+    const token = await new Promise<string | null>((resolve) => {
+      const timeout = window.setTimeout(() => finish(null), 5_000);
+      const onMessage = (event: MessageEvent) => {
+        if (event.origin !== authOrigin || event.source !== frame.contentWindow) return;
+        const token = silentSsoToken(event.data);
+        if (token !== undefined) finish(token);
+      };
+      const finish = (value: string | null) => {
+        window.clearTimeout(timeout);
+        window.removeEventListener("message", onMessage);
+        resolve(value);
+      };
+      window.addEventListener("message", onMessage);
+      document.body.append(frame);
+    });
+    if (!token) return null;
+    const result = await api<{ user: CloudUser }>("/api/auth/exchange", {
+      method: "POST",
+      body: JSON.stringify({ token })
+    });
+    return result.user;
+  } catch {
+    return null;
+  } finally {
+    frame.remove();
+  }
+}
+
+const silentlySignInOnce = createSilentSsoAttempt(silentlySignInToMapdown);
 
 export async function listCloudDocuments(): Promise<CloudDocumentSummary[]> {
   return (await api<{ documents: CloudDocumentSummary[] }>("/api/documents")).documents;

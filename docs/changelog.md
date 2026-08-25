@@ -87,6 +87,13 @@ make the final transition; see `AGENTS.md`.
     published origin is not an authentication audience. The published host root now redirects to
     `map.bcailab.com`; published `/p/*` pages and their same-origin assets remain on the isolated
     share host, and the authentication allowlist remains restricted to the editor origin.
+  - Silent SSO follow-up (2026-08-24, in review): when Mapdown has no host-local session, it now
+    performs one hidden, non-interactive Studio session check. An existing Studio login exchanges
+    the same single-use audience-bound token; an anonymous Studio session returns no token without
+    a popup or login-page flash. Explicit Mapdown sign-out suppresses another silent attempt in the
+    current tab, while manual Sign in remains the fallback and clears that suppression.
+    Preview's intentionally shared editor/publication origin bypasses the production-only root
+    redirect, preventing the stable staging host from redirecting to itself.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,

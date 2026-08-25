@@ -4,5 +4,7 @@ export function mapdownRootRedirect(
   mapdownOrigin: string
 ): string | null {
   const url = new URL(requestUrl);
-  return url.pathname === "/" && url.origin === publishedOrigin ? mapdownOrigin : null;
+  return publishedOrigin !== mapdownOrigin && url.pathname === "/" && url.origin === publishedOrigin
+    ? mapdownOrigin
+    : null;
 }
