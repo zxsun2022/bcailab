@@ -103,6 +103,7 @@ import {
 } from "../cloud/api";
 import type { CloudDocumentRecord, CloudDocumentSummary, CloudSnapshot, CloudUser } from "../cloud/types";
 import { checkInvariants } from "../model/invariants";
+import { toPublishedView } from "../viewer/published-view";
 
 /**
  * The editing state machine of `interaction.md`, wired to the model, layout and canvas.
@@ -855,7 +856,10 @@ export function Editor() {
       title: cloud.snapshot.document.title,
       markdown: exportMarkdown(cloud.snapshot.document),
       svg,
-      png: png.dataUrl
+      png: png.dataUrl,
+      // Rendered from the same document as the SVG and the PNG, so the live reader page and
+      // the frozen image cannot disagree about sides or collapse state (D-32).
+      view: toPublishedView(cloud.snapshot.document)
     });
     const latestEntry = await store.getIndexEntry(localDocumentId);
     await linkLocalDocumentToCloud(

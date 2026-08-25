@@ -5,6 +5,7 @@ import type {
   CloudSessionState,
   CloudUser
 } from "./types";
+import type { PublishedView } from "../viewer/published-view";
 import {
   createSilentSsoAttempt,
   isSilentSsoSuppressed,
@@ -194,6 +195,8 @@ export async function publishCloudDocument(input: {
   markdown: string;
   svg: string;
   png: string;
+  /** The public view snapshot behind the live reader page (D-32). */
+  view: PublishedView;
 }): Promise<CloudPublication> {
   return (await api<{ publication: CloudPublication }>(`/api/documents/${encodeURIComponent(input.id)}/publish`, {
     method: "POST",

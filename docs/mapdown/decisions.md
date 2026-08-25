@@ -889,6 +889,50 @@ account UI — `root-host.test.ts` asserts the redirect list and the Pages route
 **Boundary.** This does not authorize folders, tags, cross-document search, recovery-history UI,
 a publication directory, or any change to what the editor itself does.
 
+---
+
+## D-32 — A published map ships a versioned public view snapshot, and its page is a live reader
+
+**Decided 2026-08-24** by the owner when authorizing the library/viewer/copy iteration.
+**Amends D-29**, which said the published page "displays user content only as an isolated SVG
+image".
+
+**Decision.** Publishing now uploads a third asset alongside the SVG and PNG: a versioned
+**public view snapshot** (`src/viewer/published-view.ts`) carrying tree order, node text,
+first-level sides, collapse state and the theme pair. It is stored in R2 and referenced by a
+nullable `view_key` column; D1 remains the serving authority, so unpublish revokes it in the
+same request that revokes the page. The published page loads `/published/viewer.js` — a second
+Vite entry that imports `layout/`, `theme/` and the viewport helper and nothing else — fetches
+`/p/{id}/map.json`, and renders a read-only map the reader can expand, collapse, pan, zoom and
+fit, by pointer and by keyboard. The CSP gains `connect-src 'self'` and nothing else.
+
+**Why not Markdown.** `markdown/parse.ts` assigns every first-level node `side: "right"`, and
+`storage-export.md` §14.4 requires Markdown to contain collapsed descendants with no record that
+they were collapsed. A Markdown-driven viewer would therefore contradict the frozen SVG beside
+it, and two public renderings of one publication that disagree is a correctness bug, not a
+cosmetic one.
+
+**Why not the private snapshot.** D-27 keeps the private cloud format free to change *because it
+is never a public contract*. Serving it publicly would make it one. The published format is
+separately versioned, carries no document id, revision or selection, and refuses an unknown
+newer version rather than guessing at it.
+
+**Why the SVG stays.** The image is the page; the live map is enhancement over it. No
+JavaScript, a failed fetch, an unsupported format, and every publication frozen before this
+existed all land on the same complete, readable page. The `<img>` is present in the served HTML
+rather than injected, and `published-page-html.test.ts` asserts that along with the absence of
+inline script.
+
+**Why not reuse `MapCanvas`.** It carries drag-and-drop, selection, IME and command dispatch.
+Shipping it to the host that serves other people's content would put an editing system and a
+mutation path on a public page. Fidelity is protected where it lives instead — the reader runs
+the same `layout/` and `theme/` modules the author ran — and `import-boundary.test.ts` walks the
+viewer's module graph to keep the editor, storage, account and command modules out of it.
+
+**Boundary.** The published page remains read-only, unlisted and `noindex`. This decision does
+not authorize comments, reactions, editing, a publication directory, or any account state on the
+published host.
+
 ## Open questions
 
 None currently. Resolved questions become records above rather than disappearing.

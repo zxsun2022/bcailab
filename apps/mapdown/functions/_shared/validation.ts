@@ -1,6 +1,7 @@
 import { checkInvariants } from "../../src/model/invariants";
 import { normalizeText, SCHEMA_VERSION, type MindMapDocument, type MindMapNode } from "../../src/model/types";
 import type { CloudSnapshot } from "../../src/cloud/types";
+import { parsePublishedView, type PublishedView } from "../../src/viewer/published-view";
 import { sha256 } from "./crypto";
 import { ApiError } from "./http";
 import {
@@ -11,7 +12,8 @@ import {
   PUBLISHED_PNG_HEIGHT,
   PUBLISHED_PNG_MAX_BYTES,
   PUBLISHED_PNG_WIDTH,
-  PUBLISHED_SVG_MAX_BYTES
+  PUBLISHED_SVG_MAX_BYTES,
+  PUBLISHED_VIEW_MAX_BYTES
 } from "./limits";
 
 const encoder = new TextEncoder();
@@ -228,4 +230,57 @@ export function validatePublishedPng(value: unknown): Uint8Array {
     );
   }
   return bytes;
+}
+
+
+/**
+ * The public view snapshot (D-32).
+ *
+ * Structural parsing is shared with the reader through `src/viewer/published-view.ts` so the two
+ * cannot drift; what the server adds is everything a renderer would be within its rights to
+ * assume and a hostile client would be happy to break — the node ceiling, the byte cap, and tree
+ * consistency. `checkInvariants` is the same check private save runs, because a published map
+ * with a cycle in it is a rendering hang on a public page.
+ */
+export function validatePublishedView(value: unknown, nodeCount: number): {
+  view: PublishedView;
+  json: string;
+} {
+  const view = parsePublishedView(value);
+  if (!view) throw new ApiError(400, "view", "The published view snapshot is not supported.");
+  const entries = Object.entries(view.nodes);
+  if (entries.length < 1 || entries.length > DOCUMENT_NODE_LIMIT) {
+    throw new ApiError(400, "view", `A published map may contain at most ${DOCUMENT_NODE_LIMIT.toLocaleString()} nodes.`);
+  }
+  if (entries.length !== nodeCount) {
+    // The view is rendered beside a frozen SVG of the same document; a different node count
+    // means they are not the same document.
+    throw new ApiError(400, "view", "The published view snapshot does not match the saved document.");
+  }
+  for (const [id, node] of entries) {
+    if (id.length > 100 || /\s/.test(id)) {
+      throw new ApiError(400, "view", "The published view snapshot contains an invalid node id.");
+    }
+    if (codePointLength(node.text) > 10_000 || node.text !== normalizeText(node.text)) {
+      throw new ApiError(400, "view", "The published view snapshot contains invalid node text.");
+    }
+  }
+  const violations = checkInvariants({
+    schemaVersion: SCHEMA_VERSION,
+    id: "published",
+    title: normalizeCloudTitle(view.title),
+    rootId: view.rootId,
+    nodes: view.nodes,
+    layout: view.layout,
+    theme: view.theme,
+    revision: 0
+  });
+  if (violations.length > 0) {
+    throw new ApiError(400, "view", "The published view snapshot is inconsistent.");
+  }
+  const json = JSON.stringify(view);
+  if (encoder.encode(json).byteLength > PUBLISHED_VIEW_MAX_BYTES) {
+    throw new ApiError(413, "view_too_large", "This map is too large to publish an interactive view.");
+  }
+  return { view, json };
 }
