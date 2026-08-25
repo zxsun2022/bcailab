@@ -606,7 +606,7 @@ browser coverage at desktop and mobile widths with and without JavaScript; Mapdo
 typechecks, lint, full tests, and both production builds. These checks passed before owner
 acceptance on 2026-08-23.
 
-## Now — Mapdown library page, live published viewer, and copy
+## Now — Mapdown library page, live published viewer, and copy — accepted (2026-08-25)
 
 The owner authorized this iteration on 2026-08-24 and confirmed its four scoping decisions:
 the library becomes a full-page route replacing the dialog; the published viewer is driven by a
@@ -615,6 +615,18 @@ the visitor's browser; and the interaction work targets the publish flow, save/s
 and the list itself, with editor canvas interaction explicitly out of scope. The design and the
 reasoning are in
 [the library and live viewer proposal](mapdown/library-and-live-viewer-proposal.md).
+
+The owner reviewed the three surfaces in a browser and accepted the completed iteration **as a
+first version** on 2026-08-25.
+
+**Acceptance did not cover the Pages Functions runtime, and that gap is still open.** No local
+run exercised the real D1/R2 handlers: `wrangler pages dev` fails to build Functions in this
+environment (an esbuild/wrangler version mismatch), so the published page and the copy endpoint
+were driven against a static harness rendering the real page markup and the real built bundle.
+Before this reaches production, migration `0021_mapdown_publication_view.sql` is applied first
+under ADR 0008, and the deploy is followed by a live check of publish → the live viewer →
+**Make a copy** → unpublish returning an uncached 404 for both `/p/{id}` and `/p/{id}/map.json`.
+That check is a deployment step, not a new authorization.
 
 ### Stage 1 — the document library becomes a page
 

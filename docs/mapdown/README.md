@@ -2,8 +2,10 @@
 
 **Status (2026-08-25):** The production MVP and stabilization checkpoints were accepted by the
 owner on 2026-08-15; the local document library, account save and frozen publish were accepted
-on 2026-08-23. The library page, the live published viewer and **Make a copy** are implemented
-and `in_review`; only the owner can accept them. **660 repo-wide tests.**
+on 2026-08-23; the library page, the live published viewer and **Make a copy** were accepted as
+a first version on 2026-08-25. **660 repo-wide tests.** The last of those has one open gap: no
+local run exercised the Pages Functions runtime, so a live publish → view → copy → unpublish
+check is owed on the next deployment (see `docs/roadmap.md`).
 The editor works — keyboard-first authoring, two-sided layout, four shapes × ten palettes
 (the theme is a shape/palette pair, D-24), Markdown/SVG/PNG export, local autosave and
 recovery, a local document library (new/open/rename/duplicate/delete with current-tab undo),

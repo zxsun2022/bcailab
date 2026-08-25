@@ -1,7 +1,9 @@
 # Mapdown — Library Page, Live Published Viewer, and Copy
 
 **Status:** Written 2026-08-24 after the owner confirmed the four scoping decisions below.
-Authorized through `docs/roadmap.md`; implemented on `claude/mapdown-library-and-live-viewer`.
+Authorized through `docs/roadmap.md`, implemented on `claude/mapdown-library-and-live-viewer`,
+and accepted by the owner as a first version on 2026-08-25 — with the Pages Functions runtime
+check still owed on deployment, as `docs/roadmap.md` records.
 
 The save/publish work accepted on 2026-08-23
 ([`save-publish-proposal.md`](save-publish-proposal.md)) made saving and publishing *possible*.

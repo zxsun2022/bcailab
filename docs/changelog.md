@@ -9,7 +9,8 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-08-25 — **in_review: Mapdown library page, live published viewer, and copy.** Authorized by
+- 2026-08-25 — **accepted 2026-08-25 as a first version: Mapdown library page, live published
+  viewer, and copy.** Authorized by
   the owner on 2026-08-24 with four scoping decisions; design in
   `docs/mapdown/library-and-live-viewer-proposal.md`. The document library moves from a modal to
   `/library`, a real route served by an explicit Pages rewrite and covered by `_routes.json` so
