@@ -66,8 +66,9 @@ make the final transition; see `AGENTS.md`.
     before its 0019 dependency. Added explicit Preview bindings for the shared staging D1 and
     preview R2 bucket, plus stable `staging` branch origins for both Pages projects. Applied and
     verified migrations 0008–0020 on Preview D1 in numeric order; no migrations remain pending
-    and all four Mapdown cloud tables exist. Production, deployment and Git remotes were not
-    changed.
+    and all four Mapdown cloud tables exist. Cloudflare Preview now has Mapdown's build-time Web
+    origin, Web's stable OAuth callback, and one matching encrypted `MAPDOWN_HANDOFF_SECRET` on
+    both Pages projects. Production, deployment and Git remotes were not changed.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,
