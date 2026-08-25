@@ -112,8 +112,9 @@ settings in their Preview environments:
   `PUBLISHED_ORIGIN=<that Preview origin, or an exact dedicated Preview share origin>`. Do not
   leave `PUBLISHED_ORIGIN` pointing at production or Preview publications will resolve against
   the production deployment and database.
-- Mapdown build: `VITE_WEB_ORIGIN=https://staging.bcailab.pages.dev` so the popup and its nonce
-  are created by Preview Web rather than production Web.
+- Mapdown build: the checked-in Vite config maps Cloudflare's `CF_PAGES_BRANCH=staging` to
+  `https://staging.bcailab.pages.dev`, so the popup and its nonce are created by Preview Web
+  rather than production Web. An explicit `VITE_WEB_ORIGIN` remains available as an override.
 - Both projects: the same `MAPDOWN_HANDOFF_SECRET` and the same Preview D1 binding. The checked-in
   configs currently share preview database id `8707dea1-f2f7-4a3c-99ee-2245cb63e22c`.
 

@@ -71,6 +71,11 @@ make the final transition; see `AGENTS.md`.
     both Pages projects. The first Mapdown Preview build exposed a stale Workers-only
     `observability` block that Pages rejects during config validation; removing it lets Pages
     use its project-level logging configuration instead. Production was not changed.
+  - Staging sign-in build fix (2026-08-24): Mapdown's first successful Pages build fell back to
+    `https://bcailab.com` because checked-in Wrangler runtime vars are not Vite build variables,
+    replacing the dashboard's earlier `VITE_WEB_ORIGIN` setting. The Vite config now derives the
+    stable Preview Web origin from Cloudflare's `CF_PAGES_BRANCH=staging`, with an explicit build
+    variable still taking precedence; regression tests cover staging, production, and overrides.
 
 - 2026-08-21 — **accepted 2026-08-23: added Mapdown's local document library.** Every IndexedDB-indexed
   map is now reachable from File → Document library and the command/help registry, newest-first,
