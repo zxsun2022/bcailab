@@ -9,6 +9,29 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-25 — **fixed: `/library` and `/import` were broken by their own Pages rewrite.** The
+  first production deploy of the library iteration served `/library/` correctly but answered
+  `/library` and `/import` with a **308 to `/`** — Cloudflare Pages resolves a
+  `/library /index.html 200` rule and then normalises the `/index.html` destination into a
+  redirect to the site root. `/import?src={publicId}` therefore arrived as `/?src=…`, so **Make
+  a copy** was dead on the live site. `public/_redirects` is deleted and `_middleware.ts` now
+  serves the shared shell by asking the asset pipeline for `/`, which depends on nothing but a
+  file that exists. Two things the deploy also exposed: the Pages project already answers unknown
+  paths with the SPA shell, so the rewrite was solving a problem that did not exist; and because
+  `_routes.json` decides what reaches Functions at all, an arbitrary path such as `/anything` is
+  served off the asset pipeline on **both** hostnames, so the middleware guard covers the three
+  listed app paths rather than the published host in general. That second finding is a
+  pre-existing gap, wider than this iteration, and is recorded as open in the D-31 correction
+  rather than fixed here. Evidence: production probes before the fix
+  (`/library` 308→`/`, `/import?src=abc123` 308→`/?src=abc123`, `/library/` 200,
+  `/nonsense` 200, `share.bcailab.com/nonsense` 200); 663 repo-wide tests pass, including a new
+  assertion that no `_redirects` file exists and a mutation-checked rule for which paths get the
+  shell; Mapdown typecheck, Functions typecheck, lint and production build pass. **The fix itself
+  is verified by tests and reasoning only** — `wrangler pages dev` still cannot build Functions in
+  this environment, so the live check is owed after deployment: `/library` and
+  `/import?src=…` must return 200 with the SPA, and `share.bcailab.com/library` must still
+  redirect to the editor host.
+
 - 2026-08-25 — **accepted 2026-08-25 as a first version: Mapdown library page, live published
   viewer, and copy.** Authorized by
   the owner on 2026-08-24 with four scoping decisions; design in

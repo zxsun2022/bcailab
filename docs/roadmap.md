@@ -630,9 +630,11 @@ That check is a deployment step, not a new authorization.
 
 ### Stage 1 — the document library becomes a page
 
-- Add a three-route client router to the Mapdown SPA (`/`, `/library`, `/import`) with a Pages
-  rewrite and `_routes.json` coverage, so `_middleware.ts` keeps the editor off the published
-  origin. The editor remains the default landing surface and stays mounted beneath the library,
+- Add a three-route client router to the Mapdown SPA (`/`, `/library`, `/import`) with
+  `_routes.json` coverage, so `_middleware.ts` sees those paths on the published origin and
+  redirects them to the editor host. (The Pages `_redirects` rewrite this originally used was
+  withdrawn on 2026-08-25 after it broke both routes in production; the middleware serves the
+  shell instead — see the D-31 correction.) The editor remains the default landing surface and stays mounted beneath the library,
   so browser Back returns to the same document, viewport and undo history.
 - Replace the modal document library with a full page: one merged local + online list, an
   explicit per-row state (Local only / Unsaved changes / Saved online / Published / Published ·
