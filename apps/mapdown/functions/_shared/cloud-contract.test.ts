@@ -16,6 +16,8 @@ import {
 } from "./validation";
 import { createDocument, SCHEMA_VERSION } from "../../src/model/types";
 import { toPublishedView } from "../../src/viewer/published-view";
+import { isPublicId, publicIdFromPathname } from "../../src/viewer/public-id";
+import { randomToken } from "./crypto";
 import { PUBLISHED_VIEW_MAX_BYTES } from "./limits";
 
 const SECRET = "test-secret-with-enough-entropy-for-a-contract-test";
@@ -212,5 +214,28 @@ describe("published view snapshot", () => {
     view.nodes["bad id"] = { id: "bad id", text: "", parentId: document.rootId, childIds: [], collapsed: false, side: null };
     view.nodes[document.rootId]!.childIds = ["bad id"];
     expect(() => validatePublishedView(view, 2)).toThrow(ApiError);
+  });
+});
+
+describe("public id generator and reader agree", () => {
+  /**
+   * A cross-implementation contract, in the shape of the handoff tests above. The server mints
+   * the id and the client decides whether a URL contains one; when those two disagree the
+   * failure is silent — the published page quietly stays a static image and Copy quietly refuses
+   * every real link. That is exactly what shipped, because each side was only reasoned about on
+   * its own.
+   */
+  it("accepts every id the publish endpoint can mint", () => {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const id = randomToken(16);
+      expect(isPublicId(id), `rejected a minted id: ${id}`).toBe(true);
+      expect(publicIdFromPathname(`/p/${id}`)).toBe(id);
+    }
+  });
+
+  it("mints ids outside the hexadecimal alphabet, which is what the old pattern assumed", () => {
+    // Without this the test above could pass on a lucky run of hex-only ids and prove nothing.
+    const ids = Array.from({ length: 200 }, () => randomToken(16));
+    expect(ids.some((id) => /[^0-9a-fA-F]/.test(id))).toBe(true);
   });
 });

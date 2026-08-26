@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { PublishedViewer } from "./PublishedViewer";
+import { publicIdFromPathname } from "./public-id";
 
 /**
  * Entry point for the published page, built as its own Vite entry to a fixed path
@@ -14,8 +15,6 @@ import { PublishedViewer } from "./PublishedViewer";
  * before this bundle existed: scale the frozen image. Publications made before the view
  * snapshot shipped are frozen and will never gain one, so this path is permanent.
  */
-
-const PUBLIC_ID = /^\/p\/([0-9a-f]{1,64})\/?$/i;
 
 function mountImageZoom(viewport: HTMLElement): void {
   const image = viewport.querySelector("img");
@@ -63,17 +62,17 @@ function mountImageZoom(viewport: HTMLElement): void {
 
 const viewport = document.querySelector<HTMLElement>("[data-viewport]");
 const fallback = document.querySelector<HTMLElement>("[data-map-fallback]");
-const match = PUBLIC_ID.exec(window.location.pathname);
+const publicId = publicIdFromPathname(window.location.pathname);
 
 if (viewport && fallback) {
   mountImageZoom(fallback);
-  if (match) {
+  if (publicId) {
     const host = document.createElement("div");
     host.className = "published-live-host";
     viewport.append(host);
     createRoot(host).render(
       <StrictMode>
-        <PublishedViewer publicId={match[1]!} fallback={fallback} />
+        <PublishedViewer publicId={publicId} fallback={fallback} />
       </StrictMode>
     );
   }

@@ -33,6 +33,26 @@ make the final transition; see `AGENTS.md`.
   recorded esbuild `import-source` incompatibility, so production still needs probes showing
   unknown paths return 404 on both hostnames.
 
+- 2026-08-26 — **fixed: every published map fell back to its static image, because the client
+  expected a hexadecimal public id.** `randomToken(16)` emits **base64url** — `[A-Za-z0-9_-]`,
+  22 characters — and both client-side checks tested `/^[0-9a-f]{1,64}$/i`. Almost every real id
+  therefore failed to match, so `src/viewer/main.tsx` never mounted the live viewer and the page
+  stayed the frozen SVG, while `src/routing.ts` parsed `/import?src=…` to an empty id and Copy
+  reported a bad link. Neither surface errored: both silently did the safe thing, which is why
+  the deploy looked healthy. The pattern now lives once in `src/viewer/public-id.ts` and matches
+  the base64url alphabet — still narrow enough that a value which passes cannot carry `/`, `.`,
+  `%` or whitespace into a URL. Evidence: a cross-implementation contract test asserts 200 ids
+  minted by the real `randomToken(16)` are all accepted by the client pattern, plus a companion
+  test proving those ids genuinely leave the hex alphabet so the first cannot pass vacuously;
+  reverting the pattern to hex turns 3 tests red, including that contract. Browser verification
+  against a base64url id: the live viewer mounts, the image fallback is hidden, seven nodes
+  render with working collapse controls, and `/import?src=…` creates a local copy. 668 repo-wide
+  tests pass; typechecks, lint and the production build pass. **How this shipped:** the same
+  mismatch appeared during the original browser check with a placeholder id `demo0001`, and it
+  was treated as a bad test fixture — the fixture was changed to hex instead of the assumption
+  being questioned. The contract test exists so the generator and the reader can no longer be
+  reasoned about separately.
+
 - 2026-08-25 — **fixed: `/library` and `/import` were broken by their own Pages rewrite.** The
   first production deploy of the library iteration served `/library/` correctly but answered
   `/library` and `/import` with a **308 to `/`** — Cloudflare Pages resolves a
