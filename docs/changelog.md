@@ -33,6 +33,28 @@ make the final transition; see `AGENTS.md`.
   recorded esbuild `import-source` incompatibility, so production still needs probes showing
   unknown paths return 404 on both hostnames.
 
+- 2026-08-26 — **in_review: Mapdown canvas-first chrome.** The editor read as a web page with a
+  toolbar above a canvas band — `.editor-shell` was a four-row grid and the map lived in row
+  three. The map now fills the viewport and the toolbar, any notice, the status line, the
+  authoring hint and the existing zoom capsule float on it, reserving no layout space. `fitMap`
+  gained optional insets so fitting targets the unobscured area instead of the whole element;
+  with no insets it behaves exactly as before, so the published viewer is untouched. Three
+  defects were found and fixed while building it: the authoring hint collided with the now-
+  floating toolbar (fixed by publishing the chrome's measured height as a custom property on the
+  shell, so a toolbar that wraps pushes the hint down rather than a constant guessing at it); the
+  rule that hides the editor behind the library page used a child selector that stopped matching
+  once the toolbar moved into a wrapper, which would have left it painted behind the library —
+  `inert` kept working throughout, which is exactly why this would not have surfaced as a
+  keyboard or screen-reader failure; and the status line truncated the node count to a bare digit
+  on narrow screens. Evidence: 675 repo-wide tests, including mutation-checked assertions that
+  fit keeps every node inside the unobscured band and that zero insets reproduce the old
+  behaviour exactly. Browser checks at 1280/600/375 px in light and dark: Fit clears the toolbar
+  by 106 px and the status line by 96 px on a short viewport; the canvas remains a single tab
+  stop with zero focusable descendants and the tab order runs toolbar → canvas → zoom capsule;
+  Help and the document library still open above the chrome. Typechecks, lint and the production
+  build pass. **Not verified:** the 500/2000-node benchmark was not re-run — this change moves
+  chrome and does not alter what the canvas re-renders, but that reasoning is not a measurement.
+
 - 2026-08-26 — **verified in production: the live published viewer and Copy work end to end.**
   This closes the Pages Functions runtime gap that owner acceptance explicitly did not cover.
   Against a real publication (`version 2`, a two-sided map with CJK labels): the live viewer

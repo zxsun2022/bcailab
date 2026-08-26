@@ -722,6 +722,41 @@ gaining no authenticated cookie or mutation endpoint.
 Migration `0021_mapdown_publication_view.sql` is applied before the code that reads it is
 deployed, `--remote` for production D1 (ADR 0008).
 
+## Now — Mapdown canvas-first chrome
+
+Authorized by the owner on 2026-08-26. The editor currently reads as a web page with a toolbar
+above a canvas band: `.editor-shell` is a four-row grid and the map occupies the third row. The
+owner's complaint is that this feels fragmented next to Figma and Excalidraw, where the canvas is
+the page and the controls float on it.
+
+- Make the map fill the viewport and float the chrome over it: the toolbar, the status line, the
+  authoring hint and the existing zoom capsule become overlays that reserve no layout space.
+- Teach `fitMap` about those overlays. With chrome floating, fitting to the full viewport puts
+  the topmost nodes underneath the toolbar; the fit must target the unobscured area and centre
+  the map there. Default behaviour with no insets stays exactly as it is today, so the published
+  viewer is unaffected.
+- Keep the interaction contract intact. This is presentation only: no change to pan, zoom,
+  selection, editing, or the layout engine.
+
+Acceptance:
+
+- (a) The map occupies the full viewport, and no floating control reserves layout space.
+- (b) **Fit** leaves every node visible — nothing lands under the toolbar or the status line, at
+  desktop, tablet and mobile widths.
+- (c) The canvas remains a **single tab stop** (`spec/accessibility.md` §16), and the floating
+  controls are reachable by keyboard in a predictable order.
+- (d) Coarse-pointer targets stay at 44 px; `prefers-reduced-motion` is respected; light and dark
+  both hold up.
+- (e) Help and the document library still open above the chrome, and the existing
+  `data-overlay-background` inert mechanism still makes everything behind them unreachable.
+- (f) No regression to the 500/2000-node benchmark, since floating chrome must not change what
+  the canvas re-renders.
+
+**Not in this iteration**, and recorded in `docs/exploration.md` instead: expand/collapse motion,
+and the "smoother canvas" question the owner raised alongside it. The owner explicitly declined
+to commit to either.
+
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:

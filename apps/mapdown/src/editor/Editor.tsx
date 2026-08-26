@@ -4,7 +4,8 @@ import {
   chooseSideForNewBranch,
   layout,
   layoutOptionsForTheme,
-  planTwoSidedSides
+  planTwoSidedSides,
+  type LayoutResult
 } from "../layout/layout";
 import { exportMarkdown } from "../markdown/serialize";
 import { exportFilename } from "../markdown/escape";
@@ -70,6 +71,7 @@ import {
   IDENTITY,
   centerOn,
   fitMap,
+  type ViewportInsets,
   resetZoom,
   revealSelection,
   visibleRect,
@@ -480,6 +482,48 @@ export function Editor() {
       else surfaceRef.current?.focus();
     });
   }, []);
+
+  /**
+   * The chrome floats over the canvas and reserves no layout space, so the element the map is
+   * drawn into is the whole window and fitting against it would tuck the top of the map under
+   * the toolbar. Measured at fit time rather than tracked: fitting is user-initiated, so one
+   * `getBoundingClientRect` is cheaper than an observer and cannot go stale.
+   */
+  const chromeInsets = useCallback((): ViewportInsets => {
+    const read = (selector: string) => {
+      const element = document.querySelector<HTMLElement>(selector);
+      if (!element || element.hidden) return 0;
+      const rect = element.getBoundingClientRect();
+      return rect.height > 0 ? rect.height + 12 : 0;
+    };
+    return { top: read("[data-chrome-top]"), right: 0, bottom: read("[data-chrome-bottom]"), left: 0 };
+  }, []);
+
+  /**
+   * Publish the top chrome's measured height so CSS can position things beneath it. A wrapped
+   * toolbar on a narrow screen is taller than any constant would guess, and the authoring hint
+   * sitting on top of the toolbar is exactly the kind of collision a hard-coded offset creates.
+   */
+  const chromeTopRef = useRef<HTMLDivElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = chromeTopRef.current;
+    const shell = shellRef.current;
+    if (!element || !shell) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const height = entry?.contentRect.height ?? 0;
+      // Set on the shell, not on the chrome: custom properties inherit down the tree, and the
+      // canvas is the chrome's sibling.
+      shell.style.setProperty("--editor-chrome-top-height", `${Math.round(height)}px`);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const fitToCanvas = useCallback(
+    (bounds: LayoutResult["bounds"]) => fitMap(bounds, canvasSize, 48, chromeInsets()),
+    [canvasSize, chromeInsets]
+  );
 
   const setSavedStatus = useCallback((at: number) => {
     const nextStatus: SaveStatus = { kind: "saved", at };
@@ -1498,7 +1542,7 @@ export function Editor() {
           break;
         case "fit":
           setHistory(committed);
-          setViewport(fitMap(result.bounds, canvasSize));
+          setViewport(fitToCanvas(result.bounds));
           break;
         case "center": {
           setHistory(committed);
@@ -1555,11 +1599,11 @@ export function Editor() {
       requestAnimationFrame(() => surfaceRef.current?.focus());
     },
     [
-      canvasSize,
       closeEditing,
       commitDraft,
       createAndEdit,
       download,
+      fitToCanvas,
       downloadPng,
       downloadSvg,
       editing,
@@ -1685,10 +1729,18 @@ export function Editor() {
 
   return (
     <div
+      ref={shellRef}
       className="editor-shell"
       data-page-open={libraryOpen || importing ? "" : undefined}
       onKeyDownCapture={onGlobalKeyDown}
     >
+      {/*
+        Canvas-first chrome: the map is the page, and the controls float on it (roadmap
+        2026-08-26). The toolbar and any notice stack in one absolutely-positioned column so the
+        notice always sits under the toolbar without either of them reserving layout space.
+        `data-chrome-top` is what `chromeInsets()` measures, so Fit never hides a node behind it.
+      */}
+      <div className="editor-chrome-top" data-chrome-top ref={chromeTopRef}>
       <header
         data-overlay-background
         aria-hidden={overlayOpen ? true : undefined}
@@ -1881,7 +1933,7 @@ export function Editor() {
               type="button"
               className="menu-action"
               data-close-menu
-              onClick={() => setViewport(fitMap(result.bounds, canvasSize))}
+              onClick={() => setViewport(fitToCanvas(result.bounds))}
             >
               <span>Fit map</span>
               <small>Show the whole document</small>
@@ -2098,6 +2150,7 @@ export function Editor() {
           </button>
         </div>
       )}
+      </div>
 
       {/*
         The frame — not just the surface — carries the overlay-background marking. The zoom
@@ -2226,12 +2279,18 @@ export function Editor() {
 
       <footer
         data-overlay-background
+        data-chrome-bottom
         aria-hidden={overlayOpen ? true : undefined}
         className="editor-statusbar"
       >
         <span className="status-shortcuts">
-          {Object.keys(doc.nodes).length} nodes · Enter = save / next sibling · Tab = child ·
-          Shift+Tab = promote · Space = collapse · F2 = rename
+          {/* Split so a narrow screen drops the keyboard hints — useless on a touch device —
+              without also truncating the node count to a bare digit. */}
+          <span className="status-count">{Object.keys(doc.nodes).length} nodes</span>
+          <span className="status-keys">
+            {" · "}Enter = save / next sibling · Tab = child · Shift+Tab = promote ·
+            Space = collapse · F2 = rename
+          </span>
         </span>
         <span
           role="status"

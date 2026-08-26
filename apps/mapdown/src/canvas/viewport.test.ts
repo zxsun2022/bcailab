@@ -125,6 +125,57 @@ describe("§12.3 — fit map", () => {
   });
 
   /**
+   * Canvas-first chrome floats over the map instead of reserving a row for itself, so fitting
+   * against the whole element would hide the top of the map behind the toolbar. These assert
+   * the property that matters — every node ends up somewhere a reader can actually see.
+   */
+  it("keeps the whole map inside the unobscured area, not merely inside the element", () => {
+    const bounds = { minX: -400, minY: -200, maxX: 400, maxY: 200 };
+    // Asymmetric enough that fit's own 48-unit margin cannot absorb it — with a smaller
+    // difference this assertion passes whether or not the centre is corrected.
+    const insets = { top: 200, right: 0, bottom: 0, left: 0 };
+    const viewport = fitMap(bounds, SIZE, 48, insets);
+    const rect = visibleRect(viewport, SIZE);
+
+    // The visible rectangle spans the whole element; the usable band is inset from it.
+    const usableTop = rect.minY + insets.top / viewport.scale;
+    const usableBottom = rect.maxY - insets.bottom / viewport.scale;
+    expect(usableTop).toBeLessThanOrEqual(bounds.minY);
+    expect(usableBottom).toBeGreaterThanOrEqual(bounds.maxY);
+  });
+
+  it("shifts the centre toward the larger inset so the map sits in the visible band", () => {
+    const bounds = { minX: -400, minY: -200, maxX: 400, maxY: 200 };
+    const topHeavy = fitMap(bounds, SIZE, 48, { top: 120, right: 0, bottom: 0, left: 0 });
+    // A map centred at y=0 with chrome only along the top must be pushed up in document terms,
+    // so that it lands lower on screen.
+    expect(topHeavy.centerY).toBeLessThan(0);
+
+    const balanced = fitMap(bounds, SIZE, 48, { top: 60, right: 0, bottom: 60, left: 0 });
+    expect(balanced.centerY).toBe(0);
+    expect(balanced.centerX).toBe(0);
+  });
+
+  it("is unchanged when nothing floats, so the published viewer keeps its behaviour", () => {
+    const bounds = { minX: 100, minY: 50, maxX: 500, maxY: 250 };
+    expect(fitMap(bounds, SIZE, 48, { top: 0, right: 0, bottom: 0, left: 0 }))
+      .toEqual(fitMap(bounds, SIZE));
+  });
+
+  it("survives a viewport smaller than its own chrome rather than inverting", () => {
+    const bounds = { minX: -400, minY: -200, maxX: 400, maxY: 200 };
+    const viewport = fitMap(bounds, { width: 40, height: 40 }, 48, {
+      top: 200,
+      right: 200,
+      bottom: 200,
+      left: 200
+    });
+    expect(viewport.scale).toBeGreaterThan(0);
+    expect(Number.isFinite(viewport.centerX)).toBe(true);
+    expect(Number.isFinite(viewport.centerY)).toBe(true);
+  });
+
+  /**
    * The one place two spec rules genuinely conflict, resolved in favour of the MUST.
    * A map more than 4x the viewport cannot both fit and respect the 25% interactive floor.
    */
