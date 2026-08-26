@@ -889,15 +889,23 @@ Functions at all, an arbitrary path such as `/anything` is served off the asset 
 **both** hostnames — the middleware guard covers the three listed app paths, not the published
 host in general. That wider gap is recorded as open, not silently closed.
 
+**Resolution (2026-08-25, in review).** Add a top-level `public/404.html`. Pages only applies
+its implicit SPA fallback when that file is absent, so unknown paths now fail closed in the
+asset pipeline instead of receiving the editor shell. The three real app paths remain explicit
+in `_routes.json` and continue through middleware; `/api/*` and `/p/*` remain Function routes.
+Routing `/*` through Functions was rejected for this finite route set because it would put every
+static request on the Functions path, while exclusions would create another bypass list to keep
+correct. A future app route must be added to the client router, `APP_PATHS`, and `_routes.json`.
+
 **Why.** The dialog was carrying a page's worth of work inside a focus trap — which is why the
 publish result kept landing behind its own overlay, and why a map holding unsaved content could
 still read *Saved online*: the state was reassembled inline per badge and per button. Unmounting
 the editor on navigation was rejected because it would discard the undo history, and
 `spec/vision.md` §4.8 makes reliable history non-negotiable; a bookmarkable URL is not worth
-paying for with an undo stack. Listing app paths one at a time, rather than a wildcard rewrite,
-keeps `share.bcailab.com` from serving the editor and its account UI *at those paths* —
-`root-host.test.ts` asserts the app-path list and the Pages route config agree. See the
-correction above for what this does **not** cover.
+paying for with an undo stack. Listing app paths one at a time keeps the route surface
+reviewable; the top-level 404 makes the allowlist fail closed. `root-host.test.ts` asserts the
+app-path list and Pages route config agree and that the file which disables Pages' implicit SPA
+fallback is present.
 
 **Boundary.** This does not authorize folders, tags, cross-document search, recovery-history UI,
 a publication directory, or any change to what the editor itself does.

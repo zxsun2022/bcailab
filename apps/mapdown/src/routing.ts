@@ -4,9 +4,10 @@ import { useSyncExternalStore } from "react";
  * The three surfaces Mapdown serves from its own origin.
  *
  * Real paths rather than hash fragments, because the document library is a place people should
- * be able to bookmark, link to, and reach with Back. That costs a Pages rewrite
- * (`public/_redirects`) and an entry in `functions/_routes.json` so `_middleware.ts` still sees
- * these paths on the published origin and keeps the editor off `share.bcailab.com` — see D-31.
+ * be able to bookmark, link to, and reach with Back. Each path has an entry in
+ * `public/_routes.json` so `_middleware.ts` can serve the shared shell on the editor origin and
+ * keep the editor off `share.bcailab.com`. A top-level `public/404.html` disables Pages' implicit
+ * SPA fallback, so paths outside this explicit set fail closed — see D-31.
  *
  * The historical Phase 0 spikes still live behind `#ime` / `#svg-export` / `#layout`; they are
  * hash-only and deliberately not routes.

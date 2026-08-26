@@ -62,8 +62,12 @@ here for permanent, method‑preserving canonical redirects.
 A `wrangler.toml` exists at the repo root (used by local `wrangler` commands) and in
 `apps/web/`. Mapdown uses `apps/mapdown/wrangler.jsonc`; it binds the same D1 database and R2
 bucket for account save and publication, while keeping its own session table. Keep database
-and bucket ids in sync when resources change. `_routes.json` sends only `/api/*` and `/p/*`
-through Functions; editor assets remain static.
+and bucket ids in sync when resources change. `_routes.json` sends the three app paths (`/`,
+`/library`, `/import`) plus `/api/*` and `/p/*` through Functions; editor assets remain static.
+Mapdown's top-level `public/404.html` is load-bearing: without it, Pages treats the project as an
+SPA and serves the editor shell for every unknown path, including on `share.bcailab.com` where
+those requests bypass middleware. Do not remove it or replace the explicit route set with a
+wildcard without re-reviewing the published-host boundary.
 
 The app-local Pages configs are required even though output directories are also set in
 the dashboard. A monorepo build command changes to the repository root, where Wrangler

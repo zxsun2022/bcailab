@@ -8,11 +8,10 @@
  * published host. The paths are listed here and in `public/_routes.json`; a path missing from
  * either list never reaches this middleware at all, which is what `root-host.test.ts` guards.
  *
- * **This is not a complete boundary, and it is not claimed to be.** `_routes.json` decides which
- * requests reach Functions, so an arbitrary path such as `/anything` is served straight off the
- * asset pipeline on both hostnames — and the Pages project answers unknown paths with the SPA
- * shell. Closing that would mean routing `/*` through Functions or changing the project's
- * not-found handling; it is recorded as an open gap rather than half-solved here.
+ * `_routes.json` decides which requests reach Functions, so this middleware is only half of the
+ * host boundary. The other half is `public/404.html`: its presence disables Pages' implicit SPA
+ * fallback and makes every unlisted path return 404 instead of serving the editor shell. Keep
+ * both files when adding or changing an app route.
  */
 export const APP_PATHS = ["/", "/library", "/import"] as const;
 

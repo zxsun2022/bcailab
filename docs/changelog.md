@@ -9,6 +9,20 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-25 — **in_review: unknown Mapdown paths now fail closed instead of exposing the editor
+  on the published host.** Pages treats a project with no top-level `404.html` as an SPA, so an
+  arbitrary request that was absent from `_routes.json` bypassed middleware and received the
+  editor shell on both hostnames. Mapdown now ships a static, no-script, noindex `404.html`;
+  `/`, `/library`, `/import`, `/api/*` and `/p/*` keep their existing explicit routing, while
+  everything else is handled as not found by the asset pipeline. This avoids routing every
+  static asset through Functions and makes forgotten future app routes fail visibly on the
+  editor origin rather than leaking onto `share.bcailab.com`. Evidence: the focused route tests
+  pass 15/15 and require the top-level, no-script, noindex page; all 664 repository tests pass;
+  Mapdown browser and Functions typechecks, lint and production build pass; and the built
+  `dist/404.html` is an exact copy of the source. `wrangler pages dev` remains blocked by the
+  recorded esbuild `import-source` incompatibility, so production still needs probes showing
+  unknown paths return 404 on both hostnames.
+
 - 2026-08-25 — **fixed: `/library` and `/import` were broken by their own Pages rewrite.** The
   first production deploy of the library iteration served `/library/` correctly but answered
   `/library` and `/import` with a **308 to `/`** — Cloudflare Pages resolves a

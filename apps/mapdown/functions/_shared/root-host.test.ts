@@ -71,6 +71,16 @@ describe("app paths on the published host", () => {
     // the route and turned a copy link's `?src=` into a query on the editor root.
     await expect(readFile(`${publicDir}/_redirects`, "utf8")).rejects.toThrow();
   });
+
+  it("has a top-level 404 page so unlisted paths cannot fall back to the editor shell", async () => {
+    // Pages treats a project without this file as an SPA and serves `/` for every unknown path.
+    // That would let an unlisted path bypass this middleware and expose the editor on the
+    // published host.
+    const notFound = await readFile(`${publicDir}/404.html`, "utf8");
+    expect(notFound).toContain("<title>Page not found · Mapdown</title>");
+    expect(notFound).toContain('name="robots" content="noindex, nofollow"');
+    expect(notFound).not.toContain("<script");
+  });
 });
 
 describe("app shell serving", () => {
