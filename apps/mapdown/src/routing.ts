@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from "react";
+import { isPublicId } from "./viewer/public-id";
 
 /**
  * The three surfaces Mapdown serves from its own origin.
@@ -20,15 +21,13 @@ export type Route =
 export const LIBRARY_PATH = "/library";
 export const IMPORT_PATH = "/import";
 
-/** The published-map id is a `randomToken(16)` hex string; anything else is not a link we made. */
-const PUBLIC_ID = /^[0-9a-f]{1,64}$/i;
 
 export function parseRoute(pathname: string, search: string): Route {
   const path = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
   if (path === LIBRARY_PATH) return { name: "library" };
   if (path === IMPORT_PATH) {
     const publicId = new URLSearchParams(search).get("src") ?? "";
-    return { name: "import", publicId: PUBLIC_ID.test(publicId) ? publicId : "" };
+    return { name: "import", publicId: isPublicId(publicId) ? publicId : "" };
   }
   return { name: "editor" };
 }
