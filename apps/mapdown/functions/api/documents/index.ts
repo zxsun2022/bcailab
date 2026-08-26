@@ -3,6 +3,7 @@ import { ApiError, jsonResponse, readBoundedJson, requireSameOriginMutation, wit
 import { CLOUD_DOCUMENT_LIMIT, PRIVATE_SNAPSHOT_MAX_BYTES } from "../../_shared/limits";
 import { requireMapdownUser } from "../../_shared/session";
 import { validateCloudSnapshot } from "../../_shared/validation";
+import { documentDisplayName } from "../../../src/storage/display-name";
 
 export const onRequestGet: PagesFunction<Env> = async (context) => withApiErrors(async () => {
   const user = await requireMapdownUser(context.env.DB, context.request);
@@ -51,7 +52,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => withApiError
       id,
       user.id,
       body.clientDocumentId,
-      validated.snapshot.document.title,
+      documentDisplayName(validated.snapshot.document),
       validated.json,
       validated.digest,
       validated.nodeCount,

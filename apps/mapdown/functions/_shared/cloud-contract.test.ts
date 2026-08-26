@@ -16,6 +16,8 @@ import {
 } from "./validation";
 import { createDocument, SCHEMA_VERSION } from "../../src/model/types";
 import { toPublishedView } from "../../src/viewer/published-view";
+import { documentDisplayName } from "../../src/storage/display-name";
+import { readFile } from "node:fs/promises";
 import { isPublicId, publicIdFromPathname } from "../../src/viewer/public-id";
 import { randomToken } from "./crypto";
 import { PUBLISHED_VIEW_MAX_BYTES } from "./limits";
@@ -237,5 +239,54 @@ describe("public id generator and reader agree", () => {
     // Without this the test above could pass on a lucky run of hex-only ids and prove nothing.
     const ids = Array.from({ length: 200 }, () => randomToken(16));
     expect(ids.some((id) => /[^0-9a-fA-F]/.test(id))).toBe(true);
+  });
+});
+
+// The Workers lib shadows Node's URL, so the path is derived by string surgery.
+const documentsDir = decodeURIComponent(import.meta.url)
+  .replace(/^file:\/\//, "")
+  .replace(/\/functions\/_shared\/[^/]+$/, "/functions/api/documents");
+
+describe("the cloud list names a map the way every other surface does", () => {
+  /**
+   * The gap a review caught after the local half shipped. The account list is the one surface
+   * with no local snapshot to read a root label from, so it can only show what the server put in
+   * its `title` column — and that column was filled from `snapshot.document.title`, the hidden
+   * provenance field. A map created on one machine and opened on another therefore still read
+   * `Untitled`: the same defect this work existed to remove, one surface further out.
+   *
+   * The endpoints now derive the column with the same `documentDisplayName` rule the client
+   * uses. This asserts the two cannot drift apart again.
+   */
+  it("derives the stored column from the root label, not from the provenance title", () => {
+    const document = createDocument("Root label");
+    document.title = "Untitled";
+
+    // What `functions/api/documents/index.ts` and `[id].ts` now bind into the `title` column.
+    expect(documentDisplayName(document)).toBe("Root label");
+    expect(documentDisplayName(document)).not.toBe(document.title);
+  });
+
+  it("binds that rule into both save endpoints, which no unit test can execute", async () => {
+    // The rule above is only useful if the endpoints call it. They cannot be run here without a
+    // Worker runtime and a D1 binding, so the source is asserted directly — the same technique
+    // `root-host.test.ts` uses for the Pages route config, and the reason that gap survived a
+    // green suite the first time.
+    const endpoints = ["index.ts", "[id].ts"];
+    for (const name of endpoints) {
+      const source = await readFile(`${documentsDir}/${name}`, "utf8");
+      expect(source, name).toContain("documentDisplayName(validated.snapshot.document)");
+      expect(source, name).not.toContain("validated.snapshot.document.title");
+    }
+  });
+
+  it("still names a map whose root is empty, rather than storing a blank column", () => {
+    const document = createDocument("");
+    document.title = "imported-notes";
+    expect(documentDisplayName(document)).toBe("imported-notes");
+
+    const blank = createDocument("");
+    blank.title = "";
+    expect(documentDisplayName(blank)).toBe("Untitled map");
   });
 });

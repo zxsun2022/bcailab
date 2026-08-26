@@ -790,7 +790,11 @@ directly, where no history exists; it is covered by the library's existing in-ta
 Acceptance:
 
 - (a) A map created, imported, or copied from a published link shows its root label in the
-  library and on its published page — never `Untitled` while the root says something else.
+  library and on its published page — never `Untitled` while the root says something else. This
+  includes a row that exists **only** in an account: the save endpoints derive the stored name
+  with the same rule the client uses, so the account list does not become the one surface left
+  behind. A row last written by an older client keeps its provenance title until it is saved
+  again; no migration backfills it.
 - (b) An empty root falls back predictably, and the fallback is the same string in the library
   and on the published page.
 - (c) Rename changes what the canvas shows. On the open map it is undoable through history; on

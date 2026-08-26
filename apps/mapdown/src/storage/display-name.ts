@@ -1,5 +1,4 @@
 import { getNode, type MindMapDocument } from "../model/types";
-import type { DocumentIndexEntry } from "./store";
 
 /**
  * What a map is called, wherever a person is shown one.
@@ -42,12 +41,16 @@ export function documentDisplayName(document: MindMapDocument): string {
 /**
  * The name for a stored document, without loading its snapshot.
  *
+ * Typed structurally rather than against `DocumentIndexEntry`, so this module stays free of the
+ * storage layer: the Pages Functions runtime imports it to name a cloud row, and its tsconfig
+ * has no DOM or IndexedDB types to compile `store.ts` against.
+ *
  * `rootLabel` is cached on the index entry beside `nodeCount` for exactly this reason: the
  * library renders every row on the index alone, and reading a snapshot per row would make
  * opening the library O(documents) in storage reads. An entry written before this field existed
  * has no `rootLabel` and falls through to `title`, which is the behaviour it had anyway.
  */
-export function entryDisplayName(entry: DocumentIndexEntry): string {
+export function entryDisplayName(entry: { rootLabel?: string; title: string }): string {
   return displayNameFromParts(entry.rootLabel, entry.title);
 }
 

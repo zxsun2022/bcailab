@@ -122,9 +122,11 @@ export function onlineOnlyRow(cloud: CloudDocumentSummary): LibraryRow {
     kind: "online-only",
     id: cloud.id,
     cloudDocumentId: cloud.id,
-    // An account row has no local snapshot to read a root label from; the server stored the
-    // name the client sent at save time, which is already the display name for anything saved
-    // after D-18 reached this surface.
+    // An account row has no local snapshot to read a root label from, so it depends on what the
+    // server stored. `functions/api/documents/` derives that column with the *same*
+    // `documentDisplayName` rule, so a row saved by a current client already carries the root
+    // label. A row last saved by an older client still carries the provenance title until its
+    // owner saves it again — the fallback below is what shows then.
     title: displayNameFromParts(cloud.title, undefined),
     nodeCount: cloud.nodeCount,
     updatedAt: cloud.updatedAt,
