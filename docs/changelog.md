@@ -33,6 +33,25 @@ make the final transition; see `AGENTS.md`.
   recorded esbuild `import-source` incompatibility, so production still needs probes showing
   unknown paths return 404 on both hostnames.
 
+- 2026-08-26 — **verified in production: the live published viewer and Copy work end to end.**
+  This closes the Pages Functions runtime gap that owner acceptance explicitly did not cover.
+  Against a real publication (`version 2`, a two-sided map with CJK labels): the live viewer
+  mounts and hides the frozen image, clicking a branch badge collapses it and the badge reports
+  the hidden child count while the other branches stay put, **Make a copy** creates a local map
+  in the visitor's browser, and unpublish revokes everything at once — `/p/{id}`,
+  `/p/{id}/map.json`, `/p/{id}/map.svg`, `/p/{id}/map.md` and `/api/publications/{id}` all return
+  `no-store` 404s with `cf-cache-status` DYNAMIC or BYPASS. The deployed `viewer.js` was matched
+  by SHA-256 against the local build, and its shared chunk confirmed reachable on the cookie-free
+  host.
+
+  **What this cost, and the lesson.** Two defects reached production that the whole local suite
+  could not see, because `wrangler pages dev` fails to build Functions in this environment: a
+  `_redirects` rewrite Pages turned into a redirect to the site root, and a client id pattern
+  that assumed hexadecimal. Both failed *silently* — the page fell back to its image, Copy
+  reported a bad link — so every green probe stayed green. A local suite says nothing about the
+  Functions layer here, and a fallback that works is not evidence the thing it falls back from
+  does.
+
 - 2026-08-26 — **fixed: every published map fell back to its static image, because the client
   expected a hexadecimal public id.** `randomToken(16)` emits **base64url** — `[A-Za-z0-9_-]`,
   22 characters — and both client-side checks tested `/^[0-9a-f]{1,64}$/i`. Almost every real id
