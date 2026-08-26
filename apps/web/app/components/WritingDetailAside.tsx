@@ -17,7 +17,7 @@ type WritingDetailAsideProps = {
   isComposeView: boolean;
   disableNewRevision: boolean;
   collapsed: boolean;
-  onToggle: () => void;
+  panelId: string;
   assessmentPrefix?: string | null;
   children?: React.ReactNode;
 };
@@ -30,7 +30,7 @@ export function WritingDetailAside({
   isComposeView,
   disableNewRevision,
   collapsed,
-  onToggle,
+  panelId,
   assessmentPrefix,
   children,
 }: WritingDetailAsideProps) {
@@ -40,36 +40,10 @@ export function WritingDetailAside({
   const isNewRevisionActive = isComposeView;
 
   return (
-    <aside className={`writing-detail-aside${collapsed ? " is-collapsed" : ""}`}>
-      <div className="writing-aside-toolbar">
-        <button
-          type="button"
-          className="writing-aside-toggle-btn"
-          aria-label={collapsed ? "Expand feedback panel" : "Collapse feedback panel"}
-          onClick={onToggle}
-        >
-          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
-            {collapsed ? (
-              <path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            ) : (
-              <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-            )}
-          </svg>
-        </button>
-        {collapsed ? (
-          <Link
-            to={newRevisionHref}
-            className={`writing-aside-icon-btn${disableNewRevision ? " is-disabled" : ""}${isNewRevisionActive ? " is-active" : ""}`}
-            aria-label="New Revision"
-            onClick={(e) => { if (disableNewRevision) e.preventDefault(); }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </Link>
-        ) : null}
-      </div>
-
+    <aside
+      id={panelId}
+      className={`writing-detail-aside${collapsed ? " is-collapsed" : ""}`}
+    >
       <div
         className={`writing-aside-content${collapsed ? " is-hidden" : ""}`}
         aria-hidden={collapsed}

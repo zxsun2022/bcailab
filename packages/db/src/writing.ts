@@ -285,6 +285,44 @@ export async function listRecentWritingArticlesByUser(
   return (result.results ?? []).map(mapWritingArticle);
 }
 
+/**
+ * One learner session for a single prompt, with the number of rounds it holds.
+ * Repeated attempts at the same prompt are distinct articles, so a prompt can have several.
+ */
+export type WritingPromptSession = {
+  id: string;
+  title: string | null;
+  updated_at: string;
+  round_count: number;
+};
+
+export async function listWritingSessionsByPrompt(
+  db: Db,
+  input: { userId: string; promptId: string; limit?: number }
+): Promise<{ items: WritingPromptSession[]; has_more: boolean }> {
+  const limit = Math.min(Math.max(input.limit ?? 5, 1), 25);
+  const result = await db
+    .prepare(
+      `SELECT a.id AS id,
+              a.title AS title,
+              a.updated_at AS updated_at,
+              (SELECT COUNT(*) FROM writing_revisions r WHERE r.article_id = a.id) AS round_count
+       FROM writing_articles a
+       WHERE a.prompt_id = ? AND a.user_id = ? AND a.deleted_at IS NULL
+       ORDER BY a.updated_at DESC, a.created_at DESC, a.id DESC
+       LIMIT ?`
+    )
+    .bind(input.promptId, input.userId, limit + 1)
+    .all();
+  const rows = (result.results ?? []).map((row) => ({
+    id: String(row.id),
+    title: row.title ? String(row.title) : null,
+    updated_at: String(row.updated_at),
+    round_count: Number(row.round_count ?? 0)
+  }));
+  return { items: rows.slice(0, limit), has_more: rows.length > limit };
+}
+
 export async function updateWritingArticleTitle(
   db: Db,
   input: { id: string; userId: string; title: string }

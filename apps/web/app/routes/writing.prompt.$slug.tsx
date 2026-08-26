@@ -8,8 +8,11 @@ import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import * as React from "react";
 import {
   getPublishedWritingPromptBySlug,
-  type WritingAssignmentSnapshot
+  listWritingSessionsByPrompt,
+  type WritingAssignmentSnapshot,
+  type WritingPromptSession
 } from "@bcailab/db";
+import { LocalDateTime } from "~/components/LocalDateTime";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
 import { WritingEditor } from "~/components/WritingEditor";
@@ -37,19 +40,34 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
 ];
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
-  await requireUser(request, context);
+  const user = await requireUser(request, context);
   const slug = params.slug;
   if (!slug) throw new Response("Not found", { status: 404 });
   try {
     const row = await getPublishedWritingPromptBySlug(context.env.DB, slug);
     if (!row) throw new Response("Not found", { status: 404 });
     const { snapshot } = materializeWritingPrompt(row);
-    return json({ schemaReady: true as const, assignment: snapshot, startKey: crypto.randomUUID() });
+    const sessions = await listWritingSessionsByPrompt(context.env.DB, {
+      userId: user.id,
+      promptId: snapshot.promptId,
+      limit: 5
+    });
+    return json({
+      schemaReady: true as const,
+      assignment: snapshot,
+      sessions,
+      startKey: crypto.randomUUID()
+    });
   } catch (error) {
     if (!isWritingSchemaMissingError(error)) throw error;
     logWritingSchemaMissing("writing.prompt.loader", error);
     return json(
-      { schemaReady: false as const, assignment: null, startKey: null },
+      {
+        schemaReady: false as const,
+        assignment: null,
+        sessions: { items: [], has_more: false },
+        startKey: null
+      },
       { status: 503 }
     );
   }
@@ -116,15 +134,21 @@ export default function WritingPromptPage() {
   if (!data.schemaReady) return <WritingUnavailableState />;
 
   return (
-    <WritingPromptReadyPage assignment={data.assignment} startKey={data.startKey} />
+    <WritingPromptReadyPage
+      assignment={data.assignment}
+      sessions={data.sessions}
+      startKey={data.startKey}
+    />
   );
 }
 
 function WritingPromptReadyPage({
   assignment,
+  sessions,
   startKey
 }: {
   assignment: WritingAssignmentSnapshot;
+  sessions: { items: WritingPromptSession[]; has_more: boolean };
   startKey: string;
 }) {
   const startIdentity = `${assignment.promptId}:${assignment.contentHash}`;
@@ -173,7 +197,10 @@ function WritingPromptReadyPage({
 
   return (
     <div className="studio-main-scroll">
-      <StudioPage width="standard">
+      <StudioPage
+        width="standard"
+        className={sessions.items.length > 0 ? "writing-prompt-page--with-sessions" : undefined}
+      >
         <StudioBreadcrumbs items={[
           { label: "Writing", to: "/writing" },
           collection,
@@ -184,7 +211,8 @@ function WritingPromptReadyPage({
           description={`${assignment.cefrBand ? `${assignment.cefrBand} discovery level · ` : ""}${assignment.topic} · ${assignment.targetMinutes} minutes · ${assignment.targetWords}+ words`}
           action={<Link to="/writing/new" className="btn btn-secondary">Use my own topic</Link>}
         />
-        <StudioPageBody className="writing-prompt-workspace">
+        <StudioPageBody className={`writing-prompt-layout${sessions.items.length > 0 ? " has-sessions" : ""}`}>
+          <div className="writing-prompt-workspace">
           <section className="writing-assignment-copy" aria-labelledby="writing-assignment-heading">
             <p className="writing-section-eyebrow">
               {assignment.taskType === "academic_task_1"
@@ -213,6 +241,43 @@ function WritingPromptReadyPage({
               </button>
             </div>
           </fetcher.Form>
+          </div>
+
+          {sessions.items.length > 0 ? (
+            <aside
+              className="writing-prompt-sessions"
+              aria-labelledby="writing-prompt-sessions-heading"
+            >
+              <h2 id="writing-prompt-sessions-heading">Your sessions</h2>
+              <p className="writing-prompt-sessions-note">
+                Each attempt at this assignment is a separate session with its own rounds.
+              </p>
+              <ul className="writing-prompt-sessions-list">
+                {sessions.items.map((session) => (
+                  <li key={session.id}>
+                    <Link to={`/writing/${session.id}`}>
+                      <span className="writing-prompt-session-title">
+                        {session.title ?? "Untitled session"}
+                      </span>
+                      <span className="writing-prompt-session-meta">
+                        {session.round_count} {session.round_count === 1 ? "round" : "rounds"}
+                        {" · "}
+                        <LocalDateTime
+                          value={session.updated_at}
+                          options={{ year: "numeric", month: "short", day: "numeric" }}
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              {sessions.has_more ? (
+                <Link to="/writing/sessions" className="writing-prompt-sessions-more">
+                  All writing sessions →
+                </Link>
+              ) : null}
+            </aside>
+          ) : null}
         </StudioPageBody>
       </StudioPage>
     </div>

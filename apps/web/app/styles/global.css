@@ -6570,6 +6570,84 @@ select.input:focus {
 
 /* --- Prompt-backed editor and canonical Task 1 material --- */
 
+.writing-prompt-layout {
+  display: grid;
+  gap: 24px;
+}
+
+/* Prior attempts at this assignment sit beside the composer on wide viewports and
+   below it on narrow ones, where starting the new draft comes first. */
+.writing-prompt-sessions {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  padding-top: 4px;
+}
+
+.writing-prompt-sessions h2 {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.writing-prompt-sessions-note {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.writing-prompt-sessions-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.writing-prompt-sessions-list a {
+  display: grid;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: none;
+  color: inherit;
+}
+
+.writing-prompt-sessions-list a:hover .writing-prompt-session-title {
+  text-decoration: underline;
+}
+
+.writing-prompt-session-title {
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.writing-prompt-session-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.writing-prompt-sessions-more {
+  font-size: 0.85rem;
+}
+
+@media (min-width: 1024px) {
+  /* The composer keeps its `standard` reading measure; the page widens only far enough to
+     seat the session rail beside it, so the header and the rail share one right edge. */
+  .studio-page.writing-prompt-page--with-sessions {
+    --studio-page-content-max: 1100px;
+  }
+
+  .writing-prompt-layout.has-sessions {
+    grid-template-columns: minmax(0, var(--studio-page-standard)) minmax(200px, 260px);
+    column-gap: 40px;
+    align-items: start;
+  }
+}
+
 .writing-prompt-workspace {
   display: grid;
   gap: 24px;
@@ -7283,17 +7361,10 @@ select.input:focus {
   transition: opacity 0.12s ease, transform 0.22s ease, visibility 0s linear 0.22s;
 }
 
-.writing-aside-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: var(--space-sm);
-  justify-content: flex-start;
-}
-
-.writing-detail-aside.is-collapsed .writing-aside-toolbar {
-  flex-direction: column;
-  align-items: center;
+/* Hidden below the desktop breakpoint, where feedback is rendered inline in the main
+   column and there is no side panel to toggle. */
+.writing-detail-header-actions {
+  display: none;
 }
 
 .writing-aside-toggle-btn {
@@ -7314,33 +7385,6 @@ select.input:focus {
 .writing-aside-toggle-btn:hover {
   color: var(--text-muted);
   background: var(--bg-alt);
-}
-
-.writing-aside-icon-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  color: var(--text-muted);
-  text-decoration: none;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
-
-.writing-aside-icon-btn:hover {
-  color: var(--text);
-  background: var(--bg-alt);
-}
-
-.writing-aside-icon-btn.is-active {
-  color: #fff;
-  background: var(--copper);
-}
-
-.writing-aside-icon-btn.is-disabled {
-  opacity: 0.4;
-  pointer-events: none;
 }
 
 /* Round selector pills */
@@ -7562,10 +7606,19 @@ select.input:focus {
     transition: grid-template-columns 0.28s ease;
   }
 
+  /* Collapsing removes the panel outright rather than leaving a vestigial strip: no width,
+     no border, and the toggle that brings it back lives in the content header. */
   .writing-detail-layout.is-aside-collapsed {
     --writing-detail-gap: 20px;
-    --writing-detail-aside-width: 52px;
+    --writing-detail-aside-width: 0px;
     --writing-detail-center-max: 980px;
+  }
+
+  .writing-detail-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
   }
 
   .writing-center-stage {
@@ -7602,7 +7655,8 @@ select.input:focus {
   }
 
   .writing-detail-layout.is-aside-collapsed .writing-detail-rail {
-    padding: 12px 0 0;
+    padding: 0;
+    border-left: none;
   }
 
   .writing-detail-aside {
@@ -7642,7 +7696,7 @@ select.input:focus {
   }
 
   .writing-detail-layout.is-aside-collapsed {
-    --writing-detail-aside-width: 52px;
+    --writing-detail-aside-width: 0px;
     --writing-detail-center-max: 1040px;
   }
 }

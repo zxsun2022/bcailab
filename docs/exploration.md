@@ -57,3 +57,37 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   five decisions it would create are in
   [`docs/mapdown/save-publish-proposal.md`](mapdown/save-publish-proposal.md). This exploration
   was subsequently authorized in `docs/roadmap.md`; all three implementations are `in_review`.
+
+- **Promote the session/planning layer — "Today"** (owner-raised 2026-08-26 after an external
+  AI review of wondering.app; *proposal only, not authorized*). The outside argument was that
+  English Studio reads as a collection of tools where the learner must choose the tool, and that
+  the shared learner profile should become the main character: one **Today** queue that decides
+  what to practise, fed by every mode and by spaced repetition. The direction is not new to this
+  repo — Later's Dictation v2 entry already says the session / goal-first layer is the next
+  tenant on the `selectStarterPractice()` seam, and ADR 0006 already forbids the two ways a
+  naive scheduler goes wrong (rendering a null level as B1; locking material by band). So the
+  advice is a **prioritisation argument**, not a new direction, and it should be judged on
+  whether its three prerequisites hold. Today none of them do:
+  1. **The profile is blind in two of four skills.** Writing contributes only counters because it
+     has no tag vocabulary (Next), and Dictation passes `practiceSeconds: 0` because nothing
+     times an attempt (Next, authorized 2026-08-12, not started). A queue built now would
+     schedule on half the evidence while presenting itself as informed.
+  2. **Material is too thin to schedule over.** Ten passages per band, against a design
+     assumption of roughly 500. A Today queue over that repeats within days, and a visibly
+     repetitive queue is worse than no queue: it teaches the learner that the personalisation
+     is decorative.
+  3. **There are no real users.** A learner model's value is longitudinal. Calibrating a
+     recommendation policy before anyone has a history is speculation, whereas making the
+     existing profile honest and legible on `/english/progress` is not.
+  One internal contradiction in the outside advice is worth recording, because it points at the
+  more interesting item: it argues that the tool surface is already large enough, while treating
+  the **encounter → understand → remember → produce** loop (a word met in a podcast or article,
+  explained without breaking flow, then resurfacing as tomorrow's practice) as the most
+  defensible thing bcailab could build. That loop's input is the Dictionary/lookup surface,
+  which does not exist. Such a surface would also be the only entry point that produces learning
+  objects in volume **without** first requiring a 100× material expansion.
+  Suggested order if this is ever promoted, each step independently useful: (a) close the two
+  measurement gaps already in Next, so the profile covers what the learner actually does;
+  (b) decide whether a lookup/encounter entry point becomes the learning-object source;
+  (c) only then a bounded Today over the existing seam. Today is the *result* of those, not a
+  substitute for them. Nothing here has acceptance criteria; promotion is the owner's call.
