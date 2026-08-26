@@ -638,6 +638,14 @@ under ADR 0008, and the deploy is followed by a live check of publish → the li
 **Make a copy** → unpublish returning an uncached 404 for both `/p/{id}` and `/p/{id}/map.json`.
 That check is a deployment step, not a new authorization.
 
+**Windows node-editing height follow-up — in_review (2026-08-25).** The overlaid editing
+`textarea` now suppresses its native scrollbars. Classic Windows scrollbars consume layout
+width, unlike macOS overlay scrollbars; on a box sized exactly from canvas text metrics that
+reduced the content area and could wrap every active label onto a second line. The node remains
+the owner of live width and height while typing, so the editing control never needs an internal
+scrollbar. Evidence: a focused regression test locks the overflow contract; Mapdown tests,
+typecheck and production build pass.
+
 ### Stage 1 — the document library becomes a page
 
 - Add a three-route client router to the Mapdown SPA (`/`, `/library`, `/import`) with

@@ -557,6 +557,7 @@ button:disabled {
 .editing-field {
   box-sizing: border-box;
   margin: 0;
+  overflow: hidden;
   transform: translateY(-50%);
   resize: none;
   border: none;

@@ -9,6 +9,15 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-25 — **in_review: Mapdown node editing keeps one-line labels one line on Windows.**
+  The node layout already grows from the live draft, but its overlaid native `textarea` left
+  `overflow` at the browser default. Classic Windows scrollbars consume content width while
+  macOS overlay scrollbars do not; because the field matches the measured node box exactly,
+  that platform-only gutter could force the active label onto a second line. The editing field
+  now hides its own scrollbars and continues to take width and height from the live node layout.
+  A focused regression test locks that CSS contract. Mapdown tests, typecheck and production
+  build pass.
+
 - 2026-08-25 — **accepted: unknown Mapdown paths now fail closed instead of exposing the editor
   on the published host.** The owner accepted commit `0b96513` after it was pushed. Pages treats
   a project with no top-level `404.html` as an SPA, so an arbitrary request that was absent from
