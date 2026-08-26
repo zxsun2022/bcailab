@@ -33,6 +33,31 @@ make the final transition; see `AGENTS.md`.
   recorded esbuild `import-source` incompatibility, so production still needs probes showing
   unknown paths return 404 on both hostnames.
 
+- 2026-08-26 — **in_review: the root label is a Mapdown map's name everywhere.** The library
+  shipped and every row read `Untitled`, because `createDocument` sets `title: "Untitled"` and
+  nothing but an explicit rename ever changed it while the visible root said something real.
+  This finishes a decision already made: **D-18** settled the same question for download
+  filenames on 2026-08-04, after the same symptom — "the root label is the identity users see and
+  control". The library and the published page shipped later and kept reading `title`.
+  `spec/storage-export.md` §10.3 forbids forcing the two to be equal, so they are not merged:
+  `title` keeps its job as import provenance and stops being what a person is shown. The
+  displayed name now resolves root label → `title` → a shared placeholder, is cached on the index
+  entry beside `nodeCount` so a row renders without loading its snapshot, and drives search,
+  sort, announcements, the delete notice and the published page's title and `og:title`.
+  **Rename edits the root node**, since otherwise it is a button with no visible effect — the
+  same defect in the opposite direction. The asymmetry is the owner's explicit decision: the open
+  map renames through history and is undoable per `spec/vision.md` §4.8, while a map that is not
+  open is edited in storage and covered by the library's in-tab undo. Browser verification caught
+  one regression the tests did not: **Duplicate** suffixed `title`, so both rows read identically
+  once the display name came from the root; the suffix now lands on the root label. Evidence: 683
+  repo-wide tests, with a mutation check confirming the precedence rule fails when reversed;
+  browser checks of both rename paths (canvas updated and Undo reversing it for the open map,
+  stored rename for the other), the duplicate suffix, and an entry written before `rootLabel`
+  existed falling back to `title` rather than a placeholder. Typechecks, lint and the production
+  build pass. **Not changed:** download filenames already followed D-18; Markdown import/export
+  semantics are untouched; and an existing publication keeps its old public title until its owner
+  runs *Update published version*, which is D-29's freeze semantics working rather than a bug.
+
 - 2026-08-26 — **in_review: Mapdown canvas-first chrome.** The editor read as a web page with a
   toolbar above a canvas band — `.editor-shell` was a four-row grid and the map lived in row
   three. The map now fills the viewport and the toolbar, any notice, the status line, the

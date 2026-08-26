@@ -27,6 +27,12 @@ export interface DocumentIndexEntry {
   updatedAt: number;
   createdAt: number;
   nodeCount: number;
+  /**
+   * The root node's text, cached so the library can name a row without loading its snapshot.
+   * The root label is the map's identity (D-18); `title` below is provenance, not a name.
+   * Absent on entries written before this field existed — see `entryDisplayName`.
+   */
+  rootLabel?: string;
   /** The pointer §5.4 requires: only ever advanced after a snapshot is fully committed. */
   lastSnapshotId: string;
   sourceFilename?: string;

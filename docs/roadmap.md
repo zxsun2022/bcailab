@@ -757,6 +757,56 @@ and the "smoother canvas" question the owner raised alongside it. The owner expl
 to commit to either.
 
 
+## Now — Mapdown: the root label is the map's name everywhere
+
+Authorized by the owner on 2026-08-26 after the document library shipped and every row read
+`Untitled`. This is not a new design decision — it finishes one already made. **D-18** settled
+the same question for download filenames on 2026-08-04, *after the same symptom*: "the internal
+document title is initialized or imported but has no editing surface, so it can remain
+`Untitled` while the visible map has a meaningful name. The root label is the identity users see
+and control." Downloads were changed then; the library and the published page were not, because
+neither existed yet.
+
+`spec/storage-export.md` §10.3 is the constraint that shapes the fix: *"The root node text is not
+automatically forced to equal the filename/title."* So the two values must **not** be merged.
+`title` keeps its real job — the imported filename or front-matter title, i.e. provenance — and
+stops being what a person is shown.
+
+- Show the root label wherever a map is named to a person: the library rows, the library detail
+  panel, the rename field, the destructive-action confirmations, and the published page's `<h1>`,
+  `<title>` and `og:title`. Fall back to `title`, then to a neutral placeholder when the root is
+  empty.
+- Search and sort operate on the displayed name, not on the hidden one.
+- Carry `rootLabel` on the document index entry, written wherever `nodeCount` already is, so the
+  library renders a row without loading its snapshot.
+- **Rename edits the root node**, not `title`. It is otherwise a button with no visible effect —
+  the same defect in the opposite direction.
+
+**The asymmetry is accepted, not hidden** (owner's decision, 2026-08-26). Renaming the map open
+in the editor goes through history and is undoable, because `spec/vision.md` §4.8 requires every
+structural action to be undoable. Renaming a map that is not open edits its stored snapshot
+directly, where no history exists; it is covered by the library's existing in-tab undo instead.
+
+Acceptance:
+
+- (a) A map created, imported, or copied from a published link shows its root label in the
+  library and on its published page — never `Untitled` while the root says something else.
+- (b) An empty root falls back predictably, and the fallback is the same string in the library
+  and on the published page.
+- (c) Rename changes what the canvas shows. On the open map it is undoable through history; on
+  any other map it is covered by the library's in-tab undo.
+- (d) Search and sort match what the row displays.
+- (e) `title` is unchanged as a stored field: import still populates it from the filename or
+  front matter, and Markdown import/export semantics do not move (§10.3).
+- (f) Download filenames still follow D-18, unchanged.
+
+**Not in this iteration.** Existing publications are frozen, so a published map keeps its old
+public title until its owner runs *Update published version* — that is D-29's freeze semantics
+working, not a bug to route around. No data migration: existing index entries gain `rootLabel`
+the next time they are written. Whether the library should become Mapdown's landing surface is a
+separate question the owner deferred until names are real.
+
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:

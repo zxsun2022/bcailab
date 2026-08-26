@@ -1,4 +1,5 @@
 import type { DocumentIndexEntry } from "../storage/store";
+import { displayNameFromParts, entryDisplayName } from "../storage/display-name";
 import type { CloudDocumentSummary, CloudPublication } from "../cloud/types";
 import type { CloudLibraryState } from "./cloud-state";
 
@@ -34,6 +35,10 @@ export interface LibraryRow {
   /** Local document id, or the cloud id for an online-only row. */
   id: string;
   cloudDocumentId: string | null;
+  /**
+   * What this map is called on screen — the root label, not the stored `title` (D-18). Search
+   * and sort use it too, so a row can always be found by the name it shows.
+   */
   title: string;
   nodeCount: number;
   /** Last local edit for local rows; last online save for online-only rows. */
@@ -99,7 +104,7 @@ export function localRow(
     kind: "local",
     id: entry.id,
     cloudDocumentId: entry.cloudDocumentId ?? null,
-    title: entry.title,
+    title: entryDisplayName(entry),
     nodeCount: entry.nodeCount,
     updatedAt: entry.updatedAt,
     sourceFilename: entry.sourceFilename ?? null,
@@ -117,7 +122,10 @@ export function onlineOnlyRow(cloud: CloudDocumentSummary): LibraryRow {
     kind: "online-only",
     id: cloud.id,
     cloudDocumentId: cloud.id,
-    title: cloud.title,
+    // An account row has no local snapshot to read a root label from; the server stored the
+    // name the client sent at save time, which is already the display name for anything saved
+    // after D-18 reached this surface.
+    title: displayNameFromParts(cloud.title, undefined),
     nodeCount: cloud.nodeCount,
     updatedAt: cloud.updatedAt,
     sourceFilename: null,

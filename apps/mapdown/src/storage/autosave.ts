@@ -1,6 +1,7 @@
 import { checkInvariants } from "../model/invariants";
 import { SCHEMA_VERSION, type MindMapDocument, type NodeId } from "../model/types";
 import { normalizeThemeSelection } from "../theme/presets";
+import { rootLabelOf } from "./display-name";
 import {
   canonicalCloudContentOf,
   checksumOf,
@@ -130,6 +131,7 @@ export function createAutosave(options: AutosaveOptions): Autosave {
         createdAt: existingEntry?.createdAt ?? snapshot.savedAt,
         updatedAt: snapshot.savedAt,
         nodeCount: Object.keys(job.document.nodes).length,
+        rootLabel: rootLabelOf(job.document),
         lastSnapshotId: snapshot.id,
         ...(existingEntry?.sourceFilename
           ? { sourceFilename: existingEntry.sourceFilename }
