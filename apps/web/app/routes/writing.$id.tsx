@@ -50,6 +50,7 @@ type ActionData = {
 const PENDING_STALE_MS = 60_000;
 const PENDING_LONG_WAIT_MS = 15_000;
 const ASIDE_COLLAPSED_KEY = "writing-aside-collapsed";
+const ASIDE_PANEL_ID = "writing-feedback-panel";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   {
@@ -570,6 +571,17 @@ function WritingArticlePageReady({
       : assignment
         ? { label: "Everyday writing", to: "/writing/library?category=general" }
         : null;
+  // The trail names places, not the current session: the session's own name is the H1.
+  // A session keeps its assignment's title until the learner renames it, so repeating it as a
+  // leaf would print the same words twice.
+  const breadcrumbItems = assignment && collection
+    ? [
+        { label: "Writing", to: "/writing" },
+        collection,
+        { label: assignment.title, to: `/writing/prompt/${assignment.promptSlug}` },
+        ...(displayTitle.trim() === assignment.title.trim() ? [] : [{ label: displayTitle }])
+      ]
+    : [{ label: "Writing", to: "/writing" }, { label: displayTitle }];
   const currentWordCount = isComposeView
     ? text.trim().split(/\s+/).filter(Boolean).length
     : liveActiveRevision?.word_count ?? 0;
@@ -683,15 +695,7 @@ function WritingArticlePageReady({
       <div className="writing-center-stage">
         <div className="writing-center-panel">
           <div className="writing-detail-header">
-            <StudioBreadcrumbs items={assignment && collection ? [
-              { label: "Writing", to: "/writing" },
-              collection,
-              { label: assignment.title, to: `/writing/prompt/${assignment.promptSlug}` },
-              { label: displayTitle }
-            ] : [
-              { label: "Writing", to: "/writing" },
-              { label: displayTitle }
-            ]} />
+            <StudioBreadcrumbs items={breadcrumbItems} />
             <div className="writing-title-row">
               {editingTitle ? (
                 <input
@@ -723,6 +727,34 @@ function WritingArticlePageReady({
                 </>
               )}
               <span className="writing-agent-label">{agent.label}</span>
+              <div className="writing-detail-header-actions">
+                {asideCollapsed ? (
+                  <Link
+                    to={isLatestRoundPending ? "#" : `/writing/${article.id}?compose=1`}
+                    className={`btn btn-secondary btn-sm${isLatestRoundPending ? " is-disabled" : ""}`}
+                    aria-disabled={Boolean(isLatestRoundPending)}
+                    onClick={(e) => { if (isLatestRoundPending) e.preventDefault(); }}
+                  >
+                    New Revision
+                  </Link>
+                ) : null}
+                <button
+                  type="button"
+                  className="writing-aside-toggle-btn"
+                  aria-expanded={!asideCollapsed}
+                  aria-controls={ASIDE_PANEL_ID}
+                  aria-label={asideCollapsed ? "Show feedback panel" : "Hide feedback panel"}
+                  onClick={handleAsideToggle}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
+                    <rect x="3.25" y="4.25" width="17.5" height="15.5" rx="2.25" stroke="currentColor" strokeWidth="1.6" />
+                    <path d="M15 4.5v15" stroke="currentColor" strokeWidth="1.6" />
+                    {asideCollapsed ? null : (
+                      <path d="M15 4.5h4.5a1.25 1.25 0 011.25 1.25v12.5A1.25 1.25 0 0119.5 19.5H15z" fill="currentColor" opacity="0.35" stroke="none" />
+                    )}
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {isViewingPastRound && liveActiveRevision ? (
@@ -800,7 +832,7 @@ function WritingArticlePageReady({
           isComposeView={isComposeView}
           disableNewRevision={Boolean(isLatestRoundPending)}
           collapsed={asideCollapsed}
-          onToggle={handleAsideToggle}
+          panelId={ASIDE_PANEL_ID}
           assessmentPrefix={fullAgent.assessmentPrefix}
         >
           {feedbackContent}

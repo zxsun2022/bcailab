@@ -9,6 +9,33 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-26 — **in_review: three Writing session/prompt surface corrections (owner-raised).**
+  (a) The session breadcrumb printed the same words twice — `Writing / Everyday writing /
+  Ask about a lost item / Ask about a lost item` — because a prompt-backed session keeps its
+  assignment's title until the learner renames it, and the trail appended both. The trail now
+  names places only; the session's own name stays the `h1`, and a leaf appears only once the
+  learner has actually renamed the session. (b) `/writing/prompt/:slug` showed no sign of the
+  learner's earlier attempts at that assignment, although repeated attempts have been distinct
+  sessions since the prompt bank shipped. It now lists up to five of them beside the composer
+  (below it under 1024px) with round count and last edit, via one bounded
+  `listWritingSessionsByPrompt` query that reads six rows and links to `/writing/sessions`
+  when more exist. The page is `standard` width and widens only far enough to seat the rail,
+  so the header and the rail share a right edge. (c) Collapsing the feedback panel left a 52px
+  bordered strip holding a chevron and a `+`. The panel now collapses to nothing, and the
+  control that brings it back — plus New Revision, which the strip used to carry — moved to the
+  top-right of the content header with `aria-expanded`/`aria-controls`, matching where a panel
+  toggle is normally found. The toggle is desktop-only, since below 1024px feedback renders
+  inline and there is no panel to toggle.
+
+  Evidence: local D1 fixtures for two prompt-backed sessions on one published prompt. Verified
+  at 1280px that the breadcrumb drops the duplicate leaf and keeps a renamed one; that the
+  session rail lists both attempts with correct round counts and ordering; that collapsing
+  yields `railW: 0` with no left border and no horizontal overflow, and that expanding restores
+  the panel; and at 375px that the toggle is absent and feedback renders inline. Keyboard focus
+  remains visible; the collapsed panel's links stay `visibility: hidden`, so they leave the tab
+  order. 686 tests, typecheck, lint (0 errors) and the production build pass. The fixtures and
+  the temporary local sign-in credential were removed from the local database afterwards.
+
 - 2026-08-25 — **in_review: Mapdown node editing keeps one-line labels one line on Windows.**
   The node layout already grows from the live draft, but its overlaid native `textarea` left
   `overflow` at the browser default. Classic Windows scrollbars consume content width while
