@@ -129,27 +129,54 @@ button:disabled {
 
 /* ---------- Editor workspace ---------- */
 
+/*
+ * Canvas-first chrome (roadmap 2026-08-26).
+ *
+ * The map is the page. The toolbar, any notice, the status line, the authoring hint and the
+ * zoom capsule all float on it and reserve no layout space — which is why `fitMap` takes
+ * insets: the canvas element is now the whole window, so fitting against it alone would tuck
+ * the top of the map under the toolbar.
+ *
+ * Presentation only. Nothing here changes pan, zoom, selection, editing or layout.
+ */
 .editor-shell {
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  position: relative;
   height: 100%;
   outline: none;
   background: var(--chrome-bg);
 }
 
+.editor-chrome-top {
+  position: absolute;
+  z-index: 20;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.6rem 0;
+  /* The gap between and around the floating panels belongs to the canvas underneath. */
+  pointer-events: none;
+}
+
+.editor-chrome-top > * {
+  pointer-events: auto;
+}
+
 .app-toolbar {
   position: relative;
-  z-index: 20;
   display: grid;
   grid-template-columns: minmax(150px, 1fr) auto auto;
   align-items: center;
   gap: 0.75rem;
-  min-height: 54px;
-  padding: 0.55rem 0.75rem;
-  border-bottom: 1px solid var(--chrome-border);
-  background: color-mix(in srgb, var(--chrome-bg-raised) 94%, transparent);
-  box-shadow: 0 1px 0 rgb(20 27 38 / 3%);
-  grid-row: 1;
+  min-height: 52px;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--chrome-border);
+  border-radius: var(--chrome-radius-large);
+  background: color-mix(in srgb, var(--chrome-bg-raised) 82%, transparent);
+  box-shadow: 0 6px 20px rgb(20 27 38 / 8%), 0 1px 2px rgb(20 27 38 / 6%);
+  backdrop-filter: saturate(180%) blur(14px);
 }
 
 .brand-lockup {
@@ -381,9 +408,12 @@ button:disabled {
 
 .canvas-hint {
   position: absolute;
-  top: 0.85rem;
+  /* Clears the floating toolbar, which now occupies the top of the canvas rather than a row
+     above it. `--editor-chrome-top-height` is measured and set by the editor, so a toolbar that
+     wraps on a narrow screen pushes the hint down with it instead of colliding. */
+  top: calc(var(--editor-chrome-top-height, 52px) + 1.1rem);
   left: 50%;
-  z-index: 20;
+  z-index: 15;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -514,11 +544,12 @@ button:disabled {
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #ead9a6;
+  border: 1px solid #ead9a6;
+  border-radius: var(--chrome-radius-large);
   background: #fff9e8;
   color: #634f16;
   font-size: 0.8rem;
-  grid-row: 2;
+  box-shadow: 0 6px 20px rgb(20 27 38 / 8%);
 }
 
 .editor-notice button {
@@ -531,9 +562,8 @@ button:disabled {
 }
 
 .canvas-frame {
-  position: relative;
-  min-height: 0;
-  grid-row: 3;
+  position: absolute;
+  inset: 0;
 }
 
 .editor-surface {
@@ -564,24 +594,42 @@ button:disabled {
   outline: none;
 }
 
+/*
+ * Bottom chrome. The zoom capsule already floats at bottom-left, so the status line is pushed
+ * clear of it rather than spanning the full width and sitting underneath it.
+ */
 .editor-statusbar {
+  position: absolute;
   z-index: 10;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  left: auto;
+  /* Hugs its content on the right and stops short of the zoom capsule, rather than spanning a
+     fixed offset that a wider capsule on a touch device would collide with. */
+  max-width: calc(100% - 1.2rem - 200px);
   display: flex;
   min-height: 30px;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.85rem;
-  padding: 0.32rem 0.75rem;
-  border-top: 1px solid var(--chrome-border);
-  background: var(--chrome-bg-raised);
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--chrome-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--chrome-bg-raised) 82%, transparent);
   color: var(--chrome-text-muted);
   font-size: 0.72rem;
-  grid-row: 4;
+  box-shadow: 0 6px 20px rgb(20 27 38 / 8%);
+  backdrop-filter: saturate(180%) blur(14px);
 }
 
 .status-shortcuts {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+.status-count {
+  flex: 0 0 auto;
 }
 
 .save-status {
@@ -675,8 +723,26 @@ button:disabled {
     gap: 0.22rem;
   }
 
-  .status-shortcuts {
-    max-width: 48vw;
+}
+
+/*
+ * The status line sheds content in two measured steps rather than ellipsising into nonsense.
+ *
+ * Keyboard hints go first: they are useless on a touch device, and they were what truncated the
+ * node count to a bare digit. The count itself goes only when it genuinely cannot fit — at
+ * 375 px the zoom capsule measures 153 px and the save status 125 px, which leaves no room
+ * beside them. Between those two widths the count survives, which is the whole point of
+ * splitting them apart.
+ */
+@media (max-width: 680px) {
+  .status-keys {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-count {
+    display: none;
   }
 }
 
@@ -698,7 +764,14 @@ button:disabled {
  * only; `data-overlay-background` already carries `inert` and `aria-hidden`, so nothing behind
  * the page is reachable by keyboard or screen reader.
  */
-.editor-shell[data-page-open] > [data-overlay-background] {
+/*
+ * Descendant, not child. The toolbar and the notice now sit inside `.editor-chrome-top`, so a
+ * child selector stopped matching them the moment the chrome started floating — the library
+ * page would have opened with the toolbar still painted behind it. `inert` kept working the
+ * whole time, because that is applied by a global query rather than by this rule, which is
+ * exactly why the gap would not have shown up as a keyboard or screen-reader failure.
+ */
+.editor-shell[data-page-open] [data-overlay-background] {
   display: none;
 }
 

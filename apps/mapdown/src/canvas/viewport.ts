@@ -124,19 +124,47 @@ export function resetZoom(viewport: Viewport): Viewport {
  */
 export const MIN_FIT_SCALE = 0.02;
 
+/**
+ * Screen-space edges of the viewport that something is floating over.
+ *
+ * With canvas-first chrome the toolbar and status line no longer reserve layout space, so the
+ * canvas element is the whole window and "fit to the viewport" would tuck the topmost nodes
+ * under the toolbar. Fit targets the unobscured rectangle instead, and shifts the centre so the
+ * map lands in it. All-zero insets — the default, and what the published viewer passes — give
+ * exactly the behaviour this function had before they existed.
+ */
+export interface ViewportInsets {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
+export const NO_INSETS: ViewportInsets = { top: 0, right: 0, bottom: 0, left: 0 };
+
 export function fitMap(
   bounds: LayoutResult["bounds"],
   size: ViewportSize,
-  margin = 48
+  margin = 48,
+  insets: ViewportInsets = NO_INSETS
 ): Viewport {
   const width = Math.max(bounds.maxX - bounds.minX, 1) + margin * 2;
   const height = Math.max(bounds.maxY - bounds.minY, 1) + margin * 2;
-  const raw = Math.min(size.width / width, size.height / height);
+  // A map cannot be fitted into a negative area; a viewport shorter than its own chrome falls
+  // back to the full size rather than producing a nonsensical scale.
+  const usableWidth = Math.max(size.width - insets.left - insets.right, 1);
+  const usableHeight = Math.max(size.height - insets.top - insets.bottom, 1);
+  const raw = Math.min(usableWidth / width, usableHeight / height);
   const scale = Math.min(MAX_SCALE, Math.max(MIN_FIT_SCALE, raw));
+  // The viewport centre is the document point at the middle of the *element*. The map should
+  // sit at the middle of the unobscured rectangle, so the centre moves by half the difference
+  // between opposite insets, converted from screen units into document units.
+  const offsetX = (insets.left - insets.right) / 2 / scale;
+  const offsetY = (insets.top - insets.bottom) / 2 / scale;
   return {
     scale,
-    centerX: (bounds.minX + bounds.maxX) / 2,
-    centerY: (bounds.minY + bounds.maxY) / 2
+    centerX: (bounds.minX + bounds.maxX) / 2 - offsetX,
+    centerY: (bounds.minY + bounds.maxY) / 2 - offsetY
   };
 }
 
