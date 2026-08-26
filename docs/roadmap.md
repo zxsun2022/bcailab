@@ -644,7 +644,7 @@ The deploy found two defects that no local check could have caught, both fixed a
 root, and a client-side id pattern that assumed hexadecimal where `randomToken(16)` emits
 base64url.
 
-**Windows node-editing height follow-up — in_review (2026-08-25).** The overlaid editing
+**Windows node-editing height follow-up — accepted (2026-08-26).** The overlaid editing
 `textarea` now suppresses its native scrollbars. Classic Windows scrollbars consume layout
 width, unlike macOS overlay scrollbars; on a box sized exactly from canvas text metrics that
 reduced the content area and could wrap every active label onto a second line. The node remains
