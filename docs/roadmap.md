@@ -629,14 +629,20 @@ typechecks/lint pass, and all 664 repository tests pass. `wrangler pages dev` re
 the recorded esbuild `import-source` incompatibility, so the post-deploy probe must confirm
 unknown paths return 404 on both hostnames.
 
-**Acceptance did not cover the Pages Functions runtime, and that gap is still open.** No local
-run exercised the real D1/R2 handlers: `wrangler pages dev` fails to build Functions in this
-environment (an esbuild/wrangler version mismatch), so the published page and the copy endpoint
-were driven against a static harness rendering the real page markup and the real built bundle.
-Before this reaches production, migration `0021_mapdown_publication_view.sql` is applied first
-under ADR 0008, and the deploy is followed by a live check of publish → the live viewer →
-**Make a copy** → unpublish returning an uncached 404 for both `/p/{id}` and `/p/{id}/map.json`.
-That check is a deployment step, not a new authorization.
+**The Pages Functions runtime gap is now closed (2026-08-26).** Acceptance could not cover it: no
+local run exercised the real D1/R2 handlers, because `wrangler pages dev` fails to build
+Functions in this environment (an esbuild/wrangler version mismatch), so the published page and
+the copy endpoint were driven against a static harness. Migration
+`0021_mapdown_publication_view.sql` was applied to production D1 before the deploy under ADR
+0008, and the owed live check has since run against a real publication: publish → the live
+viewer expanding and collapsing a branch → **Make a copy** → unpublish. After the unpublish,
+`/p/{id}`, `/p/{id}/map.json`, `/p/{id}/map.svg`, `/p/{id}/map.md` and
+`/api/publications/{id}` all return `no-store` 404s with `cf-cache-status` DYNAMIC or BYPASS.
+
+The deploy found two defects that no local check could have caught, both fixed and recorded in
+`docs/changelog.md`: a `_redirects` rewrite that Pages normalised into a redirect to the site
+root, and a client-side id pattern that assumed hexadecimal where `randomToken(16)` emits
+base64url.
 
 **Windows node-editing height follow-up — in_review (2026-08-25).** The overlaid editing
 `textarea` now suppresses its native scrollbars. Classic Windows scrollbars consume layout

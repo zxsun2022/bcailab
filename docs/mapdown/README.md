@@ -3,9 +3,14 @@
 **Status (2026-08-25):** The production MVP and stabilization checkpoints were accepted by the
 owner on 2026-08-15; the local document library, account save and frozen publish were accepted
 on 2026-08-23; the library page, the live published viewer and **Make a copy** were accepted as
-a first version on 2026-08-25. **660 repo-wide tests.** The last of those has one open gap: no
-local run exercised the Pages Functions runtime, so a live publish → view → copy → unpublish
-check is owed on the next deployment (see `docs/roadmap.md`).
+a first version on 2026-08-25, and verified end to end in production on 2026-08-26 — publish,
+the live viewer, **Make a copy**, and an unpublish that returns uncached 404s across every
+public asset. **671 repo-wide tests.**
+
+`wrangler pages dev` cannot build Functions in this environment, so nothing local exercises the
+real D1/R2 handlers. That is why the first deploy surfaced two defects a full local suite had
+missed — see the 2026-08-25 and 2026-08-26 entries in `docs/changelog.md` before assuming a
+green local run says anything about the Functions layer.
 The editor works — keyboard-first authoring, two-sided layout, four shapes × ten palettes
 (the theme is a shape/palette pair, D-24), Markdown/SVG/PNG export, local autosave and
 recovery, a local document library (new/open/rename/duplicate/delete with current-tab undo),
