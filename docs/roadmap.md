@@ -619,10 +619,11 @@ reasoning are in
 The owner reviewed the three surfaces in a browser and accepted the completed iteration **as a
 first version** on 2026-08-25.
 
-**Published-host fallback follow-up — in_review (2026-08-25).** The owner authorized closing
-the D-31 gap found by the first deploy. A top-level `404.html` disables Pages' implicit SPA
-fallback, so unlisted paths on both Mapdown hostnames return 404 while the three explicit app
-paths continue through middleware. Review evidence: the route/config test requires the 404 page,
+**Published-host fallback follow-up — accepted (2026-08-25).** The owner accepted commit
+`0b96513` after it was pushed. The change closes the D-31 gap found by the first deploy. A
+top-level `404.html` disables Pages' implicit SPA fallback, so unlisted paths on both Mapdown
+hostnames return 404 while the three explicit app paths continue through middleware. Review
+evidence: the route/config test requires the 404 page,
 the production build copies it unchanged to the output root, Mapdown browser and Functions
 typechecks/lint pass, and all 664 repository tests pass. `wrangler pages dev` remains blocked by
 the recorded esbuild `import-source` incompatibility, so the post-deploy probe must confirm

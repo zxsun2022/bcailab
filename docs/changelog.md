@@ -9,10 +9,11 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-08-25 — **in_review: unknown Mapdown paths now fail closed instead of exposing the editor
-  on the published host.** Pages treats a project with no top-level `404.html` as an SPA, so an
-  arbitrary request that was absent from `_routes.json` bypassed middleware and received the
-  editor shell on both hostnames. Mapdown now ships a static, no-script, noindex `404.html`;
+- 2026-08-25 — **accepted: unknown Mapdown paths now fail closed instead of exposing the editor
+  on the published host.** The owner accepted commit `0b96513` after it was pushed. Pages treats
+  a project with no top-level `404.html` as an SPA, so an arbitrary request that was absent from
+  `_routes.json` bypassed middleware and received the editor shell on both hostnames. Mapdown now
+  ships a static, no-script, noindex `404.html`;
   `/`, `/library`, `/import`, `/api/*` and `/p/*` keep their existing explicit routing, while
   everything else is handled as not found by the asset pipeline. This avoids routing every
   static asset through Functions and makes forgotten future app routes fail visibly on the

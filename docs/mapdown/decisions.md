@@ -889,10 +889,11 @@ Functions at all, an arbitrary path such as `/anything` is served off the asset 
 **both** hostnames — the middleware guard covers the three listed app paths, not the published
 host in general. That wider gap is recorded as open, not silently closed.
 
-**Resolution (2026-08-25, in review).** Add a top-level `public/404.html`. Pages only applies
-its implicit SPA fallback when that file is absent, so unknown paths now fail closed in the
-asset pipeline instead of receiving the editor shell. The three real app paths remain explicit
-in `_routes.json` and continue through middleware; `/api/*` and `/p/*` remain Function routes.
+**Resolution (2026-08-25, accepted by the owner).** Add a top-level `public/404.html`. Pages
+only applies its implicit SPA fallback when that file is absent, so unknown paths now fail
+closed in the asset pipeline instead of receiving the editor shell. The three real app paths
+remain explicit in `_routes.json` and continue through middleware; `/api/*` and `/p/*` remain
+Function routes.
 Routing `/*` through Functions was rejected for this finite route set because it would put every
 static request on the Functions path, while exclusions would create another bypass list to keep
 correct. A future app route must be added to the client router, `APP_PATHS`, and `_routes.json`.
