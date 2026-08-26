@@ -842,7 +842,7 @@ export function Editor() {
       await refreshDocumentLibrary();
       setCloudDocuments(await listCloudDocuments());
       setCloudLibraryState("ready");
-      setAnnouncement(`Saved ${cloud.title} online.`);
+      setAnnouncement(`Saved ${documentDisplayName(cloud.snapshot.document)} online.`);
       return cloud;
     } catch (error) {
       if (error instanceof CloudApiError && error.code === "conflict") {
@@ -893,7 +893,7 @@ export function Editor() {
     activateLocalDocument(document, cloud.snapshot.selectedNodeId, bundle.entry.updatedAt);
     await refreshDocumentLibrary();
     setCloudDocuments(await listCloudDocuments());
-    setAnnouncement(`Opened ${document.title} from online save.`);
+    setAnnouncement(`Opened ${documentDisplayName(document)} from online save.`);
     closeDocumentLibrary();
   }, [activateLocalDocument, closeDocumentLibrary, refreshDocumentLibrary, store]);
 
@@ -932,7 +932,7 @@ export function Editor() {
     });
     activateLocalDocument(copy, copy.rootId, bundle.entry.updatedAt);
     await refreshDocumentLibrary();
-    setAnnouncement(`Copied ${copy.title} into this browser. It is not saved online.`);
+    setAnnouncement(`Copied ${documentDisplayName(copy)} into this browser. It is not saved online.`);
   }, [activateLocalDocument, flushPendingLocalSave, refreshDocumentLibrary, store]);
 
   useEffect(() => {

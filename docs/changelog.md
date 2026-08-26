@@ -33,6 +33,29 @@ make the final transition; see `AGENTS.md`.
   recorded esbuild `import-source` incompatibility, so production still needs probes showing
   unknown paths return 404 on both hostnames.
 
+- 2026-08-26 — **fixed before push: the account list still named every map `Untitled`.** A review
+  of the change above caught that it stopped one surface short. The library row for a map that
+  exists only in an account — saved on another machine, not present locally — has no local
+  snapshot to read a root label from, so it shows whatever the server stored; and
+  `functions/api/documents/index.ts` and `[id].ts` filled that column from
+  `snapshot.document.title`, the hidden provenance field. Creating a map on one machine and
+  opening the library on another therefore still read `Untitled`. Both endpoints now derive the
+  column with the same `documentDisplayName` rule the client uses, imported from the same module
+  rather than reimplemented. Three announcements that still read `.title` — saved online, opened
+  from online save, copied from a published link — were missed for the same reason and now use
+  the display name too.
+
+  **The comment that hid it was an unverified assertion.** `rows.ts` claimed the server "stored
+  the name the client sent at save time, which is already the display name"; nobody had followed
+  the write path to check, and it was false. The comment now states what the server actually
+  does. Two tests were added: one asserting the rule, and one reading both endpoint sources to
+  assert they call it — the endpoints cannot be executed without a Worker runtime and a D1
+  binding, which is exactly why a green suite missed this. Reverting either endpoint turns the
+  second red. 686 repo-wide tests, typechecks, lint and the production build pass.
+
+  **Known limit:** a cloud row last written by an older client keeps its provenance title until
+  its owner saves that map again. No migration backfills the column.
+
 - 2026-08-26 — **in_review: the root label is a Mapdown map's name everywhere.** The library
   shipped and every row read `Untitled`, because `createDocument` sets `title: "Untitled"` and
   nothing but an explicit rename ever changed it while the visible root said something real.
