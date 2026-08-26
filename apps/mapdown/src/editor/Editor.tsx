@@ -62,6 +62,7 @@ import {
   linkLocalDocumentToCloud,
   listLocalDocuments,
   refreshLocalDocumentCloudMetadata,
+  normalizeDocumentTitle,
   renameLocalDocument,
   restoreLocalDocument,
   storeLocalDocument,
@@ -88,6 +89,7 @@ import { HelpCenter, type RuntimeCommand } from "./HelpCenter";
 import { LibraryPage } from "../library/LibraryPage";
 import type { CloudLibraryState, DocumentLibraryState } from "../library/cloud-state";
 import { navigate, useRoute } from "../routing";
+import { documentDisplayName, entryDisplayName } from "../storage/display-name";
 import { ImportPage } from "../library/ImportPage";
 import { documentFromPublishedView, parsePublishedView, toPublishedView } from "../viewer/published-view";
 import { documentWithDraft, takeEditingSession } from "./draft-persistence";
@@ -697,7 +699,7 @@ export function Editor() {
         outcome.snapshot.savedAt
       );
       if (outcome.kind === "restored-earlier") setNotice(recoveryMessage(outcome));
-      setAnnouncement(`Opened ${outcome.snapshot.document.title}.`);
+      setAnnouncement(`Opened ${documentDisplayName(outcome.snapshot.document)}.`);
       closeDocumentLibrary();
     },
     [activateLocalDocument, closeDocumentLibrary, flushPendingLocalSave, store]
@@ -705,32 +707,47 @@ export function Editor() {
 
   const newLocalDocument = useCallback(async () => {
     const bundle = await createAndActivateLocalDocument();
-    setAnnouncement(`Created ${bundle.entry.title}.`);
+    setAnnouncement(`Created ${entryDisplayName(bundle.entry)}.`);
     closeDocumentLibrary();
   }, [closeDocumentLibrary, createAndActivateLocalDocument]);
 
+  /**
+   * Rename a map by rewriting its root node, because the root label is the map's name (D-18).
+   *
+   * The two branches are the asymmetry the owner accepted on 2026-08-26. The open map goes
+   * through `dispatch`, so the rename lands in history and Undo reverses it — `spec/vision.md`
+   * §4.8 requires that of every structural action. A map that is not open has no history to
+   * write into, so it is edited in storage and covered by the library's in-tab undo instead.
+   */
   const renameStoredDocument = useCallback(
-    async (documentId: string, title: string) => {
-      const renamed = await renameLocalDocument(store, documentId, title);
+    async (documentId: string, name: string) => {
+      const label = normalizeDocumentTitle(name);
       if (documentId === historyRef.current.doc.id) {
-        skipNextAutosaveDocumentRef.current = documentId;
-        setHistory((state) => ({
-          ...state,
-          doc: { ...state.doc, title: renamed.entry.title }
-        }));
-        setSavedStatus(renamed.entry.updatedAt);
+        const renamed = dispatch(
+          historyRef.current,
+          { type: "RenameNode", nodeId: historyRef.current.doc.rootId, text: label },
+          { label: "Rename map" }
+        );
+        historyRef.current = renamed;
+        setHistory(renamed);
+        autosaveRef.current?.schedule(renamed.doc, renamed.selection);
+        // The library reads the index, and autosave is debounced; without the flush the row
+        // would still show the old name when the list refreshes a moment later.
+        await flushPendingLocalSave();
+      } else {
+        await renameLocalDocument(store, documentId, label);
       }
       await refreshDocumentLibrary();
-      setAnnouncement(`Renamed document to ${renamed.entry.title}.`);
+      setAnnouncement(`Renamed map to ${label}.`);
     },
-    [refreshDocumentLibrary, setSavedStatus, store]
+    [flushPendingLocalSave, refreshDocumentLibrary, store]
   );
 
   const duplicateStoredDocument = useCallback(
     async (documentId: string) => {
       const duplicate = await duplicateLocalDocument(store, documentId);
       await refreshDocumentLibrary();
-      setAnnouncement(`Created ${duplicate.entry.title}.`);
+      setAnnouncement(`Created ${entryDisplayName(duplicate.entry)}.`);
     },
     [refreshDocumentLibrary, store]
   );
@@ -766,7 +783,7 @@ export function Editor() {
 
       setDeletedDocuments((documents) => [...documents, deleted]);
       await refreshDocumentLibrary();
-      setAnnouncement(`Deleted ${deleted.entry.title}. Undo delete is available.`);
+      setAnnouncement(`Deleted ${entryDisplayName(deleted.entry)}. Undo delete is available.`);
     },
     [
       activateLocalDocument,
@@ -783,7 +800,7 @@ export function Editor() {
     await restoreLocalDocument(store, deleted);
     setDeletedDocuments((documents) => documents.slice(0, -1));
     await refreshDocumentLibrary();
-    setAnnouncement(`Restored ${deleted.entry.title}.`);
+    setAnnouncement(`Restored ${entryDisplayName(deleted.entry)}.`);
   }, [deletedDocuments, refreshDocumentLibrary, store]);
 
   const localSnapshotForCloud = useCallback(async (localDocumentId: string) => {
@@ -958,7 +975,8 @@ export function Editor() {
     const publication = await publishCloudDocument({
       id: cloud.id,
       baseVersion: cloud.version,
-      title: cloud.snapshot.document.title,
+      // The public page names the map the way every other surface does (D-18).
+      title: documentDisplayName(cloud.snapshot.document),
       markdown: exportMarkdown(cloud.snapshot.document),
       svg,
       png: png.dataUrl,
@@ -2137,7 +2155,7 @@ export function Editor() {
           role="status"
           className="editor-notice"
         >
-          <span>Deleted “{deletedDocuments.at(-1)!.entry.title}” from this browser.</span>
+          <span>Deleted “{entryDisplayName(deletedDocuments.at(-1)!.entry)}” from this browser.</span>
           <button
             type="button"
             onClick={() =>
@@ -2330,7 +2348,7 @@ export function Editor() {
           entries={libraryEntries}
           activeDocumentId={doc.id}
           unavailableMessage={libraryUnavailableMessage}
-          undoTitle={deletedDocuments.at(-1)?.entry.title ?? null}
+          undoTitle={deletedDocuments.at(-1) ? entryDisplayName(deletedDocuments.at(-1)!.entry) : null}
           cloudState={cloudLibraryState}
           cloudUser={cloudUser}
           cloudDocuments={cloudDocuments}

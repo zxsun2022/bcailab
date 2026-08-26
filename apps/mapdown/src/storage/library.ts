@@ -1,6 +1,8 @@
 import type { MindMapDocument, NodeId } from "../model/types";
+import { entryDisplayName, rootLabelOf } from "./display-name";
 import type { CloudDocumentSummary } from "../cloud/types";
 import {
+  checksumOf,
   makeSnapshot,
   type DocumentBundle,
   type DocumentIndexEntry,
@@ -66,6 +68,7 @@ export async function storeLocalDocument(
       createdAt: now,
       updatedAt: now,
       nodeCount: Object.keys(document.nodes).length,
+      rootLabel: rootLabelOf(document),
       lastSnapshotId: snapshot.id,
       ...(options.sourceFilename ? { sourceFilename: options.sourceFilename } : {}),
       ...(options.conflictedCopyOf ? { conflictedCopyOf: options.conflictedCopyOf } : {}),
@@ -77,23 +80,42 @@ export async function storeLocalDocument(
   return bundle;
 }
 
+/**
+ * Rename a map that is **not** open in the editor, by rewriting its root node.
+ *
+ * The root label is the map's name (D-18), so renaming has to change the root or it is a button
+ * with no visible effect. That makes rename a content edit rather than a metadata edit, and it
+ * is the asymmetry the owner accepted on 2026-08-26: the open map renames through the editor's
+ * history and is undoable per `spec/vision.md` §4.8, while a map that is not open has no history
+ * to write to and is covered by the library's in-tab undo instead.
+ *
+ * `title` is deliberately untouched. `spec/storage-export.md` §10.3 forbids forcing the root
+ * text to equal the filename/title, and `title` keeps its own job as import provenance.
+ */
 export async function renameLocalDocument(
   store: SnapshotStore,
   documentId: string,
-  requestedTitle: string,
+  requestedName: string,
   now = Date.now()
 ): Promise<DocumentBundle> {
-  const title = normalizeDocumentTitle(requestedTitle);
+  const name = normalizeDocumentTitle(requestedName);
   const current = await store.getDocumentBundle(documentId);
   if (!current || current.snapshots.length === 0) {
     throw new Error("This local document could not be found.");
   }
   const renamed: DocumentBundle = {
-    entry: { ...current.entry, title, updatedAt: now },
-    snapshots: current.snapshots.map((snapshot) => ({
-      ...snapshot,
-      document: { ...snapshot.document, title }
-    }))
+    entry: { ...current.entry, rootLabel: name, updatedAt: now },
+    snapshots: current.snapshots.map((snapshot) => {
+      const root = snapshot.document.nodes[snapshot.document.rootId];
+      if (!root) return snapshot;
+      const document = {
+        ...snapshot.document,
+        nodes: { ...snapshot.document.nodes, [root.id]: { ...root, text: name } }
+      };
+      // The checksum covers node text, so a renamed snapshot must be re-stamped or recovery
+      // reads it as a torn write (§5.3).
+      return { ...snapshot, document, checksum: checksumOf(document) };
+    })
   };
   if (renamed.entry.cloudDocumentId) delete renamed.entry.cloudSavedSnapshotId;
   await store.putDocumentBundle(renamed);
@@ -128,15 +150,21 @@ export async function duplicateLocalDocument(
   const sourceSnapshot =
     source.snapshots.find((snapshot) => snapshot.id === source.entry.lastSnapshotId) ??
     source.snapshots.at(-1)!;
-  const existingTitles = new Set(
-    (await store.listIndexEntries()).map((entry) => entry.title.toLocaleLowerCase())
+  // The copy suffix has to land on the **root label**, because that is the name the library
+  // shows (D-18). Suffixing `title` instead leaves two rows reading identically, which is what
+  // shipped the first time this was written against the old naming rule.
+  const existingNames = new Set(
+    (await store.listIndexEntries()).map((entry) => entryDisplayName(entry).toLocaleLowerCase())
   );
-  const title = copyTitle(source.entry.title, existingTitles);
+  const name = copyTitle(entryDisplayName(source.entry), existingNames);
   const id = options.documentId ?? generatedId("doc");
+  const cloned = structuredClone(sourceSnapshot.document);
+  const root = cloned.nodes[cloned.rootId];
   const document: MindMapDocument = {
-    ...structuredClone(sourceSnapshot.document),
+    ...cloned,
     id,
-    title,
+    // `title` is provenance and is inherited unchanged; §10.3 keeps it independent of the root.
+    nodes: root ? { ...cloned.nodes, [root.id]: { ...root, text: name } } : cloned.nodes,
     revision: 0
   };
   return storeLocalDocument(store, document, sourceSnapshot.selectedNodeId, {

@@ -12,7 +12,7 @@ import {
   restoreLocalDocument,
   storeLocalDocument
 } from "./library";
-import { makeSnapshot, MemoryStore } from "./store";
+import { checksumOf, makeSnapshot, MemoryStore } from "./store";
 
 beforeEach(() => resetIdCounterForTests());
 
@@ -53,12 +53,39 @@ describe("local document library", () => {
 
     const renamed = await renameLocalDocument(store, document.id, "  Research   notes  ", 400);
 
-    expect(renamed.entry).toMatchObject({ title: "Research notes", updatedAt: 400 });
-    expect(renamed.snapshots.map((snapshot) => snapshot.document.title)).toEqual([
-      "Research notes",
-      "Research notes"
-    ]);
+    // The root label is the map's name (D-18), so rename rewrites the root, not `title`.
+    expect(renamed.entry).toMatchObject({ rootLabel: "Research notes", updatedAt: 400 });
+    expect(renamed.snapshots.map((snapshot) => snapshot.document.nodes[document.rootId]!.text))
+      .toEqual(["Research notes", "Research notes"]);
     expect(await store.getDocumentBundle(document.id)).toEqual(renamed);
+  });
+
+  it("leaves `title` alone, because the spec forbids forcing it to equal the root", async () => {
+    const store = new MemoryStore();
+    const document = namedDocument("Original");
+    await storeLocalDocument(store, document, document.rootId, { now: 100, snapshotId: "first" });
+
+    const renamed = await renameLocalDocument(store, document.id, "Research notes", 400);
+
+    // `storage-export.md` §10.3: the root text is not automatically forced to equal the
+    // filename/title. `title` keeps its own job as import provenance.
+    expect(renamed.entry.title).toBe(document.title);
+    expect(renamed.snapshots.every((snapshot) => snapshot.document.title === document.title))
+      .toBe(true);
+  });
+
+  it("re-stamps the checksum, so a renamed snapshot is not read back as a torn write", async () => {
+    const store = new MemoryStore();
+    const document = namedDocument("Original");
+    await storeLocalDocument(store, document, document.rootId, { now: 100, snapshotId: "first" });
+
+    const renamed = await renameLocalDocument(store, document.id, "Research notes", 400);
+
+    // §5.3 — the checksum covers node text; leaving it stale would make recovery reject the
+    // very snapshot the rename just wrote.
+    for (const snapshot of renamed.snapshots) {
+      expect(snapshot.checksum).toBe(checksumOf(snapshot.document));
+    }
   });
 
   it("duplicates the current snapshot under a new document id and collision-free title", async () => {
@@ -86,14 +113,22 @@ describe("local document library", () => {
       snapshotId: "copy-2"
     });
 
+    // The copy suffix lands on the root label, because that is the name the library shows
+    // (D-18). Suffixing `title` alone would leave both rows reading identically.
     expect(first.entry).toMatchObject({
       id: "doc-copy-1",
-      title: "Plan copy",
+      rootLabel: "Plan copy",
       sourceFilename: "plan.md",
       nodeCount: 2
     });
-    expect(second.entry.title).toBe("Plan copy 2");
-    expect(first.snapshots[0]!.document.nodes).toEqual(document.nodes);
+    expect(second.entry.rootLabel).toBe("Plan copy 2");
+    expect(first.snapshots[0]!.document.nodes[document.rootId]!.text).toBe("Plan copy");
+
+    // `title` is provenance and is inherited unchanged (§10.3), and nothing but the root moves.
+    expect(first.entry.title).toBe(document.title);
+    const withoutRoot = (nodes: Record<string, unknown>) =>
+      Object.fromEntries(Object.entries(nodes).filter(([id]) => id !== document.rootId));
+    expect(withoutRoot(first.snapshots[0]!.document.nodes)).toEqual(withoutRoot(document.nodes));
     expect(first.snapshots[0]!.document.id).toBe("doc-copy-1");
   });
 
