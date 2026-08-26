@@ -1,5 +1,5 @@
 import type { MindMapDocument, NodeId } from "../model/types";
-import { entryDisplayName, rootLabelOf } from "./display-name";
+import { documentDisplayName, entryDisplayName, rootLabelOf } from "./display-name";
 import type { CloudDocumentSummary } from "../cloud/types";
 import {
   checksumOf,
@@ -120,6 +120,33 @@ export async function renameLocalDocument(
   if (renamed.entry.cloudDocumentId) delete renamed.entry.cloudSavedSnapshotId;
   await store.putDocumentBundle(renamed);
   return renamed;
+}
+
+/**
+ * A copy of `document` whose **root label** carries a distinguishing suffix.
+ *
+ * The suffix has to land on the root label because that is the name every surface shows
+ * (D-18). Writing it onto `title` leaves two rows reading identically, which is the defect
+ * `duplicateLocalDocument` below was already corrected for — same rule, other callers.
+ *
+ * The base is the current display name rather than the raw root text, so a map with a blank
+ * root is suffixed onto its `Untitled map` fallback instead of producing a name that is only
+ * the suffix. Truncation keeps the result inside the title bound the rename field enforces.
+ */
+export function withDistinguishingSuffix(
+  document: MindMapDocument,
+  suffix: string
+): MindMapDocument {
+  const base = [...documentDisplayName(document)]
+    .slice(0, DOCUMENT_TITLE_MAX_LENGTH - [...suffix].length)
+    .join("")
+    .trimEnd();
+  const root = document.nodes[document.rootId];
+  if (!root) return document;
+  return {
+    ...document,
+    nodes: { ...document.nodes, [root.id]: { ...root, text: `${base}${suffix}` } }
+  };
 }
 
 function copyTitle(title: string, existingTitles: Set<string>): string {

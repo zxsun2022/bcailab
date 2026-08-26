@@ -66,7 +66,8 @@ import {
   renameLocalDocument,
   restoreLocalDocument,
   storeLocalDocument,
-  unlinkLocalDocumentFromCloud
+  unlinkLocalDocumentFromCloud,
+  withDistinguishingSuffix
 } from "../storage/library";
 import {
   IDENTITY,
@@ -819,12 +820,6 @@ export function Editor() {
     return { entry: bundle.entry, snapshot, cloudSnapshot };
   }, [flushPendingLocalSave, store]);
 
-  const conflictCopyTitle = useCallback((title: string) => {
-    const suffix = " (conflicted copy)";
-    const base = [...title].slice(0, 120 - [...suffix].length).join("").trimEnd();
-    return `${base}${suffix}`;
-  }, []);
-
   const saveLocalDocumentOnline = useCallback(async (localDocumentId: string): Promise<CloudDocumentRecord> => {
     const local = await localSnapshotForCloud(localDocumentId);
     try {
@@ -848,12 +843,15 @@ export function Editor() {
       if (error instanceof CloudApiError && error.code === "conflict") {
         const currentCloud = conflictCloudSummary(error.details);
         if (!currentCloud || currentCloud.id !== local.entry.cloudDocumentId) throw error;
-        const conflictDocument = {
-          ...structuredClone(local.snapshot.document),
-          id: `doc-${crypto.randomUUID()}`,
-          title: conflictCopyTitle(local.snapshot.document.title),
-          revision: 0
-        };
+        // The suffix goes on the root label, because that is what the library row shows (D-18).
+        const conflictDocument = withDistinguishingSuffix(
+          {
+            ...structuredClone(local.snapshot.document),
+            id: `doc-${crypto.randomUUID()}`,
+            revision: 0
+          },
+          " (conflicted copy)"
+        );
         await storeLocalDocument(store, conflictDocument, local.snapshot.selectedNodeId, {
           conflictedCopyOf: localDocumentId
         });
@@ -862,12 +860,12 @@ export function Editor() {
         setCloudDocuments(await listCloudDocuments());
         setCloudLibraryState("ready");
         throw new Error(
-          `The online copy changed first. ${conflictDocument.title} was kept locally; nothing was overwritten. Save changes again only if you want this browser's version to replace the current online copy.`
+          `The online copy changed first. ${documentDisplayName(conflictDocument)} was kept locally; nothing was overwritten. Save changes again only if you want this browser's version to replace the current online copy.`
         );
       }
       throw error;
     }
-  }, [conflictCopyTitle, localSnapshotForCloud, refreshDocumentLibrary, store]);
+  }, [localSnapshotForCloud, refreshDocumentLibrary, store]);
 
   const openOnlineDocument = useCallback(async (cloudDocumentId: string) => {
     const cloud = await getCloudDocument(cloudDocumentId);
@@ -877,12 +875,12 @@ export function Editor() {
     let document = structuredClone(cloud.snapshot.document);
     const collision = await store.getIndexEntry(document.id);
     if (collision && collision.cloudDocumentId !== cloud.id) {
-      document = {
-        ...document,
-        id: `doc-${crypto.randomUUID()}`,
-        title: `${[...document.title].slice(0, 108).join("").trimEnd()} online copy`,
-        revision: 0
-      };
+      // Same rule as the conflicted copy above: without a badge to fall back on, the only
+      // thing separating this row from the local map it collided with is its visible name.
+      document = withDistinguishingSuffix(
+        { ...document, id: `doc-${crypto.randomUUID()}`, revision: 0 },
+        " online copy"
+      );
     }
     const bundle = await storeLocalDocument(
       store,

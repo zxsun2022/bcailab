@@ -10,15 +10,55 @@ import {
   refreshLocalDocumentCloudMetadata,
   renameLocalDocument,
   restoreLocalDocument,
-  storeLocalDocument
+  storeLocalDocument,
+  withDistinguishingSuffix
 } from "./library";
 import { checksumOf, makeSnapshot, MemoryStore } from "./store";
+import { documentDisplayName, UNNAMED_MAP } from "./display-name";
 
 beforeEach(() => resetIdCounterForTests());
 
 function namedDocument(title: string) {
   return { ...createDocument(title), title };
 }
+
+describe("withDistinguishingSuffix", () => {
+  it("suffixes the root label, not the provenance title", () => {
+    const document = { ...createDocument("Quarterly plan"), title: "plan.md" };
+
+    const copy = withDistinguishingSuffix(document, " (conflicted copy)");
+
+    expect(documentDisplayName(copy)).toBe("Quarterly plan (conflicted copy)");
+    // `title` is provenance and stays independent of the visible name (storage-export §10.3).
+    expect(copy.title).toBe("plan.md");
+    expect(documentDisplayName(document)).toBe("Quarterly plan");
+  });
+
+  it("follows the display-name fallback chain when the root is blank", () => {
+    const fromTitle = withDistinguishingSuffix(
+      { ...createDocument(""), title: "notes.md" },
+      " online copy"
+    );
+    const fromPlaceholder = withDistinguishingSuffix(
+      { ...createDocument(""), title: "" },
+      " online copy"
+    );
+
+    // A blank root falls through to `title`, and then to the placeholder — so neither case
+    // produces a map whose whole name is the suffix.
+    expect(documentDisplayName(fromTitle)).toBe("notes.md online copy");
+    expect(documentDisplayName(fromPlaceholder)).toBe(`${UNNAMED_MAP} online copy`);
+  });
+
+  it("keeps the suffixed name inside the title length bound", () => {
+    const document = createDocument("x".repeat(200));
+
+    const copy = withDistinguishingSuffix(document, " (conflicted copy)");
+
+    expect([...documentDisplayName(copy)].length).toBe(120);
+    expect(documentDisplayName(copy).endsWith(" (conflicted copy)")).toBe(true);
+  });
+});
 
 describe("local document library", () => {
   it("lists every indexed document newest first with deterministic tie-breaking", async () => {

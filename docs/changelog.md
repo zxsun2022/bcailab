@@ -9,6 +9,31 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-26 — **in_review: the two remaining copy suffixes now land on the visible name.**
+  A review pass found the same defect `duplicateLocalDocument` was already corrected for in two
+  more places, both in `Editor.tsx`. A save conflict wrote `X (conflicted copy)` onto `title`,
+  and opening an online document whose id collided with a local one wrote `X online copy` there
+  too — but `title` is provenance and no surface renders it, so both copies appeared in the
+  library under the source map's root label. The conflicted copy at least kept its
+  *Conflicted copy* badge; the online copy had nothing at all, and read as an exact duplicate of
+  the local row it had just collided with. Both now use one shared
+  `withDistinguishingSuffix`, which appends to the display name and writes the result to the
+  root label, leaving `title` untouched per `spec/storage-export.md` §10.3. Blank roots keep the
+  existing fallback chain, so a nameless map is suffixed onto `Untitled map` rather than being
+  named by its suffix alone, and the result stays inside the 120-character title bound the
+  rename field enforces. Frequency is low — only a lost save race or an id collision reaches
+  either path.
+
+  Not changed: repeated conflicts on one map still produce identically named copies. The
+  numbering `duplicateLocalDocument` does exists because duplicating is a deliberate repeated
+  action; a second conflict is distinguished by its badge and timestamp, and adding a
+  store-wide uniqueness read on the conflict path was not worth it without evidence.
+
+  Evidence: three unit tests over the shared helper (suffix on the root label with `title`
+  untouched and the source document unmutated; the blank-root fallback chain through `title` to
+  the placeholder; the length bound). 689 tests, both typechecks, lint (0 errors) and both
+  production builds pass.
+
 - 2026-08-26 — **in_review: three Writing session/prompt surface corrections (owner-raised).**
   (a) The session breadcrumb printed the same words twice — `Writing / Everyday writing /
   Ask about a lost item / Ask about a lost item` — because a prompt-backed session keeps its
