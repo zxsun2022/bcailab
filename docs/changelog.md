@@ -9,7 +9,18 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-08-26 — **in_review: the two remaining copy suffixes now land on the visible name.**
+- 2026-08-26 — **accepted: owner sweep of the five outstanding `in_review` items.** The owner
+  accepted every remaining `in_review` entry after merging them into `main`: Mapdown
+  canvas-first chrome; the root label as a map's name everywhere; the Windows one-line label
+  height follow-up (also flipped in `docs/roadmap.md`, where it was recorded against the
+  Mapdown library/viewer item); the two remaining copy suffixes on the visible name; and the
+  three Writing session/prompt surface corrections. The five entries below are now `accepted`
+  to match. Two things stay explicitly open rather than being closed by this sweep: repeated
+  save conflicts on one Mapdown map still produce identically named copies, and the
+  Writing feedback panel still has no way to switch rounds while collapsed — both recorded in
+  their own entries.
+
+- 2026-08-26 — **accepted: the two remaining copy suffixes now land on the visible name.**
   A review pass found the same defect `duplicateLocalDocument` was already corrected for in two
   more places, both in `Editor.tsx`. A save conflict wrote `X (conflicted copy)` onto `title`,
   and opening an online document whose id collided with a local one wrote `X online copy` there
@@ -34,7 +45,7 @@ make the final transition; see `AGENTS.md`.
   the placeholder; the length bound). 689 tests, both typechecks, lint (0 errors) and both
   production builds pass.
 
-- 2026-08-26 — **in_review: three Writing session/prompt surface corrections (owner-raised).**
+- 2026-08-26 — **accepted: three Writing session/prompt surface corrections (owner-raised).**
   (a) The session breadcrumb printed the same words twice — `Writing / Everyday writing /
   Ask about a lost item / Ask about a lost item` — because a prompt-backed session keeps its
   assignment's title until the learner renames it, and the trail appended both. The trail now
@@ -50,7 +61,9 @@ make the final transition; see `AGENTS.md`.
   control that brings it back — plus New Revision, which the strip used to carry — moved to the
   top-right of the content header with `aria-expanded`/`aria-controls`, matching where a panel
   toggle is normally found. The toggle is desktop-only, since below 1024px feedback renders
-  inline and there is no panel to toggle.
+  inline and there is no panel to toggle. Carried forward, not closed: a collapsed panel
+  still offers no way to switch rounds — it never did, since the old strip carried only `+` —
+  so the round pills remain reachable only while the panel is open.
 
   Evidence: local D1 fixtures for two prompt-backed sessions on one published prompt. Verified
   at 1280px that the breadcrumb drops the duplicate leaf and keeps a renamed one; that the
@@ -61,7 +74,7 @@ make the final transition; see `AGENTS.md`.
   order. 686 tests, typecheck, lint (0 errors) and the production build pass. The fixtures and
   the temporary local sign-in credential were removed from the local database afterwards.
 
-- 2026-08-25 — **in_review: Mapdown node editing keeps one-line labels one line on Windows.**
+- 2026-08-25 — **accepted: Mapdown node editing keeps one-line labels one line on Windows.**
   The node layout already grows from the live draft, but its overlaid native `textarea` left
   `overflow` at the browser default. Classic Windows scrollbars consume content width while
   macOS overlay scrollbars do not; because the field matches the measured node box exactly,
@@ -108,7 +121,7 @@ make the final transition; see `AGENTS.md`.
   **Known limit:** a cloud row last written by an older client keeps its provenance title until
   its owner saves that map again. No migration backfills the column.
 
-- 2026-08-26 — **in_review: the root label is a Mapdown map's name everywhere.** The library
+- 2026-08-26 — **accepted: the root label is a Mapdown map's name everywhere.** The library
   shipped and every row read `Untitled`, because `createDocument` sets `title: "Untitled"` and
   nothing but an explicit rename ever changed it while the visible root said something real.
   This finishes a decision already made: **D-18** settled the same question for download
@@ -133,7 +146,7 @@ make the final transition; see `AGENTS.md`.
   semantics are untouched; and an existing publication keeps its old public title until its owner
   runs *Update published version*, which is D-29's freeze semantics working rather than a bug.
 
-- 2026-08-26 — **in_review: Mapdown canvas-first chrome.** The editor read as a web page with a
+- 2026-08-26 — **accepted: Mapdown canvas-first chrome.** The editor read as a web page with a
   toolbar above a canvas band — `.editor-shell` was a four-row grid and the map lived in row
   three. The map now fills the viewport and the toolbar, any notice, the status line, the
   authoring hint and the existing zoom capsule float on it, reserving no layout space. `fitMap`
