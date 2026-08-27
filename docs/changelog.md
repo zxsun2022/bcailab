@@ -32,7 +32,7 @@ make the final transition; see `AGENTS.md`.
   item records its own caveat — this is supply-side work against unmeasured demand, so later
   usage evidence should redirect the *next* batch rather than this one.
 
-- 2026-08-27 — **in_review: the homepage leads with English Studio.** Owner decision, stated
+- 2026-08-27 — **accepted: the homepage leads with English Studio.** Owner decision, stated
   the same day: English Studio is the flagship and has no domain of its own, so `bcailab.com`
   is where a visitor meets the product — the position ChatGPT holds on its maker's site.
   Mapdown is a side project, Posts is internal, and VanMemo already has its own domain, so all
