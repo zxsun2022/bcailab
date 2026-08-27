@@ -9,6 +9,29 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-27 — **accepted: IELTS is a material family, not a second product.** Recorded as
+  [ADR 0009](decisions/0009-ielts-is-a-material-family-not-a-second-product.md). English Studio
+  already carried 12 IELTS Academic Task 1 prompts with reviewed assets, 12 Task 2 prompts, and
+  a Task 1-specific evaluation contract, which made the identity question unavoidable: is IELTS
+  a family inside a general practice product, or is it the product? The exam-first case is real
+  — high intent, an explicit success metric, a deadline, and a population that already pays —
+  and the record states it rather than dismissing it. It was rejected on sequencing: going
+  exam-first would replace CEFR discovery with band-score prediction, need timed four-skill
+  material this repository has no schema for, and move the product into a crowded field, all
+  against imagined demand from a product with effectively no learners yet. The alternative
+  explicitly rejected as *worst* is leaving it undecided — an undecided middle produces two
+  half-committed information architectures and copy that cannot say what the product is for.
+  IELTS-ness stays in prompt metadata (`family`, `taskType`, the Task 1 evaluation contract);
+  no IELTS route, navigation entry, or profile field. IELTS Listening and Reading stay out of
+  scope as material shapes. The trigger to reopen is demand the family cannot serve.
+
+  In the same decision the owner authorized **"Now — Material library expansion"** in
+  `docs/roadmap.md`: graded passages 40 → 80 and IELTS writing prompts 24 → 48, as a
+  content-and-review push with no schema, taxonomy, evaluator, or navigation change. The counts
+  are marked in that item as awaiting the owner's confirmation before generation starts, and the
+  item records its own caveat — this is supply-side work against unmeasured demand, so later
+  usage evidence should redirect the *next* batch rather than this one.
+
 - 2026-08-27 — **in_review: the homepage leads with English Studio.** Owner decision, stated
   the same day: English Studio is the flagship and has no domain of its own, so `bcailab.com`
   is where a visitor meets the product — the position ChatGPT holds on its maker's site.

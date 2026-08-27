@@ -20,6 +20,7 @@ shipped (`docs/changelog.md`).
 | [0006](0006-learner-surface-invariants.md) | Two learner-surface invariants | Accepted | 2026-07-28 |
 | [0007](0007-no-cross-tool-practice-session-entity.md) | No cross-tool practice session entity; each tool keeps its native model | Accepted | 2026-08-12 |
 | [0008](0008-schema-migrations-precede-deploys.md) | Schema migrations precede deploys, and D1 commands are version- and target-explicit | Accepted | 2026-08-18 |
+| [0009](0009-ielts-is-a-material-family-not-a-second-product.md) | IELTS is a material family, not a second product | Accepted | 2026-08-27 |
 
 **Mapdown's decisions live in `docs/mapdown/decisions.md`**, not here. That log predates this
 directory, is self-contained, and covers one product end to end; duplicating it would create

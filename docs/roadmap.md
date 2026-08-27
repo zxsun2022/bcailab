@@ -811,6 +811,67 @@ the next time they are written. Whether the library should become Mapdown's land
 separate question the owner deferred until names are real.
 
 
+## Now — Material library expansion
+
+The owner authorized this on 2026-08-27, together with
+[ADR 0009](decisions/0009-ielts-is-a-material-family-not-a-second-product.md), which settles
+that IELTS is a family of material rather than a second product. This is a **content-and-review
+push, not engineering**: the pipelines already exist and are unchanged by this item
+(`scripts/material-seed/` for passages, `scripts/writing-prompt-seed/` for prompts).
+
+**The numbers below are the proposal and need the owner's confirmation before generation
+starts.** Everything else in this item is settled.
+
+### Scope
+
+- **Graded passages: 40 → 80** (from ten per band to twenty, across A2/B1/B2/C1). One passage
+  continues to serve both dictation and reading-aloud. Every newly published passage gets its
+  per-sentence audio *and* its whole-passage reference recording in the same pass, so TTS is
+  paid once.
+- **IELTS writing prompts: 24 → 48** (from twelve to twenty-four each for Academic Task 1 and
+  Task 2). Task 1 additions need reviewed chart/table/process/map assets on the same terms as
+  the first batch.
+- **General writing prompts: unchanged at 24.** Writing thinness is not the current complaint;
+  passage thinness is.
+
+### Explicitly out of scope
+
+- **IELTS Listening and IELTS Reading material.** ADR 0009 keeps them out: they need
+  question-type schemas and timed-section semantics that do not exist, which is product work
+  with its own authorization, not a content push.
+- **Reading's topic/state filters.** The stated trigger was "a band passes roughly thirty";
+  twenty per band still browses fine, so this stays deferred rather than being folded in.
+- **Backfilling reference audio** for the twenty passages published before reference recordings
+  existed. Optional, costs a fresh TTS pass, and is not blocking anything.
+- Any schema, taxonomy, evaluator, or navigation change.
+
+### Acceptance criteria
+
+- Every new passage passes `intake.ts` with zero errors — sentence count, per-sentence length,
+  title shape, duplicate titles, and the digits rule — before any review time is spent on it.
+- Generation follows the recorded review policy: a capable model generates, a second independent
+  LLM pass checks each item against the constraints and flags doubt, and the owner reviews the
+  flagged set plus an agreed sample. Register stays distinct per band (one sub-agent per band).
+- New writing prompts pass deterministic validation and are published with a batch manifest and
+  hash, exactly as batch `38d84de9` was. **Publication requires owner approval of the manifest**;
+  an agent never publishes a batch on its own.
+- Publication is idempotent and additive: republishing changes nothing, and no existing passage,
+  prompt, learner attempt, or stored assignment snapshot is rewritten.
+- `tag.ts` is re-run across the whole library afterwards, since it replaces tags wholesale and
+  is the intended path rather than a migration.
+- Local D1 checks confirm the new counts per band and per task family, and that Reading,
+  Dictation and Writing catalogues page correctly at the larger size with no unbounded query.
+
+### The honest caveat, recorded deliberately
+
+Expansion here is **supply-side work against unmeasured demand**. The library is thin, but no
+learner has yet exhausted a band, because there are effectively no learners. Twenty per band is
+chosen to remove the most visible thinness, not because a measurement asked for it — the
+demand-driven alternative (expand what the practice engine asks for and cannot find) needs a
+practice engine that does not exist yet. If usage later shows learners concentrating in one
+band or one family, that evidence should redirect the *next* batch rather than this one.
+
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:
@@ -908,8 +969,10 @@ separate question the owner deferred until names are real.
 - ~~Profile settings (avatar + nickname) for email-OTP users~~ — promoted to
   "Now — Account passwords and profile" (authorized 2026-08-18), which delivers profile
   editing plus optional passwords.
-- **Library expansion — first batch shipped 2026-07-28 (20 → 40 passages, ten per band); keep
-  going.** The IA v2 design assumes material eventually grows ~100× (roughly 500 per band),
+- ~~**Library expansion — keep going.**~~ — promoted to "Now — Material library expansion"
+  (authorized 2026-08-27), which carries the scope and acceptance criteria. The reasoning below
+  is kept because it is the reasoning that item inherits. First batch shipped 2026-07-28
+  (20 → 40 passages, ten per band). The IA v2 design assumes material eventually grows ~100× (roughly 500 per band),
   because at five per band a motivated learner exhausted their level in two sittings and the
   Coach Home made that thinness visible. Ten per band buys room, not resolution. Expansion is
   mostly a content-and-review push rather than engineering: generate per band (parallel
