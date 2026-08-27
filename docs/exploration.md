@@ -86,8 +86,61 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   defensible thing bcailab could build. That loop's input is the Dictionary/lookup surface,
   which does not exist. Such a surface would also be the only entry point that produces learning
   objects in volume **without** first requiring a 100× material expansion.
-  Suggested order if this is ever promoted, each step independently useful: (a) close the two
-  measurement gaps already in Next, so the profile covers what the learner actually does;
-  (b) decide whether a lookup/encounter entry point becomes the learning-object source;
-  (c) only then a bounded Today over the existing seam. Today is the *result* of those, not a
-  substitute for them. Nothing here has acceptance criteria; promotion is the owner's call.
+  Suggested order if this is ever promoted, each step independently useful: (a) an enrolment
+  unit, which needs no measurement at all — see the entry below, added later and ordered
+  *before* this list rather than inside it; (b) close the two measurement gaps already in Next,
+  so the profile covers what the learner actually does; (c) decide whether a lookup/encounter
+  entry point becomes the learning-object source; (d) only then a bounded Today over the
+  existing seam. Today is the *result* of those, not a substitute for them. Nothing here has
+  acceptance criteria; promotion is the owner's call.
+
+- **An enrolment unit — a collection you can *start*, not only browse** (owner-raised
+  2026-08-27 after reading wondering.app's explore and course surfaces; *proposal only, not
+  authorized*). This is a **correction to the ordering in the entry above**: that entry folded
+  everything into "Today" and made it wait on the two measurement gaps. An enrolment unit is a
+  smaller, separate thing, and it waits on nothing — the learner model does not have to be
+  accurate for it to work.
+
+  What the observed product actually does, with the visuals stripped off: everything hangs from
+  *"I chose this course."* The progress fraction (`0/5 lessons`), the status (`Not started`),
+  what comes next, the review queue, and a structural map of the whole thing all have a home
+  because that container exists. English Studio has no such container. `/writing` is a
+  catalogue, `/reading` is a catalogue grouped by band, and the learner picks one item at a
+  time forever — so progress can only be a global counter, "next" can only be computed fresh by
+  the recommender, and repetition has nowhere to live. bcailab already has the raw grouping:
+  Writing's General / Task 1 / Task 2 collections and Reading's four band groups. Today they can
+  only be *browsed*. Letting one be *started* is the smallest version of this idea.
+
+  **Sequential unlock is a separate question, and mostly a "no" here.** It does not conflict
+  with ADR 0006 — that forbids gating *material discovery* by measured band, whereas the
+  observed lock is an ordering constraint *inside a collection the learner already chose*, and
+  says "in order", not "not good enough". The real blocker is material, not policy: that
+  product **generates** its courses, so the lesson order is authored; bcailab's ten passages per
+  band (roadmap figure; the local dev database still holds the pre-expansion five) have no
+  dependency order at all. Ordering them would mean inventing a teaching sequence the material
+  does not contain. So "a collection can be started" is available now; "a collection unlocks in
+  order" needs a reason first.
+
+  **One cheap adjacency worth remembering:** the observed course map is a root → sections →
+  lessons mind map with a status panel beside it. Mapdown already renders exactly that shape,
+  with themes, export and publishing. If a collection ever wants a structural view, that is the
+  only capability in this repository that is already built and has never been used by English
+  Studio. Not a reason to do it now — a reason it would be cheap later.
+
+  **Three things deliberately not to borrow.**
+  1. *The streak/XP/freeze/friend-streak layer.* Retention machinery presupposes an existing
+     daily habit and a social graph. With no users it is stage scenery, and worse, it looks like
+     product progress while being none.
+  2. *A user-generated course library.* That product answers thin material by letting anyone
+     generate — 99 courses in one category, whole courses credited to individual accounts. It is
+     the direct opposite of this repository's material model, where 48 prompts went through
+     deterministic validation, content review, owner approval and a recorded batch hash. Copying
+     the browse surface quietly assumes a supply strategy that does not exist here; decide the
+     supply question before the grid.
+  3. *Lesson-length personalisation (3 / 5 / 10 minutes).* That is a generation-budget dial.
+     bcailab's material is a fixed asset and has no such dial. The **learning goal** and
+     **current background** fields in the same dialog are the part worth noting: they are the
+     *declared* half of a learner profile, and this repository currently has only the *observed*
+     half.
+
+  Nothing here has acceptance criteria. Promotion is the owner's call.
