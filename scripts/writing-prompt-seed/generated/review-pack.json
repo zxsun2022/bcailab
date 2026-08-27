@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "batchHash": "38d84de9ab133f3308d3ac95ec24a06c243ef60f58b6bcfc9a08244836864078",
+  "batchHash": "034b84f4802a53c9de3b2f5ec389ddf8e463ba0ce453100bbf4bdc92ee449aea",
   "generatedAt": "deterministic-from-content",
   "counts": {
-    "total": 48,
+    "total": 72,
     "general": 24,
-    "ieltsTask1": 12,
-    "ieltsTask2": 12
+    "ieltsTask1": 24,
+    "ieltsTask2": 24
   },
   "prompts": [
     {
@@ -390,6 +390,198 @@
       "slug": "ielts-task2-cashless-society",
       "title": "Living without cash",
       "contentHash": "3845b700e2ea234359a4c2201f1d9e239f1928f4c834ac87a39e3df996885a3b",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_telephone_use",
+      "slug": "ielts-task1-telephone-use",
+      "title": "Fixed and mobile telephone use",
+      "contentHash": "fa28f4fe82759c9be44a6dda2569eed12b7ec0ea3bb3419f198f242359f12395",
+      "assetDigest": "ede6fe78883fef16641f5345cc759bf6fa1dc9fea72c43f8c560ab4d6ab2e144",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_recycling_rates",
+      "slug": "ielts-task1-recycling-rates",
+      "title": "Recycling rates in three regions",
+      "contentHash": "e11d6c74281d68c71e68cc54412c5a72580e2330a63aedc53cf89e3bded1e5c3",
+      "assetDigest": "99939b44aca324c646dccfa6f1289fcfeb443a5f599ba6d91089c37a842c97cd",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_supermarket_reasons",
+      "slug": "ielts-task1-supermarket-reasons",
+      "title": "Why shoppers choose a supermarket",
+      "contentHash": "9c974fca4e1d6fa50c620a157cdb403c5ab6d76ba519f2c47ad723eaac78846a",
+      "assetDigest": "dd29945800eafb8f91ecec8c009bc4142c85302f1db4a02881ea7b5b55da00f1",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_graduate_fields",
+      "slug": "ielts-task1-graduate-fields",
+      "title": "Graduate employment by field",
+      "contentHash": "ef130c61e255a827cd508807ecfaf0ee2e2715a4e804801d5080a2651275ac81",
+      "assetDigest": "9fb135000ea9a3151de72350cf43b4074699cd730db25ca07875f17651382704",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_waste_destinations",
+      "slug": "ielts-task1-waste-destinations",
+      "title": "Where household waste goes",
+      "contentHash": "c2b7e8e28bfb35ac980c60eeb04dd8dfcc7f65c6ca2c73a7cc6adcc6b237ae61",
+      "assetDigest": "55f4bc1db325733a9f498c1f08a72149602b721ff7b2b1670400046cdb8408b8",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_public_spending",
+      "slug": "ielts-task1-public-spending",
+      "title": "How public money is divided",
+      "contentHash": "8d2a711e190b3bcef6b8093f9b49d154d9c71e61163b6f2d1b29d3998a19c3c5",
+      "assetDigest": "0657f55855af44a8fe3e48e6f54bb8110668e9f47ee3e42e6fc4b5bf4d56d17c",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_water_use",
+      "slug": "ielts-task1-water-use",
+      "title": "Water use in four countries",
+      "contentHash": "d72947261095f62f20b5ac978dc339cd3770b4525498bdf3ec14780eff7d4171",
+      "assetDigest": "9968c40088663b80445153f69b89c53747b439ad191f465fc962f2690989b28c",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_working_hours",
+      "slug": "ielts-task1-working-hours",
+      "title": "Working hours and leave",
+      "contentHash": "ffdf7afafd234acf67a24354352e7e3803a3df531fabd5346d699de0a0ab717b",
+      "assetDigest": "6cdea7c4b4e579c023578766645ada151ca67e856c0571bc4e22a227b1f42ae6",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_wool_to_fabric",
+      "slug": "ielts-task1-wool-to-fabric",
+      "title": "From wool to fabric",
+      "contentHash": "cb2e27d8cc84337a02b5f3667cfa945ad7f16585446bd5e297ebb150d8007212",
+      "assetDigest": "f29a7aad05ab6ecfd10b0169b7907184b1b436ed2831a3f4930dff6d16544dfa",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_medicine_approval",
+      "slug": "ielts-task1-medicine-approval",
+      "title": "How a medicine is approved",
+      "contentHash": "c32cc27d7d44701180e606ecd8ebbfb10df1a78942c610eeb786a8756c3cd507",
+      "assetDigest": "c3143f09de2e65990ada4bdfaeffee73b6daf77a2352922f62d5136fafb2ff4d",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_school_campus",
+      "slug": "ielts-task1-school-campus",
+      "title": "A school campus expanded",
+      "contentHash": "799643e939121b2f9891b25aa6c713381425ec6c6783ac6aedf80ad6c1eafb44",
+      "assetDigest": "0921a4ddec81d5365039e2da368d0385366db070eb1421db67f5ab1dede39f87",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t1_village_bypass",
+      "slug": "ielts-task1-village-bypass",
+      "title": "A village and its bypass",
+      "contentHash": "ac8fb2568485ac8332b5262488aeafaaf3bdcc2aac14b7d45f594567aa0aa2a8",
+      "assetDigest": "82dc42c935cc457d621f4f9c11f3641fba262b257cd952317a455913846eb5df",
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_advertising_children",
+      "slug": "ielts-task2-advertising-children",
+      "title": "Advertising aimed at children",
+      "contentHash": "065d53454b582918c64aa3dad7b39757bca1dbf003147a75a3b7095492c5d79b",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_taxing_unhealthy_food",
+      "slug": "ielts-task2-taxing-unhealthy-food",
+      "title": "Taxing unhealthy food",
+      "contentHash": "3a47389199b10cabc643948a6474d7cb9e8cc7fe0010a45d165b04a3263c89d3",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_free_museums",
+      "slug": "ielts-task2-free-museums",
+      "title": "Free entry to museums",
+      "contentHash": "e886882bf2ad94c2752557a6b10f7b5b9c3ee6bc4e2eaba32ea9b333f43265f8",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_programming_at_school",
+      "slug": "ielts-task2-programming-at-school",
+      "title": "Programming in primary school",
+      "contentHash": "616b5073c7b14dde58b1986c9f64a83602336daec85de57bcea79f4a866f27a6",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_growth_and_environment",
+      "slug": "ielts-task2-growth-and-environment",
+      "title": "Growth and the environment",
+      "contentHash": "fcb51fe31e51c1a5691437e433efc65f40c80579a92ef61cbe5359ce9309cfc5",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_paying_for_news",
+      "slug": "ielts-task2-paying-for-news",
+      "title": "Paying for the news",
+      "contentHash": "d9e54875e7e78976a8567005a0343121412e235321eacf0fa9440adf7b1bca84",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_financial_skills",
+      "slug": "ielts-task2-financial-skills",
+      "title": "Leaving school without money skills",
+      "contentHash": "96282d9c78e2e755b13759ea0b902a2c5cf24a86c638f60ef358fefa92671ec6",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_first_time_buyers",
+      "slug": "ielts-task2-first-time-buyers",
+      "title": "Young people priced out of housing",
+      "contentHash": "61d0253efce1b2b9c20bf9577209dbaf2ebf51fb4c760de80984199d7eda183b",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_traffic_congestion",
+      "slug": "ielts-task2-traffic-congestion",
+      "title": "Congestion in growing cities",
+      "contentHash": "6a697c7d17c3c676150328a09a759d31bc7e156aa71c373ec819211337b719c2",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_studying_abroad",
+      "slug": "ielts-task2-studying-abroad",
+      "title": "Studying in another country",
+      "contentHash": "b9a12eb8c2e0f4c2014a59d535187d67213be90fe56bbb62df20cfe50d4eef56",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_very_large_cities",
+      "slug": "ielts-task2-very-large-cities",
+      "title": "Living in a very large city",
+      "contentHash": "2ed837a5d92ddbaac6e95105aba5563ede43970c1e81acc893ce6b35a3c6e5c3",
+      "assetDigest": null,
+      "automatedValidation": "passed"
+    },
+    {
+      "id": "wp_ielts_t2_imported_food",
+      "slug": "ielts-task2-imported-food",
+      "title": "Food from around the world",
+      "contentHash": "301629e9b064e3e822027fb192a59636c279ee008ca3e78d354e573cf847ba2b",
       "assetDigest": null,
       "automatedValidation": "passed"
     }

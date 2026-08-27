@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title">
+<title id="title">Graduates employed within six months</title>
+<rect width="960" height="640" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Graduates employed within six months</text>
+<rect x="50" y="82" width="15" height="15" rx="3" fill="#2457D6"/><text x="73" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2015</text>
+<rect x="310" y="82" width="15" height="15" rx="3" fill="#D9663D"/><text x="333" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2023</text>
+<text x="90" y="157" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of graduates</text>
+<line x1="90" y1="515" x2="880" y2="515" stroke="#D9DDE3"/><text x="78" y="520" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">0</text>
+<line x1="90" y1="447" x2="880" y2="447" stroke="#D9DDE3"/><text x="78" y="452" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">18</text>
+<line x1="90" y1="379" x2="880" y2="379" stroke="#D9DDE3"/><text x="78" y="384" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">36</text>
+<line x1="90" y1="311" x2="880" y2="311" stroke="#D9DDE3"/><text x="78" y="316" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">55</text>
+<line x1="90" y1="243" x2="880" y2="243" stroke="#D9DDE3"/><text x="78" y="248" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">73</text>
+<line x1="90" y1="175" x2="880" y2="175" stroke="#D9DDE3"/><text x="78" y="180" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">91</text>
+<line x1="90" y1="515" x2="880" y2="515" stroke="#596577" stroke-width="2"/>
+<text x="169" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Health</text>
+<rect x="109.75" y="186.20879120879118" width="43" height="328.7912087912088" rx="4" fill="#2457D6"/><text x="131.25" y="180.20879120879118" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">88</text>
+<rect x="157.75" y="175" width="43" height="340" rx="4" fill="#D9663D"/><text x="179.25" y="169" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">91</text>
+<text x="327" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Engineering</text>
+<rect x="267.75" y="219.83516483516485" width="43" height="295.16483516483515" rx="4" fill="#2457D6"/><text x="289.25" y="213.83516483516485" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">79</text>
+<rect x="315.75" y="208.6263736263736" width="43" height="306.3736263736264" rx="4" fill="#D9663D"/><text x="337.25" y="202.6263736263736" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">82</text>
+<text x="485" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Business</text>
+<rect x="425.75" y="238.5164835164835" width="43" height="276.4835164835165" rx="4" fill="#2457D6"/><text x="447.25" y="232.5164835164835" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">74</text>
+<rect x="473.75" y="245.98901098901098" width="43" height="269.010989010989" rx="4" fill="#D9663D"/><text x="495.25" y="239.98901098901098" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">72</text>
+<text x="643" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Computing</text>
+<rect x="583.75" y="249.72527472527474" width="43" height="265.27472527472526" rx="4" fill="#2457D6"/><text x="605.25" y="243.72527472527474" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">71</text>
+<rect x="631.75" y="197.41758241758242" width="43" height="317.5824175824176" rx="4" fill="#D9663D"/><text x="653.25" y="191.41758241758242" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">85</text>
+<text x="801" y="543" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="13">Humanities</text>
+<rect x="741.75" y="298.2967032967033" width="43" height="216.7032967032967" rx="4" fill="#2457D6"/><text x="763.25" y="292.2967032967033" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">58</text>
+<rect x="789.75" y="313.24175824175825" width="43" height="201.75824175824175" rx="4" fill="#D9663D"/><text x="811.25" y="307.24175824175825" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="12">54</text>
+</svg>

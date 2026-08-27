@@ -1546,5 +1546,1034 @@
     "assetDigest": null,
     "accessibleDescription": null,
     "contentHash": "3845b700e2ea234359a4c2201f1d9e239f1928f4c834ac87a39e3df996885a3b"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_telephone_use",
+    "slug": "ielts-task1-telephone-use",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "line_graph",
+    "cefrBand": null,
+    "title": "Fixed and mobile telephone use",
+    "promptText": "The line graph shows the number of fixed and mobile telephone subscriptions per one hundred people in Larkmoor in 2005, 2012, and 2019. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Technology",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Line graph showing mobile subscriptions rising sharply while fixed lines decline in Larkmoor between 2005 and 2019.",
+    "material": {
+      "kind": "line_graph",
+      "title": "Telephone subscriptions per hundred people in Larkmoor",
+      "unit": "subscriptions per hundred people",
+      "categories": [
+        "2005",
+        "2012",
+        "2019"
+      ],
+      "series": [
+        {
+          "name": "Mobile",
+          "values": [
+            41,
+            88,
+            124
+          ]
+        },
+        {
+          "name": "Fixed line",
+          "values": [
+            52,
+            38,
+            21
+          ]
+        },
+        {
+          "name": "Fixed broadband",
+          "values": [
+            9,
+            24,
+            37
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Mobile subscriptions tripled and ended above one per person.",
+        "Fixed lines fell steadily across the whole period."
+      ],
+      "comparisons": [
+        "Mobile overtook fixed lines between 2005 and 2012.",
+        "By 2019 mobile was almost six times fixed line use."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"2005\",\"2012\",\"2019\"],\"comparisons\":[\"Mobile overtook fixed lines between 2005 and 2012.\",\"By 2019 mobile was almost six times fixed line use.\"],\"keyFeatures\":[\"Mobile subscriptions tripled and ended above one per person.\",\"Fixed lines fell steadily across the whole period.\"],\"kind\":\"line_graph\",\"series\":[{\"name\":\"Mobile\",\"values\":[41,88,124]},{\"name\":\"Fixed line\",\"values\":[52,38,21]},{\"name\":\"Fixed broadband\",\"values\":[9,24,37]}],\"title\":\"Telephone subscriptions per hundred people in Larkmoor\",\"unit\":\"subscriptions per hundred people\"}",
+    "assetPath": "/writing/task1/ede6fe78883fef16641f5345cc759bf6fa1dc9fea72c43f8c560ab4d6ab2e144.svg",
+    "assetDigest": "ede6fe78883fef16641f5345cc759bf6fa1dc9fea72c43f8c560ab4d6ab2e144",
+    "accessibleDescription": "Telephone subscriptions per hundred people in Larkmoor. Unit: subscriptions per hundred people. Mobile: 2005 41, 2012 88, 2019 124. Fixed line: 2005 52, 2012 38, 2019 21. Fixed broadband: 2005 9, 2012 24, 2019 37. Key features: Mobile subscriptions tripled and ended above one per person. Fixed lines fell steadily across the whole period. Comparisons: Mobile overtook fixed lines between 2005 and 2012. By 2019 mobile was almost six times fixed line use.",
+    "contentHash": "fa28f4fe82759c9be44a6dda2569eed12b7ec0ea3bb3419f198f242359f12395"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_recycling_rates",
+    "slug": "ielts-task1-recycling-rates",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "line_graph",
+    "cefrBand": null,
+    "title": "Recycling rates in three regions",
+    "promptText": "The line graph shows the percentage of household waste recycled in three regions in 2008, 2014, and 2022. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Environment",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Line graph comparing rising household recycling rates in three regions, with the northern region rising fastest.",
+    "material": {
+      "kind": "line_graph",
+      "title": "Household waste recycled by region",
+      "unit": "percent of household waste",
+      "categories": [
+        "2008",
+        "2014",
+        "2022"
+      ],
+      "series": [
+        {
+          "name": "Northern region",
+          "values": [
+            18,
+            34,
+            56
+          ]
+        },
+        {
+          "name": "Central region",
+          "values": [
+            27,
+            36,
+            44
+          ]
+        },
+        {
+          "name": "Southern region",
+          "values": [
+            31,
+            33,
+            38
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "All three regions improved, but at very different rates.",
+        "The northern region rose from lowest to highest."
+      ],
+      "comparisons": [
+        "The northern region gained 38 points, the southern only 7.",
+        "In 2008 the southern region led by 13 points; by 2022 it trailed by 18."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"2008\",\"2014\",\"2022\"],\"comparisons\":[\"The northern region gained 38 points, the southern only 7.\",\"In 2008 the southern region led by 13 points; by 2022 it trailed by 18.\"],\"keyFeatures\":[\"All three regions improved, but at very different rates.\",\"The northern region rose from lowest to highest.\"],\"kind\":\"line_graph\",\"series\":[{\"name\":\"Northern region\",\"values\":[18,34,56]},{\"name\":\"Central region\",\"values\":[27,36,44]},{\"name\":\"Southern region\",\"values\":[31,33,38]}],\"title\":\"Household waste recycled by region\",\"unit\":\"percent of household waste\"}",
+    "assetPath": "/writing/task1/99939b44aca324c646dccfa6f1289fcfeb443a5f599ba6d91089c37a842c97cd.svg",
+    "assetDigest": "99939b44aca324c646dccfa6f1289fcfeb443a5f599ba6d91089c37a842c97cd",
+    "accessibleDescription": "Household waste recycled by region. Unit: percent of household waste. Northern region: 2008 18, 2014 34, 2022 56. Central region: 2008 27, 2014 36, 2022 44. Southern region: 2008 31, 2014 33, 2022 38. Key features: All three regions improved, but at very different rates. The northern region rose from lowest to highest. Comparisons: The northern region gained 38 points, the southern only 7. In 2008 the southern region led by 13 points; by 2022 it trailed by 18.",
+    "contentHash": "e11d6c74281d68c71e68cc54412c5a72580e2330a63aedc53cf89e3bded1e5c3"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_supermarket_reasons",
+    "slug": "ielts-task1-supermarket-reasons",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "bar_chart",
+    "cefrBand": null,
+    "title": "Why shoppers choose a supermarket",
+    "promptText": "The bar chart shows the percentage of shoppers in two age groups who named each factor as their main reason for choosing a supermarket. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Shopping",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Bar chart comparing reasons for supermarket choice between younger and older shoppers, with price leading for both.",
+    "material": {
+      "kind": "bar_chart",
+      "title": "Main reason for choosing a supermarket",
+      "unit": "percent of shoppers",
+      "categories": [
+        "Price",
+        "Location",
+        "Product range",
+        "Opening hours",
+        "Staff service"
+      ],
+      "series": [
+        {
+          "name": "Under thirty-five",
+          "values": [
+            38,
+            29,
+            18,
+            11,
+            4
+          ]
+        },
+        {
+          "name": "Over fifty-five",
+          "values": [
+            31,
+            22,
+            15,
+            9,
+            23
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Price was the leading reason for both groups.",
+        "Staff service mattered far more to older shoppers."
+      ],
+      "comparisons": [
+        "Older shoppers chose staff service almost six times as often.",
+        "Younger shoppers led on price, location and product range."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Price\",\"Location\",\"Product range\",\"Opening hours\",\"Staff service\"],\"comparisons\":[\"Older shoppers chose staff service almost six times as often.\",\"Younger shoppers led on price, location and product range.\"],\"keyFeatures\":[\"Price was the leading reason for both groups.\",\"Staff service mattered far more to older shoppers.\"],\"kind\":\"bar_chart\",\"series\":[{\"name\":\"Under thirty-five\",\"values\":[38,29,18,11,4]},{\"name\":\"Over fifty-five\",\"values\":[31,22,15,9,23]}],\"title\":\"Main reason for choosing a supermarket\",\"unit\":\"percent of shoppers\"}",
+    "assetPath": "/writing/task1/dd29945800eafb8f91ecec8c009bc4142c85302f1db4a02881ea7b5b55da00f1.svg",
+    "assetDigest": "dd29945800eafb8f91ecec8c009bc4142c85302f1db4a02881ea7b5b55da00f1",
+    "accessibleDescription": "Main reason for choosing a supermarket. Unit: percent of shoppers. Under thirty-five: Price 38, Location 29, Product range 18, Opening hours 11, Staff service 4. Over fifty-five: Price 31, Location 22, Product range 15, Opening hours 9, Staff service 23. Key features: Price was the leading reason for both groups. Staff service mattered far more to older shoppers. Comparisons: Older shoppers chose staff service almost six times as often. Younger shoppers led on price, location and product range.",
+    "contentHash": "9c974fca4e1d6fa50c620a157cdb403c5ab6d76ba519f2c47ad723eaac78846a"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_graduate_fields",
+    "slug": "ielts-task1-graduate-fields",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "bar_chart",
+    "cefrBand": null,
+    "title": "Graduate employment by field",
+    "promptText": "The bar chart shows the percentage of graduates employed within six months of finishing, by field of study, in two separate years. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Education",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Bar chart comparing graduate employment rates by field of study across two years, with health consistently highest.",
+    "material": {
+      "kind": "bar_chart",
+      "title": "Graduates employed within six months",
+      "unit": "percent of graduates",
+      "categories": [
+        "Health",
+        "Engineering",
+        "Business",
+        "Computing",
+        "Humanities"
+      ],
+      "series": [
+        {
+          "name": "2015",
+          "values": [
+            88,
+            79,
+            74,
+            71,
+            58
+          ]
+        },
+        {
+          "name": "2023",
+          "values": [
+            91,
+            82,
+            72,
+            85,
+            54
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Health had the highest rate in both years.",
+        "Computing improved sharply while humanities declined."
+      ],
+      "comparisons": [
+        "Computing gained 14 points; humanities lost 4.",
+        "By 2023 computing had overtaken business by 13 points."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Health\",\"Engineering\",\"Business\",\"Computing\",\"Humanities\"],\"comparisons\":[\"Computing gained 14 points; humanities lost 4.\",\"By 2023 computing had overtaken business by 13 points.\"],\"keyFeatures\":[\"Health had the highest rate in both years.\",\"Computing improved sharply while humanities declined.\"],\"kind\":\"bar_chart\",\"series\":[{\"name\":\"2015\",\"values\":[88,79,74,71,58]},{\"name\":\"2023\",\"values\":[91,82,72,85,54]}],\"title\":\"Graduates employed within six months\",\"unit\":\"percent of graduates\"}",
+    "assetPath": "/writing/task1/9fb135000ea9a3151de72350cf43b4074699cd730db25ca07875f17651382704.svg",
+    "assetDigest": "9fb135000ea9a3151de72350cf43b4074699cd730db25ca07875f17651382704",
+    "accessibleDescription": "Graduates employed within six months. Unit: percent of graduates. 2015: Health 88, Engineering 79, Business 74, Computing 71, Humanities 58. 2023: Health 91, Engineering 82, Business 72, Computing 85, Humanities 54. Key features: Health had the highest rate in both years. Computing improved sharply while humanities declined. Comparisons: Computing gained 14 points; humanities lost 4. By 2023 computing had overtaken business by 13 points.",
+    "contentHash": "ef130c61e255a827cd508807ecfaf0ee2e2715a4e804801d5080a2651275ac81"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_waste_destinations",
+    "slug": "ielts-task1-waste-destinations",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "pie_chart",
+    "cefrBand": null,
+    "title": "Where household waste goes",
+    "promptText": "The pie charts show how household waste in Ashgrove was disposed of in two separate years. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Environment",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Pie charts comparing household waste disposal in Ashgrove across two years, with landfill falling and recycling rising.",
+    "material": {
+      "kind": "pie_chart",
+      "title": "Household waste by destination in Ashgrove",
+      "unit": "percent of household waste",
+      "categories": [
+        "Landfill",
+        "Recycling",
+        "Composting",
+        "Energy recovery"
+      ],
+      "series": [
+        {
+          "name": "2010",
+          "values": [
+            58,
+            24,
+            10,
+            8
+          ]
+        },
+        {
+          "name": "2024",
+          "values": [
+            29,
+            38,
+            19,
+            14
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Landfill halved and stopped being the largest destination.",
+        "Recycling became the single largest category."
+      ],
+      "comparisons": [
+        "Landfill fell by 29 points while recycling rose by 14.",
+        "Composting and energy recovery together nearly doubled."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Landfill\",\"Recycling\",\"Composting\",\"Energy recovery\"],\"comparisons\":[\"Landfill fell by 29 points while recycling rose by 14.\",\"Composting and energy recovery together nearly doubled.\"],\"keyFeatures\":[\"Landfill halved and stopped being the largest destination.\",\"Recycling became the single largest category.\"],\"kind\":\"pie_chart\",\"series\":[{\"name\":\"2010\",\"values\":[58,24,10,8]},{\"name\":\"2024\",\"values\":[29,38,19,14]}],\"title\":\"Household waste by destination in Ashgrove\",\"unit\":\"percent of household waste\"}",
+    "assetPath": "/writing/task1/55f4bc1db325733a9f498c1f08a72149602b721ff7b2b1670400046cdb8408b8.svg",
+    "assetDigest": "55f4bc1db325733a9f498c1f08a72149602b721ff7b2b1670400046cdb8408b8",
+    "accessibleDescription": "Household waste by destination in Ashgrove. Unit: percent of household waste. 2010: Landfill 58, Recycling 24, Composting 10, Energy recovery 8. 2024: Landfill 29, Recycling 38, Composting 19, Energy recovery 14. Key features: Landfill halved and stopped being the largest destination. Recycling became the single largest category. Comparisons: Landfill fell by 29 points while recycling rose by 14. Composting and energy recovery together nearly doubled.",
+    "contentHash": "c2b7e8e28bfb35ac980c60eeb04dd8dfcc7f65c6ca2c73a7cc6adcc6b237ae61"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_public_spending",
+    "slug": "ielts-task1-public-spending",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "pie_chart",
+    "cefrBand": null,
+    "title": "How public money is divided",
+    "promptText": "The pie charts show how the annual budget of Marden council was divided in two separate years. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Society",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Pie charts comparing council budget shares across two years, with social care growing and roads shrinking.",
+    "material": {
+      "kind": "pie_chart",
+      "title": "Marden council budget by area",
+      "unit": "percent of annual budget",
+      "categories": [
+        "Social care",
+        "Education",
+        "Roads and transport",
+        "Waste services",
+        "Parks and culture"
+      ],
+      "series": [
+        {
+          "name": "2014",
+          "values": [
+            31,
+            28,
+            21,
+            13,
+            7
+          ]
+        },
+        {
+          "name": "2024",
+          "values": [
+            42,
+            26,
+            15,
+            12,
+            5
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Social care grew to take more than two fifths of the budget.",
+        "Every other area took a smaller share than before."
+      ],
+      "comparisons": [
+        "Social care rose 11 points while roads fell 6.",
+        "By 2024 social care exceeded education by 16 points."
+      ]
+    },
+    "taskMaterialJson": "{\"categories\":[\"Social care\",\"Education\",\"Roads and transport\",\"Waste services\",\"Parks and culture\"],\"comparisons\":[\"Social care rose 11 points while roads fell 6.\",\"By 2024 social care exceeded education by 16 points.\"],\"keyFeatures\":[\"Social care grew to take more than two fifths of the budget.\",\"Every other area took a smaller share than before.\"],\"kind\":\"pie_chart\",\"series\":[{\"name\":\"2014\",\"values\":[31,28,21,13,7]},{\"name\":\"2024\",\"values\":[42,26,15,12,5]}],\"title\":\"Marden council budget by area\",\"unit\":\"percent of annual budget\"}",
+    "assetPath": "/writing/task1/0657f55855af44a8fe3e48e6f54bb8110668e9f47ee3e42e6fc4b5bf4d56d17c.svg",
+    "assetDigest": "0657f55855af44a8fe3e48e6f54bb8110668e9f47ee3e42e6fc4b5bf4d56d17c",
+    "accessibleDescription": "Marden council budget by area. Unit: percent of annual budget. 2014: Social care 31, Education 28, Roads and transport 21, Waste services 13, Parks and culture 7. 2024: Social care 42, Education 26, Roads and transport 15, Waste services 12, Parks and culture 5. Key features: Social care grew to take more than two fifths of the budget. Every other area took a smaller share than before. Comparisons: Social care rose 11 points while roads fell 6. By 2024 social care exceeded education by 16 points.",
+    "contentHash": "8d2a711e190b3bcef6b8093f9b49d154d9c71e61163b6f2d1b29d3998a19c3c5"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_water_use",
+    "slug": "ielts-task1-water-use",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "table",
+    "cefrBand": null,
+    "title": "Water use in four countries",
+    "promptText": "The table shows how water was used by three sectors in four countries in a single year. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Environment",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Table comparing agricultural, industrial and domestic water use across four countries.",
+    "material": {
+      "kind": "table",
+      "title": "Water use by sector in four countries",
+      "unit": "percent of total water use",
+      "columns": [
+        "Agriculture (%)",
+        "Industry (%)",
+        "Domestic (%)"
+      ],
+      "rows": [
+        {
+          "label": "Aldora",
+          "values": [
+            71,
+            18,
+            11
+          ]
+        },
+        {
+          "label": "Brintal",
+          "values": [
+            34,
+            52,
+            14
+          ]
+        },
+        {
+          "label": "Cerinth",
+          "values": [
+            62,
+            24,
+            14
+          ]
+        },
+        {
+          "label": "Dunmere",
+          "values": [
+            22,
+            59,
+            19
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Agriculture dominated in Aldora and Cerinth.",
+        "Industry dominated in Brintal and Dunmere."
+      ],
+      "comparisons": [
+        "Aldora used more than three times Dunmere's share on agriculture.",
+        "Domestic use varied least, from 11 to 19 percent."
+      ]
+    },
+    "taskMaterialJson": "{\"columns\":[\"Agriculture (%)\",\"Industry (%)\",\"Domestic (%)\"],\"comparisons\":[\"Aldora used more than three times Dunmere's share on agriculture.\",\"Domestic use varied least, from 11 to 19 percent.\"],\"keyFeatures\":[\"Agriculture dominated in Aldora and Cerinth.\",\"Industry dominated in Brintal and Dunmere.\"],\"kind\":\"table\",\"rows\":[{\"label\":\"Aldora\",\"values\":[71,18,11]},{\"label\":\"Brintal\",\"values\":[34,52,14]},{\"label\":\"Cerinth\",\"values\":[62,24,14]},{\"label\":\"Dunmere\",\"values\":[22,59,19]}],\"title\":\"Water use by sector in four countries\",\"unit\":\"percent of total water use\"}",
+    "assetPath": "/writing/task1/9968c40088663b80445153f69b89c53747b439ad191f465fc962f2690989b28c.svg",
+    "assetDigest": "9968c40088663b80445153f69b89c53747b439ad191f465fc962f2690989b28c",
+    "accessibleDescription": "Water use by sector in four countries. Unit: percent of total water use. Aldora: Agriculture (%) 71, Industry (%) 18, Domestic (%) 11. Brintal: Agriculture (%) 34, Industry (%) 52, Domestic (%) 14. Cerinth: Agriculture (%) 62, Industry (%) 24, Domestic (%) 14. Dunmere: Agriculture (%) 22, Industry (%) 59, Domestic (%) 19. Key features: Agriculture dominated in Aldora and Cerinth. Industry dominated in Brintal and Dunmere. Comparisons: Aldora used more than three times Dunmere's share on agriculture. Domestic use varied least, from 11 to 19 percent.",
+    "contentHash": "d72947261095f62f20b5ac978dc339cd3770b4525498bdf3ec14780eff7d4171"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_working_hours",
+    "slug": "ielts-task1-working-hours",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "table",
+    "cefrBand": null,
+    "title": "Working hours and leave",
+    "promptText": "The table shows average weekly working hours, annual paid leave, and public holidays in four countries in a single year. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Work",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Table comparing weekly working hours, paid leave days and public holidays across four countries.",
+    "material": {
+      "kind": "table",
+      "title": "Working time in four countries",
+      "unit": "hours per week; days per year",
+      "columns": [
+        "Weekly hours",
+        "Paid leave (days)",
+        "Public holidays (days)"
+      ],
+      "rows": [
+        {
+          "label": "Aldora",
+          "values": [
+            41.5,
+            20,
+            9
+          ]
+        },
+        {
+          "label": "Brintal",
+          "values": [
+            35.2,
+            30,
+            11
+          ]
+        },
+        {
+          "label": "Cerinth",
+          "values": [
+            44.8,
+            15,
+            14
+          ]
+        },
+        {
+          "label": "Dunmere",
+          "values": [
+            38.1,
+            25,
+            8
+          ]
+        }
+      ],
+      "keyFeatures": [
+        "Cerinth had the longest week and the least paid leave.",
+        "Brintal had the shortest week and the most paid leave."
+      ],
+      "comparisons": [
+        "Brintal workers had twice the paid leave of Cerinth workers.",
+        "Cerinth had the most public holidays despite the least leave."
+      ]
+    },
+    "taskMaterialJson": "{\"columns\":[\"Weekly hours\",\"Paid leave (days)\",\"Public holidays (days)\"],\"comparisons\":[\"Brintal workers had twice the paid leave of Cerinth workers.\",\"Cerinth had the most public holidays despite the least leave.\"],\"keyFeatures\":[\"Cerinth had the longest week and the least paid leave.\",\"Brintal had the shortest week and the most paid leave.\"],\"kind\":\"table\",\"rows\":[{\"label\":\"Aldora\",\"values\":[41.5,20,9]},{\"label\":\"Brintal\",\"values\":[35.2,30,11]},{\"label\":\"Cerinth\",\"values\":[44.8,15,14]},{\"label\":\"Dunmere\",\"values\":[38.1,25,8]}],\"title\":\"Working time in four countries\",\"unit\":\"hours per week; days per year\"}",
+    "assetPath": "/writing/task1/6cdea7c4b4e579c023578766645ada151ca67e856c0571bc4e22a227b1f42ae6.svg",
+    "assetDigest": "6cdea7c4b4e579c023578766645ada151ca67e856c0571bc4e22a227b1f42ae6",
+    "accessibleDescription": "Working time in four countries. Unit: hours per week; days per year. Aldora: Weekly hours 41.5, Paid leave (days) 20, Public holidays (days) 9. Brintal: Weekly hours 35.2, Paid leave (days) 30, Public holidays (days) 11. Cerinth: Weekly hours 44.8, Paid leave (days) 15, Public holidays (days) 14. Dunmere: Weekly hours 38.1, Paid leave (days) 25, Public holidays (days) 8. Key features: Cerinth had the longest week and the least paid leave. Brintal had the shortest week and the most paid leave. Comparisons: Brintal workers had twice the paid leave of Cerinth workers. Cerinth had the most public holidays despite the least leave.",
+    "contentHash": "ffdf7afafd234acf67a24354352e7e3803a3df531fabd5346d699de0a0ab717b"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_wool_to_fabric",
+    "slug": "ielts-task1-wool-to-fabric",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "process",
+    "cefrBand": null,
+    "title": "From wool to fabric",
+    "promptText": "The diagram shows the stages in producing woollen fabric from raw fleece. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Manufacturing",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Process diagram showing seven linear stages from shearing raw fleece to finishing woven woollen fabric.",
+    "material": {
+      "kind": "process",
+      "title": "Producing woollen fabric",
+      "stages": [
+        {
+          "label": "Shear",
+          "description": "Fleece is cut from the sheep in a single piece."
+        },
+        {
+          "label": "Sort",
+          "description": "The fleece is graded by fibre length and any coarse wool is set aside."
+        },
+        {
+          "label": "Scour",
+          "description": "Sorted wool is washed in warm water to remove grease and dirt."
+        },
+        {
+          "label": "Card",
+          "description": "Clean fibres are combed until they lie in the same direction."
+        },
+        {
+          "label": "Spin",
+          "description": "The combed fibres are drawn out and twisted into yarn."
+        },
+        {
+          "label": "Weave",
+          "description": "Yarn is woven on a loom to form lengths of cloth."
+        },
+        {
+          "label": "Finish",
+          "description": "The cloth is washed, dyed and pressed before dispatch."
+        }
+      ],
+      "keyFeatures": [
+        "The process is linear and has seven stages.",
+        "Cleaning and alignment both precede any twisting or weaving."
+      ]
+    },
+    "taskMaterialJson": "{\"keyFeatures\":[\"The process is linear and has seven stages.\",\"Cleaning and alignment both precede any twisting or weaving.\"],\"kind\":\"process\",\"stages\":[{\"description\":\"Fleece is cut from the sheep in a single piece.\",\"label\":\"Shear\"},{\"description\":\"The fleece is graded by fibre length and any coarse wool is set aside.\",\"label\":\"Sort\"},{\"description\":\"Sorted wool is washed in warm water to remove grease and dirt.\",\"label\":\"Scour\"},{\"description\":\"Clean fibres are combed until they lie in the same direction.\",\"label\":\"Card\"},{\"description\":\"The combed fibres are drawn out and twisted into yarn.\",\"label\":\"Spin\"},{\"description\":\"Yarn is woven on a loom to form lengths of cloth.\",\"label\":\"Weave\"},{\"description\":\"The cloth is washed, dyed and pressed before dispatch.\",\"label\":\"Finish\"}],\"title\":\"Producing woollen fabric\"}",
+    "assetPath": "/writing/task1/f29a7aad05ab6ecfd10b0169b7907184b1b436ed2831a3f4930dff6d16544dfa.svg",
+    "assetDigest": "f29a7aad05ab6ecfd10b0169b7907184b1b436ed2831a3f4930dff6d16544dfa",
+    "accessibleDescription": "Producing woollen fabric. Stages in order: 1. Shear: Fleece is cut from the sheep in a single piece. 2. Sort: The fleece is graded by fibre length and any coarse wool is set aside. 3. Scour: Sorted wool is washed in warm water to remove grease and dirt. 4. Card: Clean fibres are combed until they lie in the same direction. 5. Spin: The combed fibres are drawn out and twisted into yarn. 6. Weave: Yarn is woven on a loom to form lengths of cloth. 7. Finish: The cloth is washed, dyed and pressed before dispatch. Key features: The process is linear and has seven stages. Cleaning and alignment both precede any twisting or weaving.",
+    "contentHash": "cb2e27d8cc84337a02b5f3667cfa945ad7f16585446bd5e297ebb150d8007212"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_medicine_approval",
+    "slug": "ielts-task1-medicine-approval",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "process",
+    "cefrBand": null,
+    "title": "How a medicine is approved",
+    "promptText": "The diagram shows the stages a new medicine passes through before it can be sold. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Health",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Process diagram showing six stages from laboratory testing to monitoring an approved medicine in use.",
+    "material": {
+      "kind": "process",
+      "title": "Approving a new medicine",
+      "stages": [
+        {
+          "label": "Laboratory",
+          "description": "A candidate compound is tested on cells and tissue outside the body."
+        },
+        {
+          "label": "Animal study",
+          "description": "The compound is tested on animals to check safety and dose."
+        },
+        {
+          "label": "Small trial",
+          "description": "A small group of healthy volunteers receives the compound under supervision."
+        },
+        {
+          "label": "Large trial",
+          "description": "Hundreds of patients receive either the compound or an existing treatment."
+        },
+        {
+          "label": "Review",
+          "description": "A regulator examines the trial evidence and decides whether to approve."
+        },
+        {
+          "label": "Monitor",
+          "description": "Effects are recorded after approval and the licence can be withdrawn."
+        }
+      ],
+      "keyFeatures": [
+        "The process is linear and has six stages, with testing groups widening at each step.",
+        "Assessment continues after approval rather than ending at it."
+      ]
+    },
+    "taskMaterialJson": "{\"keyFeatures\":[\"The process is linear and has six stages, with testing groups widening at each step.\",\"Assessment continues after approval rather than ending at it.\"],\"kind\":\"process\",\"stages\":[{\"description\":\"A candidate compound is tested on cells and tissue outside the body.\",\"label\":\"Laboratory\"},{\"description\":\"The compound is tested on animals to check safety and dose.\",\"label\":\"Animal study\"},{\"description\":\"A small group of healthy volunteers receives the compound under supervision.\",\"label\":\"Small trial\"},{\"description\":\"Hundreds of patients receive either the compound or an existing treatment.\",\"label\":\"Large trial\"},{\"description\":\"A regulator examines the trial evidence and decides whether to approve.\",\"label\":\"Review\"},{\"description\":\"Effects are recorded after approval and the licence can be withdrawn.\",\"label\":\"Monitor\"}],\"title\":\"Approving a new medicine\"}",
+    "assetPath": "/writing/task1/c3143f09de2e65990ada4bdfaeffee73b6daf77a2352922f62d5136fafb2ff4d.svg",
+    "assetDigest": "c3143f09de2e65990ada4bdfaeffee73b6daf77a2352922f62d5136fafb2ff4d",
+    "accessibleDescription": "Approving a new medicine. Stages in order: 1. Laboratory: A candidate compound is tested on cells and tissue outside the body. 2. Animal study: The compound is tested on animals to check safety and dose. 3. Small trial: A small group of healthy volunteers receives the compound under supervision. 4. Large trial: Hundreds of patients receive either the compound or an existing treatment. 5. Review: A regulator examines the trial evidence and decides whether to approve. 6. Monitor: Effects are recorded after approval and the licence can be withdrawn. Key features: The process is linear and has six stages, with testing groups widening at each step. Assessment continues after approval rather than ending at it.",
+    "contentHash": "c32cc27d7d44701180e606ecd8ebbfb10df1a78942c610eeb786a8756c3cd507"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_school_campus",
+    "slug": "ielts-task1-school-campus",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "map",
+    "cefrBand": null,
+    "title": "A school campus expanded",
+    "promptText": "The maps show a school campus before and after an expansion. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Education",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Two maps comparing a school campus before and after expansion, with new buildings replacing open ground.",
+    "material": {
+      "kind": "map",
+      "title": "Fernhill School campus",
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "features": [
+        {
+          "place": "North side",
+          "before": "Single teaching block",
+          "after": "Teaching block with a second storey"
+        },
+        {
+          "place": "West field",
+          "before": "Open grass",
+          "after": "Science building and car park"
+        },
+        {
+          "place": "Main entrance",
+          "before": "Gate onto the main road",
+          "after": "Gate moved to the side street"
+        },
+        {
+          "place": "Courtyard",
+          "before": "Paved yard",
+          "after": "Covered dining area"
+        },
+        {
+          "place": "East boundary",
+          "before": "Fence and hedge",
+          "after": "Fence retained, hedge removed"
+        },
+        {
+          "place": "South corner",
+          "before": "Storage shed",
+          "after": "Sports hall"
+        }
+      ],
+      "keyFeatures": [
+        "Open and low-value areas were built on while teaching space grew upwards.",
+        "Access was redirected away from the main road."
+      ]
+    },
+    "taskMaterialJson": "{\"afterLabel\":\"After\",\"beforeLabel\":\"Before\",\"features\":[{\"after\":\"Teaching block with a second storey\",\"before\":\"Single teaching block\",\"place\":\"North side\"},{\"after\":\"Science building and car park\",\"before\":\"Open grass\",\"place\":\"West field\"},{\"after\":\"Gate moved to the side street\",\"before\":\"Gate onto the main road\",\"place\":\"Main entrance\"},{\"after\":\"Covered dining area\",\"before\":\"Paved yard\",\"place\":\"Courtyard\"},{\"after\":\"Fence retained, hedge removed\",\"before\":\"Fence and hedge\",\"place\":\"East boundary\"},{\"after\":\"Sports hall\",\"before\":\"Storage shed\",\"place\":\"South corner\"}],\"keyFeatures\":[\"Open and low-value areas were built on while teaching space grew upwards.\",\"Access was redirected away from the main road.\"],\"kind\":\"map\",\"title\":\"Fernhill School campus\"}",
+    "assetPath": "/writing/task1/0921a4ddec81d5365039e2da368d0385366db070eb1421db67f5ab1dede39f87.svg",
+    "assetDigest": "0921a4ddec81d5365039e2da368d0385366db070eb1421db67f5ab1dede39f87",
+    "accessibleDescription": "Fernhill School campus. North side: Before — Single teaching block; After — Teaching block with a second storey. West field: Before — Open grass; After — Science building and car park. Main entrance: Before — Gate onto the main road; After — Gate moved to the side street. Courtyard: Before — Paved yard; After — Covered dining area. East boundary: Before — Fence and hedge; After — Fence retained, hedge removed. South corner: Before — Storage shed; After — Sports hall. Key features: Open and low-value areas were built on while teaching space grew upwards. Access was redirected away from the main road.",
+    "contentHash": "799643e939121b2f9891b25aa6c713381425ec6c6783ac6aedf80ad6c1eafb44"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t1_village_bypass",
+    "slug": "ielts-task1-village-bypass",
+    "family": "ielts",
+    "taskType": "academic_task_1",
+    "promptKind": "map",
+    "cefrBand": null,
+    "title": "A village and its bypass",
+    "promptText": "The maps show a village before and after a bypass road was built. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+    "coachId": "ielts_task1",
+    "topic": "Transport",
+    "targetWords": 150,
+    "targetMinutes": 20,
+    "sourceLabel": "bcailab original",
+    "assetAltText": "Two maps comparing a village before and after a bypass, showing through traffic moved away from the main street.",
+    "material": {
+      "kind": "map",
+      "title": "Oakbourne village",
+      "beforeLabel": "Before",
+      "afterLabel": "After",
+      "features": [
+        {
+          "place": "Main street",
+          "before": "Through road carrying all traffic",
+          "after": "Local access only, with wider pavements"
+        },
+        {
+          "place": "North fields",
+          "before": "Farmland",
+          "after": "Bypass road and roundabout"
+        },
+        {
+          "place": "Village square",
+          "before": "Car parking",
+          "after": "Market space and seating"
+        },
+        {
+          "place": "School lane",
+          "before": "Narrow road with no crossing",
+          "after": "Crossing and reduced speed limit"
+        },
+        {
+          "place": "River bridge",
+          "before": "Single-lane bridge",
+          "after": "Single-lane bridge retained"
+        },
+        {
+          "place": "East edge",
+          "before": "Petrol station",
+          "after": "Petrol station relocated to the bypass"
+        }
+      ],
+      "keyFeatures": [
+        "Through traffic was moved to new farmland north of the village.",
+        "The centre was reallocated from vehicles to pedestrians."
+      ]
+    },
+    "taskMaterialJson": "{\"afterLabel\":\"After\",\"beforeLabel\":\"Before\",\"features\":[{\"after\":\"Local access only, with wider pavements\",\"before\":\"Through road carrying all traffic\",\"place\":\"Main street\"},{\"after\":\"Bypass road and roundabout\",\"before\":\"Farmland\",\"place\":\"North fields\"},{\"after\":\"Market space and seating\",\"before\":\"Car parking\",\"place\":\"Village square\"},{\"after\":\"Crossing and reduced speed limit\",\"before\":\"Narrow road with no crossing\",\"place\":\"School lane\"},{\"after\":\"Single-lane bridge retained\",\"before\":\"Single-lane bridge\",\"place\":\"River bridge\"},{\"after\":\"Petrol station relocated to the bypass\",\"before\":\"Petrol station\",\"place\":\"East edge\"}],\"keyFeatures\":[\"Through traffic was moved to new farmland north of the village.\",\"The centre was reallocated from vehicles to pedestrians.\"],\"kind\":\"map\",\"title\":\"Oakbourne village\"}",
+    "assetPath": "/writing/task1/82dc42c935cc457d621f4f9c11f3641fba262b257cd952317a455913846eb5df.svg",
+    "assetDigest": "82dc42c935cc457d621f4f9c11f3641fba262b257cd952317a455913846eb5df",
+    "accessibleDescription": "Oakbourne village. Main street: Before — Through road carrying all traffic; After — Local access only, with wider pavements. North fields: Before — Farmland; After — Bypass road and roundabout. Village square: Before — Car parking; After — Market space and seating. School lane: Before — Narrow road with no crossing; After — Crossing and reduced speed limit. River bridge: Before — Single-lane bridge; After — Single-lane bridge retained. East edge: Before — Petrol station; After — Petrol station relocated to the bypass. Key features: Through traffic was moved to new farmland north of the village. The centre was reallocated from vehicles to pedestrians.",
+    "contentHash": "ac8fb2568485ac8332b5262488aeafaaf3bdcc2aac14b7d45f594567aa0aa2a8"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_advertising_children",
+    "slug": "ielts-task2-advertising-children",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "opinion_essay",
+    "cefrBand": null,
+    "title": "Advertising aimed at children",
+    "promptText": "Some people believe that advertising aimed at children should be banned completely. To what extent do you agree or disagree? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Society",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "065d53454b582918c64aa3dad7b39757bca1dbf003147a75a3b7095492c5d79b"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_taxing_unhealthy_food",
+    "slug": "ielts-task2-taxing-unhealthy-food",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "opinion_essay",
+    "cefrBand": null,
+    "title": "Taxing unhealthy food",
+    "promptText": "Some people argue that governments should place high taxes on food and drink that is known to be unhealthy. To what extent do you agree or disagree? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Health",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "3a47389199b10cabc643948a6474d7cb9e8cc7fe0010a45d165b04a3263c89d3"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_free_museums",
+    "slug": "ielts-task2-free-museums",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "opinion_essay",
+    "cefrBand": null,
+    "title": "Free entry to museums",
+    "promptText": "Some people think that museums and art galleries should be free for everyone to enter, with the cost met by the government. To what extent do you agree or disagree? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Culture",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "e886882bf2ad94c2752557a6b10f7b5b9c3ee6bc4e2eaba32ea9b333f43265f8"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_programming_at_school",
+    "slug": "ielts-task2-programming-at-school",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "discussion",
+    "cefrBand": null,
+    "title": "Programming in primary school",
+    "promptText": "Some people think children should be taught computer programming from their first years at school, while others believe that time is better spent on reading, writing and mathematics. Discuss both views and give your own opinion.",
+    "coachId": "ielts_task2",
+    "topic": "Education",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "616b5073c7b14dde58b1986c9f64a83602336daec85de57bcea79f4a866f27a6"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_growth_and_environment",
+    "slug": "ielts-task2-growth-and-environment",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "discussion",
+    "cefrBand": null,
+    "title": "Growth and the environment",
+    "promptText": "Some people believe that economic growth and protecting the environment are in direct conflict, while others argue that a country cannot have one without the other. Discuss both views and give your own opinion.",
+    "coachId": "ielts_task2",
+    "topic": "Environment",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "fcb51fe31e51c1a5691437e433efc65f40c80579a92ef61cbe5359ce9309cfc5"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_paying_for_news",
+    "slug": "ielts-task2-paying-for-news",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "discussion",
+    "cefrBand": null,
+    "title": "Paying for the news",
+    "promptText": "Some people think news should be freely available to everyone, while others argue that readers should pay for it so that journalism can be properly funded. Discuss both views and give your own opinion.",
+    "coachId": "ielts_task2",
+    "topic": "Media",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "d9e54875e7e78976a8567005a0343121412e235321eacf0fa9440adf7b1bca84"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_financial_skills",
+    "slug": "ielts-task2-financial-skills",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "problem_solution",
+    "cefrBand": null,
+    "title": "Leaving school without money skills",
+    "promptText": "Many young people finish school without knowing how to manage money, borrow safely, or plan for the future. What problems does this cause, and what measures could schools and governments take to address it?",
+    "coachId": "ielts_task2",
+    "topic": "Education",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "96282d9c78e2e755b13759ea0b902a2c5cf24a86c638f60ef358fefa92671ec6"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_first_time_buyers",
+    "slug": "ielts-task2-first-time-buyers",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "problem_solution",
+    "cefrBand": null,
+    "title": "Young people priced out of housing",
+    "promptText": "In many cities, young people can no longer afford to buy a home even when they are in full-time work. What problems does this create, and what could be done to address the situation?",
+    "coachId": "ielts_task2",
+    "topic": "Housing",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "61d0253efce1b2b9c20bf9577209dbaf2ebf51fb4c760de80984199d7eda183b"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_traffic_congestion",
+    "slug": "ielts-task2-traffic-congestion",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "problem_solution",
+    "cefrBand": null,
+    "title": "Congestion in growing cities",
+    "promptText": "As cities grow, traffic congestion becomes steadily worse for residents and businesses. What problems does this cause, and what measures could cities take to reduce it?",
+    "coachId": "ielts_task2",
+    "topic": "Transport",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "6a697c7d17c3c676150328a09a759d31bc7e156aa71c373ec819211337b719c2"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_studying_abroad",
+    "slug": "ielts-task2-studying-abroad",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "advantages_disadvantages",
+    "cefrBand": null,
+    "title": "Studying in another country",
+    "promptText": "An increasing number of students choose to complete their degree in another country. What are the advantages and disadvantages of studying abroad? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Education",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "b9a12eb8c2e0f4c2014a59d535187d67213be90fe56bbb62df20cfe50d4eef56"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_very_large_cities",
+    "slug": "ielts-task2-very-large-cities",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "advantages_disadvantages",
+    "cefrBand": null,
+    "title": "Living in a very large city",
+    "promptText": "More and more of the world's population lives in cities of over ten million people. What are the advantages and disadvantages of living in a city of this size? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Cities",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "2ed837a5d92ddbaac6e95105aba5563ede43970c1e81acc893ce6b35a3c6e5c3"
+  },
+  {
+    "schemaVersion": 1,
+    "id": "wp_ielts_t2_imported_food",
+    "slug": "ielts-task2-imported-food",
+    "family": "ielts",
+    "taskType": "academic_task_2",
+    "promptKind": "advantages_disadvantages",
+    "cefrBand": null,
+    "title": "Food from around the world",
+    "promptText": "In many countries, shops now sell food imported from all over the world throughout the year. What are the advantages and disadvantages of this development? Give reasons for your answer and include relevant examples from your own knowledge or experience.",
+    "coachId": "ielts_task2",
+    "topic": "Food",
+    "targetWords": 250,
+    "targetMinutes": 40,
+    "sourceLabel": "bcailab original",
+    "taskMaterialJson": null,
+    "assetPath": null,
+    "assetDigest": null,
+    "accessibleDescription": null,
+    "contentHash": "301629e9b064e3e822027fb192a59636c279ee008ca3e78d354e573cf847ba2b"
   }
 ]

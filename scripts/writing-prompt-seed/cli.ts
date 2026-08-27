@@ -7,7 +7,7 @@ import {
   type WritingPromptSource
 } from "@bcailab/db";
 import { deriveWritingPrompt, sha256, stableJson } from "./derive";
-import { validateInitialWritingPromptBatch } from "./policy";
+import { validateWritingPromptReleaseBatch } from "./policy";
 import { buildPublishedPromptValueRow, sqlQuote } from "./publish-sql";
 
 const SEED_DIR = import.meta.dirname;
@@ -89,7 +89,7 @@ const formatIssues = (issues: PromptValidationIssue[]): string =>
 
 const readSource = async (): Promise<WritingPromptSource[]> => {
   const source = await parseJsonFile<unknown>(SOURCE_PATH);
-  const issues = validateInitialWritingPromptBatch(source);
+  const issues = validateWritingPromptReleaseBatch(source);
   if (issues.length > 0) {
     throw new Error(`Prompt validation failed:\n${formatIssues(issues)}`);
   }
@@ -383,7 +383,16 @@ const main = async () => {
   }
   if (command === "validate") {
     const prompts = await readSource();
-    console.log(`Validated ${prompts.length} source prompts: 24 general, 12 IELTS Task 1, 12 IELTS Task 2.`);
+    // Counted rather than stated: the line read "24 general, 12 Task 1, 12 Task 2" as literals,
+    // which stayed on screen unchanged while the second batch doubled the IELTS families.
+    const count = (predicate: (prompt: WritingPromptSource) => boolean): number =>
+      prompts.filter(predicate).length;
+    console.log(
+      `Validated ${prompts.length} source prompts: ` +
+        `${count((prompt) => prompt.family === "general")} general, ` +
+        `${count((prompt) => prompt.taskType === "academic_task_1")} IELTS Task 1, ` +
+        `${count((prompt) => prompt.taskType === "academic_task_2")} IELTS Task 2.`
+    );
     return;
   }
   if (command === "derive") return deriveCommand(args);

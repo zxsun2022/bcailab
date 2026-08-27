@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="520" viewBox="0 0 960 520" role="img" aria-labelledby="title">
+<title id="title">Water use by sector in four countries</title>
+<rect width="960" height="520" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Water use by sector in four countries</text>
+<text x="48" y="95" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of total water use</text>
+<rect x="45" y="130" width="170" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="130" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700"></text>
+<rect x="215" y="130" width="233.33333333333334" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="331.6666666666667" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Agriculture (%)</text>
+<rect x="448.33333333333337" y="130" width="233.33333333333334" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="565" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Industry (%)</text>
+<rect x="681.6666666666667" y="130" width="233.33333333333334" height="62" fill="#E8EDF8" stroke="#BCC6D6"/><text x="798.3333333333334" y="167" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="13" font-weight="700">Domestic (%)</text>
+<rect x="45" y="192" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="229" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Aldora</text>
+<rect x="215" y="192" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="331.6666666666667" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">71</text>
+<rect x="448.33333333333337" y="192" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="565" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">18</text>
+<rect x="681.6666666666667" y="192" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="798.3333333333334" y="229" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">11</text>
+<rect x="45" y="254" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="291" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Brintal</text>
+<rect x="215" y="254" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="331.6666666666667" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">34</text>
+<rect x="448.33333333333337" y="254" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="565" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">52</text>
+<rect x="681.6666666666667" y="254" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="798.3333333333334" y="291" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">14</text>
+<rect x="45" y="316" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="353" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Cerinth</text>
+<rect x="215" y="316" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="331.6666666666667" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">62</text>
+<rect x="448.33333333333337" y="316" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="565" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">24</text>
+<rect x="681.6666666666667" y="316" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="798.3333333333334" y="353" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">14</text>
+<rect x="45" y="378" width="170" height="62" fill="#F2F3F5" stroke="#BCC6D6"/><text x="59" y="415" fill="#18202B" font-family="system-ui, sans-serif" font-size="14" font-weight="700">Dunmere</text>
+<rect x="215" y="378" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="331.6666666666667" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">22</text>
+<rect x="448.33333333333337" y="378" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="565" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">59</text>
+<rect x="681.6666666666667" y="378" width="233.33333333333334" height="62" fill="#FFFFFF" stroke="#BCC6D6"/><text x="798.3333333333334" y="415" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="15">19</text>
+</svg>
