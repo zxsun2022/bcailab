@@ -9,6 +9,43 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-27 — **in_review: material library expansion drafts — 80 passages and 48 IELTS
+  prompts.** Both halves of the authorized expansion are generated and validated; **nothing is
+  published**, no TTS has been spent, and no D1 row has been written.
+
+  *Passages 40 → 80.* The existing forty were one passage per topic per band across ten topics,
+  so the new forty add ten topics on the same grid — education, technology, money,
+  neighbourhood, sport, music, pets, housing, friendship, celebrations — keeping exactly one
+  passage per topic per band. All eighty pass `intake.ts` (8–12 sentences, ≤110 characters per
+  sentence, no digits, valid two-to-six-word titles) with no duplicate title anywhere in the
+  library.
+
+  *IELTS prompts 24 → 48*, source 48 → 72, with balance preserved: Task 1 from two to four per
+  material kind across all six kinds, Task 2 from three to six per family across all four.
+  General prompts untouched.
+
+  **The writing half was not the content-only push the roadmap item assumed, and the item has
+  been corrected.** The first batch's census was frozen as literals in three places —
+  `policy.ts`, a duplicate assertion in `packages/db/src/writing-prompt-content.test.ts`, and
+  the `validate` summary line, which printed "24 general, 12 Task 1, 12 Task 2" as text. Any
+  second batch was therefore a code change by construction, and the summary would have kept
+  reporting the old distribution while the bank doubled underneath it. The census now lives in
+  one `WRITING_PROMPT_BATCH_CENSUS` constant with totals derived from it; the duplicate
+  assertion is gone, since one census expressed twice can disagree with itself; and the summary
+  counts rather than states. Balance checks per kind are kept and now have a test proving a
+  lopsided batch of the right total still fails. No schema, taxonomy, evaluator or navigation
+  change was required, so the item's boundary held even though its cost estimate did not.
+
+  Evidence: `validate`, `derive --check`, `review-pack` and `preflight` pass; 72 prompts and 24
+  Task 1 SVG assets derived and committed; 693 tests, both typechecks, lint (0 errors) and both
+  production builds pass.
+
+  **Three things stand between this and publication, all deliberate.** The independent
+  second-model content check the material pipeline requires has not been run — the same model
+  generated this batch, so its own review is not the independent pass. There has been no owner
+  review. And the batch hash moved from `38d84de9` to `034b84f4`, so the committed approval file
+  no longer matches and `publish` refuses until a new approval records both reviews.
+
 - 2026-08-27 — **accepted: IELTS is a material family, not a second product.** Recorded as
   [ADR 0009](decisions/0009-ielts-is-a-material-family-not-a-second-product.md). English Studio
   already carried 12 IELTS Academic Task 1 prompts with reviewed assets, 12 Task 2 prompts, and
