@@ -9,6 +9,41 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-08-27 — **in_review: the homepage leads with English Studio.** Owner decision, stated
+  the same day: English Studio is the flagship and has no domain of its own, so `bcailab.com`
+  is where a visitor meets the product — the position ChatGPT holds on its maker's site.
+  Mapdown is a side project, Posts is internal, and VanMemo already has its own domain, so all
+  three become an *Other projects* strip rather than cards competing with the flagship.
+
+  The hero now sells English Studio instead of "an independent AI product lab", and the lab
+  identity it displaced survives as the eyebrow and the closing section. Below it, the module
+  grid is rendered **from `ENGLISH_MODULES`** rather than a hand-written list, so the homepage
+  cannot drift from the registry `docs/access-model.md` calls authoritative; routes and
+  anonymous access come from `resolveEnglishModuleDestination`, which is what makes Reading and
+  Writing link to their trial routes while only Speech opens the popup. A signed-out visitor
+  gets Translate as the primary action (it is the public funnel) with *See what's inside* beside
+  it; a signed-in visitor gets one *Open English Studio* button, and the access wording
+  disappears, since "no account" is noise once you have one. Mapdown, absent from the homepage
+  entirely until now, appears there for the first time.
+
+  The three *How we build* principle cards were dropped rather than relocated: `/about` already
+  carries a Product principles section, and a generic manifesto between the product and the
+  other projects diluted the hierarchy this change exists to state. The module grid reuses
+  `.home-tool-*`, a block of CSS that had been dead since an earlier homepage revision stopped
+  using it.
+
+  Evidence: browser QA signed out and signed in at 1280px, and at 375px with no horizontal
+  overflow and the grid stacked to one column; light and dark both checked; no console errors.
+  Link resolution verified against `docs/access-model.md` from the rendered DOM — Dictation and
+  Translate straight in, Reading and Writing to `/reading/trial` and `/writing/trial`, Speech to
+  the popup, AI Dictionary unlinked as planned. `docs/access-model.md` §Surfaces was rewritten
+  in the same change because it described the old studio-index homepage. 689 tests, typechecks,
+  lint and both production builds pass.
+
+  Supersedes the unmerged `claude/homepage-studio-index` branch, which made English Studio and
+  Mapdown co-equal lead cards with unequal widths — a half-step this decision replaces. Its
+  access-tier copy and Mapdown description were carried over.
+
 - 2026-08-26 — **accepted: owner sweep of the five outstanding `in_review` items.** The owner
   accepted every remaining `in_review` entry after merging them into `main`: Mapdown
   canvas-first chrome; the root label as a map's name everywhere; the Windows one-line label

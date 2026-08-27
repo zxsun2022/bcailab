@@ -18,7 +18,11 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   growth, Dictation session navigation and cues, shared return-link placement, Reading's
   personal-text affordance, and a Speech compose-height investigation. Recorded 2026-07-30 in
   `docs/ux-follow-ups-2026-07-30.md`; this is a discussion record, not a commitment or ordering.
-- Homepage redesign.
+- Homepage redesign. **Partly settled 2026-08-27**: the owner decided the product hierarchy —
+  English Studio is the flagship and, until it has a domain of its own, `bcailab.com` is where a
+  visitor meets it; Mapdown is a side project, Posts is internal, and VanMemo has its own site.
+  The page was rebuilt around that (see `docs/changelog.md`). What remains open here is the
+  visual redesign itself, not the hierarchy.
 - Overall visual language pass across the studio.
 - An admin/back-office system for **content** (material-library management currently happens
   through `scripts/material-seed/` and raw SQL). Deferred while there are no real users and no
