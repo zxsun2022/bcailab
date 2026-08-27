@@ -1,78 +1,92 @@
 import { Link, useOutletContext, useSearchParams } from "@remix-run/react";
 import type { User } from "@bcailab/db";
+import {
+  ENGLISH_MODULES,
+  resolveEnglishModuleDestination,
+  type EnglishModule
+} from "~/english-modules";
 import { openLoginPopup } from "~/utils/login-popup";
 
-interface Product {
+/**
+ * The homepage leads with English Studio, because it is the flagship and has no domain of
+ * its own (owner decision, 2026-08-27). Until it gets one, `bcailab.com` is the place a
+ * visitor meets the product; the lab identity that used to own the hero is now a line at the
+ * foot of the page, and Mapdown, Posts and VanMemo are an "Other projects" strip rather than
+ * cards competing for the same attention.
+ *
+ * The module grid is rendered from `ENGLISH_MODULES` rather than a hand-written list, so the
+ * homepage cannot drift from the registry that `docs/access-model.md` calls authoritative.
+ * Routes and anonymous-access rules come from `resolveEnglishModuleDestination`: `public`
+ * modules link straight in, `trial` modules send a signed-out visitor to their trial route,
+ * and only `auth` modules open the login popup.
+ *
+ * The lab's principles are deliberately not repeated here — `/about` carries them, and a
+ * generic "how we build" section between the product and the other projects would dilute
+ * exactly the hierarchy this page exists to state.
+ */
+
+interface OtherProject {
   href: string;
-  kicker: string;
   title: string;
+  note: string;
   description: string;
-  modules: string[];
   requiresAuth?: boolean;
   external?: boolean;
 }
 
-const products: Product[] = [
+const otherProjects: OtherProject[] = [
   {
-    href: "/english",
-    kicker: "Flagship product",
-    title: "English Studio",
+    href: "https://map.bcailab.com",
+    title: "Mapdown",
+    note: "No account",
     description:
-      "One workspace for deliberate English practice. Take dictation sentence by sentence, recite passages with AI evaluation, revise essays with a writing coach, generate speech audio for shadowing, and translate with an LLM — all under one account with shared progress.",
-    modules: [
-      "Dictation",
-      "Reading & Recitation",
-      "Writing Coach",
-      "Translate",
-      "Speech",
-      "Dictionary (soon)"
-    ]
-  },
-  {
-    href: "https://vanmemo.com",
-    kicker: "Separate product",
-    title: "VanMemo",
-    description:
-      "A calm home for fleeting thoughts. Capture an idea the moment it shows up — no folder to pick, no title to invent — then find it again later through tags, search, and pins. Private by default, exportable as Markdown, with revision history so nothing is ever lost.",
-    modules: ["Quick capture", "Tags", "Search", "Markdown export"],
+      "A keyboard-driven Markdown mind-map editor. Enter adds a sibling, Tab adds a child, and maps live in your browser — so it works offline and on the first visit.",
     external: true
   },
   {
     href: "/posts",
-    kicker: "Utility",
     title: "Posts",
+    note: "Account required",
     description:
-      "A quiet publishing tool. Write in Markdown, publish in one step, and share a clean public URL without formatting overhead.",
-    modules: ["Markdown", "Publish"],
+      "A quiet publishing tool. Write in Markdown, publish in one step, share a clean public URL.",
     requiresAuth: true
+  },
+  {
+    href: "https://vanmemo.com",
+    title: "VanMemo",
+    note: "Separate site",
+    description:
+      "A calm home for fleeting thoughts. Capture without picking a folder or inventing a title, then find it again by tag, search, or pin.",
+    external: true
   }
 ];
 
-const principles = [
-  {
-    title: "One clear tool for one clear job",
-    body: "Each product solves a concrete problem with a calm interface, instead of growing into a control panel of loosely related features."
-  },
-  {
-    title: "AI in the loop, not in the way",
-    body: "Models do the evaluating, coaching, and translating behind the scenes; the surface stays simple enough to use every day."
-  },
-  {
-    title: "Shared foundations",
-    body: "One account, one design language, one infrastructure. Products stay small because the platform underneath does the heavy lifting."
-  }
-];
+/** What a signed-out visitor may do with a module, in the words the cards use. */
+const ACCESS_NOTE: Record<EnglishModule["access"], string> = {
+  public: "No account",
+  trial: "Free to try",
+  auth: "Account"
+};
 
 export default function Index() {
   const { user } = useOutletContext<{ user: User | null }>();
   const [params] = useSearchParams();
   const loginHint = params.get("login");
+  const signedIn = Boolean(user);
 
-  const handleProductClick = (event: React.MouseEvent, product: Product) => {
-    if (product.requiresAuth && !user) {
+  const modules = ENGLISH_MODULES;
+
+  const handleProjectClick = (event: React.MouseEvent, project: OtherProject) => {
+    if (project.requiresAuth && !user) {
       event.preventDefault();
       openLoginPopup();
     }
+  };
+
+  const handleModuleClick = (event: React.MouseEvent, requiresLogin: boolean) => {
+    if (!requiresLogin) return;
+    event.preventDefault();
+    openLoginPopup();
   };
 
   return (
@@ -80,86 +94,132 @@ export default function Index() {
       <section className="home-hero">
         <div className="home-eyebrow">
           <span className="home-eyebrow-line" />
-          An independent AI product lab
+          English Studio — from bcailab
         </div>
         <h1 className="home-title">
-          Where AI meets
+          Deliberate English practice,
           <br />
-          <em>everyday life.</em>
+          <em>one attempt at a time.</em>
         </h1>
         <p className="home-desc">
-          bcailab is a small studio that designs and ships focused AI products —
-          tools that bring language models into real workflows like reading,
-          writing, speaking, and publishing.
+          Take dictation sentence by sentence, recite passages and learn exactly what needs
+          work, revise essays with a writing coach, generate audio for shadowing, and translate
+          without leaving the page — one account, shared progress across every mode.
         </p>
+        <div className="home-hero-actions">
+          {signedIn ? (
+            <Link to="/english" className="btn btn-primary">
+              Open English Studio
+            </Link>
+          ) : (
+            <>
+              <Link to="/translate" className="btn btn-primary">
+                Try Translate — no account
+              </Link>
+              <Link to="/english" className="btn btn-secondary">
+                See what&rsquo;s inside
+              </Link>
+            </>
+          )}
+        </div>
+        {signedIn ? null : (
+          <p className="home-hero-access">
+            Translate and Dictation are open to everyone. Reading and Writing include a free
+            trial before you sign in.
+          </p>
+        )}
         {loginHint ? (
-          <div className="home-login-hint">
-            Please sign in to access the tools.
-          </div>
+          <div className="home-login-hint">Please sign in to access the tools.</div>
         ) : null}
       </section>
 
-      <section className="home-products">
+      <section className="home-modules">
         <div className="home-tools-header">
-          <span className="home-tools-label">Products</span>
-          <span className="home-tools-count">{products.length}</span>
+          <span className="home-tools-label">Inside English Studio</span>
+          <span className="home-tools-count">{modules.length}</span>
         </div>
-        <div className="home-product-list">
-          {products.map((product) => {
-            const body = (
-              <>
-                <div className="home-product-kicker">{product.kicker}</div>
-                <div className="home-product-head">
-                  <h2 className="home-product-title">{product.title}</h2>
-                  <span className="home-tool-arrow">&rarr;</span>
+        <div className="home-tool-grid">
+          {modules.map((module) => {
+            const planned = module.status === "planned";
+            const destination = resolveEnglishModuleDestination(module, signedIn);
+            const card = (
+              <div className="home-tool-card">
+                <div className="home-tool-head">
+                  <h2 className="home-tool-title">{module.label}</h2>
+                  {planned ? (
+                    <span className="home-tool-badge">Planned</span>
+                  ) : (
+                    <span className="home-tool-arrow">&rarr;</span>
+                  )}
                 </div>
-                <p className="home-product-desc">{product.description}</p>
-                <div className="home-tool-tags">
-                  {product.modules.map((mod) => (
-                    <span key={mod} className="home-tool-tag">
-                      {mod}
+                <p className="home-tool-desc">{module.description}</p>
+                {planned || !signedIn ? (
+                  <div className="home-tool-tags">
+                    <span className="home-tool-tag">
+                      {planned ? "Not built yet" : ACCESS_NOTE[module.access]}
                     </span>
-                  ))}
-                </div>
-              </>
+                  </div>
+                ) : null}
+              </div>
             );
 
-            return product.external ? (
-              <a
-                key={product.href}
-                href={product.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="home-product"
-              >
-                {body}
-              </a>
+            return planned ? (
+              <div key={module.id} className="home-tool-card-link is-planned">
+                {card}
+              </div>
             ) : (
               <Link
-                key={product.href}
-                to={product.href}
-                className="home-product"
-                onClick={(e) => handleProductClick(e, product)}
+                key={module.id}
+                to={destination.href}
+                className="home-tool-card-link"
+                onClick={(e) => handleModuleClick(e, destination.requiresLogin)}
               >
-                {body}
+                {card}
               </Link>
             );
           })}
         </div>
       </section>
 
-      <section className="home-principles">
+      <section className="home-projects">
         <div className="home-tools-header">
-          <span className="home-tools-label">How we build</span>
+          <span className="home-tools-label">Other projects</span>
+          <span className="home-tools-count">{otherProjects.length}</span>
         </div>
-        <div className="home-principle-grid">
-          {principles.map((principle, index) => (
-            <div key={principle.title} className="home-principle">
-              <div className="home-principle-index">{String(index + 1).padStart(2, "0")}</div>
-              <h3 className="home-principle-title">{principle.title}</h3>
-              <p className="home-principle-body">{principle.body}</p>
-            </div>
-          ))}
+        <div className="home-project-list">
+          {otherProjects.map((project) => {
+            const body = (
+              <>
+                <div className="home-project-head">
+                  <h2 className="home-project-title">{project.title}</h2>
+                  <span className="home-project-note">{project.note}</span>
+                  <span className="home-tool-arrow">&rarr;</span>
+                </div>
+                <p className="home-project-desc">{project.description}</p>
+              </>
+            );
+
+            return project.external ? (
+              <a
+                key={project.href}
+                href={project.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="home-project"
+              >
+                {body}
+              </a>
+            ) : (
+              <Link
+                key={project.href}
+                to={project.href}
+                className="home-project"
+                onClick={(e) => handleProjectClick(e, project)}
+              >
+                {body}
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -169,9 +229,9 @@ export default function Index() {
         </div>
         <div className="home-lab-body">
           <p>
-            bcailab is built and run by <strong>Zhongxing Sun</strong> from Burnaby,
-            British Columbia, Canada. The lab stays small on purpose so the shipped
-            tools can stay sharp — growth is deliberate, one useful product at a time.
+            bcailab is built and run by <strong>Zhongxing Sun</strong> from Burnaby, British
+            Columbia, Canada. The lab stays small on purpose so the shipped tools can stay
+            sharp — growth is deliberate, one useful product at a time.
           </p>
           <div className="home-lab-links">
             <Link to="/about" className="home-lab-link">

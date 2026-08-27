@@ -38,9 +38,13 @@ does not navigate to the tool page first. This applies to auth-required module c
 
 ## Surfaces
 
-The homepage is a studio page: product cards link to landing pages. `/english` is public and
-serves as the product landing page for signed-out visitors; signed-in visitors are redirected
-to `/english/home`.
+The homepage leads with English Studio (owner decision, 2026-08-27) and renders its module
+grid from the `ENGLISH_MODULES` registry, so the same three tiers apply there: `public` modules
+link straight in, `trial` modules send a signed-out visitor to their trial route, and only
+`auth` modules open the popup. Mapdown, Posts and VanMemo are an "Other projects" strip; Posts
+is the one homepage link that still opens the popup directly. `/english` is public and serves
+as the product landing page for signed-out visitors; signed-in visitors are redirected to
+`/english/home`.
 
 ## OAuth flow
 

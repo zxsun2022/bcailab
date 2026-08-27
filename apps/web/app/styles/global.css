@@ -1465,6 +1465,22 @@ select.input:focus {
   color: var(--text-muted);
 }
 
+.home-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: var(--space-xl);
+}
+
+.home-hero-access {
+  margin: var(--space-md) auto 0;
+  max-width: 460px;
+  color: var(--text-faint);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 .home-login-hint {
   margin: var(--space-lg) auto 0;
   padding: 10px 12px;
@@ -1626,10 +1642,71 @@ select.input:focus {
 
 /* ---- studio homepage: products / principles / lab ---- */
 
+.home-modules,
+.home-projects,
 .home-products,
 .home-principles,
 .home-lab {
   margin-top: var(--space-3xl);
+}
+
+/* ---- other projects: one compact row each, deliberately quieter than the module grid ---- */
+
+.home-project-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.home-project {
+  display: block;
+  padding: 18px 4px;
+  border-top: 1px solid var(--border);
+  color: inherit;
+  transition: border-color var(--transition-base);
+}
+
+.home-project:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.home-project:hover .home-tool-arrow {
+  transform: translateX(4px);
+  color: var(--color-action);
+}
+
+.home-project-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.home-project-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.home-project-note {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Pushes the arrow to the trailing edge without giving the row a second flex container. */
+.home-project-head .home-tool-arrow {
+  margin-left: auto;
+  align-self: center;
+}
+
+.home-project-desc {
+  max-width: 640px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .home-product-list {
