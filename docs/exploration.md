@@ -148,3 +148,48 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
      half.
 
   Nothing here has acceptance criteria. Promotion is the owner's call.
+
+- **An offline compute layer, not request-path agent-ification** (owner-agreed framing
+  2026-08-27; *proposal only, not authorized*). Raised as "the AI use is still single-call, not
+  agentic, and user-generated context is not being used". The second half of that sentence is
+  the real finding; the first half names the wrong target, and the distinction is worth keeping
+  because acting on the wrong half is expensive.
+
+  **Single-call is not a deficiency here, and this entry is not a reason to revisit
+  [ADR 0005](decisions/0005-reading-grader-stays-single-call.md).** That record measured the
+  Reading grader's variance and *declined* the deterministic multi-step rebuild — evidence-based
+  restraint, and still correct. An agent loop buys two things: tool calls against real external
+  state, and iteration against a checkable criterion. Grading a hundred-word essay has neither —
+  there is nothing to look up, and the rubric is not machine-verifiable. Adding a loop on the
+  request path buys latency, variance and untestability, not capability.
+
+  **What is actually missing is a place for work to happen outside a request.** Every model call
+  in this repository is request-scoped: a learner clicks, one call runs, the result lands in D1,
+  and nothing further ever reads it as evidence. The only background job that exists is
+  `workers/session-cleanup`, a single daily cron. There is no queue, no workflow, no scheduled
+  job that thinks about a learner between visits.
+
+  **The wasted asset is the per-learner corpus.** Reading attempts carry ASR output and
+  structured evaluations; Dictation carries per-sentence scores; Writing carries multi-round
+  feedback JSON; Translate carries source/result pairs. Today that entire corpus feeds counters
+  plus some `learner_tag_observations` rows that `SOURCE_WEIGHT` deliberately discounts. The
+  highest-leverage AI work in this product is not a cleverer evaluator — it is turning that
+  corpus into *the next item*: three misuses of a modal in last week's writing becoming
+  tomorrow's listening discrimination, cloze, and spoken rewrite. That is the same
+  **encounter → understand → remember → produce** loop the wondering.app entry above identifies,
+  seen from the supply side.
+
+  **This needs a job runner, not a harness.** The primitives are already in this stack's world
+  and one of them is already proven here (D1 plus a Cron Trigger); Queues and Workflows are the
+  same mental model. No bespoke education agent framework is required — the hard parts of
+  education are "what does this evidence mean" and "what should the next item be", which are
+  measurement and content problems, not runtime ones. Anything built here stays off the request
+  path, so a failed or slow job degrades tomorrow's practice, never today's page.
+
+  **Ordering, deliberately not first.** This ranks *after* an enrolment unit (which waits on
+  nothing) and *after* the two measurement gaps in Next, for a blunt reason: a per-learner corpus
+  over roughly zero learners is roughly zero corpus, and a job that generates items from evidence
+  needs the evidence to cover more than half the modes. Building the runner before either would
+  be infrastructure with nothing true to compute.
+
+  Nothing here has acceptance criteria. Promotion is the owner's call.
