@@ -20,6 +20,18 @@ make the final transition; see `AGENTS.md`.
   sentence, no digits, valid two-to-six-word titles) with no duplicate title anywhere in the
   library.
 
+  *Register correction after sampling (2026-08-27).* An owner sample of three B2 and three C1
+  passages prompted a register check against the existing forty, which found the new B2 and C1
+  sentences materially shorter: C1 averaged 68.8 characters against the library's 89.2, and its
+  11.0 words per sentence was identical to the new B1 set. The syntax was right and the length
+  was not, which for dictation is the part that matters — sentence length is memory load, so the
+  band would have quietly become easier. Both bands were rewritten in place, keeping each
+  passage's id, band, topic and title so the change reads as a diff; B2 now averages 80.8
+  characters against 79.3, and C1 86.4 against 89.2. A2 and B1 already matched and were left
+  alone. Two content flags from the same sample were fixed: an appeal to unnamed research for a
+  contested empirical claim, and a passage that delivered a verdict where it should state a
+  tension.
+
   *IELTS prompts 24 → 48*, source 48 → 72, with balance preserved: Task 1 from two to four per
   material kind across all six kinds, Task 2 from three to six per family across all four.
   General prompts untouched.
