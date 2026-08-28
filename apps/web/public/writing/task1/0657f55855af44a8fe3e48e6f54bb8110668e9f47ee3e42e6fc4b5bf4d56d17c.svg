@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title">
+<title id="title">Marden council budget by area</title>
+<rect width="960" height="600" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Marden council budget by area</text>
+<text x="48" y="92" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of annual budget</text>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="243.47343065320894 541.9247327442392" stroke-dashoffset="0" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="219.9114857512855 565.4866776461627" stroke-dashoffset="-243.47343065320894" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="164.93361431346412 620.4645490839841" stroke-dashoffset="-463.38491640449445" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="102.10176124166827 683.29640215578" stroke-dashoffset="-628.3185307179585" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#B88914" stroke-width="86" stroke-dasharray="54.97787143782138 730.4202919596269" stroke-dashoffset="-730.4202919596269" transform="rotate(-90 245 300)"/>
+<text x="349.2121523585948" y="234.17749439063155" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">31%</text>
+<text x="283.93614129124336" y="424.83312105318936" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">28%</text>
+<text x="126.44902311176759" y="347.6809779509067" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">21%</text>
+<text x="150.4860052265621" y="221.67470496921985" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">13%</text>
+<text x="217.51395158403565" y="182.03448799571783" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">7%</text>
+<circle cx="245" cy="300" r="78" fill="#FBFAF7"/><text x="245" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2014</text>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="329.86722862692824 455.53093477052" stroke-dashoffset="0" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="204.20352248333654 581.1946409141117" stroke-dashoffset="-329.86722862692824" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="117.80972450961723 667.588438887831" stroke-dashoffset="-534.0707511102648" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="94.24777960769379 691.1503837897544" stroke-dashoffset="-651.8804756198821" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#B88914" stroke-width="86" stroke-dasharray="39.269908169872416 746.1282552275758" stroke-dashoffset="-746.1282552275759" transform="rotate(-90 655 300)"/>
+<text x="777.0414783022075" y="273.66507421722827" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">42%</text>
+<text x="616.0638587087566" y="424.8331210531893" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">26%</text>
+<text x="529.0621733939179" y="301.042244356156" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">15%</text>
+<text x="574.684577291665" y="207.91533141025062" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">12%</text>
+<text x="635.2892574049309" y="180.55126908501265" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">5%</text>
+<circle cx="655" cy="300" r="78" fill="#FBFAF7"/><text x="655" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2024</text>
+<rect x="90" y="520" width="15" height="15" rx="3" fill="#2457D6"/><text x="113" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Social care</text>
+<rect x="365" y="520" width="15" height="15" rx="3" fill="#D9663D"/><text x="388" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Education</text>
+<rect x="640" y="520" width="15" height="15" rx="3" fill="#2F8F69"/><text x="663" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Roads and transport</text>
+<rect x="90" y="548" width="15" height="15" rx="3" fill="#8B5FBF"/><text x="113" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Waste services</text>
+<rect x="365" y="548" width="15" height="15" rx="3" fill="#B88914"/><text x="388" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Parks and culture</text>
+</svg>

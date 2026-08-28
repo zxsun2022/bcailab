@@ -819,8 +819,18 @@ that IELTS is a family of material rather than a second product. This is a **con
 push, not engineering**: the pipelines already exist and are unchanged by this item
 (`scripts/material-seed/` for passages, `scripts/writing-prompt-seed/` for prompts).
 
-**The numbers below are the proposal and need the owner's confirmation before generation
-starts.** Everything else in this item is settled.
+**Counts confirmed by the owner 2026-08-27.** Drafts for both halves are generated and
+validated; nothing is published.
+
+**Correction to this item's own framing (2026-08-27).** "Content-and-review push, not
+engineering" held for the passages and was wrong for the writing prompts. The first batch's
+census — exactly 48 prompts, 12 per IELTS task, 2 per Task 1 kind, 3 per Task 2 kind — was
+frozen as literals in three places: `scripts/writing-prompt-seed/policy.ts`, a second copy in
+`packages/db/src/writing-prompt-content.test.ts`, and the `validate` command's summary line.
+Any second batch was therefore a code change by construction. The census now lives in one
+`WRITING_PROMPT_BATCH_CENSUS` constant with its totals derived from it, the duplicate assertion
+is gone, and the summary counts instead of stating. No schema, taxonomy, evaluator or navigation
+change was needed, so the item's boundary held even though its cost estimate did not.
 
 ### Scope
 
@@ -861,6 +871,25 @@ starts.** Everything else in this item is settled.
   is the intended path rather than a migration.
 - Local D1 checks confirm the new counts per band and per task family, and that Reading,
   Dictation and Writing catalogues page correctly at the larger size with no unbounded query.
+
+### Progress — drafts complete, in_review (2026-08-27)
+
+- **Passages 40 → 80.** The existing forty were one passage per topic per band across ten
+  topics; the new forty add ten topics on the same grid (education, technology, money,
+  neighbourhood, sport, music, pets, housing, friendship, celebrations), so the library stays
+  one passage per topic per band. All eighty pass `intake.ts`: 8–12 sentences, no sentence over
+  110 characters, no digits, valid titles, and no duplicate title anywhere in the library.
+- **IELTS prompts 24 → 48**, source 48 → 72. Task 1 goes 2 → 4 per material kind across all six
+  kinds; Task 2 goes 3 → 6 per family across all four. `validate`, `derive --check`,
+  `review-pack` and `preflight` all pass; 72 prompts and 24 Task 1 SVG assets are derived and
+  committed. General prompts untouched at 24.
+- **693 tests, both typechecks, lint (0 errors) and both production builds pass.**
+- **Not done, and blocking publication.** (a) The independent second-model content check the
+  material pipeline's review policy requires has **not** been run — the same model generated
+  this batch, so its self-review is not the independent pass. (b) No owner review yet. (c) The
+  batch hash moved from `38d84de9` to `034b84f4`, so the committed approval file no longer
+  matches and `publish` stays blocked until a new approval records both reviews. (d) No TTS has
+  been spent and no D1 row, local or remote, has been written.
 
 ### The honest caveat, recorded deliberately
 

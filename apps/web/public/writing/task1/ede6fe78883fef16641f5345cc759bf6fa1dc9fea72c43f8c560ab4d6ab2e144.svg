@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="640" viewBox="0 0 960 640" role="img" aria-labelledby="title">
+<title id="title">Telephone subscriptions per hundred people in Larkmoor</title>
+<rect width="960" height="640" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Telephone subscriptions per hundred people in Larkmoor</text>
+<rect x="50" y="82" width="15" height="15" rx="3" fill="#2457D6"/><text x="73" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Mobile</text>
+<rect x="310" y="82" width="15" height="15" rx="3" fill="#D9663D"/><text x="333" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Fixed line</text>
+<rect x="570" y="82" width="15" height="15" rx="3" fill="#2F8F69"/><text x="593" y="95" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Fixed broadband</text>
+<text x="90" y="157" fill="#596577" font-family="system-ui, sans-serif" font-size="14">subscriptions per hundred people</text>
+<line x1="90" y1="525" x2="880" y2="525" stroke="#D9DDE3"/><text x="78" y="530" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">0</text>
+<line x1="90" y1="455" x2="880" y2="455" stroke="#D9DDE3"/><text x="78" y="460" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">24.8</text>
+<line x1="90" y1="385" x2="880" y2="385" stroke="#D9DDE3"/><text x="78" y="390" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">49.6</text>
+<line x1="90" y1="315" x2="880" y2="315" stroke="#D9DDE3"/><text x="78" y="320" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">74.4</text>
+<line x1="90" y1="245" x2="880" y2="245" stroke="#D9DDE3"/><text x="78" y="250" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">99.2</text>
+<line x1="90" y1="175" x2="880" y2="175" stroke="#D9DDE3"/><text x="78" y="180" text-anchor="end" fill="#596577" font-family="system-ui, sans-serif" font-size="13">124</text>
+<line x1="90" y1="175" x2="90" y2="525" stroke="#596577" stroke-width="2"/>
+<line x1="90" y1="525" x2="880" y2="525" stroke="#596577" stroke-width="2"/>
+<text x="90" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2005</text>
+<text x="485" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2012</text>
+<text x="880" y="555" text-anchor="middle" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">2019</text>
+<polyline points="90,409.2741935483871 485,276.61290322580646 880,175" fill="none" stroke="#2457D6" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="409.2741935483871" r="5" fill="#2457D6"/>
+<circle cx="485" cy="276.61290322580646" r="5" fill="#2457D6"/>
+<circle cx="880" cy="175" r="5" fill="#2457D6"/>
+<polyline points="90,378.2258064516129 485,417.741935483871 880,465.7258064516129" fill="none" stroke="#D9663D" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="378.2258064516129" r="5" fill="#D9663D"/>
+<circle cx="485" cy="417.741935483871" r="5" fill="#D9663D"/>
+<circle cx="880" cy="465.7258064516129" r="5" fill="#D9663D"/>
+<polyline points="90,499.5967741935484 485,457.258064516129 880,420.56451612903226" fill="none" stroke="#2F8F69" stroke-width="4" stroke-linejoin="round"/>
+<circle cx="90" cy="499.5967741935484" r="5" fill="#2F8F69"/>
+<circle cx="485" cy="457.258064516129" r="5" fill="#2F8F69"/>
+<circle cx="880" cy="420.56451612903226" r="5" fill="#2F8F69"/>
+</svg>

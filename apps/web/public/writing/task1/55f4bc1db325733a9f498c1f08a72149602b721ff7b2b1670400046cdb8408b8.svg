@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600" role="img" aria-labelledby="title">
+<title id="title">Household waste by destination in Ashgrove</title>
+<rect width="960" height="600" rx="24" fill="#FBFAF7"/>
+<text x="48" y="55" fill="#18202B" font-family="system-ui, sans-serif" font-size="26" font-weight="700">Household waste by destination in Ashgrove</text>
+<text x="48" y="92" fill="#596577" font-family="system-ui, sans-serif" font-size="14">percent of household waste</text>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="455.53093477051993 329.8672286269283" stroke-dashoffset="0" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="188.49555921538757 596.9026041820607" stroke-dashoffset="-455.53093477051993" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="78.53981633974483 706.8583470577034" stroke-dashoffset="-644.0264939859076" transform="rotate(-90 245 300)"/>
+<circle cx="245" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="62.83185307179586 722.5663103256524" stroke-dashoffset="-722.5663103256524" transform="rotate(-90 245 300)"/>
+<text x="367.0414783022075" y="336.3349257827717" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">58%</text>
+<text x="125.16687894681066" y="343.9361412912434" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">24%</text>
+<text x="153.14995294490214" y="218.74706465298522" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">10%</text>
+<text x="213.66507421722824" y="182.9585216977925" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">8%</text>
+<circle cx="245" cy="300" r="78" fill="#FBFAF7"/><text x="245" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2010</text>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2457D6" stroke-width="86" stroke-dasharray="227.76546738525997 557.6326960121883" stroke-dashoffset="0" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#D9663D" stroke-width="86" stroke-dasharray="298.45130209103036 486.9468613064179" stroke-dashoffset="-227.76546738525997" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#2F8F69" stroke-width="86" stroke-dasharray="149.22565104551518 636.172512351933" stroke-dashoffset="-526.2167694762903" transform="rotate(-90 655 300)"/>
+<circle cx="655" cy="300" r="125" fill="none" stroke="#8B5FBF" stroke-width="86" stroke-dasharray="109.95574287564276 675.4424205218055" stroke-dashoffset="-675.4424205218055" transform="rotate(-90 655 300)"/>
+<text x="754.559531559337" y="227.77371123972495" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">29%</text>
+<text x="670.7919874291024" y="430.0064523656242" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">38%</text>
+<text x="529.5591924600119" y="293.1423525218673" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">19%</text>
+<text x="601.3518092628008" y="190.99179138928156" text-anchor="middle" fill="#FFFFFF" font-family="system-ui, sans-serif" font-size="13" font-weight="700">14%</text>
+<circle cx="655" cy="300" r="78" fill="#FBFAF7"/><text x="655" y="306" text-anchor="middle" fill="#18202B" font-family="system-ui, sans-serif" font-size="20" font-weight="700">2024</text>
+<rect x="90" y="520" width="15" height="15" rx="3" fill="#2457D6"/><text x="113" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Landfill</text>
+<rect x="365" y="520" width="15" height="15" rx="3" fill="#D9663D"/><text x="388" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Recycling</text>
+<rect x="640" y="520" width="15" height="15" rx="3" fill="#2F8F69"/><text x="663" y="533" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Composting</text>
+<rect x="90" y="548" width="15" height="15" rx="3" fill="#8B5FBF"/><text x="113" y="561" fill="#3C4655" font-family="system-ui, sans-serif" font-size="14">Energy recovery</text>
+</svg>
