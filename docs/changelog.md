@@ -40,11 +40,14 @@ make the final transition; see `AGENTS.md`.
   deliberately short sentences and one or two long ones, with no change to what any passage
   says. B2 is now 77.5 mean / 10.1 sd against 79.3 / 8.7; C1 is 86.8 / 6.1 against 89.2 / 6.4.
 
-  *A finding this measurement produced, not yet acted on.* The **B1** set, which was left alone
-  because its mean looked close enough, is flatter and shorter than the existing B1 on a proper
-  comparison: 56.7 mean and 7.0 sd against 63.8 and 13.4, with a range of 36–70 against 38–86.
-  Existing B1 is by some distance the most varied band in the library. This was reported rather
-  than fixed, since the owner had scoped the rewrite to B2 and C1.
+  *B1 too, on the owner's instruction.* The same measurement showed B1 was in fact the
+  worst-matched band, having been left alone only because its mean looked close enough: 56.7
+  mean and 7.0 sd against the existing 63.8 and 13.4, over a range of 36–70 against 38–86.
+  Existing B1 is by some distance the most varied band in the library, and the new ten were its
+  flattest. Rewritten to the same profile, B1 now reads 64.7 / 12.7 over 36–89. All four bands
+  now sit within a few characters of their existing counterparts on both mean and spread:
+  A2 43.6/6.4 against 40.6/6.9, B1 64.7/12.7 against 63.8/13.4, B2 77.5/10.1 against 79.3/8.7,
+  and C1 86.8/6.1 against 89.2/6.4.
 
   *IELTS prompts 24 → 48*, source 48 → 72, with balance preserved: Task 1 from two to four per
   material kind across all six kinds, Task 2 from three to six per family across all four.
