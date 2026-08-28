@@ -32,6 +32,20 @@ make the final transition; see `AGENTS.md`.
   contested empirical claim, and a passage that delivered a verdict where it should state a
   tension.
 
+  *Variance restored after a second sample (2026-08-27).* Correcting the mean flattened the
+  rhythm: new C1 sentences reached standard deviation 3.1 against the library's 6.4, nearly all
+  within a few characters of 86, where the existing forty run from 67 to 99. Uniform load per
+  sentence is not what the library sounds like, and a dictation passage with no short sentences
+  gives the learner nowhere to catch up. Each B2 and C1 passage now carries two or three
+  deliberately short sentences and one or two long ones, with no change to what any passage
+  says. B2 is now 77.5 mean / 10.1 sd against 79.3 / 8.7; C1 is 86.8 / 6.1 against 89.2 / 6.4.
+
+  *A finding this measurement produced, not yet acted on.* The **B1** set, which was left alone
+  because its mean looked close enough, is flatter and shorter than the existing B1 on a proper
+  comparison: 56.7 mean and 7.0 sd against 63.8 and 13.4, with a range of 36–70 against 38–86.
+  Existing B1 is by some distance the most varied band in the library. This was reported rather
+  than fixed, since the owner had scoped the rewrite to B2 and C1.
+
   *IELTS prompts 24 → 48*, source 48 → 72, with balance preserved: Task 1 from two to four per
   material kind across all six kinds, Task 2 from three to six per family across all four.
   General prompts untouched.
