@@ -193,3 +193,23 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   be infrastructure with nothing true to compute.
 
   Nothing here has acceptance criteria. Promotion is the owner's call.
+
+- **Cross-mode learner context for graders** (owner-raised 2026-09-14; *proposal only, not
+  authorized*). Raised as "learning records are under-used, there is no context engineering,
+  and each exercise's grader data stays isolated". Verified in code, and more specific than it
+  sounds: every grader remembers one passage, one Writing session, or nothing; Writing's feedback
+  never reaches the shared learner layer; and the only cross-mode input any grader receives is at
+  most eight short profile phrases on the Reading evaluator.
+
+  The proposal's central move is to separate **grader context** — derived per call, allowed to
+  carry earlier coach feedback labelled as such, needing no vocabulary — from **measurement**,
+  which it leaves untouched. That lets Writing's feedback inform other graders without waiting
+  on the vocabulary Writing's entry into the profile still needs. Rollout follows contamination
+  risk: Dictation feedback, then Writing, then Reading behind an anchoring spike, because Reading
+  is the one grader whose output becomes observations. Two design/code drifts and one prompt
+  mislabel found on the way are recorded there too.
+
+  It waits on neither the two measurement gaps nor a job runner, and it is the read side of the
+  corpus the offline compute layer above would generate from. Design, draft acceptance criteria
+  and five owner decisions: [`docs/learner-context-proposal.md`](learner-context-proposal.md).
+  Nothing here has acceptance criteria. Promotion is the owner's call.
