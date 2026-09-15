@@ -45,10 +45,12 @@ at all. This iteration builds the missing substrate and the first surface that c
 - **Onboarding UI / a placement test.** Notes §1 is decisive: no gate. We store a level and
   correct it, but the one-tap level picker is its own roadmap item.
 - **Writing into the profile from writing practice.** Writing material is a prompt, not a
-  passage, and has no tag vocabulary (notes §5, material design §5.4). Writing contributes
-  its CEFR signal and practice-time counters only; its error patterns wait until there is a
-  vocabulary that fits them. The profile schema must not assume writing is absent, but no
-  writing→tag write path is built this iteration.
+  passage, and has no tag vocabulary (notes §5, material design §5.4). As built, Writing
+  writes nothing to the profile — no counters and no CEFR signal — and its error patterns wait
+  until there is a vocabulary that fits them. The profile schema must not assume writing is
+  absent, but no writing→tag write path is built this iteration. *(Corrected 2026-09-15: this
+  bullet said Writing "contributes its CEFR signal and practice-time counters only"; the code
+  never did either. Owner decision D5 in `docs/learner-context-proposal.md` §9.)*
 - **User-supplied passages feeding the model.** `source='user'` rows are untagged by decision
   (material design §5.4), so attempts on them produce no tag observations. They still count
   toward practice time. Revisit when the model is mature enough to fold them in.
@@ -71,6 +73,11 @@ Applied here:
 This is the same division that governed dictation feedback and the material tagger. It is why
 the observation layer is not just "store the LLM's opinion of the learner" — that opinion
 drifts between Tuesdays and cannot be recomputed.
+
+This principle governs **measurement**. What a grader is *told* about the learner before judging
+a piece is a separate layer with its own rules: it may carry earlier coach feedback labelled as
+such, and nothing in it is ever written back as a measurement. See
+[ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md).
 
 ## 3. What already exists (and why it is not enough)
 
@@ -297,8 +304,12 @@ Dictation is the placement instrument (notes §1). Estimation is deterministic:
   B2 passage is evidence the learner is at or above B2; low accuracy on A2 is evidence of
   below-A2. Accumulate these into `cefr_measured` with a confidence that grows with the number
   and band-spread of attempts.
-- Reading contributes its LLM `cefr_guess`/`cefr_confidence` (already produced) as a weaker
-  secondary signal, folded in at lower weight.
+- Reading's LLM `cefr_guess`/`cefr_confidence` (already produced) is **not** folded in. As
+  built, `runRecompute` estimates from dictation alone, and the guess is shown only on the
+  evaluation. Folding it in would move the level a learner sees, so it is a measurement change
+  that needs its own evidence first. *(Corrected 2026-09-15: this bullet said Reading contributes
+  the guess "as a weaker secondary signal, folded in at lower weight"; the code never did. Owner
+  decision D5 in `docs/learner-context-proposal.md` §9.)*
 
 Confidence, not just a point estimate, is what §8's override rule needs. The mechanics
 (exact banding thresholds) are a tuning detail; the schema commitment is `cefr_measured` +

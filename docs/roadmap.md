@@ -901,6 +901,84 @@ practice engine that does not exist yet. If usage later shows learners concentra
 band or one family, that evidence should redirect the *next* batch rather than this one.
 
 
+## Now — Learner context for graders
+
+The owner authorized Stage 1 of [the learner context proposal](learner-context-proposal.md) on
+2026-09-15 and confirmed its five decisions as recommended. The problem, verified in code: every
+grader remembers one object rather than the learner — Reading one passage, Writing one session,
+Dictation feedback one attempt. Writing's feedback never reaches the shared learner layer, and the
+only cross-mode input any grader receives is at most eight profile phrases on the Reading
+evaluator.
+
+### Decisions (owner, 2026-09-15)
+
+- **D1 — Context is separate from measurement.** A grader may be given deterministic aggregates
+  and earlier coach feedback labelled as earlier AI judgement; nothing in context is written back
+  as a measurement. Recorded as
+  [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md).
+- **D2 — Saved translations are excluded** from grader context.
+- **D3 — Rollout order is Dictation → Writing → Reading.** Reading receives context only after the
+  anchoring spike in (d) passes. The spike also runs against today's `persistent_issues` injection,
+  whatever Stage 1's outcome.
+- **D4 — Stage 2 follows Stage 1** as context-only structured categories (see Next).
+- **D5 — The design text describes the code.** `docs/learner-model-design.md` §1 and §7 were
+  corrected in the authorizing change. Folding Reading's `cefr_guess` into the CEFR estimate is a
+  measurement change that needs its own evidence, and is not part of this item.
+
+### Scope
+
+- A pure learner brief and per-grader projection beside `learner-model.ts`, and a server assembler
+  reading at most four bounded sources: the profile row; the latest feedback round of up to six
+  other non-deleted Writing sessions; up to six other completed Dictation attempts with feedback;
+  and up to six Reading evaluations on other passages. Bounds, grouping, truncation and the
+  projection table follow proposal §4.2–§4.3.
+- One prompt section with one renderer, placed after each grader's rubric and before the work
+  being judged, carrying the usage rules in proposal §4.4. When Reading is enabled, its brief
+  replaces the current `persistent_issues`/`strengths` injection.
+- The Dictation prompt gives the learner's level — or "not established" — separately from the
+  passage band.
+- A `--brief <file>` option on `scripts/grader-variance.ts` for the anchoring spike.
+
+### Acceptance criteria
+
+- (a) **Pure logic, vitest-covered.** Output stays under the character ceiling however much history
+  exists; a null level renders "not established" and never B1; no empty section appears when
+  evidence is absent; ordering and truncation are deterministic; each projection contains only
+  what proposal §4.3 assigns to its grader.
+- (b) **Data scope, verified against local D1 on the dev server.** A brief never contains another
+  user's data, rounds of a deleted Writing session, soft-deleted Dictation attempts, or evaluations
+  of deleted Reading attempts, and the assembler never reads `saved_translations`.
+- (c) **Prompts.** Dictation feedback, Writing feedback and Reading evaluation include their
+  projection for signed-in learners, enabled in that order. Trial prompts are unchanged, proven by
+  prompt fixtures. The Dictation prompt no longer presents the passage band as the learner's level.
+- (d) **Anchoring gate for Reading.** A spike recorded in `docs/spikes/` runs one fixed recording
+  five times each with no brief, with a brief asserting a weakness the recording does not show,
+  and with one asserting a weakness it does show. Reading is enabled only if the false brief keeps
+  the primed tag's highlight count within the no-brief runs' range and the overall-score standard
+  deviation stays under ADR 0005's 4 points. The same spike against today's `persistent_issues`
+  injection is recorded regardless. A failing result is reported to the owner rather than worked
+  around; choosing between the fallbacks in proposal §5 is the owner's call.
+- (e) **Cost and latency.** At most four additional bounded D1 reads per evaluation, performed
+  inside each grader's existing evaluation task, so no page request gains a query unless it
+  already waits on the model call (Reading's inline path when `waitUntil` is unavailable). Assembly
+  failure degrades to no brief and never fails an evaluation.
+- (f) **Unchanged contracts.** No migration, and no change to stored feedback schemas,
+  `learner_tag_observations`, `SOURCE_WEIGHT`, the naming pass, or CEFR resolution.
+- (g) **Privacy.** No brief content in logs — counts and ids only.
+- (h) **Verification.** `pnpm test`, typechecks, lint (0 errors) and both production builds pass.
+- (i) **Docs in the same PR.** The grader-context sections of `docs/tools/esl.md`,
+  `docs/tools/writing.md` and `docs/tools/dictation.md`; the learner-model paragraph of
+  `docs/architecture.md`; and a `docs/changelog.md` entry marked `in_review`.
+
+### Explicitly excluded
+
+Stage 2 categories (Next); Writing observations or a Writing measurement vocabulary (Next); any
+change to aggregation, `SOURCE_WEIGHT`, the naming pass or CEFR resolution, including folding in
+Reading's `cefr_guess` (D5); the recommender and Dictation v2 matching; a Today queue, an enrolment
+unit, or an offline job runner; any new learner-facing surface; trials; and saved translations
+(D2).
+
+
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first
   Markdown mind-map editor at `apps/mapdown`, live at `map.bcailab.com`. The editor works:
@@ -947,11 +1025,33 @@ band or one family, that evidence should redirect the *next* batch rather than t
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the
   presentation half, and it follows the colour work.
-- Fold **writing** into the ability profile. Writing currently contributes only counters and
-  Continue/Recent entries, because it has no tag vocabulary — a prompt is not a passage. The
-  mechanism is settled (IA v2 design §6.3): a new vocabulary plus a writer emitting into the same
+- **Learner context Stage 2 — structured feedback categories** (owner-authorized 2026-09-15;
+  starts only after "Now — Learner context for graders" is accepted). Writing annotations and
+  Dictation error patterns gain an optional `category` from one closed list, so the learner brief
+  groups recurring issues by category rather than by the model's free-text names, and Dictation
+  notes become filterable for Reading. Context only, under
+  [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md): categories never enter
+  `learner_tag_observations`, and choosing a Writing measurement vocabulary stays the item below.
+  Acceptance: (a) one module defines the closed list, with a one-line definition per category, and
+  both graders' prompts and output normalisers reference it instead of restating it; (b) stored
+  feedback without the field still loads and renders, proven by parser fixtures over old Writing
+  and Dictation payloads, as the `next_drills` compatibility work did; (c) a missing or unknown
+  category normalises to absent and never fails an evaluation; (d) the brief groups on `category`
+  when present and falls back to Stage 1 grouping otherwise, with unit tests over mixed old and new
+  history; (e) Reading's projection gains category-filtered Dictation notes only after Stage 1's
+  anchoring spike is re-run with them and passes; and (f) no migration, no measurement change, and
+  no learner-facing surface change. Explicitly excluded: backfilling categories into stored
+  feedback, Writing observation rows, and showing categories to learners.
+- Fold **writing** into the ability profile. Writing reaches the shared learner surfaces only as
+  Home's Continue/Recent entries: it writes nothing to the profile — no observations, counters, or
+  CEFR signal — because it has no tag vocabulary; a prompt is not a passage. The mechanism is
+  settled (IA v2 design §6.3): a new vocabulary plus a writer emitting into the same
   `learner_tag_observations` table, surfaced on `/english/progress` rather than crowding the Home
-  snapshot. Blocked on that vocabulary, not on schema.
+  snapshot. Blocked on that vocabulary, not on schema. Stage 3 of
+  `docs/learner-context-proposal.md` records three problems the vocabulary decision must solve —
+  exposure without a reference text, grader recall inflating mastery, and keeping production apart
+  from perception in aggregation — and the Stage 2 categories above are its intended input.
+  Writing's feedback reaching other graders does **not** wait on this item (ADR 0010).
 
 ## Later
 

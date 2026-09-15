@@ -9,6 +9,28 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-15 — **accepted: grader context is a separate layer from measurement.** Recorded as
+  [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). The owner observed on
+  2026-09-14 that learning records go unused and each exercise's grader data stays isolated.
+  Checked in code, every grader remembers one object rather than the learner — Reading one passage,
+  Writing one session, Dictation feedback one attempt. Writing contributes nothing to the shared
+  learner layer, and the only cross-mode input any grader receives is at most eight profile
+  phrases on the Reading evaluator. The record separates what a grader is *told* about the learner
+  — derived per call, allowed to carry earlier coach feedback labelled as such — from what the
+  system *measures*, which stays exactly as it was; saved translations are excluded from context.
+
+  In the same decision the owner confirmed the proposal's five decisions as recommended and
+  authorized **"Now — Learner context for graders"** (Stage 1: a per-call learner brief, rolled out
+  Dictation → Writing → Reading, with Reading behind an anchoring spike) and a **Stage 2** Next item
+  (structured feedback categories, context only). Decision 5 was applied in this change rather than
+  deferred. `docs/learner-model-design.md` §1 said Writing contributes CEFR signal and practice
+  counters, and §7 said Reading's `cefr_guess` is folded into the CEFR estimate; neither was ever
+  true in code, and both bullets now say so with a dated correction. The roadmap's *Fold writing
+  into the ability profile* item made the same counters claim and was corrected alongside. Folding
+  `cefr_guess` in remains a measurement change that needs its own evidence.
+
+  Design and evidence: `docs/learner-context-proposal.md`. Nothing is implemented yet.
+
 - 2026-08-27 — **in_review: material library expansion drafts — 80 passages and 48 IELTS
   prompts.** Both halves of the authorized expansion are generated and validated; **nothing is
   published**, no TTS has been spent, and no D1 row has been written.

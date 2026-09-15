@@ -194,12 +194,12 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
 
   Nothing here has acceptance criteria. Promotion is the owner's call.
 
-- **Cross-mode learner context for graders** (owner-raised 2026-09-14; *proposal only, not
-  authorized*). Raised as "learning records are under-used, there is no context engineering,
-  and each exercise's grader data stays isolated". Verified in code, and more specific than it
-  sounds: every grader remembers one passage, one Writing session, or nothing; Writing's feedback
-  never reaches the shared learner layer; and the only cross-mode input any grader receives is at
-  most eight short profile phrases on the Reading evaluator.
+- **Cross-mode learner context for graders** (owner-raised 2026-09-14; **authorized
+  2026-09-15**, see the end of this entry). Raised as "learning records are under-used, there is
+  no context engineering, and each exercise's grader data stays isolated". Verified in code, and
+  more specific than it sounds: every grader remembers one passage, one Writing session, or
+  nothing; Writing's feedback never reaches the shared learner layer; and the only cross-mode
+  input any grader receives is at most eight short profile phrases on the Reading evaluator.
 
   The proposal's central move is to separate **grader context** — derived per call, allowed to
   carry earlier coach feedback labelled as such, needing no vocabulary — from **measurement**,
@@ -210,6 +210,10 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   mislabel found on the way are recorded there too.
 
   It waits on neither the two measurement gaps nor a job runner, and it is the read side of the
-  corpus the offline compute layer above would generate from. Design, draft acceptance criteria
-  and five owner decisions: [`docs/learner-context-proposal.md`](learner-context-proposal.md).
-  Nothing here has acceptance criteria. Promotion is the owner's call.
+  corpus the offline compute layer above would generate from. Design:
+  [`docs/learner-context-proposal.md`](learner-context-proposal.md).
+
+  **Authorized 2026-09-15.** The owner confirmed all five decisions as recommended. Stage 1 is
+  *Now — Learner context for graders* and Stage 2 is a Next item in `docs/roadmap.md`; the split
+  itself is [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). This entry
+  remains as the record of how the idea arrived, not as the plan.

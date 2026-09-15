@@ -1,8 +1,10 @@
 # Learner Context for Graders — Proposal
 
-Status: **proposal, not authorized.** Owner-raised 2026-09-14. Nothing here is on
-`docs/roadmap.md`; the acceptance criteria in §8 are drafts for the owner to accept, change, or
-reject. Indexed from `docs/exploration.md`.
+Status: **approved 2026-09-15.** Owner-raised 2026-09-14. The owner confirmed all five §9
+decisions as recommended and authorized Stage 1 as *Now — Learner context for graders* and Stage 2
+as a Next item in `docs/roadmap.md`. The measurement/context split is
+[ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). **The roadmap carries
+the binding acceptance criteria**; §8 is the draft they were refined from.
 
 Intended reader: the owner deciding whether to promote this, and the agent who would implement
 it. Read `docs/learner-model-design.md` first — this proposal leaves that design's measurement
@@ -51,8 +53,10 @@ On the consuming side, `/english/progress` reads the profile row and dictation a
 
 ### 1.3 Drift and defects found on the way
 
-Recorded here because they are the same isolation seen from other angles. This proposal fixes
-none of them without the owner's say.
+Recorded here because they are the same isolation seen from other angles. Their disposition
+after the owner's 2026-09-15 decisions: the two design drifts are corrected in the design text
+(D5), the Dictation mislabel is fixed by Stage 1, and the anchoring loop is measured by Stage 1's
+gate.
 
 - **Writing's contribution is overstated in the design.** `learner-model-design.md` §1 says
   Writing "contributes its CEFR signal and practice-time counters only". The code writes
@@ -278,6 +282,10 @@ them a tested contract.
 
 ## 8. Draft acceptance criteria for Stage 1
 
+*Superseded 2026-09-15 by the acceptance criteria in `docs/roadmap.md` (Now — Learner context
+for graders), which refine these — notably data-scope checks against local D1, the Reading
+anchoring gate's pass condition, and an exact latency bound. Kept as the draft of record.*
+
 - (a) A pure `buildLearnerBrief` and per-grader projection, vitest-covered: output stays bounded
   under hostile volume; a null level renders "not established" and never B1; no empty section
   when evidence is absent; ordering and truncation are deterministic; deleted inputs contribute
@@ -295,7 +303,12 @@ them a tested contract.
   `docs/tools/writing.md` and `docs/tools/dictation.md`; a pointer from
   `docs/learner-model-design.md`; the learner-model paragraph in `docs/architecture.md`.
 
-## 9. Decisions for the owner
+## 9. Decisions — confirmed by the owner, 2026-09-15
+
+All five were confirmed as recommended. Decision 1 is recorded as
+[ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md); decisions 2–4 bind the
+roadmap items; decision 5 was applied to `docs/learner-model-design.md` §1 and §7 in the
+authorizing change, together with the pointer (g) called for.
 
 1. **Split measurement from context** (§3): graders may receive earlier coach feedback, labelled
    as such, while measurement stays exactly as it is. *Recommendation: yes — this is the
