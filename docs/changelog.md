@@ -9,6 +9,30 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-15 — **in_review: learner context for graders — Dictation feedback step.** Dictation
+  feedback, the first grader in the rollout order, now receives the learner brief (ADR 0010): the
+  learner's own level or "not established", tag accuracy with each line's provenance, patterns
+  named in the feedback on their last six completed attempts, and grammar notes from the latest
+  feedback of their six most recent Writing sessions. The pure brief lives in `learner-context.ts`;
+  the server assembler adds three bounded reads inside the existing background task and logs counts
+  only. The prompt also stops presenting the passage band as the learner's level, and an unbanded
+  passage is no longer handed an invented B1. The profile naming pass now shares its weak and
+  strong thresholds with the brief instead of keeping private literals, so both call the same tags
+  weak. `docs/tools/dictation.md` and `docs/architecture.md` describe the new input.
+
+  Evidence: 17 brief tests, 3 prompt fixtures and 1 query fixture; 714 tests, all typechecks, lint
+  (0 errors) and the production build pass. Data scope was verified by running the real assembler
+  against a fresh, fully migrated local D1 through wrangler's platform proxy, seeded with rows that
+  must stay out — another user's work, a deleted session's retained rounds, soft-deleted and
+  unfinished attempts, a newer failed round, a saved translation. All 17 checks passed with three
+  reads, none touching `saved_translations`. The dev server renders a dictation passage page on the
+  changed route with no console errors.
+
+  **Owed before acceptance: a signed-in end-to-end run.** Criterion (b) names the dev server. The
+  scratch D1 run exercises the same query and assembler on workerd's D1, but the feedback path
+  needs a signed-in session, so no real model call has yet run with a brief and its effect on the
+  feedback is unobserved. Writing and Reading are not started.
+
 - 2026-09-15 — **accepted: grader context is a separate layer from measurement.** Recorded as
   [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). The owner observed on
   2026-09-14 that learning records go unused and each exercise's grader data stays isolated.

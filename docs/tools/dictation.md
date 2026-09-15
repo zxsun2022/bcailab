@@ -166,10 +166,18 @@ factual: raw ops, no interpretations.
 
 LLM feedback (`apps/web/app/utils/dictation-feedback.server.ts`, task `dictation_feedback`) runs
 in a background `waitUntil` task after the attempt is committed, filling the `feedback_json`
-null slot that the summary polls. Input is the non-match ops plus the CEFR band — never audio.
-Output is 2–4 error patterns, each `{ pattern, evidence, tip }`.
+null slot that the summary polls. Output is 2–4 error patterns, each `{ pattern, evidence, tip }`.
+Input is the attempt's non-match ops, the passage's CEFR band — stated as the passage's, never as
+the learner's level — and a **learner brief** (`learner-context.ts`, ADR 0010): the learner's own
+level or "not established", tag accuracy with each line's provenance, patterns named in the
+feedback on their last six completed attempts, and grammar notes from the latest feedback of their
+six most recent Writing sessions. Never audio.
 
-- The deterministic diff **measures**; the model only **names the patterns**.
+- The deterministic diff **measures**; the model only **names the patterns**. The brief is context,
+  not measurement — this grader's measurement is the diff, computed before the call.
+- The brief is assembled inside the same background task from three bounded reads. Deleted
+  attempts and rounds of deleted Writing sessions never enter it, saved translations are never
+  read, and only counts are logged. If assembly fails, feedback runs without it.
 - A flawless attempt skips the call entirely.
 - Failure never fails the attempt: the row is already stored, the error is logged for
   `wrangler tail`, and the panel is simply absent. The client stops polling after ~30s.
@@ -186,6 +194,7 @@ Output is 2–4 error patterns, each `{ pattern, evidence, tip }`.
 - No dynamic per-user material generation — that is v2, and v2 does *matching* against a larger
   pre-generated library rather than runtime generation.
 - No word-level audio/text sync highlighting (Chirp3 provides no word timepoints).
-- Dictation does **not** read or write `esl_learner_profiles` (a v2 concern).
+- Dictation writes learner observations and counters, and its feedback reads a learner brief built
+  from the profile (above). It does not *match* material to the learner — that is v2.
 - No admin UI for content management.
 - Single synthesized speed, en-US only.

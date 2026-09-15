@@ -111,8 +111,9 @@ export type ReadingHighlight = {
   text_quote?: string | null;
 };
 
-/** The only tags a spoken-reading evaluation is allowed to touch. */
-const READING_TAGS = new Set<PassageTagName>([
+/** The only tags a spoken-reading evaluation is allowed to touch. Exported because the learner
+ *  brief labels these tags' mastery as possibly AI-judged (ADR 0010). */
+export const READING_TAGS: ReadonlySet<PassageTagName> = new Set<PassageTagName>([
   "th_sound",
   "consonant_cluster",
   "homophone",
@@ -237,6 +238,15 @@ export const aggregateTagMastery = (observations: TagObservation[]): TagMasteryM
   }
   return out;
 };
+
+/* ---------- naming thresholds ---------- */
+
+/** A tag needs at least this much exposure before it is worth naming to the learner. */
+export const NAMING_MIN_EXPOSURE = 6;
+/** Mastery below this is named as a weakness; at or above `STRONG_MASTERY_FROM`, as a strength.
+ *  Shared by the profile naming pass and the learner brief, so both call the same tags weak. */
+export const WEAK_MASTERY_BELOW = 0.7;
+export const STRONG_MASTERY_FROM = 0.9;
 
 /* ---------- CEFR estimation from dictation ---------- */
 

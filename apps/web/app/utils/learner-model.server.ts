@@ -13,8 +13,11 @@ import {
   aggregateTagMastery,
   attributeDictationErrors,
   estimateCefrFromDictation,
+  NAMING_MIN_EXPOSURE,
   resolveCefr,
+  STRONG_MASTERY_FROM,
   TAG_DESCRIPTIONS,
+  WEAK_MASTERY_BELOW,
   type DictationSentenceInput,
   type TagMasteryMap
 } from "~/utils/learner-model";
@@ -31,8 +34,6 @@ import {
 
 /** Recompute after this many attempts since the last one. Tunable (design §6.2). */
 const RECOMPUTE_EVERY = 3;
-/** A tag needs at least this much exposure before it is worth naming to the learner. */
-const MIN_EXPOSURE_TO_NAME = 6;
 
 /**
  * Record a completed dictation attempt into the learner model: attribute its errors to the
@@ -152,14 +153,14 @@ const runNamingPass = async (
 ): Promise<void> => {
   const named = Object.entries(tagMastery)
     .map(([tag, m]) => ({ tag, ...m }))
-    .filter((m) => m.exposure >= MIN_EXPOSURE_TO_NAME);
+    .filter((m) => m.exposure >= NAMING_MIN_EXPOSURE);
 
   const weak = named
-    .filter((m) => m.mastery < 0.7)
+    .filter((m) => m.mastery < WEAK_MASTERY_BELOW)
     .sort((a, b) => a.mastery - b.mastery)
     .slice(0, 4);
   const strong = named
-    .filter((m) => m.mastery >= 0.9)
+    .filter((m) => m.mastery >= STRONG_MASTERY_FROM)
     .sort((a, b) => b.mastery - a.mastery)
     .slice(0, 4);
 

@@ -1001,6 +1001,26 @@ Reading's `cefr_guess` (D5); the recommender and Dictation v2 matching; a Today 
 unit, or an offline job runner; any new learner-facing surface; trials; and saved translations
 (D2).
 
+### Progress
+
+- **Dictation feedback step — in_review (2026-09-15).** Dictation feedback, first in the rollout
+  order, now receives the learner brief; Writing and Reading are not started. Evidence: the pure
+  `learner-context.ts` is covered by 17 tests (a null level never rendered as B1, provenance on
+  every tag line, exposure and mastery thresholds, exclusion of the current, unfinished and deleted
+  attempts, dimension normalisation, the grammar-only projection, quote flattening, the
+  1,800-character ceiling, determinism); three prompt fixtures prove the band is stated as the
+  passage's and the brief sits before the errors; one fixture pins the new Writing query. For (b),
+  the real assembler ran against a fresh, fully migrated local D1 through wrangler's platform proxy
+  — workerd's D1, not a mock — over seeded rows that must stay out: another user's sessions and
+  attempts, a deleted session's retained rounds, soft-deleted and unfinished attempts, a newer
+  failed round, a pending session and a saved translation. All 17 checks passed, with three reads
+  and none touching `saved_translations`; the Writing query plan uses `idx_writing_articles_user`
+  and the per-article round index. The dev server renders a dictation passage page on the changed
+  route with no console errors. 714 tests, all typechecks, lint (0 errors) and the production build
+  pass. **Owed before acceptance:** a signed-in end-to-end run on the dev server. The feedback path
+  needs a signed-in session, so no real model call has yet run with a brief, and its effect on the
+  feedback itself is unobserved.
+
 
 ## Next
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first

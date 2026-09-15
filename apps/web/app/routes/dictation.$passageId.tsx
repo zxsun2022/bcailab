@@ -282,8 +282,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         attemptId,
         userId: user.id,
         // Library passages are always banded; the column is nullable only because
-        // user-supplied passages share the table and are left untagged (design §5.4).
-        band: passage.band ?? "B1",
+        // user-supplied passages share the table and are left untagged (design §5.4). An
+        // unbanded passage is described without a band rather than handed an invented one.
+        band: passage.band,
         results
       });
 
