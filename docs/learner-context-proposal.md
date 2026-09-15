@@ -4,11 +4,12 @@ Status: **approved 2026-09-15.** Owner-raised 2026-09-14. The owner confirmed al
 decisions as recommended and authorized Stage 1 as *Now — Learner context for graders* and Stage 2
 as a Next item in `docs/roadmap.md`. The measurement/context split is
 [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). **The roadmap carries
-the binding acceptance criteria**; §8 is the draft they were refined from.
+the binding acceptance criteria**; §8 is the draft they were refined from. Revised the same day
+after an outside review; §11 lists what changed.
 
-Intended reader: the owner deciding whether to promote this, and the agent who would implement
-it. Read `docs/learner-model-design.md` first — this proposal leaves that design's measurement
-rules intact and adds a layer beside them.
+Intended reader: the agent implementing Stage 1, and anyone reopening its decisions. Read
+`docs/learner-model-design.md` first — this proposal leaves that design's measurement rules intact
+and adds a layer beside them.
 
 ## 0. The observation, and what verification added
 
@@ -95,9 +96,9 @@ Measurement and context are different jobs with different rules:
 |---|---|---|
 | Question it answers | How good is this learner at X? | What should this coach know before judging this piece? |
 | Consumers | Progress, CEFR estimate, a future matcher | One grader call |
-| Admissible inputs | Deterministic tallies; LLM-derived rows down-weighted | Deterministic aggregates **and** earlier coach feedback, labelled as such |
+| Admissible inputs | Deterministic tallies; LLM-derived rows down-weighted | Profile aggregates labelled with their provenance, **and** earlier coach feedback labelled as earlier AI judgement |
 | Needs a vocabulary | Yes | No |
-| Persistence | Append-only rows, denormalised profile | None: derived per call |
+| Persistence | Append-only rows, denormalised profile | None: assembled per call from current history |
 | Characteristic failure | Wrong numbers | Anchoring — the grader finds what it was told to expect |
 
 Separating them is what lets Writing's feedback reach other graders **now**, without waiting on
@@ -113,9 +114,9 @@ One pure, bounded, cross-mode summary, assembled per grader call and never store
 
 ```ts
 type LearnerBrief = {
-  asOf: string; // every source row is bounded by created_at < asOf
+  assembledAt: string;
   level: { value: CefrLevel | null; basis: "measured" | "declared" | "default"; confidence: number };
-  measured: { weak: TagLine[]; strong: TagLine[] }; // from tag_mastery_json
+  tagAccuracy: { weak: TagLine[]; strong: TagLine[] }; // from tag_mastery_json
   coachNotes: {
     // Earlier LLM feedback. Never measurements.
     writing: { dimension: string; sessions: number; examples: Note[] }[];
@@ -123,13 +124,30 @@ type LearnerBrief = {
     reading: { kind: string; count: number; examples: Note[] }[];
   };
 };
-type TagLine = { tag: string; label: string; mastery: number; exposure: number; trend: number };
+type TagLine = {
+  tag: string;
+  label: string;
+  mastery: number;
+  exposure: number;
+  trend: number;
+  provenance: "deterministic" | "may_include_ai";
+};
 type Note = { quote: string; diagnosis: string; at: string };
 ```
 
-Every source is append-mostly and carries `created_at`, so a brief is **re-derivable as of any
-past evaluation** without being stored — the same re-runnability the observation layer has.
-Deleted work breaks exact reproduction, deliberately (§4.5).
+**Tag accuracy is not pure measurement, and each line says so.** `tag_mastery_json` blends two
+kinds of evidence: Dictation's deterministic diff, and the down-weighted `llm` observations Reading
+writes for its own six tags. A tag outside that set can only have come from Dictation, so it is
+deterministic by construction. A tag inside it may include earlier AI judgement — Reading's own
+included — and is labelled that way even when the learner happens to have only Dictation evidence
+for it. Exact per-source provenance would cost another read; the static rule is conservative and
+costs none.
+
+**Assembly is deterministic over current history, not a record of the past.** The same stored rows
+always produce the same brief, but a brief cannot be reproduced as of an earlier evaluation:
+`esl_learner_profiles` is overwritten at every recompute, a dictation attempt stores no completion
+time, and feedback is written after its row is created — and replaced when a Writing round is
+retried. Stage 1 accepts that; recording briefs would be a separate decision.
 
 ### 4.2 Sources and bounds
 
@@ -146,11 +164,12 @@ migration. The two latest-row reads use the correlated-subquery pattern
 
 Assembly is deterministic. Weak and strong tags reuse the naming pass's thresholds (exposure ≥ 6,
 mastery < 0.7 or ≥ 0.9) rather than adding another definition. Writing notes group on the rubric
-`dimension`, a closed set per coach in `writing-agents.ts`. Dictation patterns group on the
-case-folded pattern name. Quotes are cut to 80 characters and diagnoses to 140, the rendered
-brief has a hard ceiling of about 1,800 characters with a fixed truncation order (examples
-first, then the oldest groups), and a brief with no evidence renders nothing at all — no empty
-headings.
+`dimension`: the prompt asks each coach to choose from its own set in `writing-agents.ts`, but the
+stored value is not validated, so the brief matches it against that set and groups anything
+unmatched as other. Dictation patterns group on the case-folded pattern name. Quotes are cut to 80
+characters and diagnoses to 140, and the rendered brief has a hard ceiling of about 1,800
+characters with a fixed truncation order (examples first, then the oldest groups). A brief with
+nothing but a level renders only the level line — no usage rules and no empty headings.
 
 Free-text grouping of dictation patterns is crude: "Dropped articles" and "Missing articles"
 do not merge. Stage 1 accepts that, since the grader reads recurrence for itself; Stage 2
@@ -164,9 +183,9 @@ tested, not a schema:
 
 | Grader | Receives | Withheld, and why |
 |---|---|---|
-| Dictation feedback | The learner's level, labelled separately from the passage band; weak and strong tags; dictation notes from earlier attempts; writing notes on grammar dimensions | Reading notes: prosody does not explain a transcription error |
-| Writing feedback | Level; writing notes from other sessions; weak `article`, `final_s`, `past_ed`, labelled as **listening** evidence | Phonetic and prosodic tags; reading and dictation notes |
-| Reading evaluation | Level; tags in Reading's own six-tag set; reading notes from other passages | Writing notes. Dictation notes until Stage 2 makes them filterable by category |
+| Dictation feedback | The learner's level, labelled separately from the passage band; weak and strong tags, each with its provenance; dictation notes from earlier attempts; writing notes on grammar dimensions | Reading notes: prosody does not explain a transcription error |
+| Writing feedback | Level; writing notes from other sessions; weak `article`, `final_s`, `past_ed` — deterministic by construction — labelled as **listening** evidence | Phonetic and prosodic tags; reading and dictation notes |
+| Reading evaluation | Level; tags in Reading's own six-tag set, all labelled as possibly including earlier AI judgement; reading notes from other passages | Writing notes. Dictation notes until Stage 2 makes them filterable by category |
 | Profile naming | Unchanged in every stage of this proposal | It feeds `/english/progress`, a measurement surface |
 
 For Reading, the brief **replaces** today's `persistent_issues`/`strengths` injection rather
@@ -179,16 +198,19 @@ One renderer, one section, placed after the rubric and before the work being jud
 existing prompt already ends with the current text, and that stays last:
 
 ```text
-## Learner context (other practice, as of 2026-09-14)
+## Learner context (other practice, as of 2026-09-15)
 Use this only to prioritise and connect what you observe in the current work.
-- Judge the current work on its own evidence. Never add an issue, highlight, or score
-  because of this section.
+- Judge the current work on its own evidence. Never add an issue, pattern, highlight, or
+  score because of this section.
 - When the current work shows a pattern listed here, say that it recurs.
-- Lines marked "coach note" are earlier AI feedback, not verified measurements.
+- Only lines marked "measured" are deterministic measurements. Accuracy marked "may include
+  AI judgement" and every coach note reflect earlier AI feedback and are not verified.
 - If the current work shows none of this, do not mention it.
 
 Level: not established
-Measured: word-final -s endings — 58% over 41 occurrences, falling
+Tag accuracy:
+- word-final -s endings: 58% over 41 occurrences, falling — measured (dictation)
+- the 'th' sound: 64% over 22 occurrences — may include AI judgement (Reading)
 Coach note (writing, 3 of the last 6 sessions) — Grammatical Range & Accuracy:
   "a important factor" — article before a vowel sound (2026-09-10)
 ```
@@ -227,18 +249,34 @@ graders differ sharply in what that would damage:
 - **Reading closes the loop.** Its highlights *are* its observations: a primed highlight becomes
   an `llm` miss, lowers mastery, strengthens the next brief, and primes the next evaluation.
 
-Hence the order: Dictation, then Writing, then Reading behind a gate. The gate reuses the tool
-that settled ADR 0005. Add a `--brief <file>` option to `scripts/grader-variance.ts`; then, for
-one fixed recording, run five calls with no brief, five with a brief asserting a weakness the
-recording does not show, and five with one it does show. Reading passes if the false brief keeps
-the primed tag's highlight count inside the range of the no-brief runs and the overall-score
-spread stays under ADR 0005's 4-point threshold. More recordings sharpen the result, as ADR 0005
-already notes. The same run pointed at today's `persistent_issues` injection measures the loop
-that exists now.
+Hence the order: Dictation, then Writing, then Reading behind a gate.
 
-If Reading fails the gate, it takes a brief without measured tag claims, or its
-context-conditioned observations take a new `source` value with its own weight — the mechanism
-IA v2 §6.2 already names for new signal sources.
+**The gate measures bias, not stability.** The first draft gated Reading on repeat-call standard
+deviation, the measure ADR 0005 used. That answers a different question: a brief that moved every
+score down by eight points, identically on every call, would have passed. What has to be compared
+is the grader's output *with and without* context, against errors known *before* the runs:
+
+- **Ground truth fixed in advance, never taken from the grader.** By construction where possible —
+  a passage's reference TTS recording as a reading without the weakness, and a reading with
+  scripted errors on pre-listed words as one with it — and otherwise by a human annotation
+  committed before the first run.
+- **Several recordings, both ways round.** Each tested weakness must be present in some recordings
+  and absent in others, across more than one speaker, covering both attribution paths: a
+  word-level tag (`th_sound`) and a prosodic one (`linking`).
+- **Three comparisons.** The shift in mean score; false positives on the tested tag where the
+  weakness is absent, measured as the drop in attributed accuracy exactly as
+  `attributeReadingErrors` computes it; and real errors outside the tested tag that stop being
+  highlighted — Reading keeps at most eight highlights, so a primed weakness can crowd real ones
+  out.
+
+The binding thresholds and the minimum recording set are in the roadmap item, fixed before any
+run. The single-recording `--brief` spike survives as a preliminary screen: it can stop Reading
+early, never enable it. The same evaluation, pointed at today's `persistent_issues` injection,
+measures the loop that already exists.
+
+If Reading fails, it takes a brief without tag claims, or its context-conditioned observations
+take a new `source` value with its own weight — the mechanism IA v2 §6.2 already names for new
+signal sources. Which one is the owner's call.
 
 ## 6. What this proposal does not do
 
@@ -335,3 +373,21 @@ authorizing change, together with the pointer (g) called for.
   entity) all stand unchanged.
 - `docs/exploration.md` — *An offline compute layer* is the generate side of the same corpus; this
   is its read side, and a contract it can reuse.
+
+## 11. Revisions
+
+**2026-09-15, after an outside review forwarded by the owner.** Each point was checked against the
+code before it was accepted, and all three held. The five decisions in §9 are unchanged.
+
+1. **The Reading gate measured stability, not bias** (§5). A standard deviation cannot detect a
+   consistent shift. It is replaced by a with/without comparison against ground truth fixed before
+   the runs, over several recordings; the single-recording spike is now only a screen.
+2. **"Re-derivable as of any past evaluation" was false** (§4.1). The profile row is overwritten
+   at every recompute, completion time is not stored, and feedback arrives after its row. A brief
+   is now promised to be deterministic over current history, and nothing more.
+3. **Tag accuracy was labelled "measured"** (§3, §4.1, §4.3, §4.4) although Reading's six tags
+   blend down-weighted LLM observations into `tag_mastery_json`. Every tag line now carries its
+   provenance.
+
+Checking these also corrected a smaller claim in §4.2: Writing's `dimension` is a closed set only
+in the prompt. Stored values are not validated, so the brief normalises them.

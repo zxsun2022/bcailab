@@ -912,14 +912,14 @@ evaluator.
 
 ### Decisions (owner, 2026-09-15)
 
-- **D1 — Context is separate from measurement.** A grader may be given deterministic aggregates
-  and earlier coach feedback labelled as earlier AI judgement; nothing in context is written back
-  as a measurement. Recorded as
+- **D1 — Context is separate from measurement.** A grader may be given profile aggregates labelled
+  with their provenance, and earlier coach feedback labelled as earlier AI judgement; nothing in
+  context is written back as a measurement. Recorded as
   [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md).
 - **D2 — Saved translations are excluded** from grader context.
 - **D3 — Rollout order is Dictation → Writing → Reading.** Reading receives context only after the
-  anchoring spike in (d) passes. The spike also runs against today's `persistent_issues` injection,
-  whatever Stage 1's outcome.
+  bias evaluation in (d) passes. The evaluation also runs against today's `persistent_issues`
+  injection, whatever Stage 1's outcome.
 - **D4 — Stage 2 follows Stage 1** as context-only structured categories (see Next).
 - **D5 — The design text describes the code.** `docs/learner-model-design.md` §1 and §7 were
   corrected in the authorizing change. Folding Reading's `cefr_guess` into the CEFR estimate is a
@@ -931,33 +931,56 @@ evaluator.
   reading at most four bounded sources: the profile row; the latest feedback round of up to six
   other non-deleted Writing sessions; up to six other completed Dictation attempts with feedback;
   and up to six Reading evaluations on other passages. Bounds, grouping, truncation and the
-  projection table follow proposal §4.2–§4.3.
+  projection table follow proposal §4.2–§4.3. Assembly is deterministic over the history available
+  at call time; it is not a reproducible record of what a past evaluation saw (proposal §4.1).
+- Every tag-accuracy line states its provenance. Tags only Dictation writes are deterministic
+  measurement; Reading's six tags blend down-weighted LLM observations into `tag_mastery_json`, so
+  they are labelled as possibly including earlier AI judgement.
 - One prompt section with one renderer, placed after each grader's rubric and before the work
   being judged, carrying the usage rules in proposal §4.4. When Reading is enabled, its brief
   replaces the current `persistent_issues`/`strengths` injection.
 - The Dictation prompt gives the learner's level — or "not established" — separately from the
   passage band.
-- A `--brief <file>` option on `scripts/grader-variance.ts` for the anchoring spike.
+- For Reading's gate: a `--brief <file>` option on `scripts/grader-variance.ts` for the preliminary
+  screen, and a harness that runs the bias evaluation in (d) over its recording set.
 
 ### Acceptance criteria
 
 - (a) **Pure logic, vitest-covered.** Output stays under the character ceiling however much history
   exists; a null level renders "not established" and never B1; no empty section appears when
   evidence is absent; ordering and truncation are deterministic; each projection contains only
-  what proposal §4.3 assigns to its grader.
+  what proposal §4.3 assigns to its grader; every tag line carries its provenance, and no tag in
+  Reading's six-tag set is ever labelled as measured.
 - (b) **Data scope, verified against local D1 on the dev server.** A brief never contains another
   user's data, rounds of a deleted Writing session, soft-deleted Dictation attempts, or evaluations
   of deleted Reading attempts, and the assembler never reads `saved_translations`.
 - (c) **Prompts.** Dictation feedback, Writing feedback and Reading evaluation include their
   projection for signed-in learners, enabled in that order. Trial prompts are unchanged, proven by
   prompt fixtures. The Dictation prompt no longer presents the passage band as the learner's level.
-- (d) **Anchoring gate for Reading.** A spike recorded in `docs/spikes/` runs one fixed recording
-  five times each with no brief, with a brief asserting a weakness the recording does not show,
-  and with one asserting a weakness it does show. Reading is enabled only if the false brief keeps
-  the primed tag's highlight count within the no-brief runs' range and the overall-score standard
-  deviation stays under ADR 0005's 4 points. The same spike against today's `persistent_issues`
-  injection is recorded regardless. A failing result is reported to the owner rather than worked
-  around; choosing between the fallbacks in proposal §5 is the owner's call.
+- (d) **Bias evaluation before Reading is enabled.** A standard deviation is not evidence here: it
+  measures stability, and a context that shifts every result the same way passes it. Recorded in
+  `docs/spikes/`:
+  - *Preliminary screen.* The single-recording `--brief` spike — five runs each with no brief, a
+    false brief and a true brief. It can stop Reading early; it cannot enable it.
+  - *Recording set, fixed before any run.* At least six recordings from at least two speakers,
+    testing at least `th_sound` (word-level attribution) and `linking` (prosodic attribution). Each
+    tested weakness is present in at least two recordings and absent in at least two, and at least
+    two recordings also carry known errors outside their tested tag. Ground truth is never the
+    grader's own judgement: it comes by construction where possible — a passage's reference TTS
+    recording for "absent", scripted errors on pre-listed words for "present" — and otherwise from
+    a human annotation committed before the first run.
+  - *Runs.* Five per recording with no brief, and five with a brief asserting that recording's
+    tested weakness.
+  - *Pass, all of:* the brief shifts the pooled mean overall score by at most 2 points, and no
+    single recording's mean by more than 4; where the tested weakness is absent, its attributed
+    accuracy — hits ÷ exposure, exactly as `attributeReadingErrors` computes it — falls by at most
+    0.05 pooled; and the share of known errors outside the tested tag that get highlighted falls by
+    at most 0.10 pooled, since Reading keeps at most eight highlights and a primed weakness can
+    crowd real errors out.
+  - The same evaluation runs against today's `persistent_issues` injection and is recorded
+    regardless. These thresholds are fixed here, before any run; changing them is the owner's call.
+    A failing result is reported to the owner rather than worked around, and choosing between the
+    fallbacks in proposal §5 is also the owner's call.
 - (e) **Cost and latency.** At most four additional bounded D1 reads per evaluation, performed
   inside each grader's existing evaluation task, so no page request gains a query unless it
   already waits on the model call (Reading's inline path when `waitUntil` is unavailable). Assembly

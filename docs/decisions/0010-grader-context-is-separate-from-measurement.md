@@ -1,7 +1,7 @@
 # 0010 — Grader context is a separate layer from measurement
 
 **Status:** Accepted · **Date:** 2026-09-15 · **Origin:** owner decision on
-`docs/learner-context-proposal.md`
+`docs/learner-context-proposal.md` · **Corrected:** 2026-09-15 (see *Corrections*)
 
 ## Context
 
@@ -29,9 +29,10 @@ model names patterns without deciding them.
 
 Grader context:
 
-- is **derived per call and never stored** — it is re-derivable as of any past evaluation from
-  timestamped source rows;
-- may carry deterministic aggregates **and earlier coach feedback, labelled as earlier AI
+- is **assembled per call and never stored** — deterministically, from the history available at
+  that moment, with no guarantee of reproducing the context a past evaluation saw;
+- may carry **profile aggregates, each labelled with its provenance** — deterministic measurement,
+  or possibly including earlier AI judgement — **and earlier coach feedback, labelled as earlier AI
   judgement**, so it needs no vocabulary;
 - is given to a grader as material for prioritising and connecting what it observes, **never as
   grounds to add an issue, a highlight, or a score**;
@@ -44,8 +45,11 @@ Every grader that receives context does so under these rules:
 3. **Saved translations are excluded.** Saving is an explicit bookmark, not consent to become
    evidence; revisit only with an explicit per-item control.
 4. A null level reaches a grader as "not established", never as B1 — ADR 0006 applied to prompts.
-5. **Context is extended to a grader whose output becomes observations only after an anchoring
-   measurement shows the context does not bias that output.** Today that grader is Reading.
+5. **Context is extended to a grader whose output becomes observations only after a bias
+   evaluation shows the context does not bias that output.** The evaluation compares that output
+   with and without context against errors known before the runs — the shift in mean score and in
+   false positives, over several recordings. A variance check is not such evidence: a consistent
+   shift passes it. Today that grader is Reading.
 6. Context content is never logged.
 
 ## Alternatives considered
@@ -64,8 +68,10 @@ recomputed, and would put unmeasured judgement where the product shows measureme
 nothing to iterate against, and a loop adds latency and variance to the call. A bounded,
 deterministic brief carries the same information and can be tested.
 
-**Store each assembled brief.** Rejected. It is re-derivable, and a stored copy is one more thing
-deletions would have to reach.
+**Store each assembled brief.** Rejected for Stage 1: nothing reads a past brief, and a stored copy
+is one more thing deletions would have to reach. The accepted cost is that the context a past
+evaluation saw cannot be reconstructed exactly; if investigating grader behaviour ever needs that,
+recording briefs is a new decision.
 
 ## Consequences
 
@@ -73,9 +79,8 @@ deletions would have to reach.
   waiting for a Writing vocabulary.
 - Rollout follows contamination risk: Dictation feedback and Writing first, because neither writes
   observations; Reading last, behind rule 5.
-- The Reading evaluator's existing `persistent_issues` injection predates this record. It is
-  measured with the same anchoring spike, and what follows from a failing result is the owner's
-  decision.
+- The Reading evaluator's existing `persistent_issues` injection predates this record. It goes
+  through the same bias evaluation, and what follows from a failing result is the owner's decision.
 - A new grader or mode joins context by adding a projection, not a schema.
 - Being admissible as context does not make a signal admissible as measurement. Folding Reading's
   `cefr_guess` into the CEFR estimate, a Writing vocabulary, or a promoted `SOURCE_WEIGHT` each
@@ -85,8 +90,8 @@ deletions would have to reach.
 
 - An LLM-judged signal is promoted to formal measurement (roadmap Later). The line between earlier
   coach feedback and measurement then moves, and rule 5 needs re-examining.
-- The anchoring measurement fails for a grader whose output becomes observations, and neither
-  fallback in the proposal's §5 contains it.
+- The bias evaluation fails for a grader whose output becomes observations, and neither fallback in
+  the proposal's §5 contains it.
 
 ## Related
 
@@ -96,3 +101,19 @@ deletions would have to reach.
   [0007](0007-no-cross-tool-practice-session-entity.md) stand unchanged;
   [0006](0006-learner-surface-invariants.md) is applied to prompts by rule 4.
 - `docs/roadmap.md` — *Now — Learner context for graders*.
+
+## Corrections
+
+Made on 2026-09-15, the day this record was accepted, after an outside review the owner forwarded.
+Each point was checked against the code and held. The decision is unchanged; these correct what the
+record said about it.
+
+- The first *Grader context* bullet said a brief is "re-derivable as of any past evaluation from
+  timestamped source rows". It is not: `esl_learner_profiles` is overwritten at every recompute, a
+  dictation attempt stores no completion time, and feedback is written after its row is created.
+  The *Store each assembled brief* rationale, which leaned on that claim, was restated.
+- The second bullet said context may carry "deterministic aggregates". Tag mastery is not purely
+  deterministic — for Reading's six tags it blends down-weighted `llm` observations — so aggregates
+  are now labelled with their provenance.
+- Rule 5 said "an anchoring measurement", and the first plan for it compared standard deviations,
+  which measure stability rather than bias. The rule now names what the evaluation must compare.

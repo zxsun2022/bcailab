@@ -29,6 +29,20 @@ make the final transition; see `AGENTS.md`.
   into the ability profile* item made the same counters claim and was corrected alongside. Folding
   `cefr_guess` in remains a measurement change that needs its own evidence.
 
+  *Review corrections (2026-09-15).* An outside review, forwarded by the owner, found three
+  overstatements. Each was checked against the code, all three held, and ADR 0010, the proposal and
+  the roadmap item were corrected with the five decisions unchanged. The Reading gate compared
+  standard deviations, which measure stability rather than bias — a context that moved every score
+  down by eight points on every call would have passed — so it is now a bias evaluation: several
+  recordings, ground truth fixed before the runs, and pre-registered limits on mean score shift,
+  false positives and crowded-out real errors, with the single-recording spike demoted to a screen.
+  The claim that a brief is re-derivable as of any past evaluation was false, because the profile
+  row is overwritten at each recompute and feedback lands after its row is created; a brief is now
+  promised to be deterministic over current history only. And tag mastery was labelled "measured"
+  although Reading's six tags blend down-weighted LLM observations into it, so every tag line now
+  states its provenance. The same check found that Writing's rubric `dimension` is a closed set only
+  in the prompt — stored values are unvalidated — so the brief normalises it.
+
   Design and evidence: `docs/learner-context-proposal.md`. Nothing is implemented yet.
 
 - 2026-08-27 — **in_review: material library expansion drafts — 80 passages and 48 IELTS
