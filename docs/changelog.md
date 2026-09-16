@@ -9,6 +9,21 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-15 — **in_review: learner context for graders — Writing feedback step.** Signed-in
+  first drafts, revisions and retries now receive other sessions' coach notes and related listening
+  weaknesses. The current session is excluded in SQL before limiting to six sources. Within-session
+  feedback still drives the delta; trials keep byte-identical prompts. Two bounded reads run inside
+  the existing task and fail soft; assembly failure messages in both graders no longer print raw
+  exception text, which could contain source data. No schema or measurement change.
+
+  Evidence: 720 tests, typechecks, lint (0 errors; 9 existing warnings), both builds. On an isolated
+  dev server with real migrated D1 and a synthetic signed-in account, Writing first draft, revision
+  and retry each returned real-model feedback; the revision retained its delta and retry generation
+  advanced. Dictation's signed-in HTTP action also produced real-model feedback while keeping the
+  deterministic accuracy. This closes the previously missing model-path smoke test, not owner
+  acceptance or evidence of broad coaching quality. Scope/read-budget checks and limitations are
+  recorded in [the verification note](spikes/learner-context-writing-verification.md).
+
 - 2026-09-15 — **in_review: learner context for graders — Dictation feedback step.** Dictation
   feedback, the first grader in the rollout order, now receives the learner brief (ADR 0010): the
   learner's own level or "not established", tag accuracy with each line's provenance, patterns

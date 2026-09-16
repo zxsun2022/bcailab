@@ -27,7 +27,8 @@ bcailab is a small tools platform running on Cloudflare. A shared auth system gi
 - **Grader context**: what a grader is *told* about the learner is a separate layer from what the
   learner model measures. Each grader call assembles a bounded learner brief (`learner-context.ts`)
   that is never stored: tag accuracy states its provenance, and earlier AI feedback is labelled as
-  such. Dictation feedback receives it; Writing and Reading follow in the roadmap's order. See
+  such. Dictation and signed-in Writing feedback receive their respective projections; Reading
+  remains behind the roadmap's bias-evaluation gate. See
   docs/decisions/0010-grader-context-is-separate-from-measurement.md.
 - **R2**: Binary storage for generated tool assets (Speech MP3 + ESL reading attempt/reference audio).
   These are private user data served behind auth. The one exception is the `dictation/` prefix:

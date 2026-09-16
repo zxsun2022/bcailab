@@ -33,7 +33,7 @@ describe("Writing feedback rounds for the learner brief", () => {
     expect(sql).toContain("a.deleted_at IS NULL");
     expect(sql).toContain("r2.feedback_status = 'completed'");
     expect(sql).toContain("ORDER BY r2.round_number DESC");
-    expect(bindings).toEqual(["user-1", "user-1", 25]);
+    expect(bindings).toEqual(["user-1", "user-1", null, null, 25]);
     expect(rounds).toEqual([roundRow]);
   });
 });

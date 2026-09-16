@@ -366,6 +366,25 @@ Follows the same async pattern as Reading:
 | `apps/web/app/routes/_index.tsx` | Route | Update homepage: slug `esl/writing` → `writing` |
 | `docs/tools/writing.md` | Doc | This document |
 
+## Learner context for feedback
+
+Signed-in first submissions, revisions and feedback retries receive a per-call learner brief
+(ADR 0010), after the rubric and before the assignment and current draft. It contains the
+learner's level (or "not established"), critical/improvement notes from the latest completed
+feedback of up to six **other** non-deleted Writing sessions, and weak `article`, `final_s` and
+`past_ed` tags explicitly labelled as **listening evidence**, not writing accuracy. Notes retain
+all Writing dimensions, rather than the grammar-only projection used by Dictation. Earlier
+AI feedback is labelled as such and may only connect issues evidenced in the current draft.
+
+The current session is excluded before the six-session query limit. Its existing previous-round
+feedback and score history remain separate inputs for the round delta. Trials receive no brief;
+their prompts are unchanged. Reading/Dictation coach notes and saved translations are excluded.
+
+Assembly adds two bounded D1 reads inside the existing evaluation task, with no extra model call,
+no stored brief, and a 1,800-character ceiling. If assembly fails, feedback proceeds without it.
+Logs contain only counts and fixed failure messages. No output schema, measurement, CEFR
+resolution or feedback-generation/retry behavior changes.
+
 ## Configuration
 
 - `GEMINI_API_KEY` (required; shared with Reading tool)

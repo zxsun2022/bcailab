@@ -8,6 +8,7 @@ import {
   buildLearnerBrief,
   LEARNER_CONTEXT_LIMITS,
   projectForDictationFeedback,
+  projectForWritingFeedback,
   renderLearnerContext
 } from "~/utils/learner-context";
 
@@ -51,11 +52,41 @@ export const assembleDictationFeedbackContext = async (
       `learner-context dictation_feedback tags=${projection.tags.length} dictation_notes=${projection.dictation.groups.length} writing_notes=${projection.writing.groups.length} chars=${rendered.length}`
     );
     return rendered;
-  } catch (error) {
-    console.error(
-      "learner-context assembly failed:",
-      error instanceof Error ? error.message : "unknown error"
+  } catch {
+    // Exception messages can contain source data. Keep failure logs content-free too.
+    console.error("learner-context dictation_feedback assembly failed");
+    return "";
+  }
+};
+
+/** Two bounded reads inside the existing Writing evaluation task; never used by trials. */
+export const assembleWritingFeedbackContext = async (
+  context: AppLoadContext,
+  input: { userId: string; articleId: string }
+): Promise<string> => {
+  try {
+    const [profile, writingRounds] = await Promise.all([
+      getEslLearnerProfile(context.env.DB, input.userId),
+      listLatestWritingFeedbackRoundsByUser(context.env.DB, {
+        userId: input.userId,
+        excludeArticleId: input.articleId,
+        limit: LEARNER_CONTEXT_LIMITS.writingSessions
+      })
+    ]);
+    const projection = projectForWritingFeedback(buildLearnerBrief({
+      assembledAt: new Date().toISOString(),
+      profile,
+      writingRounds,
+      dictationAttempts: [],
+      current: { writingArticleId: input.articleId }
+    }));
+    const rendered = renderLearnerContext(projection);
+    console.log(
+      `learner-context writing_feedback tags=${projection.tags.length} writing_notes=${projection.writing.groups.length} chars=${rendered.length}`
     );
+    return rendered;
+  } catch {
+    console.error("learner-context writing_feedback assembly failed");
     return "";
   }
 };

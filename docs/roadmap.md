@@ -1004,7 +1004,7 @@ unit, or an offline job runner; any new learner-facing surface; trials; and save
 ### Progress
 
 - **Dictation feedback step — in_review (2026-09-15).** Dictation feedback, first in the rollout
-  order, now receives the learner brief; Writing and Reading are not started. Evidence: the pure
+  order, now receives the learner brief. Evidence: the pure
   `learner-context.ts` is covered by 17 tests (a null level never rendered as B1, provenance on
   every tag line, exposure and mastery thresholds, exclusion of the current, unfinished and deleted
   attempts, dimension normalisation, the grammar-only projection, quote flattening, the
@@ -1017,9 +1017,18 @@ unit, or an offline job runner; any new learner-facing surface; trials; and save
   and none touching `saved_translations`; the Writing query plan uses `idx_writing_articles_user`
   and the per-article round index. The dev server renders a dictation passage page on the changed
   route with no console errors. 714 tests, all typechecks, lint (0 errors) and the production build
-  pass. **Owed before acceptance:** a signed-in end-to-end run on the dev server. The feedback path
-  needs a signed-in session, so no real model call has yet run with a brief, and its effect on the
-  feedback itself is unobserved.
+  pass. **Follow-up verification (2026-09-15):** the signed-in Dictation action was exercised over
+  HTTP on an isolated dev server, using a synthetic session and migrated in-memory D1. A real model
+  call produced feedback with the brief, and stored accuracy matched the deterministic action
+  result. See `docs/spikes/learner-context-writing-verification.md`. Owner acceptance remains open.
+- **Writing feedback step — in_review (2026-09-15).** First drafts, revisions and retries now
+  receive the Writing projection, with two bounded reads inside the evaluation task. The current
+  session is excluded before the six-session limit; the existing within-session delta is retained.
+  Listening weaknesses are explicitly labelled; trial prompts match pre-change SHA-256 fixtures.
+  Evidence: 720 tests, all typechecks, lint (0 errors; 9 existing warnings), and both production
+  builds pass. Isolated dev-server checks verify user/deletion/current-session scope, the read
+  budget and successful real-model first-draft, revision and retry feedback. Details in the same
+  spike. Reading remains disabled for the new brief pending its bias gate.
 
 
 ## Next

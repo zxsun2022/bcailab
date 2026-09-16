@@ -541,7 +541,7 @@ export type WritingFeedbackRound = {
  */
 export async function listLatestWritingFeedbackRoundsByUser(
   db: Db,
-  input: { userId: string; limit?: number }
+  input: { userId: string; limit?: number; excludeArticleId?: string }
 ): Promise<WritingFeedbackRound[]> {
   const limit = Math.min(Math.max(input.limit ?? 6, 1), 25);
   const result = await db
@@ -552,6 +552,7 @@ export async function listLatestWritingFeedbackRoundsByUser(
         WHERE a.user_id = ?
           AND a.deleted_at IS NULL
           AND r.user_id = ?
+          AND (? IS NULL OR a.id <> ?)
           AND r.id = (
             SELECT r2.id
               FROM writing_revisions r2
@@ -564,7 +565,7 @@ export async function listLatestWritingFeedbackRoundsByUser(
         ORDER BY r.created_at DESC, r.id DESC
         LIMIT ?`
     )
-    .bind(input.userId, input.userId, limit)
+    .bind(input.userId, input.userId, input.excludeArticleId ?? null, input.excludeArticleId ?? null, limit)
     .all();
   return (result.results ?? []).map((row) => {
     const record = row as Record<string, unknown>;

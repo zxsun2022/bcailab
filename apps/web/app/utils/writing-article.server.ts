@@ -10,6 +10,7 @@ import {
   touchWritingArticle
 } from "@bcailab/db";
 import type { WritingAssignmentSnapshot } from "@bcailab/db";
+import { assembleWritingFeedbackContext } from "~/utils/learner-context.server";
 import {
   evaluateWriting,
   generateArticleTitle,
@@ -50,6 +51,7 @@ const scheduleEvaluation = async (
     userId: string;
     revisionId: string;
     generation: number;
+    articleId: string;
     agentType: string;
     userText: string;
     wordCount: number;
@@ -64,7 +66,12 @@ const scheduleEvaluation = async (
     context,
     (async () => {
       try {
+        const learnerContext = await assembleWritingFeedbackContext(context, {
+          userId: input.userId,
+          articleId: input.articleId
+        });
         const { modelName, feedback } = await evaluateWriting({
+          learnerContext,
           env: context.env,
           agentType: input.agentType,
           userText: input.userText,
@@ -128,6 +135,7 @@ export const createArticleWithFirstRevision = async (
 
   if (result.created) {
     await scheduleEvaluation(context, {
+      articleId: article.id,
       userId: input.userId,
       revisionId: revision.id,
       generation: revision.feedback_generation,
@@ -212,6 +220,7 @@ export const submitRevision = async (
   await touchWritingArticle(context.env.DB, { id: input.articleId, userId: input.userId });
 
   await scheduleEvaluation(context, {
+    articleId: input.articleId,
     userId: input.userId,
     revisionId: revision.id,
     generation: revision.feedback_generation,
@@ -283,6 +292,7 @@ export const retryRevisionFeedback = async (
   if (!revision) throw new Error("Revision not found.");
 
   await scheduleEvaluation(context, {
+    articleId: input.articleId,
     userId: input.userId,
     revisionId: revision.id,
     generation: revision.feedback_generation,

@@ -122,7 +122,7 @@ export type LearnerContextSources = {
     created_at: string;
   }[];
   /** The work being judged, so it never counts as its own history. */
-  current: { dictationAttemptId?: string };
+  current: { dictationAttemptId?: string; writingArticleId?: string };
 };
 
 /* ---------- small, total helpers ---------- */
@@ -289,7 +289,9 @@ type ParsedAnnotation = {
 };
 
 const writingNotes = (sources: LearnerContextSources): LearnerBrief["coachNotes"]["writing"] => {
-  const rounds = sources.writingRounds.slice(0, LEARNER_CONTEXT_LIMITS.writingSessions);
+  const rounds = sources.writingRounds
+    .filter((round) => round.article_id !== sources.current.writingArticleId)
+    .slice(0, LEARNER_CONTEXT_LIMITS.writingSessions);
   const groups = new Map<string, { sessions: Set<string>; examples: CoachNote[]; newest: number }>();
 
   rounds.forEach((round, rank) => {
@@ -374,6 +376,8 @@ export type LearnerContextProjection = {
   assembledAt: string;
   level: LearnerLevel;
   tags: TagLine[];
+  /** Clarify the modality when listening evidence is shown to a writing coach. */
+  tagHeading?: string;
   dictation: { attemptsConsidered: number; groups: DictationNoteGroup[] };
   writing: { heading: string; sessionsConsidered: number; groups: WritingNoteGroup[] };
 };
@@ -404,6 +408,24 @@ export const projectForDictationFeedback = (brief: LearnerBrief): LearnerContext
 });
 
 /* ---------- rendering (proposal §4.4) ---------- */
+
+const WRITING_LISTENING_TAGS: ReadonlySet<string> = new Set(["article", "final_s", "past_ed"]);
+
+/** Writing receives other sessions' notes and only related listening weaknesses, not strengths. */
+export const projectForWritingFeedback = (brief: LearnerBrief): LearnerContextProjection => ({
+  assembledAt: brief.assembledAt,
+  level: brief.level,
+  tags: brief.tagAccuracy.weak
+    .filter((line) => WRITING_LISTENING_TAGS.has(line.tag))
+    .slice(0, LEARNER_CONTEXT_LIMITS.weakTags),
+  tagHeading: "Listening evidence from dictation (not writing accuracy)",
+  dictation: { attemptsConsidered: 0, groups: [] },
+  writing: {
+    heading: "Coach notes from writing (other sessions)",
+    sessionsConsidered: brief.coachNotes.writing.sessionsConsidered,
+    groups: brief.coachNotes.writing.groups.slice(0, LEARNER_CONTEXT_LIMITS.writingDimensions)
+  }
+});
 
 const USAGE_RULES = [
   "Use this only to prioritise and connect what you observe in the current work.",
@@ -464,7 +486,7 @@ export const renderLearnerContext = (projection: LearnerContextProjection): stri
       return `${heading}\n${level}`;
     }
     const lines = [heading, ...USAGE_RULES, "", level];
-    if (tags.length > 0) lines.push("Tag accuracy:", ...tags.map(formatTag));
+    if (tags.length > 0) lines.push(`${projection.tagHeading ?? "Tag accuracy"}:`, ...tags.map(formatTag));
     if (dictation.length > 0) {
       lines.push(
         "Coach notes from earlier dictation attempts:",

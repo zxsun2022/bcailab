@@ -5,6 +5,7 @@ import {
   GRAMMAR_DIMENSIONS,
   LEARNER_CONTEXT_LIMITS,
   projectForDictationFeedback,
+  projectForWritingFeedback,
   renderLearnerContext,
   type LearnerContextSources
 } from "./learner-context";
@@ -351,6 +352,61 @@ describe("learner brief writing notes", () => {
     const diagnosis = example!.slice(example!.indexOf(": ") + 2, example!.lastIndexOf(" ("));
     expect(Array.from(diagnosis)).toHaveLength(LEARNER_CONTEXT_LIMITS.diagnosisChars);
     expect(diagnosis.endsWith("…")).toBe(true);
+  });
+});
+
+describe("Writing feedback projection", () => {
+  it("excludes the current session before the six-session bound", () => {
+    const brief = buildLearnerBrief(sources({
+      current: { writingArticleId: "current" },
+      writingRounds: [
+        round("current", "2026-09-15", [annotation("GRA", "CURRENT_ONLY")]),
+        ...Array.from({ length: 7 }, (_, i) =>
+          round(`s${i}`, "2026-09-14", [annotation("GRA", `other ${i}`)]))
+      ]
+    }));
+    const projection = projectForWritingFeedback(brief);
+    expect(projection.writing.sessionsConsidered).toBe(6);
+    expect(projection.writing.groups[0].sessions).toBe(6);
+    expect(renderLearnerContext(projection)).not.toContain("CURRENT_ONLY");
+  });
+
+  it("filters before capping and labels only related weaknesses as listening evidence", () => {
+    const brief = buildLearnerBrief(sources({
+      profile: profile({ tag_mastery_json: masteryJson({
+        th_sound: [0.1, 20], linking: [0.2, 20], stress: [0.3, 20],
+        article: [0.4, 20], final_s: [0.5, 20], past_ed: [0.6, 20],
+        contraction: [0.95, 20]
+      }) }),
+      dictationAttempts: [attempt("a1", "2026-09-14", [{ pattern: "DICTATION_NOTE" }])]
+    }));
+    const projection = projectForWritingFeedback(brief);
+    expect(projection.tags.map((line) => line.tag)).toEqual(["article", "final_s", "past_ed"]);
+    expect(projection.dictation.groups).toEqual([]);
+    const text = renderLearnerContext(projection);
+    expect(text).toContain("Listening evidence from dictation (not writing accuracy)");
+    expect(text).not.toContain("DICTATION_NOTE");
+    expect(text).not.toContain("may include AI judgement (Reading)");
+    const strongOnly = buildLearnerBrief(sources({
+      profile: profile({ tag_mastery_json: masteryJson({ article: [0.95, 20] }) })
+    }));
+    expect(projectForWritingFeedback(strongOnly).tags).toEqual([]);
+  });
+
+  it("retains non-grammar writing notes, with a deterministic bounded renderer", () => {
+    const input = sources({ writingRounds: [round("s1", "2026-09-14", [
+      annotation("CC", "paragraph connection " .repeat(100)),
+      annotation("LR", "word choice " .repeat(100)),
+      annotation("GRA", "agreement " .repeat(100))
+    ])] });
+    const projection = projectForWritingFeedback(buildLearnerBrief(input));
+    expect(projection.writing.groups.map((group) => group.dimension)).toEqual([
+      "Coherence & Cohesion (CC)", "Lexical Resource (LR)", "Grammatical Range & Accuracy (GRA)"
+    ]);
+    const text = renderLearnerContext(projection);
+    expect(text).toContain("Coach notes from writing (other sessions)");
+    expect(text.length).toBeLessThanOrEqual(1800);
+    expect(renderLearnerContext(projectForWritingFeedback(buildLearnerBrief(input)))).toBe(text);
   });
 });
 
