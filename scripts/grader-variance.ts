@@ -8,16 +8,13 @@
  * fluency, etc. from audio — unlike dictation, which scores with a deterministic diff. The
  * learner model currently down-weights reading observations on the *assumption* that this
  * judgment is noisier than a deterministic measurement (learner-model-notes §1). This script
- * turns that assumption into a number: if repeat-call stddev is low, the assumption is
- * probably too pessimistic; if it's high (roadmap's working threshold: > 4 points on a
- * 0-100 scale), it's evidence for the reading-grader deterministic split (roadmap Next).
+ * measures repeatability, not correctness or bias. A stable wrong judgement can have zero
+ * variance. SOURCE_WEIGHT stays unchanged; context bias is tested by scripts/grader-bias.ts.
  *
- * Standalone Node + tsx script, run manually, not deployed and not part of `pnpm test`. It
- * must NOT import from `apps/web/app/**` (Remix path aliases don't resolve here) — so it
- * duplicates the ~60-line prompt/call/parse logic from `esl-reading-eval.server.ts`, the same
- * way `scripts/material-seed/generate.ts` duplicates its own Gemini call. If the production
- * prompt changes, re-sync this by eye; it does not need to track it exactly, only closely
- * enough that the variance it measures is representative.
+ * Standalone Node + tsx script, run manually, not deployed. It shares the application's
+ * full prompt and output normalizer so highlights and the eight-highlight cap are measured
+ * alongside scores. Historical reports used a reduced prompt and are not direct controls.
+ * A single recording is a preliminary screen only; it cannot enable Reading context.
  *
  * Usage:
  *   pnpm tsx scripts/grader-variance.ts --audio ./sample-short.mp3 --passage ./sample-short.txt --label short
@@ -32,9 +29,15 @@
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
+import { buildPrompt as buildReadingPrompt, normalizeEvalOutput } from "../apps/web/app/utils/esl-reading-eval.server";
+import type { EslLearnerProfileData, EslReadingEvaluationOutput } from "../apps/web/app/utils/esl-reading";
+import { analyzePassage } from "../apps/web/app/utils/passage-tags";
+import { attributeReadingErrors } from "../apps/web/app/utils/learner-model";
 
 /** Mirrors the `reading_eval` entry in `apps/web/app/utils/llm.server.ts` (EVAL_MODEL).
- *  Duplicated rather than imported — see file header. Override with --model if you want to
+ *  Override with --model if you want to
  *  compare a different candidate model's variance. */
 const DEFAULT_MODEL = "gemini-3.6-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
@@ -45,7 +48,7 @@ const SPIKES_DIR = path.join(REPO_ROOT, "docs", "spikes");
 /* ---------- env ---------- */
 
 /** Same fallback pattern as scripts/material-seed/publish.ts: env var, else .dev.vars. */
-const loadEnvValue = async (key: string): Promise<string | null> => {
+export const loadEnvValue = async (key: string): Promise<string | null> => {
   const fromEnv = process.env[key]?.trim();
   if (fromEnv) return fromEnv;
   try {
@@ -74,6 +77,7 @@ const loadEnvValue = async (key: string): Promise<string | null> => {
 type Args = {
   audioPath: string;
   passagePath: string;
+  briefPath: string | null;
   runs: number;
   mode: "reading" | "recitation";
   label: string;
@@ -91,7 +95,7 @@ const parseArgs = (): Args => {
   const audioPath = read("--audio");
   const passagePath = read("--passage");
   if (!audioPath || !passagePath) {
-    throw new Error("Usage: --audio <file> --passage <text file> [--runs 5] [--label short] [--mode reading] [--model gemini-3.6-flash] [--lang zh]");
+    throw new Error("Usage: --audio <file> --passage <text file> [--brief <file>] [--runs 5] [--label short] [--mode reading] [--model gemini-3.6-flash] [--lang zh]");
   }
 
   const runs = Number(read("--runs") ?? "5");
@@ -110,6 +114,7 @@ const parseArgs = (): Args => {
   }
 
   return {
+    briefPath: read("--brief"),
     audioPath: path.resolve(audioPath),
     passagePath: path.resolve(passagePath),
     runs,
@@ -130,7 +135,7 @@ const MIME_BY_EXT: Record<string, string> = {
   ".ogg": "audio/ogg"
 };
 
-const inferMimeType = (filePath: string): string => {
+export const inferMimeType = (filePath: string): string => {
   const ext = path.extname(filePath).toLowerCase();
   const mime = MIME_BY_EXT[ext];
   if (!mime) throw new Error(`Unrecognized audio extension "${ext}". Supported: ${Object.keys(MIME_BY_EXT).join(", ")}`);
@@ -148,44 +153,37 @@ const toBase64 = (bytes: Uint8Array): string => {
   return Buffer.from(binary, "binary").toString("base64");
 };
 
-/* ---------- prompt (trimmed duplicate of esl-reading-eval.server.ts buildPrompt) ---------- */
+/* ---------- production prompt, with experimental context only in this script ---------- */
 
-/** No history, no learner profile: a clean baseline call, since this spike measures the
- *  model's own repeat-call variance, not how context changes its output. */
-const buildPrompt = (input: { passageText: string; mode: "reading" | "recitation"; lang: "zh" | "en" }): string => {
-  const feedbackLanguage = input.lang === "zh" ? "Chinese" : "English";
-  return [
-    "You are a professional English reading and recitation coach.",
-    "The learner's native language is Chinese.",
-    "You will receive the original English passage and a learner recording.",
-    "Evaluate the current recording and return structured feedback.",
-    "",
-    `Practice mode: ${input.mode}`,
-    `Feedback language: ${feedbackLanguage}`,
-    "",
-    "Return valid JSON only. Do not wrap the response in markdown.",
-    "JSON schema:",
-    JSON.stringify(
-      {
-        scores: { overall: "0-100", pronunciation: "0-100", stress_rhythm: "0-100", fluency: "0-100", clarity: "0-100" },
-        cefr_guess: "A1|A2|B1|B2|C1|C2|null",
-        cefr_confidence: "0-1"
-      },
-      null,
-      2
-    ),
-    "",
-    "Rules:",
-    "- If you are unsure about CEFR, set cefr_guess to null and cefr_confidence to 0",
-    "",
-    "## Passage text",
-    input.passageText
-  ].join("\n");
+export const buildSpikePrompt = (input: {
+  passageText: string;
+  mode: "reading" | "recitation";
+  lang: "zh" | "en";
+  durationSeconds?: number | null;
+  brief?: string;
+  learnerProfile?: EslLearnerProfileData | null;
+}): string => {
+  if (input.brief && input.learnerProfile) throw new Error("Use either a brief or the legacy profile, not both.");
+  const prompt = buildReadingPrompt({
+    passageText: input.passageText,
+    mode: input.mode,
+    outputLanguage: input.lang,
+    durationSeconds: input.durationSeconds ?? null,
+    history: [],
+    learnerProfile: input.learnerProfile ?? null
+  });
+  if (!input.brief) return prompt;
+  // No history in this experiment: the passage immediately follows the rubric/profile section.
+  const marker = "\n\n## Passage text\n";
+  const position = prompt.indexOf(marker);
+  if (position < 0) throw new Error("Production prompt changed: cannot locate context insertion point.");
+  return prompt.slice(0, position) + "\n\n" + input.brief + prompt.slice(position);
 };
 
 /* ---------- Gemini call ---------- */
 
-type ParsedResult = {
+export type ParsedResult = {
+  highlights: EslReadingEvaluationOutput["highlights"];
   overall: number;
   pronunciation: number;
   stress_rhythm: number;
@@ -195,7 +193,6 @@ type ParsedResult = {
   cefr_confidence: number;
 };
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const parseJsonFromText = (input: string): unknown => {
   const raw = input.trim();
@@ -206,13 +203,16 @@ const parseJsonFromText = (input: string): unknown => {
   } catch {
     const start = payload.indexOf("{");
     const end = payload.lastIndexOf("}");
-    if (start >= 0 && end > start) return JSON.parse(payload.slice(start, end + 1));
-    throw new Error(`Response is not valid JSON. Head: ${payload.slice(0, 300)}`);
+    if (start >= 0 && end > start) {
+      try { return JSON.parse(payload.slice(start, end + 1)); } catch { /* no response text in logs */ }
+    }
+    throw new Error("Response is not valid JSON.");
   }
 };
 
-const callOnce = async (input: {
+export const callOnce = async (input: {
   apiKey: string;
+  baseUrl?: string;
   model: string;
   prompt: string;
   audioBase64: string;
@@ -220,8 +220,9 @@ const callOnce = async (input: {
 }): Promise<{ result: ParsedResult; elapsedMs: number }> => {
   const started = performance.now();
   const response = await fetch(
-    `${GEMINI_BASE_URL}/models/${encodeURIComponent(input.model)}:generateContent?key=${encodeURIComponent(input.apiKey)}`,
+    `${input.baseUrl || GEMINI_BASE_URL}/models/${encodeURIComponent(input.model)}:generateContent?key=${encodeURIComponent(input.apiKey)}`,
     {
+      signal: AbortSignal.timeout(120_000),
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -241,34 +242,42 @@ const callOnce = async (input: {
   const elapsedMs = performance.now() - started;
 
   if (!response.ok) {
-    throw new Error(`Gemini HTTP ${response.status}: ${(await response.text()).slice(0, 500)}`);
+    throw new Error(`Gemini HTTP ${response.status}`);
   }
   const json = (await response.json()) as {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
     error?: { message?: string };
   };
-  if (json.error?.message) throw new Error(`Gemini error: ${json.error.message}`);
+  if (json.error?.message) throw new Error("Gemini returned an API error.");
   const text = json.candidates?.[0]?.content?.parts?.find((p) => typeof p.text === "string")?.text;
   if (!text) throw new Error("Gemini response missing text content.");
 
-  const parsed = parseJsonFromText(text) as Record<string, unknown>;
-  const scores = (parsed.scores ?? {}) as Record<string, unknown>;
-  const cefrGuessRaw = parsed.cefr_guess;
-  const cefrGuess =
-    typeof cefrGuessRaw === "string" && ["A1", "A2", "B1", "B2", "C1", "C2"].includes(cefrGuessRaw)
-      ? cefrGuessRaw
-      : null;
+  return { result: parseSpikeResult(text), elapsedMs };
+};
 
+/** Strict experiment parsing: malformed responses cannot masquerade as clean recordings. */
+export const parseSpikeResult = (text: string): ParsedResult => {
+  const raw = parseJsonFromText(text);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("Invalid evaluation object.");
+  const parsed = raw as Record<string, unknown>;
+  const scores = (parsed.scores ?? {}) as Record<string, unknown>;
+  for (const key of ["overall", "pronunciation", "stress_rhythm", "fluency", "clarity"]) {
+    if (typeof scores[key] !== "number" || !Number.isFinite(scores[key]) || Number(scores[key]) < 0 || Number(scores[key]) > 100) {
+      throw new Error("Invalid evaluation scores; no heuristic fallback is allowed in an experiment.");
+    }
+  }
+  if (!Array.isArray(parsed.highlights)) throw new Error("Missing highlights in evaluation response.");
+  const normalized = normalizeEvalOutput(parsed, "en");
+  if (!normalized || normalized.highlights.length !== Math.min(parsed.highlights.length, 8)) {
+    throw new Error("Invalid evaluation highlights; refusing to silently discard them.");
+  }
   const result: ParsedResult = {
-    overall: Math.round(clamp(Number(scores.overall) || 0, 0, 100)),
-    pronunciation: Math.round(clamp(Number(scores.pronunciation) || 0, 0, 100)),
-    stress_rhythm: Math.round(clamp(Number(scores.stress_rhythm) || 0, 0, 100)),
-    fluency: Math.round(clamp(Number(scores.fluency) || 0, 0, 100)),
-    clarity: Math.round(clamp(Number(scores.clarity) || 0, 0, 100)),
-    cefr_guess: cefrGuess,
-    cefr_confidence: clamp(Number(parsed.cefr_confidence) || 0, 0, 1)
+    ...normalized.scores,
+    cefr_guess: normalized.cefr_guess,
+    cefr_confidence: normalized.cefr_confidence,
+    highlights: normalized.highlights
   };
-  return { result, elapsedMs };
+  return result;
 };
 
 /* ---------- stats ---------- */
@@ -305,6 +314,8 @@ const buildReport = (input: {
   mode: string;
   audioPath: string;
   passagePath: string;
+  passageText: string;
+  briefDigest: string | null;
   results: { result: ParsedResult; elapsedMs: number }[];
 }): string => {
   const lines: string[] = [];
@@ -314,6 +325,9 @@ const buildReport = (input: {
   lines.push(`Audio: \`${path.relative(REPO_ROOT, input.audioPath)}\``);
   lines.push(`Passage: \`${path.relative(REPO_ROOT, input.passagePath)}\``);
   lines.push("");
+  lines.push(`Prompt: full production rubric. Brief SHA-256: ${input.briefDigest ?? "none"}.`);
+  lines.push("Preliminary screen only: repeatability does not establish absence of bias or enable Reading context.");
+  lines.push("");
   lines.push("## Per-run scores");
   lines.push("");
   lines.push("| Run | Overall | Pronunciation | Stress/Rhythm | Fluency | Clarity | CEFR guess | Elapsed |");
@@ -322,6 +336,17 @@ const buildReport = (input: {
     lines.push(
       `| ${i + 1} | ${result.overall} | ${result.pronunciation} | ${result.stress_rhythm} | ${result.fluency} | ${result.clarity} | ${result.cefr_guess ?? "—"} | ${(elapsedMs / 1000).toFixed(1)}s |`
     );
+  });
+  lines.push("");
+  lines.push("## Attributed tag accuracy (production attribution)");
+  lines.push("");
+  lines.push("| Run | Tag | Hits | Exposure |");
+  lines.push("|---|---|---|---|");
+  const tags = analyzePassage(input.passageText).tags;
+  input.results.forEach(({ result }, index) => {
+    for (const [tag, tally] of attributeReadingErrors(tags, result.highlights)) {
+      lines.push(`| ${index + 1} | ${tag} | ${tally.hits} | ${tally.exposure} |`);
+    }
   });
   lines.push("");
   lines.push("## Standard deviation (0-100 scale)");
@@ -347,8 +372,8 @@ const buildReport = (input: {
       ? `Max dimension stddev is ${maxStddev.toFixed(2)}, above the roadmap's 4-point working ` +
         "threshold. This is evidence for the reading-grader deterministic split (roadmap Next)."
       : `Max dimension stddev is ${maxStddev.toFixed(2)}, at or below the roadmap's 4-point ` +
-        "working threshold. The single-call grader looks repeatable on this sample; re-run on " +
-        "more audio before concluding reading observations don't need the down-weight."
+        "working threshold. This only measures repeatability on this sample. It does not validate " +
+        "accuracy, source weighting, or absence of context bias."
   );
   lines.push("");
   return lines.join("\n");
@@ -368,13 +393,16 @@ const main = async () => {
   ]);
   const audioMime = inferMimeType(args.audioPath);
   const audioBase64 = toBase64(new Uint8Array(audioBuffer));
-  const prompt = buildPrompt({ passageText: passageText.trim(), mode: args.mode, lang: args.lang });
+  const brief = args.briefPath ? await readFile(path.resolve(args.briefPath), "utf8") : "";
+  if (args.briefPath && (!brief.trim() || brief.length > 1800)) throw new Error("Brief must contain 1–1800 characters.");
+  const prompt = buildSpikePrompt({ passageText: passageText.trim(), mode: args.mode, lang: args.lang, brief });
+  const baseUrl = await loadEnvValue("GEMINI_BASE_URL") ?? undefined;
 
   console.log(`Running ${args.runs} calls against ${args.model} for label "${args.label}"...`);
 
   const results: { result: ParsedResult; elapsedMs: number }[] = [];
   for (let i = 0; i < args.runs; i += 1) {
-    const outcome = await callOnce({ apiKey, model: args.model, prompt, audioBase64, audioMime });
+    const outcome = await callOnce({ apiKey, baseUrl, model: args.model, prompt, audioBase64, audioMime });
     results.push(outcome);
     console.log(
       `  run ${i + 1}/${args.runs}: overall=${outcome.result.overall} cefr=${outcome.result.cefr_guess ?? "—"} (${(outcome.elapsedMs / 1000).toFixed(1)}s)`
@@ -387,6 +415,8 @@ const main = async () => {
     mode: args.mode,
     audioPath: args.audioPath,
     passagePath: args.passagePath,
+    passageText: passageText.trim(),
+    briefDigest: brief ? createHash("sha256").update(brief).digest("hex") : null,
     results
   });
 
@@ -397,7 +427,7 @@ const main = async () => {
   console.log(`\nWrote ${path.relative(REPO_ROOT, outFile)}`);
 };
 
-main().catch((error) => {
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch((error) => {
   console.error(error instanceof Error ? error.message : error);
   process.exit(1);
 });

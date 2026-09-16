@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
-    "typecheck": "pnpm --filter web typecheck && pnpm typecheck:scripts && pnpm typecheck:session-cleanup",
+    "typecheck": "pnpm --filter web typecheck && pnpm typecheck:scripts && pnpm typecheck:session-cleanup && pnpm typecheck:grader-spikes",
+    "typecheck:grader-spikes": "tsc -p tsconfig.grader-spikes.json --noEmit",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json --noEmit",
     "typecheck:session-cleanup": "tsc -p workers/session-cleanup/tsconfig.json --noEmit",
     "lint": "eslint .",

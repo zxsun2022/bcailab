@@ -1,0 +1,7 @@
+{
+  "extends": "./apps/web/tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "@cloudflare/workers-types"]
+  },
+  "include": ["scripts/grader-variance.ts", "scripts/grader-bias.ts", "scripts/grader-bias/**/*.ts"]
+}

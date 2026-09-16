@@ -1029,6 +1029,19 @@ unit, or an offline job runner; any new learner-facing surface; trials; and save
   builds pass. Isolated dev-server checks verify user/deletion/current-session scope, the read
   budget and successful real-model first-draft, revision and retry feedback. Details in the same
   spike. Reading remains disabled for the new brief pending its bias gate.
+- **Reading gate tooling — in_review (2026-09-16); experiment pending.** The variance script
+  accepts `--brief` and now uses the production prompt/highlights. The registered-corpus harness
+  compares baseline, candidate brief and legacy profile over five calls per condition and recording,
+  using production attribution and the fixed thresholds in (d). It refuses uncommitted manifests,
+  changed experiment code/audio hashes, incomplete runs and malformed evaluation output. It writes
+  both comparisons and preserves incomplete runs without a pass. Evidence: 734 tests, all
+  typechecks (including grader tools), lint (0 errors), and Web build pass; Mapdown build passed
+  in the preceding Writing step and its code is unchanged. CLI dry-run and preregistration rejection
+  were checked with synthetic tone fixtures, without model calls. Protocol:
+  `docs/spikes/reading-context-bias-protocol.md`. **Still needed:** the pre-annotated recording
+  corpus and the actual preliminary/full experiments. Reading's new projection/assembler and
+  prompt integration remain unimplemented until the gate is evaluated; existing profile injection
+  is unchanged. No bias result or Stage 1 completion is claimed.
 
 
 ## Next

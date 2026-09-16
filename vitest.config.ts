@@ -21,7 +21,8 @@ export default defineConfig({
       "apps/mapdown/src/**/*.test.ts",
       "apps/mapdown/functions/**/*.test.ts",
       "packages/*/src/**/*.test.ts",
-      "scripts/writing-prompt-seed/**/*.test.ts"
+      "scripts/writing-prompt-seed/**/*.test.ts",
+      "scripts/grader-bias/**/*.test.ts"
     ],
     environment: "node"
   }

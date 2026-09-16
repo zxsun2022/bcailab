@@ -5,9 +5,9 @@ import {
   type EslReadingEvaluationOutput,
   type EslReadingMode,
   type EslLearnerProfileData
-} from "~/utils/esl-reading";
+} from "./esl-reading";
 import { type ReadingOutputLanguage } from "~/utils/reading-settings";
-import { callGemini, parseJsonFromText, toBase64, toStringArray } from "~/utils/llm.server";
+import { callGemini, parseJsonFromText, toBase64, toStringArray } from "./llm.server";
 
 const RUBRIC_VERSION = "2026-04-02";
 const FALLBACK_MODEL_NAME = "local-heuristic-fallback";

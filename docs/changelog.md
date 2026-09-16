@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-16 — **in_review: Reading context bias-test tooling.** Added `--brief` to the variance
+  screen and a registered-corpus harness for baseline / brief / legacy-profile comparisons. Both
+  use the production prompt and highlight normalizer, replacing the screen's old score-only
+  prompt; historical variance reports are not direct controls. Metrics reuse production tag
+  attribution and the roadmap's fixed limits. Dataset/code preregistration, audio hashes, complete
+  run counts and strict response parsing prevent an invalid or partial experiment from reporting
+  a pass. Runtime Reading behavior is unchanged; its two import paths are relative so offline
+  tooling can consume the same implementation.
+
+  Evidence: 734 tests, all typechecks including a new grader-tool check, lint (0 errors; 9 existing
+  warnings), Web build; prior Mapdown build remains applicable. New tests include a stable
+  eight-point penalty, cancelling pooled shifts, false-positive attribution, crowded-out errors,
+  invalid corpora/runs, parser rejection and production-prompt parity. CLI dry runs validated
+  synthetic tone fixtures and rejected an unregistered live run before any model calls. No real
+  corpus has been supplied, no Reading bias experiment has run, and no new Reading brief is enabled.
+  See [the protocol and input format](spikes/reading-context-bias-protocol.md).
+
 - 2026-09-15 — **in_review: learner context for graders — Writing feedback step.** Signed-in
   first drafts, revisions and retries now receive other sessions' coach notes and related listening
   weaknesses. The current session is excluded in SQL before limiting to six sources. Within-session
