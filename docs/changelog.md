@@ -9,6 +9,15 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: Writing retry lifecycle (F01).** Retry responses now identify
+  article, revision, generation and task start time. The page consumes each response once and
+  rejects stale polling results; creation timestamps remain unchanged. React regression tests
+  reproduced the repeated-update mechanism before the guard and pass after it. An isolated,
+  migrated D1 fixture with a delayed synthetic model exercised browser retry → pending → completed
+  without an update-depth warning. Initial page hydration warnings were observed separately;
+  this is not a claim that all browser console errors are resolved. The fixture lives in
+  `scripts/testing/writing-reliability.mjs`; it uses no owner data or real model credentials.
+
 - 2026-09-16 — **in_review: Reading context bias-test tooling.** Added `--brief` to the variance
   screen and a registered-corpus harness for baseline / brief / legacy-profile comparisons. Both
   use the production prompt and highlight normalizer, replacing the screen's old score-only

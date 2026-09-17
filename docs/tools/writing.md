@@ -2,6 +2,13 @@
 
 AI-powered iterative writing coach. Users submit a piece of writing, receive structured feedback, revise, and resubmit — repeating the cycle until their writing meets the standard they are aiming for. The AI acts as an editor, not a ghostwriter: it identifies what to improve and why, but the user does the rewriting.
 
+## Feedback retry lifecycle
+
+A retry keeps the original revision creation time and starts a new feedback generation.
+Its response includes article/revision identity, generation and task start time; the browser
+consumes it once. Poll results for another round or an older generation are ignored. Pending
+age uses task start time. Polling stops when feedback completes, fails or becomes stale.
+
 ## Design Principles
 
 - **Coach, not ghostwriter.** AI identifies issues; user executes revisions. The product never rewrites text on behalf of the user during a session.

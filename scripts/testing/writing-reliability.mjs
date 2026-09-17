@@ -1,0 +1,71 @@
+/** Isolated, synthetic browser fixture. Run from repo: node --import tsx scripts/testing/writing-reliability.mjs */
+import { readFile, readdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
+import { createServer as createHttpServer } from 'node:http';
+import { createServer } from '../../apps/web/node_modules/vite/dist/node/index.js';
+import remixDev from '../../apps/web/node_modules/@remix-run/dev/dist/index.js';
+import wrangler from '../../node_modules/wrangler/wrangler-dist/cli.js';
+import baseConfig from '../../apps/web/vite.config.ts';
+const root = resolve(import.meta.dirname, '../..');
+const scratch = await mkdtemp(tmpdir() + '/bcailab-reliability-');
+await writeFile(scratch + '/vite.mjs', 'export default {};');
+await writeFile(scratch + '/wrangler.toml', `name = "reliability-test"
+compatibility_date = "2025-01-01"
+[[d1_databases]]
+binding = "DB"
+database_name = "test"
+database_id = "00000000-0000-0000-0000-000000000000"
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "test"
+`);
+const feedback = { annotations: [], round_summary: { critical_count: 0, improvement_count: 0, strengths_count: 0, overall_comment: 'Synthetic feedback completed.', band_estimate: 'B1' }, delta: null };
+const model = createHttpServer(async (req, res) => {
+  for await (const chunk of req) { void chunk; }
+  setTimeout(() => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(feedback) }] } }] })); }, 4000);
+});
+await new Promise(resolve => model.listen(5192, '127.0.0.1', resolve));
+let runtime, initialization;
+async function initialize(env) {
+  runtime = { env: { ...env, SESSION_SECRET: 'synthetic-fixture-only', GEMINI_API_KEY: 'fake', GEMINI_BASE_URL: 'http://127.0.0.1:5192' }, ctx: { waitUntil(p) { p.catch(console.error); } } };
+  const db = runtime.env.DB;
+  for (const file of (await readdir(root + '/migrations')).filter(f => f.endsWith('.sql')).sort()) {
+    await db.batch(wrangler.unstable_splitSqlQuery(await readFile(root + '/migrations/' + file, 'utf8')).map(s => db.prepare(s)));
+  }
+  await db.batch([
+    db.prepare("INSERT INTO users(id,email,name) VALUES ('test-a','a@example.invalid','Test A'),('test-b','b@example.invalid','Test B')"),
+    db.prepare("INSERT INTO writing_articles(id,user_id,agent_type,title) VALUES ('retry-article','test-a','general','Retry fixture')"),
+    db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status) VALUES ('retry-round','retry-article','test-a',1,'This is a synthetic draft with enough words to exercise the writing feedback flow.',15,'failed')")
+  ]);
+}
+const proxy = remixDev.cloudflareDevProxyVitePlugin({ configPath: scratch + '/wrangler.toml', persist: false, remoteBindings: false, async getLoadContext({ context }) {
+  initialization ??= initialize(context.cloudflare.env); await initialization; return runtime;
+} });
+const fixture = { name: 'synthetic-fixture', configureServer(server) {
+  server.middlewares.use(async (req, res, next) => {
+    if (!req.url?.startsWith('/__test/')) return next();
+    try {
+      await initialization;
+      if (!runtime) { res.statusCode = 503; res.end('Open /writing/new first to initialize.'); return; }
+      const url = new URL(req.url, 'http://127.0.0.1:5191');
+      if (url.pathname === '/__test/login') {
+        const user = url.searchParams.get('user') === 'b' ? 'test-b' : 'test-a';
+        const auth = await server.ssrLoadModule(root + '/packages/auth/src/index.ts');
+        const session = await auth.createSession(runtime.env.DB, user);
+        res.setHeader('Set-Cookie', await auth.createSessionCookie(new Request(url), runtime.env, session.id));
+        res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return;
+      }
+      if (url.pathname === '/__test/counts') {
+        const rows = await runtime.env.DB.prepare('SELECT article_id,COUNT(*) AS rounds FROM writing_revisions GROUP BY article_id').all();
+        res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(rows.results)); return;
+      }
+      res.statusCode = 404; res.end();
+    } catch (error) { res.statusCode = 500; res.end(String(error)); }
+  });
+} };
+const server = await createServer({ ...baseConfig, root: root + '/apps/web', configFile: scratch + '/vite.mjs', plugins: [fixture, proxy, ...baseConfig.plugins.slice(1)], server: { host: '127.0.0.1', port: 5191, strictPort: true } });
+await server.listen();
+await fetch('http://127.0.0.1:5191/writing/new', { redirect: 'manual' });
+console.log('Fixture ready: http://127.0.0.1:5191/__test/login?user=a');
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await server.close(); model.close(); process.exit(0); });

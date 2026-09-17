@@ -259,7 +259,7 @@ export const retryRevisionFeedback = async (
     agentType: string;
     feedbackLanguage: "en" | "zh";
   }
-): Promise<void> => {
+): Promise<{ articleId: string; revisionId: string; generation: number; startedAt: string }> => {
   const article = await getWritingArticleById(context.env.DB, input.articleId, { includeDeleted: true });
   if (!article || article.user_id !== input.userId || article.deleted_at) {
     throw new Error("Article not found.");
@@ -312,4 +312,7 @@ export const retryRevisionFeedback = async (
     topic: article.essay_prompt ?? undefined,
     assignment: parseAssignmentSnapshot(article.assignment_snapshot_json)
   });
+  return { articleId: input.articleId, revisionId: revision.id,
+    generation: revision.feedback_generation,
+    startedAt: revision.feedback_started_at ?? revision.created_at };
 };

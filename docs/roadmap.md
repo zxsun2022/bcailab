@@ -17,6 +17,46 @@ no-account acquisition funnel into it. A second product, **Mapdown**, was added 
 a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
 infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
+## Now — Writing reliability and Home data correctness
+
+Owner-authorized 2026-09-16: iterations 1–3 of the review follow-up plan. Implement in this
+order, one independently reviewable change per iteration. The review's findings F01–F05 are
+inputs, not authorization for the remaining review batches.
+
+### 1. Writing retry lifecycle (F01)
+
+Consume each retry response once, by article/revision/feedback generation; keep feedback task
+start time separate from revision creation time. Acceptance: a React regression fails on the old
+loop and passes after the fix; retry → pending → completed terminates; old responses cannot reset
+completed feedback or overwrite another article/round; browser polling continues then stops with
+no update-depth warning. Additive response fields preserve existing API consumers.
+
+### 2. Writing draft recovery and account isolation (F02/F03)
+
+One account-scoped local draft contract for freeform, assignments and new rounds, carrying text,
+topic/coach, base revision, update time and first-submit identity. Existing unscoped keys are not
+automatically assigned to whoever is signed in. Anonymous trials remain non-persistent. Acceptance:
+refresh/return and failed requests preserve input; server revalidation does not overwrite dirty
+edits; account B cannot see account A's draft; a lost successful first-submit response followed by
+refresh/retry creates one article and Round 1; success only clears the corresponding submitted
+version; unavailable storage is visible. Verify through an isolated browser and real local D1.
+
+### 3. Home bounded inputs and degradation (F04/F05)
+
+Separate level/adjacent candidates from record-referenced passages needed for Continue/Recent.
+Keep queries and returned rows bounded; absence from a candidate window is not withdrawal.
+Acceptance: >60 and uneven-band fixtures retain B2 recommendations and old eligible unfinished
+work; withdrawn passages stay excluded; profile/history/library failures each have an intentional
+fallback, with unknown level never displayed as B1; authentication failures retain their existing
+behavior. Verify SQL against local D1 and error paths against the dev server.
+
+### Delivery and exclusions
+
+Each iteration includes its behavioral docs, defect-specific regression tests and changelog
+entry marked `in_review`. Minimal React/D1/browser test support belongs with these fixes; the
+broader verify/CI/docs reorganization is not authorized here. No Reading enablement, Stage 2
+category work, quota redesign, visual refresh, Mapdown changes, push or deployment is included.
+
 ## Now — English Studio material, memory, and interaction iteration
 
 The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation
