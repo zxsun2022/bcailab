@@ -15,6 +15,7 @@ All `/__test/` handlers belong to this test server, never to production routes.
 
 - Open `/__test/login?user=a`, then `/writing/retry-article`. Retry failed feedback;
   observe pending followed by the synthetic completed feedback without a render loop.
+  `/__test/poll-count` stops increasing after completion.
 - Type into `/writing/new`, refresh, and check text/topic. Switch through
   `/__test/login?user=b`: A's draft is absent. Switch back: A's draft returns.
 - Open `/__test/lose-next-response`, submit the freeform draft, observe the injected error,
@@ -22,6 +23,8 @@ All `/__test/` handlers belong to this test server, never to production routes.
   This fixture replaces the first successful response with an error **after** the real action.
 - Repeat refresh/return for `/writing/prompt/general-a2-study-invitation` and a new revision
   of the completed article. Successful submission removes the submitted local version.
+  With unsent edits in `/writing/retry-article?compose=1`, open `/__test/advance-round`
+  once: the server gains Round 2, while the earlier unsent draft returns with a recovery notice.
 - As user B, `/english/home` must show B2 and Continue for `Fixture old-c2`, despite
   80 A1 passages and 50 more recent completed attempts. The query parameter
   `fixtureFailure=profile|history|library` injects an individual DB read failure.

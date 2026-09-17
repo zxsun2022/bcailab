@@ -305,7 +305,7 @@ export default function WritingArticlePage() {
     return <WritingUnavailableState />;
   }
 
-  return <WritingArticlePageReady key={`${data.userId}:${data.article.id}:${data.activeRevision?.id ?? "none"}`} data={data} />;
+  return <WritingArticlePageReady key={`${data.userId}:${data.article.id}:${data.activeRevision?.id ?? "none"}:${data.baseRevision ?? "none"}`} data={data} />;
 }
 
 function WritingArticlePageReady({
@@ -325,9 +325,9 @@ function WritingArticlePageReady({
     latestText
   } = data;
 
-  const local = useWritingDraft(data.userId, `revision:${article.id}:${data.baseRevision ?? "none"}`, {
+  const local = useWritingDraft(data.userId, `revision:${article.id}`, {
     text: latestText, coach: agent.id, startKey: `revision-${article.id}-${data.baseRevision}`,
-    baseRevision: data.baseRevision
+    baseRevision: data.baseRevision, restoreEarlierBase: true, persistInitial: false
   });
   const text = local.draft.text;
   const { completeSubmit } = local;
@@ -779,6 +779,9 @@ function WritingArticlePageReady({
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
               {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
+              {local.draft.editId && local.draft.baseRevision !== data.baseRevision ? (
+                <p role="status">Recovered an unsent draft from an earlier round. Review it before submitting.</p>
+              ) : null}
               <WritingEditor
                 value={text}
                 onChange={text => local.update({ text })}

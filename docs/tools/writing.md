@@ -12,13 +12,15 @@ age uses task start time. Polling stops when feedback completes, fails or become
 ## Local draft recovery
 
 Signed-in freeform, assignment and revision editors save a versioned draft on this device.
-The key includes the account and entry identity (assignment content hash or revision base).
+The key includes the account and entry identity (assignment content hash or article).
 Text, topic, coach, base revision, update time and first-submit key travel together. Refresh
 and loader revalidation retain edits; failed requests retain the same submission identity.
 Success removes only the submitted version, preserving newer edits (including another tab's).
 Legacy unscoped drafts are left untouched and never silently attributed to the current account.
 Storage failure displays a warning to keep the page open or copy the text. These drafts are
-local recovery, not encrypted storage or cross-device sync. Anonymous trials remain non-persistent.
+local recovery, not encrypted storage or cross-device sync. Revision drafts retain their base
+round as metadata: if the server has advanced, unsent edits are recovered with a notice to review
+that older draft. Simply viewing a saved round does not create a local draft copy. Anonymous trials remain non-persistent.
 
 ## Design Principles
 

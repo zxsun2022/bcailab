@@ -23,7 +23,7 @@ Owner-authorized 2026-09-16: iterations 1–3 of the review follow-up plan. Impl
 order, one independently reviewable change per iteration. The review's findings F01–F05 are
 inputs, not authorization for the remaining review batches.
 
-### 1. Writing retry lifecycle (F01)
+### 1. Writing retry lifecycle (F01) — in_review
 
 Consume each retry response once, by article/revision/feedback generation; keep feedback task
 start time separate from revision creation time. Acceptance: a React regression fails on the old
@@ -31,7 +31,7 @@ loop and passes after the fix; retry → pending → completed terminates; old r
 completed feedback or overwrite another article/round; browser polling continues then stops with
 no update-depth warning. Additive response fields preserve existing API consumers.
 
-### 2. Writing draft recovery and account isolation (F02/F03)
+### 2. Writing draft recovery and account isolation (F02/F03) — in_review
 
 One account-scoped local draft contract for freeform, assignments and new rounds, carrying text,
 topic/coach, base revision, update time and first-submit identity. Existing unscoped keys are not
@@ -41,7 +41,7 @@ edits; account B cannot see account A's draft; a lost successful first-submit re
 refresh/retry creates one article and Round 1; success only clears the corresponding submitted
 version; unavailable storage is visible. Verify through an isolated browser and real local D1.
 
-### 3. Home bounded inputs and degradation (F04/F05)
+### 3. Home bounded inputs and degradation (F04/F05) — in_review
 
 Separate level/adjacent candidates from record-referenced passages needed for Continue/Recent.
 Keep queries and returned rows bounded; absence from a candidate window is not withdrawal.
@@ -51,6 +51,9 @@ fallback, with unknown level never displayed as B1; authentication failures reta
 behavior. Verify SQL against local D1 and error paths against the dev server.
 
 ### Delivery and exclusions
+
+Review evidence (2026-09-17): see the four reliability entries in [changelog](changelog.md)
+and [the reproducible local fixture](../scripts/testing/README.md). Owner acceptance is pending.
 
 Each iteration includes its behavioral docs, defect-specific regression tests and changelog
 entry marked `in_review`. Minimal React/D1/browser test support belongs with these fixes; the

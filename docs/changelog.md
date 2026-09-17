@@ -9,6 +9,14 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: Writing draft recovery across server round changes.**
+  The revision draft key is stable per account/article; its base round is metadata. Unsent
+  edits remain recoverable when another client advances the server round, with an explicit
+  earlier-round notice. Viewing saved work no longer creates a pristine local draft copy.
+  Evidence: 744 tests, Web typecheck/build and lint (0 errors; 9 existing warnings).
+  The isolated browser retained the earlier unsent text after D1 advanced to Round 2.
+  A final retry run made two status requests and the count stayed at two after completion.
+
 - 2026-09-17 — **in_review: Home bounded inputs and independent degradation (F04/F05).**
   Recommendation candidates now have per-band limits, separate from published record destinations.
   A dedicated eligible-resume query retains older unfinished dictation outside recent history.

@@ -13,7 +13,7 @@ vi.stubGlobal("localStorage", {
 });
 afterEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
 const initial = { coach: "general", startKey: "first-submit-key-12345", text: "Server text" };
-async function mount(user = "a", seed = initial) {
+async function mount(user = "a", seed: Parameters<typeof useWritingDraft>[2] & { text: string } = initial) {
   const root = createRoot(document.createElement("div"));
   let value!: ReturnType<typeof useWritingDraft>;
   function Harness({ text }: { text: string }) { value = useWritingDraft(user, "freeform", { ...seed, text }); return null; }
@@ -57,4 +57,16 @@ it("reports storage failure while retaining editable text in memory", async () =
   const a = await mount(); expect(a.value.storageError).toBe(true);
   await React.act(async () => a.value.update({ text: "Still here" }));
   expect(a.value.draft.text).toBe("Still here"); expect(a.value.storageError).toBe(true); await a.close();
+});
+
+it("recovers dirty revision edits after another round is submitted without saving pristine server copies", async () => {
+  const revisionOptions = { ...initial, baseRevision: "r1", restoreEarlierBase: true, persistInitial: false };
+  const old = await mount("a", revisionOptions);
+  expect(localStorage.getItem(writingDraftKey("a", "freeform"))).toBeNull();
+  await React.act(async () => old.value.update({ text: "Unsent edits from round 1" }));
+  await old.close();
+  const next = await mount("a", { ...revisionOptions, baseRevision: "r2", text: "New server round" });
+  expect(next.value.draft.text).toBe("Unsent edits from round 1");
+  expect(next.value.draft.baseRevision).toBe("r1");
+  await next.close();
 });

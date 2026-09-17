@@ -13,11 +13,12 @@ export type WritingDraft = {
 export function writingDraftKey(userId: string, scope: string) {
   return `writing-draft:v1:${encodeURIComponent(userId)}:${encodeURIComponent(scope)}`;
 }
-export function parseWritingDraft(raw: string | null, baseRevision: string | null): WritingDraft | null {
+export function parseWritingDraft(raw: string | null, baseRevision: string | null | undefined): WritingDraft | null {
   if (!raw) return null;
   try {
     const d = JSON.parse(raw) as WritingDraft;
-    return d.version === 1 && d.baseRevision === baseRevision &&
+    return d.version === 1 && (d.baseRevision === null || typeof d.baseRevision === "string") &&
+      (baseRevision === undefined || d.baseRevision === baseRevision) &&
       [d.text, d.topic, d.coach, d.startKey, d.updatedAt, d.editId].every(v => typeof v === "string") &&
       d.startKey.length >= 16 && d.startKey.length <= 200 ? d : null;
   } catch { return null; }
@@ -26,7 +27,9 @@ export function parseWritingDraft(raw: string | null, baseRevision: string | nul
 /** Mount with a key matching user/scope. Writes are synchronous with edits, before submission. */
 export function useWritingDraft(userId: string, scope: string, initial: {
   text?: string; topic?: string; coach: string; startKey: string; baseRevision?: string | null;
+  restoreEarlierBase?: boolean; persistInitial?: boolean;
 }) {
+  const { restoreEarlierBase = false, persistInitial = true } = initial;
   const key = writingDraftKey(userId, scope);
   const [draft, setDraft] = React.useState<WritingDraft>(() => ({
     version: 1, text: initial.text ?? "", topic: initial.topic ?? "", coach: initial.coach,
@@ -42,12 +45,12 @@ export function useWritingDraft(userId: string, scope: string, initial: {
   }, [key]);
   React.useEffect(() => {
     try {
-      const stored = parseWritingDraft(localStorage.getItem(key), current.current.baseRevision);
+      const stored = parseWritingDraft(localStorage.getItem(key), restoreEarlierBase ? undefined : current.current.baseRevision);
       if (stored) { current.current = stored; setDraft(stored); }
-      else persist(current.current);
+      else if (persistInitial) persist(current.current);
     } catch { setStorageError(true); }
     setReady(true);
-  }, [key, persist]);
+  }, [key, persist, restoreEarlierBase, persistInitial]);
   const update = React.useCallback((patch: Partial<Pick<WritingDraft, "text" | "topic" | "coach">>) => {
     const next = { ...current.current, ...patch, updatedAt: new Date().toISOString(), editId: crypto.randomUUID() };
     current.current = next; setDraft(next); persist(next);

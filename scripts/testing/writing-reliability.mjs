@@ -29,6 +29,7 @@ const model = createHttpServer(async (req, res) => {
 await new Promise(resolve => model.listen(5192, '127.0.0.1', resolve));
 let runtime, initialization;
 let loseNextResponse = false;
+let statusRequests = 0;
 async function initialize(env) {
   runtime = { env: { ...env, SESSION_SECRET: 'synthetic-fixture-only', GEMINI_API_KEY: 'fake', GEMINI_BASE_URL: 'http://127.0.0.1:5192' }, ctx: { waitUntil(p) { p.catch(console.error); } } };
   const db = runtime.env.DB;
@@ -52,6 +53,7 @@ const proxy = remixDev.cloudflareDevProxyVitePlugin({ configPath: scratch + '/wr
 } });
 const fixture = { name: 'synthetic-fixture', configureServer(server) {
   server.middlewares.use(async (req, res, next) => {
+    if (req.url?.startsWith('/writing/') && req.url.includes('/status')) statusRequests++;
     if (loseNextResponse && req.method === 'POST' && req.url?.startsWith('/writing/new')) {
       loseNextResponse = false;
       const end = res.end.bind(res);
@@ -72,6 +74,11 @@ const fixture = { name: 'synthetic-fixture', configureServer(server) {
         res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return;
       }
       if (url.pathname === '/__test/lose-next-response') { loseNextResponse = true; res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return; }
+      if (url.pathname === '/__test/poll-count') { res.setHeader('Content-Type','text/plain'); res.end(String(statusRequests)); return; }
+      if (url.pathname === '/__test/advance-round') {
+        await runtime.env.DB.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status,feedback_json) VALUES ('advanced-round','retry-article','test-a',2,'A new round saved in a different browser tab.',9,'completed',?)").bind(JSON.stringify(feedback)).run();
+        res.statusCode = 302; res.setHeader('Location','/writing/retry-article?compose=1'); res.end(); return;
+      }
       if (url.pathname === '/__test/home-checks') { const checks = await checkHome(server, root, runtime); res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(checks)); return; }
       if (url.pathname === '/__test/counts') {
         const rows = await runtime.env.DB.prepare('SELECT article_id,COUNT(*) AS rounds FROM writing_revisions GROUP BY article_id').all();
