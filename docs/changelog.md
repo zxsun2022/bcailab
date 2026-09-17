@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: iteration 4 — local verification entry points.** Added
+  `verify:web`, `verify:mapdown` and combined `verify` with toolchain checks, labelled fail-fast
+  steps, explicit test/type/lint/build scope, bounded operational-doc checks and automatic
+  isolated D1/HTTP verification. Mapdown client and Functions are checked through their own
+  compiler; existing Web-focused commands and package versions are unchanged. The browser
+  fixture has a separate manual entry point; startup never reports browser tests as passed.
+
+  Evidence on Node 26.8.2 / pnpm 9.12.0: all three commands pass. Combined verification runs
+  744 tests, both products' typechecks/builds, repository lint (0 errors; 9 existing warnings),
+  required-input/link checks and 25 real D1/HTTP assertions with synthetic accounts/model.
+  Eight intentional failures were rejected at the expected steps: Web/Mapdown unit tests,
+  Web/Mapdown client types, Mapdown Functions through the root command, each product's lint,
+  and a broken operational-doc link. Probe diagnostics were verified and edits restored.
+  The manual fixture command was checked for startup/shutdown; no new end-to-end browser
+  claim is made. No CI, deployment settings, remote migrations or product behavior changed.
+  See [verification scope and reproduction](verification.md).
+
 - 2026-09-17 — **in_review: Writing draft recovery across server round changes.**
   The revision draft key is stable per account/article; its base round is metadata. Unsent
   edits remain recoverable when another client advances the server round, with an explicit

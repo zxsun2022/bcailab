@@ -1,11 +1,12 @@
 /** Isolated, synthetic browser fixture. Run from repo: node --import tsx scripts/testing/writing-reliability.mjs */
-import { readFile, readdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { readFile, readdir, mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { createServer as createHttpServer } from 'node:http';
 import { createServer } from '../../apps/web/node_modules/vite/dist/node/index.js';
 import remixDev from '../../apps/web/node_modules/@remix-run/dev/dist/index.js';
 import wrangler from '../../node_modules/wrangler/wrangler-dist/cli.js';
+import { checkWriting } from './writing-checks.mjs';
 import { seedHome, faultDb, checkHome } from './home-reliability.mjs';
 import baseConfig from '../../apps/web/vite.config.ts';
 const root = resolve(import.meta.dirname, '../..');
@@ -26,12 +27,12 @@ const model = createHttpServer(async (req, res) => {
   for await (const chunk of req) { void chunk; }
   setTimeout(() => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(feedback) }] } }] })); }, 4000);
 });
-await new Promise(resolve => model.listen(5192, '127.0.0.1', resolve));
 let runtime, initialization;
+const background = new Set();
 let loseNextResponse = false;
 let statusRequests = 0;
 async function initialize(env) {
-  runtime = { env: { ...env, SESSION_SECRET: 'synthetic-fixture-only', GEMINI_API_KEY: 'fake', GEMINI_BASE_URL: 'http://127.0.0.1:5192' }, ctx: { waitUntil(p) { p.catch(console.error); } } };
+  runtime = { env: { ...env, SESSION_SECRET: 'synthetic-fixture-only', GEMINI_API_KEY: 'fake', GEMINI_BASE_URL: 'http://127.0.0.1:5192' }, ctx: { waitUntil(p) { const tracked = p.catch(console.error).finally(() => background.delete(tracked)); background.add(tracked); } } };
   const db = runtime.env.DB;
   for (const file of (await readdir(root + '/migrations')).filter(f => f.endsWith('.sql')).sort()) {
     await db.batch(wrangler.unstable_splitSqlQuery(await readFile(root + '/migrations/' + file, 'utf8')).map(s => db.prepare(s)));
@@ -88,8 +89,30 @@ const fixture = { name: 'synthetic-fixture', configureServer(server) {
     } catch (error) { res.statusCode = 500; res.end(String(error)); }
   });
 } };
-const server = await createServer({ ...baseConfig, root: root + '/apps/web', configFile: scratch + '/vite.mjs', plugins: [fixture, proxy, ...baseConfig.plugins.slice(1)], server: { host: '127.0.0.1', port: 5191, strictPort: true } });
-await server.listen();
-await fetch('http://127.0.0.1:5191/writing/new', { redirect: 'manual' });
-console.log('Fixture ready: http://127.0.0.1:5191/__test/login?user=a');
-for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { await server.close(); model.close(); process.exit(0); });
+let server;
+let exitCode = 0;
+try {
+  await new Promise((resolve, reject) => {
+    model.once('error', reject);
+    model.listen(5192, '127.0.0.1', () => { model.removeListener('error', reject); resolve(); });
+  });
+  server = await createServer({ ...baseConfig, root: root + '/apps/web', configFile: scratch + '/vite.mjs', plugins: [fixture, proxy, ...baseConfig.plugins.slice(1)], server: { host: '127.0.0.1', port: 5191, strictPort: true } });
+  await server.listen();
+  await fetch('http://127.0.0.1:5191/writing/new', { redirect: 'manual' });
+  if (process.argv.includes('--check')) {
+    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background)];
+    console.log(`PASS D1/HTTP: ${checks.length} assertions on fresh migrated D1 and a fake model.`);
+    checks.forEach(label => console.log('  PASS ' + label));
+  } else {
+    console.log('Browser fixture ready: http://127.0.0.1:5191/__test/login?user=a (manual checks; not a pass result)');
+    await new Promise(resolve => { process.once('SIGINT', resolve); process.once('SIGTERM', resolve); });
+  }
+} catch (error) {
+  console.error(error); exitCode = 1;
+} finally {
+  await server?.close();
+  model.closeAllConnections();
+  await new Promise(resolve => model.close(resolve));
+  await rm(scratch, { recursive: true, force: true });
+}
+process.exit(exitCode);

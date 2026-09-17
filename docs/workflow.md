@@ -38,7 +38,8 @@ pnpm dev
 # 这个脚本与 pnpm dev 共用 apps/web/.wrangler/state，避免迁移到错误的本地库
 pnpm db:migrate:local
 
-# 4. 开发、测试、提交
+# 4. 开发、验证、提交
+pnpm verify  # 同时覆盖 Web 与 Mapdown；失败时停止，不要把 build 当作完整验证
 git add <files>
 git commit -m "描述你的改动"
 ```
@@ -48,6 +49,13 @@ git commit -m "描述你的改动"
 - `OAUTH_REDIRECT_URL` 本地应为 `http://localhost:5173/auth/callback`。
 - D1/R2 在本地使用 wrangler 模拟，数据存储在 `.wrangler/` 目录中。
 - 如需更贴近 Pages 运行时的测试，可以用 `pnpm build && wrangler pages dev` 替代 `pnpm dev`。
+
+### 本地验证入口
+
+完整范围与限制见 [本地验证说明](verification.md)。只改一个产品时可运行
+`pnpm verify:web` 或 `pnpm verify:mapdown`；共享或跨产品改动运行 `pnpm verify`。
+浏览器交互仍按 [隔离 fixture 指南](../scripts/testing/README.md) 人工检查并记录。
+这些是本地命令，不代表 Pages 自动等待检查，也不更改现有部署方式。
 
 ### 第二步：Cloudflare 测试环境验证
 

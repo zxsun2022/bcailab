@@ -2,7 +2,8 @@ import { defineConfig } from "vitest/config";
 import path from "node:path";
 
 /**
- * Unit tests for pure logic — no DOM, no Cloudflare bindings, no network.
+ * Unit tests for deterministic logic and targeted React lifecycle regressions.
+ * Node is the default; individual React tests opt into jsdom. No Cloudflare bindings or network.
  *
  * Scope is deliberately narrow: modules that are deterministic and whose bugs are
  * silent (scoring, parsing, normalization). Route loaders and `*.server.ts` modules

@@ -15,7 +15,14 @@
     "benchmark:mapdown": "tsx scripts/mapdown-benchmark.ts",
     "context": "./scripts/context-pack.sh",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:web": "node scripts/verification/verify.mjs web",
+    "verify:mapdown": "node scripts/verification/verify.mjs mapdown",
+    "verify": "node scripts/verification/verify.mjs all",
+    "check:docs": "node scripts/verification/check-docs.mjs",
+    "test:integration": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs --check",
+    "test:browser:fixture": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs",
+    "verify:failures": "node scripts/verification/check-failures.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260203.0",

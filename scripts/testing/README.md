@@ -3,7 +3,7 @@
 Run from the repository root with installed dependencies:
 
 ```sh
-TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs
+pnpm test:browser:fixture
 ```
 
 This starts Remix on `127.0.0.1:5191`, a delayed fake model on port 5192, and a fresh
@@ -30,6 +30,17 @@ All `/__test/` handlers belong to this test server, never to production routes.
   `fixtureFailure=profile|history|library` injects an individual DB read failure.
 
 ## Automated D1/HTTP checks
+
+To start, check and stop the fixture automatically:
+
+```sh
+pnpm test:integration
+```
+
+This runs the Home assertions below plus first-submit replay, account isolation and feedback
+generation checks through actual HTTP actions. It uses the same fake model and fresh D1, exits
+nonzero on failure and removes its temporary configuration. `verify:web` and `verify` include it.
+See [verification scope](../../docs/verification.md) for prerequisites and remaining manual checks.
 
 With the fixture running:
 

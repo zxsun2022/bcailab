@@ -17,6 +17,36 @@ no-account acquisition funnel into it. A second product, **Mapdown**, was added 
 a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
 infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
+## Now — Local verification entry points (iteration 4) — in_review
+
+Owner-authorized 2026-09-17. Add `verify:web`, `verify:mapdown`, and `verify` with explicit
+scope for tests, typechecks, lint, builds and operational documentation checks. Preserve the
+per-package TypeScript choices. Root verification must include Mapdown client and Functions.
+Reuse the isolated Writing/Home D1 fixture as an automatic check and document how to repeat
+browser checks; do not silently report manual browser checks as automated passes.
+
+Acceptance:
+- All three commands run locally, identify their scope and failing step, and exit nonzero on
+  failure. Required tools/input files cannot be silently skipped. Check Node compatibility and
+  the repository's declared pnpm version before starting.
+- Web covers its shared packages, existing seed/grader/worker checks, React regressions, build
+  and isolated D1/HTTP checks. Mapdown covers client and Functions tests/types, lint and build.
+  Combined verification covers both without relying on the legacy Web-only root build.
+- Deliberate unit, type and lint failures block the appropriate product command; a Functions
+  type error blocks combined verification. A broken operational-doc link also blocks verification.
+  Keep a reproducible failure-injection command that restores its temporary changes.
+- Document command boundaries, prerequisite tools, D1/browser invocation and limitations.
+  Limit doc checking to verification/workflow instructions and required inputs; semantic doc
+  drift and historical-doc reorganization belong to a later iteration.
+
+Review evidence (2026-09-17): all three verify commands pass; 744 tests, 25 D1/HTTP assertions,
+and eight injected failures confirm scope and fail-fast behavior. See [verification instructions](verification.md)
+and [changelog](changelog.md). Browser interaction checks remain manual; owner acceptance is pending.
+
+No CI, remote settings, deployment mechanism, production migration, product behavior or Reading
+experiment changes are authorized in this iteration. Delivery is `in_review`, with evidence in
+changelog; acceptance remains the owner's decision.
+
 ## Now — Writing reliability and Home data correctness
 
 Owner-authorized 2026-09-16: iterations 1–3 of the review follow-up plan. Implement in this
