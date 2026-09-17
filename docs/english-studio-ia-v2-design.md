@@ -217,6 +217,23 @@ bcailab                            ← all products
   adjacent-band exploration (§1.4). **No recommendation service, no repository layer, no
   feed framework.**
 
+#### Home data bounds and failure behavior (2026-09-17)
+
+Recommendation candidates are separate from the publication lookup for recent/resumable
+records. The candidate query returns at most 20 metadata rows per current/adjacent band
+(up to 60 total). An independent query finds the newest eligible unfinished dictation,
+even outside the 40-row recent dictation window. A publication lookup covers at most 41
+referenced dictation passages; withdrawn, deleted and other users' passages are excluded.
+Reading history remains bounded to 20 and Writing to one; Home uses seven product reads
+in total, independent of library size (authentication reads are separate).
+
+Profile, individual histories and library reads recover independently. Profile failure leaves
+level unknown and shows that the level/count are temporarily unavailable. History failure
+suppresses recommendations that would claim a material is new to the learner. Candidate
+failure retains eligible Continue/Recent destinations from their independent lookup.
+Authentication still runs before recovery, retaining its normal redirect/error behavior.
+The degraded notice stays visible and the module launcher remains available.
+
 ### 3.4 Home — status grid
 
 Panels, all reading existing data: **Level** (+ confidence, + basis sentence) · **Volume**
@@ -348,7 +365,8 @@ actions; anonymous routing fixed via `access`; Translate's way back. No page red
 (Continue + one recommendation with directional alternatives); status grid; cold-start CTA
 + level picker; `selectStarterPractice()` (pure, tested, list-shaped output, adjacent-band
 exploration); `/english/progress` kept and linked (its own enrichment can trail);
-bounded queries; degrade to a module launcher on any personalisation failure — never blank.
+bounded queries; recover individual data sources as specified in §3.3, with a module launcher
+when no action survives — never blank.
 
 **Phase 3 — Reading surface.** Rail passage list removed (dup query gone); band-grouped
 library with card states, folded bands, "your level" marker; own-texts secondary; add

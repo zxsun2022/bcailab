@@ -9,6 +9,18 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: Home bounded inputs and independent degradation (F04/F05).**
+  Recommendation candidates now have per-band limits, separate from published record destinations.
+  A dedicated eligible-resume query retains older unfinished dictation outside recent history.
+  Profile/history/library failures recover independently; missing profile data is labelled unavailable,
+  not a zero-activity or B1 learner. Authentication failures retain existing behavior.
+
+  Evidence: 743 tests, all typechecks, lint (0 errors; 9 existing warnings), Web and Mapdown builds.
+  Twenty assertions against fresh migrated D1 and running Remix verify an 80-A1 uneven library,
+  B2 recommendation, older C2 Continue, withdrawn/deleted/foreign exclusions, seven bounded
+  product reads, individual failure paths and authentication. Browser checks verified normal Home
+  and profile-failure copy. Reproduction instructions: [reliability fixtures](../scripts/testing/README.md).
+
 - 2026-09-17 — **in_review: Writing draft recovery and account isolation (F02/F03).**
   Freeform, assignments and new rounds share an account-scoped local draft contract. Text,
   context and first-submit key survive refresh; revalidation does not replace dirty edits.

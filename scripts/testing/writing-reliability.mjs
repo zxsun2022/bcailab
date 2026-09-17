@@ -6,6 +6,7 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer } from '../../apps/web/node_modules/vite/dist/node/index.js';
 import remixDev from '../../apps/web/node_modules/@remix-run/dev/dist/index.js';
 import wrangler from '../../node_modules/wrangler/wrangler-dist/cli.js';
+import { seedHome, faultDb, checkHome } from './home-reliability.mjs';
 import baseConfig from '../../apps/web/vite.config.ts';
 const root = resolve(import.meta.dirname, '../..');
 const scratch = await mkdtemp(tmpdir() + '/bcailab-reliability-');
@@ -39,12 +40,15 @@ async function initialize(env) {
     db.prepare("INSERT INTO writing_articles(id,user_id,agent_type,title) VALUES ('retry-article','test-a','general','Retry fixture')"),
     db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status) VALUES ('retry-round','retry-article','test-a',1,'This is a synthetic draft with enough words to exercise the writing feedback flow.',15,'failed')")
   ]);
+  await seedHome(db);
   const prompt = JSON.parse(await readFile(root + '/scripts/writing-prompt-seed/generated/prompts.generated.json', 'utf8'))[0];
   await db.prepare(`INSERT INTO writing_prompts(id,slug,family,task_type,prompt_kind,cefr_band,title,prompt_text,coach_id,topic,target_words,target_minutes,content_hash,review_manifest_json,owner_approved_hash,status,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'{}',?,'published',datetime('now'))`).bind(prompt.id,prompt.slug,prompt.family,prompt.taskType,prompt.promptKind,prompt.cefrBand,prompt.title,prompt.promptText,prompt.coachId,prompt.topic,prompt.targetWords,prompt.targetMinutes,prompt.contentHash,prompt.contentHash).run();
 
 }
-const proxy = remixDev.cloudflareDevProxyVitePlugin({ configPath: scratch + '/wrangler.toml', persist: false, remoteBindings: false, async getLoadContext({ context }) {
-  initialization ??= initialize(context.cloudflare.env); await initialization; return runtime;
+const proxy = remixDev.cloudflareDevProxyVitePlugin({ configPath: scratch + '/wrangler.toml', persist: false, remoteBindings: false, async getLoadContext({ request, context }) {
+  initialization ??= initialize(context.cloudflare.env); await initialization;
+  const source = new URL(request.url).searchParams.get('fixtureFailure');
+  return source ? { ...runtime, env: { ...runtime.env, DB: faultDb(runtime.env.DB, source) } } : runtime;
 } });
 const fixture = { name: 'synthetic-fixture', configureServer(server) {
   server.middlewares.use(async (req, res, next) => {
@@ -68,6 +72,7 @@ const fixture = { name: 'synthetic-fixture', configureServer(server) {
         res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return;
       }
       if (url.pathname === '/__test/lose-next-response') { loseNextResponse = true; res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return; }
+      if (url.pathname === '/__test/home-checks') { const checks = await checkHome(server, root, runtime); res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(checks)); return; }
       if (url.pathname === '/__test/counts') {
         const rows = await runtime.env.DB.prepare('SELECT article_id,COUNT(*) AS rounds FROM writing_revisions GROUP BY article_id').all();
         res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(rows.results)); return;
