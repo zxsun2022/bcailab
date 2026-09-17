@@ -6,6 +6,7 @@ import type {
 import { json, redirect } from "@remix-run/cloudflare";
 import { Link, useFetcher, useLoaderData, useNavigate } from "@remix-run/react";
 import * as React from "react";
+import { useWritingDraft } from "~/utils/use-writing-draft";
 import { WritingEditor } from "~/components/WritingEditor";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { requireUser } from "~/utils/auth.server";
@@ -29,8 +30,8 @@ export const meta: MetaFunction = () => [
 ];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
-  await requireUser(request, context);
-  return json({ startKey: crypto.randomUUID() });
+  const user = await requireUser(request, context);
+  return json({ userId: user.id, startKey: crypto.randomUUID() });
 };
 
 export const action = async ({ request, context }: ActionFunctionArgs) => {
@@ -81,47 +82,25 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   }
 };
 
-const TOPIC_KEY = "writing-topic-new";
-
 export default function WritingNewPage() {
-  const { startKey } = useLoaderData<typeof loader>();
-  const [stableStartKey] = React.useState(() => startKey);
+  const data = useLoaderData<typeof loader>();
+  return <WritingNewReady key={data.userId} {...data} />;
+}
+function WritingNewReady({ userId, startKey }: { userId: string; startKey: string }) {
+  const local = useWritingDraft(userId, "freeform", { coach: DEFAULT_AGENT_ID, startKey });
+  const { text, topic, coach: agentType, startKey: stableStartKey } = local.draft;
   const fetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
-  const [agentType, setAgentType] = React.useState(DEFAULT_AGENT_ID);
-  const [text, setText] = React.useState("");
-  const [topic, setTopic] = React.useState("");
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const agent = getWritingAgentOrDefault(agentType);
   const agents = listWritingAgents().filter((entry) => entry.id !== "ielts_task1");
 
+  const { completeSubmit } = local;
   React.useEffect(() => {
-    try {
-      setTopic(localStorage.getItem(TOPIC_KEY) ?? "");
-    } catch {
-      // localStorage may be unavailable in private browsing contexts.
-    }
-  }, []);
-
-  const handleTopicChange = (value: string) => {
-    setTopic(value);
-    try {
-      localStorage.setItem(TOPIC_KEY, value);
-    } catch {
-      // localStorage may be unavailable in private browsing contexts.
-    }
-  };
-
-  React.useEffect(() => {
-    const redirectTo = fetcher.data?.redirectTo;
-    if (!redirectTo) return;
-    try {
-      localStorage.removeItem(TOPIC_KEY);
-    } catch {
-      // localStorage may be unavailable in private browsing contexts.
-    }
-    navigate(redirectTo);
-  }, [fetcher.data, navigate]);
+    if (!fetcher.data?.redirectTo) return;
+    completeSubmit();
+    navigate(fetcher.data.redirectTo);
+  }, [fetcher.data, navigate, completeSubmit]);
 
   return (
     <div className="studio-main-scroll">
@@ -132,7 +111,7 @@ export default function WritingNewPage() {
           action={<Link to="/writing" className="btn btn-secondary">Browse assignments</Link>}
         />
         <StudioPageBody className="writing-index">
-          <fetcher.Form method="post" className="writing-index-form">
+          <fetcher.Form method="post" className="writing-index-form" onSubmit={local.beginSubmit}>
             <input type="hidden" name="_intent" value="createArticle" />
             <input type="hidden" name="_transport" value="fetcher" />
             <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
@@ -147,7 +126,7 @@ export default function WritingNewPage() {
                   name="agentType"
                   className="writing-select"
                   value={agentType}
-                  onChange={(event) => setAgentType(event.currentTarget.value)}
+                  onChange={(event) => local.update({ coach: event.currentTarget.value })}
                 >
                   {agents.map((entry) => (
                     <option key={entry.id} value={entry.id}>{entry.label}</option>
@@ -159,20 +138,21 @@ export default function WritingNewPage() {
 
             <WritingEditor
               value={text}
-              onChange={setText}
+              onChange={text => local.update({ text })}
               agent={agent}
               name="userText"
               showTopic
               topic={topic}
-              onTopicChange={handleTopicChange}
+              onTopicChange={topic => local.update({ topic })}
             />
 
+            {local.storageError ? <p role="alert">Draft could not be saved on this device. Keep this page open or copy your text before leaving.</p> : null}
             {fetcher.data?.error ? <div className="form-error">{fetcher.data.error}</div> : null}
             <div className="writing-index-actions">
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={!text.trim() || fetcher.state === "submitting"}
+                disabled={!local.ready || !text.trim() || fetcher.state === "submitting"}
               >
                 {fetcher.state === "submitting" ? "Submitting..." : "Submit for feedback"}
               </button>

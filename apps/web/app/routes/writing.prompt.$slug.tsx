@@ -12,6 +12,7 @@ import {
   type WritingAssignmentSnapshot,
   type WritingPromptSession
 } from "@bcailab/db";
+import { useWritingDraft } from "~/utils/use-writing-draft";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
@@ -54,6 +55,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     });
     return json({
       schemaReady: true as const,
+      userId: user.id,
       assignment: snapshot,
       sessions,
       startKey: crypto.randomUUID()
@@ -135,6 +137,8 @@ export default function WritingPromptPage() {
 
   return (
     <WritingPromptReadyPage
+      key={`${data.userId}:${data.assignment.promptId}:${data.assignment.contentHash}`}
+      userId={data.userId}
       assignment={data.assignment}
       sessions={data.sessions}
       startKey={data.startKey}
@@ -143,25 +147,21 @@ export default function WritingPromptPage() {
 }
 
 function WritingPromptReadyPage({
+  userId,
   assignment,
   sessions,
   startKey
 }: {
+  userId: string;
   assignment: WritingAssignmentSnapshot;
   sessions: { items: WritingPromptSession[]; has_more: boolean };
   startKey: string;
 }) {
-  const startIdentity = `${assignment.promptId}:${assignment.contentHash}`;
-  const stableStartRef = React.useRef({ identity: startIdentity, key: startKey });
-  if (stableStartRef.current.identity !== startIdentity) {
-    stableStartRef.current = { identity: startIdentity, key: startKey };
-  }
-  const stableStartKey = stableStartRef.current.key;
+  const local = useWritingDraft(userId, `prompt:${assignment.promptId}:${assignment.contentHash}`, { coach: assignment.coachId, startKey });
+  const { text, startKey: stableStartKey } = local.draft;
   const fetcher = useFetcher<ActionData>();
   const navigate = useNavigate();
   const [feedbackLanguage] = useWritingFeedbackLanguage();
-  const draftKey = `writing-prompt-draft:${assignment.promptId}:${assignment.contentHash}`;
-  const [text, setText] = React.useState("");
   const agent = getWritingAgentOrDefault(assignment.coachId);
   const collection = assignment.taskType === "academic_task_1"
     ? { label: "Visual reports", to: "/writing/library?category=task1" }
@@ -169,31 +169,12 @@ function WritingPromptReadyPage({
       ? { label: "Academic essays", to: "/writing/library?category=task2" }
       : { label: "Everyday writing", to: "/writing/library?category=general" };
 
+  const { completeSubmit } = local;
   React.useEffect(() => {
-    try {
-      setText(localStorage.getItem(draftKey) ?? "");
-    } catch {
-      // localStorage may be unavailable in private browsing contexts.
-    }
-  }, [draftKey]);
-  const updateText = (value: string) => {
-    setText(value);
-    try {
-      localStorage.setItem(draftKey, value);
-    } catch {
-      // localStorage may be unavailable in private browsing contexts.
-    }
-  };
-  React.useEffect(() => {
-    const redirectTo = fetcher.data?.redirectTo;
-    if (!redirectTo) return;
-    try {
-      localStorage.removeItem(draftKey);
-    } catch {
-      // localStorage may be unavailable in private browsing contexts.
-    }
-    navigate(redirectTo);
-  }, [draftKey, fetcher.data, navigate]);
+    if (!fetcher.data?.redirectTo) return;
+    completeSubmit();
+    navigate(fetcher.data.redirectTo);
+  }, [fetcher.data, navigate, completeSubmit]);
 
   return (
     <div className="studio-main-scroll">
@@ -227,16 +208,17 @@ function WritingPromptReadyPage({
 
           <WritingPromptMaterial assignment={assignment} />
 
-          <fetcher.Form method="post" className="writing-index-form">
+          <fetcher.Form method="post" className="writing-index-form" onSubmit={local.beginSubmit}>
             <input type="hidden" name="_transport" value="fetcher" />
             <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
             <input type="hidden" name="contentHash" value={assignment.contentHash} />
             <input type="hidden" name="startKey" value={stableStartKey} />
-            <WritingEditor value={text} onChange={updateText} agent={agent} name="userText" />
+            <WritingEditor value={text} onChange={text => local.update({ text })} agent={agent} name="userText" />
+            {local.storageError ? <p role="alert">Draft could not be saved on this device. Keep this page open or copy your text before leaving.</p> : null}
             {fetcher.data?.error ? <div className="form-error" role="alert">{fetcher.data.error}</div> : null}
             <div className="writing-index-actions">
               <span className="writing-submit-note">The assignment is saved only when you submit this first draft.</span>
-              <button type="submit" className="btn btn-primary" disabled={!text.trim() || fetcher.state === "submitting"}>
+              <button type="submit" className="btn btn-primary" disabled={!local.ready || !text.trim() || fetcher.state === "submitting"}>
                 {fetcher.state === "submitting" ? "Starting feedback..." : "Submit first draft"}
               </button>
             </div>

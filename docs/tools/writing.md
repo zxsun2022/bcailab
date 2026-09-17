@@ -9,6 +9,17 @@ Its response includes article/revision identity, generation and task start time;
 consumes it once. Poll results for another round or an older generation are ignored. Pending
 age uses task start time. Polling stops when feedback completes, fails or becomes stale.
 
+## Local draft recovery
+
+Signed-in freeform, assignment and revision editors save a versioned draft on this device.
+The key includes the account and entry identity (assignment content hash or revision base).
+Text, topic, coach, base revision, update time and first-submit key travel together. Refresh
+and loader revalidation retain edits; failed requests retain the same submission identity.
+Success removes only the submitted version, preserving newer edits (including another tab's).
+Legacy unscoped drafts are left untouched and never silently attributed to the current account.
+Storage failure displays a warning to keep the page open or copy the text. These drafts are
+local recovery, not encrypted storage or cross-device sync. Anonymous trials remain non-persistent.
+
 ## Design Principles
 
 - **Coach, not ghostwriter.** AI identifies issues; user executes revisions. The product never rewrites text on behalf of the user during a session.
@@ -114,7 +125,7 @@ Nav rail collapse state is persisted in `localStorage`.
   and canonical Task 1 facts for every later revision and retry.
 - `(user_id, start_key)` is unique, so a repeated first-submit transport returns the same
   article and Round 1 instead of duplicating work. The browser keeps that start key stable
-  across Remix loader revalidation, including validation errors and failed submissions.
+  across refresh, return visits and Remix loader revalidation, including failed submissions.
 - `writing_revisions.feedback_generation` and `feedback_started_at` isolate retries and
   provide a server-authoritative stale-pending threshold.
 - `(article_id, round_number)` is unique.
@@ -274,10 +285,10 @@ Follows the same async pattern as Reading:
    assignment. A2/B1/B2/C1 labels are discovery aids, not prerequisites.
 2. Opening `/writing/prompt/:slug` renders the reviewed prompt and, for Task 1, the visual
    plus an accessible data/table/process/map representation. Previewing writes nothing.
-3. The draft is kept locally under the prompt ID and content hash. On submit, the server
+3. The draft is kept locally under the account, prompt ID and content hash. On submit, the server
    rechecks that the prompt is still published with the same hash.
 4. Article, immutable assignment snapshot, and Round 1 are created in one D1 batch. The
-   per-page start key makes repeat transport safe.
+   persisted draft start key makes repeat transport safe, including after refresh.
 5. The user is redirected to `/writing/:id`; the fixed assignment remains visible across
    latest, history, compose, and retry states.
 

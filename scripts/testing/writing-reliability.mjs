@@ -27,6 +27,7 @@ const model = createHttpServer(async (req, res) => {
 });
 await new Promise(resolve => model.listen(5192, '127.0.0.1', resolve));
 let runtime, initialization;
+let loseNextResponse = false;
 async function initialize(env) {
   runtime = { env: { ...env, SESSION_SECRET: 'synthetic-fixture-only', GEMINI_API_KEY: 'fake', GEMINI_BASE_URL: 'http://127.0.0.1:5192' }, ctx: { waitUntil(p) { p.catch(console.error); } } };
   const db = runtime.env.DB;
@@ -38,12 +39,22 @@ async function initialize(env) {
     db.prepare("INSERT INTO writing_articles(id,user_id,agent_type,title) VALUES ('retry-article','test-a','general','Retry fixture')"),
     db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status) VALUES ('retry-round','retry-article','test-a',1,'This is a synthetic draft with enough words to exercise the writing feedback flow.',15,'failed')")
   ]);
+  const prompt = JSON.parse(await readFile(root + '/scripts/writing-prompt-seed/generated/prompts.generated.json', 'utf8'))[0];
+  await db.prepare(`INSERT INTO writing_prompts(id,slug,family,task_type,prompt_kind,cefr_band,title,prompt_text,coach_id,topic,target_words,target_minutes,content_hash,review_manifest_json,owner_approved_hash,status,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'{}',?,'published',datetime('now'))`).bind(prompt.id,prompt.slug,prompt.family,prompt.taskType,prompt.promptKind,prompt.cefrBand,prompt.title,prompt.promptText,prompt.coachId,prompt.topic,prompt.targetWords,prompt.targetMinutes,prompt.contentHash,prompt.contentHash).run();
+
 }
 const proxy = remixDev.cloudflareDevProxyVitePlugin({ configPath: scratch + '/wrangler.toml', persist: false, remoteBindings: false, async getLoadContext({ context }) {
   initialization ??= initialize(context.cloudflare.env); await initialization; return runtime;
 } });
 const fixture = { name: 'synthetic-fixture', configureServer(server) {
   server.middlewares.use(async (req, res, next) => {
+    if (loseNextResponse && req.method === 'POST' && req.url?.startsWith('/writing/new')) {
+      loseNextResponse = false;
+      const end = res.end.bind(res);
+      res.write = () => true;
+      res.end = () => { res.statusCode = 503; res.removeHeader('Content-Length'); res.setHeader('Content-Type','application/json'); return end(JSON.stringify({ error: 'Synthetic lost success response. Refresh and retry.' })); };
+      return next();
+    }
     if (!req.url?.startsWith('/__test/')) return next();
     try {
       await initialization;
@@ -56,6 +67,7 @@ const fixture = { name: 'synthetic-fixture', configureServer(server) {
         res.setHeader('Set-Cookie', await auth.createSessionCookie(new Request(url), runtime.env, session.id));
         res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return;
       }
+      if (url.pathname === '/__test/lose-next-response') { loseNextResponse = true; res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return; }
       if (url.pathname === '/__test/counts') {
         const rows = await runtime.env.DB.prepare('SELECT article_id,COUNT(*) AS rounds FROM writing_revisions GROUP BY article_id').all();
         res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(rows.results)); return;

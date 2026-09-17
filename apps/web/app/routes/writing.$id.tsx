@@ -35,6 +35,7 @@ import {
 } from "~/utils/writing-schema.server";
 import { parseWritingAssignmentSnapshot } from "~/utils/writing-prompt.server";
 
+import { useWritingDraft } from "~/utils/use-writing-draft";
 import { useWritingRetryResult, type WritingRetryResult } from "~/utils/use-writing-retry-result";
 
 type ActionData = {
@@ -124,6 +125,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
     return json({
       schemaReady: true as const,
+      userId: user.id,
+      baseRevision: latestRevision?.id ?? null,
       article: {
         id: article.id,
         title: article.title,
@@ -302,7 +305,7 @@ export default function WritingArticlePage() {
     return <WritingUnavailableState />;
   }
 
-  return <WritingArticlePageReady key={`${data.article.id}:${data.activeRevision?.id ?? "none"}`} data={data} />;
+  return <WritingArticlePageReady key={`${data.userId}:${data.article.id}:${data.activeRevision?.id ?? "none"}`} data={data} />;
 }
 
 function WritingArticlePageReady({
@@ -322,7 +325,12 @@ function WritingArticlePageReady({
     latestText
   } = data;
 
-  const [text, setText] = React.useState(latestText);
+  const local = useWritingDraft(data.userId, `revision:${article.id}:${data.baseRevision ?? "none"}`, {
+    text: latestText, coach: agent.id, startKey: `revision-${article.id}-${data.baseRevision}`,
+    baseRevision: data.baseRevision
+  });
+  const text = local.draft.text;
+  const { completeSubmit } = local;
   const [liveTitle, setLiveTitle] = React.useState(article.title);
   const [liveRevisions, setLiveRevisions] = React.useState<AsideRound[]>(revisions);
   const [liveActiveRevision, setLiveActiveRevision] = React.useState(activeRevision);
@@ -365,10 +373,6 @@ function WritingArticlePageReady({
   }, []);
 
   React.useEffect(() => {
-    setText(latestText);
-  }, [latestText]);
-
-  React.useEffect(() => {
     setLiveTitle(article.title);
   }, [article.title]);
 
@@ -391,8 +395,9 @@ function WritingArticlePageReady({
   React.useEffect(() => {
     const redirectTo = submitFetcher.data?.redirectTo;
     if (!redirectTo) return;
+    completeSubmit();
     navigate(redirectTo);
-  }, [navigate, submitFetcher.data]);
+  }, [navigate, submitFetcher.data, completeSubmit]);
 
   React.useEffect(() => {
     setTitleValue(article.title ?? "");
@@ -428,7 +433,6 @@ function WritingArticlePageReady({
     const nextRevision = submitFetcher.data?.revision;
     if (!submitFetcher.data?.ok || !nextRevision) return;
 
-    setText(nextRevision.userText);
     setLiveLatestRound(nextRevision.roundNumber);
     setLiveActiveFeedback(null);
     setLiveActiveRevision({
@@ -768,7 +772,7 @@ function WritingArticlePageReady({
           </div>
 
           {isComposeView ? (
-            <submitFetcher.Form method="post" className="writing-submit-form is-compose">
+            <submitFetcher.Form method="post" className="writing-submit-form is-compose" onSubmit={local.beginSubmit}>
               <input type="hidden" name="_intent" value="submitRevision" />
               <input type="hidden" name="_transport" value="fetcher" />
               <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
@@ -777,7 +781,7 @@ function WritingArticlePageReady({
               {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
               <WritingEditor
                 value={text}
-                onChange={setText}
+                onChange={text => local.update({ text })}
                 agent={fullAgent}
                 name="userText"
                 showGuide={false}
@@ -786,11 +790,12 @@ function WritingArticlePageReady({
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!text.trim() || isLatestRoundPending || submitFetcher.state === "submitting"}
+                  disabled={!local.ready || !text.trim() || isLatestRoundPending || submitFetcher.state === "submitting"}
                 >
                   {submitFetcher.state === "submitting" ? "Submitting..." : "Submit revision"}
                 </button>
               </div>
+              {local.storageError ? <p role="alert">Draft could not be saved on this device. Keep this page open or copy your text before leaving.</p> : null}
               {submitFetcher.data?.error ? <div className="form-error">{submitFetcher.data.error}</div> : null}
             </submitFetcher.Form>
           ) : liveActiveRevision ? (

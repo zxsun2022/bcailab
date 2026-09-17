@@ -9,6 +9,18 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: Writing draft recovery and account isolation (F02/F03).**
+  Freeform, assignments and new rounds share an account-scoped local draft contract. Text,
+  context and first-submit key survive refresh; revalidation does not replace dirty edits.
+  Successful submission clears only its own version; unavailable storage is visible, and
+  old unscoped content is not auto-assigned. Trials and server schema are unchanged.
+
+  Evidence: five React/storage regressions cover refresh, account separation, dirty edits,
+  failed submission, version-aware cleanup and storage failure. Isolated browser checks covered
+  freeform/revision/assignment refresh and A → B → A account switching. Suppressing a successful
+  server response, refreshing and retrying produced one new article with exactly one Round 1 in
+  real local D1. Test support uses synthetic accounts and a simulated model; no quality claim.
+
 - 2026-09-17 — **in_review: Writing retry lifecycle (F01).** Retry responses now identify
   article, revision, generation and task start time. The page consumes each response once and
   rejects stale polling results; creation timestamps remain unchanged. React regression tests
