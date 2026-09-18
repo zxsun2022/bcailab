@@ -9,6 +9,201 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: iteration 6 — readability and Home action hierarchy.**
+  Strengthened the shared Web supporting-text tokens in light and both dark modes, preserving
+  palette/typography. Studio inputs and the Writing coach selector use control-strength boundaries;
+  placeholders remain readable and keyboard focus uses a separated 2px outline. Writing/Dictation
+  editors now have persistent visible labels. Home gives Continue the primary button when present,
+  otherwise recommendation Start; Recent status sits directly below its wrapping title.
+
+  Evidence: `pnpm verify:web` passes 227 tests, all Web/script/worker typechecks, build, 31 context
+  assertions and 29 real local D1/HTTP assertions. Lint: 0 errors, 7 existing warnings in this scope.
+  Six token-pair tests cover page/alternate/card surfaces and alpha-composited borders; substituting
+  the previous CSS fails all three supporting-text cases, and restored CSS passes. HTTP assertions
+  guard the combined, recommendation-only and cold Home button hierarchy.
+
+  Manual browser checks used synthetic accounts and identical fixture data across Light/Dark:
+  cold, recommendation-only, Continue-only, combined, empty/degraded and long-title Home; Writing
+  and Dictation labels/fields, Tab focus, Enter navigation, mobile drawer Escape/focus return.
+  Narrow 320/390px layouts had no horizontal page overflow. Rendered input placeholders measured
+  5.03:1 light / 6.55:1 dark; unfocused input boundaries 3.29:1 / 3.43:1 including alpha composition.
+  Home recent status measured 5.19:1 / 8.68:1. Decorative separators remain light.
+
+  Limits: this is not a complete accessibility certification; screen-reader speech, OS forced-colors
+  rendering, real reference audio and other Web tools' full visual matrices were not exercised.
+  Shared Web tokens also affect their consumers; Mapdown styling is separate. No recommendation,
+  measurement, Reading experiment or deployment change. Reproduce via [fixture instructions](../scripts/testing/README.md).
+
+- 2026-09-17 — **in_review: iteration 5 — documentation authority and drift repair.**
+  Added the [documentation entry point](README.md), corrected Writing rail ownership, Home
+  layout, container widths and test-scope claims, and removed the duplicate architecture route
+  inventory. Marked the August audit as historical evidence. Moved already accepted roadmap
+  detail into [dated history](roadmap-accepted-history.md): 93 original paragraphs retained
+  verbatim, 22 old heading anchors preserved. Unaccepted work and the outstanding independent
+  Writing content-review caveat remain visible; no new acceptance or reprioritization occurred.
+
+  Context packs now distinguish intent, derived checkout facts and history; validate required
+  inputs and requested sources; warn on optional history failures; and replace output only after
+  successful generation. Expanded bounded document checks and added synthetic context regressions
+  to Web/combined verification. Checks do not establish semantic agreement or validate anchors.
+
+  Evidence: combined `pnpm verify` passes all 10 steps, including 744 tests, 25 real local D1/HTTP
+  assertions, both products' types/builds and lint (0 errors; 9 existing warnings). All 31 synthetic
+  context assertions pass; broken-link and document-role probes fail at the expected docs step
+  and restore their edits. All four profiles generate from the real checkout into temporary files.
+  Archive paragraphs/anchors were separately checked against the prior commit. No new browser,
+  model-quality, Reading experiment or deployment claim; product behavior is unchanged.
+
+- 2026-09-17 — **in_review: iteration 4 — local verification entry points.** Added
+  `verify:web`, `verify:mapdown` and combined `verify` with toolchain checks, labelled fail-fast
+  steps, explicit test/type/lint/build scope, bounded operational-doc checks and automatic
+  isolated D1/HTTP verification. Mapdown client and Functions are checked through their own
+  compiler; existing Web-focused commands and package versions are unchanged. The browser
+  fixture has a separate manual entry point; startup never reports browser tests as passed.
+
+  Evidence on Node 26.8.2 / pnpm 9.12.0: all three commands pass. Combined verification runs
+  744 tests, both products' typechecks/builds, repository lint (0 errors; 9 existing warnings),
+  required-input/link checks and 25 real D1/HTTP assertions with synthetic accounts/model.
+  Eight intentional failures were rejected at the expected steps: Web/Mapdown unit tests,
+  Web/Mapdown client types, Mapdown Functions through the root command, each product's lint,
+  and a broken operational-doc link. Probe diagnostics were verified and edits restored.
+  The manual fixture command was checked for startup/shutdown; no new end-to-end browser
+  claim is made. No CI, deployment settings, remote migrations or product behavior changed.
+  See [verification scope and reproduction](verification.md).
+
+- 2026-09-17 — **in_review: Writing draft recovery across server round changes.**
+  The revision draft key is stable per account/article; its base round is metadata. Unsent
+  edits remain recoverable when another client advances the server round, with an explicit
+  earlier-round notice. Viewing saved work no longer creates a pristine local draft copy.
+  Evidence: 744 tests, Web typecheck/build and lint (0 errors; 9 existing warnings).
+  The isolated browser retained the earlier unsent text after D1 advanced to Round 2.
+  A final retry run made two status requests and the count stayed at two after completion.
+
+- 2026-09-17 — **in_review: Home bounded inputs and independent degradation (F04/F05).**
+  Recommendation candidates now have per-band limits, separate from published record destinations.
+  A dedicated eligible-resume query retains older unfinished dictation outside recent history.
+  Profile/history/library failures recover independently; missing profile data is labelled unavailable,
+  not a zero-activity or B1 learner. Authentication failures retain existing behavior.
+
+  Evidence: 743 tests, all typechecks, lint (0 errors; 9 existing warnings), Web and Mapdown builds.
+  Twenty assertions against fresh migrated D1 and running Remix verify an 80-A1 uneven library,
+  B2 recommendation, older C2 Continue, withdrawn/deleted/foreign exclusions, seven bounded
+  product reads, individual failure paths and authentication. Browser checks verified normal Home
+  and profile-failure copy. Reproduction instructions: [reliability fixtures](../scripts/testing/README.md).
+
+- 2026-09-17 — **in_review: Writing draft recovery and account isolation (F02/F03).**
+  Freeform, assignments and new rounds share an account-scoped local draft contract. Text,
+  context and first-submit key survive refresh; revalidation does not replace dirty edits.
+  Successful submission clears only its own version; unavailable storage is visible, and
+  old unscoped content is not auto-assigned. Trials and server schema are unchanged.
+
+  Evidence: five React/storage regressions cover refresh, account separation, dirty edits,
+  failed submission, version-aware cleanup and storage failure. Isolated browser checks covered
+  freeform/revision/assignment refresh and A → B → A account switching. Suppressing a successful
+  server response, refreshing and retrying produced one new article with exactly one Round 1 in
+  real local D1. Test support uses synthetic accounts and a simulated model; no quality claim.
+
+- 2026-09-17 — **in_review: Writing retry lifecycle (F01).** Retry responses now identify
+  article, revision, generation and task start time. The page consumes each response once and
+  rejects stale polling results; creation timestamps remain unchanged. React regression tests
+  reproduced the repeated-update mechanism before the guard and pass after it. An isolated,
+  migrated D1 fixture with a delayed synthetic model exercised browser retry → pending → completed
+  without an update-depth warning. Initial page hydration warnings were observed separately;
+  this is not a claim that all browser console errors are resolved. The fixture lives in
+  `scripts/testing/writing-reliability.mjs`; it uses no owner data or real model credentials.
+
+- 2026-09-16 — **in_review: Reading context bias-test tooling.** Added `--brief` to the variance
+  screen and a registered-corpus harness for baseline / brief / legacy-profile comparisons. Both
+  use the production prompt and highlight normalizer, replacing the screen's old score-only
+  prompt; historical variance reports are not direct controls. Metrics reuse production tag
+  attribution and the roadmap's fixed limits. Dataset/code preregistration, audio hashes, complete
+  run counts and strict response parsing prevent an invalid or partial experiment from reporting
+  a pass. Runtime Reading behavior is unchanged; its two import paths are relative so offline
+  tooling can consume the same implementation.
+
+  Evidence: 734 tests, all typechecks including a new grader-tool check, lint (0 errors; 9 existing
+  warnings), Web build; prior Mapdown build remains applicable. New tests include a stable
+  eight-point penalty, cancelling pooled shifts, false-positive attribution, crowded-out errors,
+  invalid corpora/runs, parser rejection and production-prompt parity. CLI dry runs validated
+  synthetic tone fixtures and rejected an unregistered live run before any model calls. No real
+  corpus has been supplied, no Reading bias experiment has run, and no new Reading brief is enabled.
+  See [the protocol and input format](spikes/reading-context-bias-protocol.md).
+
+- 2026-09-15 — **in_review: learner context for graders — Writing feedback step.** Signed-in
+  first drafts, revisions and retries now receive other sessions' coach notes and related listening
+  weaknesses. The current session is excluded in SQL before limiting to six sources. Within-session
+  feedback still drives the delta; trials keep byte-identical prompts. Two bounded reads run inside
+  the existing task and fail soft; assembly failure messages in both graders no longer print raw
+  exception text, which could contain source data. No schema or measurement change.
+
+  Evidence: 720 tests, typechecks, lint (0 errors; 9 existing warnings), both builds. On an isolated
+  dev server with real migrated D1 and a synthetic signed-in account, Writing first draft, revision
+  and retry each returned real-model feedback; the revision retained its delta and retry generation
+  advanced. Dictation's signed-in HTTP action also produced real-model feedback while keeping the
+  deterministic accuracy. This closes the previously missing model-path smoke test, not owner
+  acceptance or evidence of broad coaching quality. Scope/read-budget checks and limitations are
+  recorded in [the verification note](spikes/learner-context-writing-verification.md).
+
+- 2026-09-15 — **in_review: learner context for graders — Dictation feedback step.** Dictation
+  feedback, the first grader in the rollout order, now receives the learner brief (ADR 0010): the
+  learner's own level or "not established", tag accuracy with each line's provenance, patterns
+  named in the feedback on their last six completed attempts, and grammar notes from the latest
+  feedback of their six most recent Writing sessions. The pure brief lives in `learner-context.ts`;
+  the server assembler adds three bounded reads inside the existing background task and logs counts
+  only. The prompt also stops presenting the passage band as the learner's level, and an unbanded
+  passage is no longer handed an invented B1. The profile naming pass now shares its weak and
+  strong thresholds with the brief instead of keeping private literals, so both call the same tags
+  weak. `docs/tools/dictation.md` and `docs/architecture.md` describe the new input.
+
+  Evidence: 17 brief tests, 3 prompt fixtures and 1 query fixture; 714 tests, all typechecks, lint
+  (0 errors) and the production build pass. Data scope was verified by running the real assembler
+  against a fresh, fully migrated local D1 through wrangler's platform proxy, seeded with rows that
+  must stay out — another user's work, a deleted session's retained rounds, soft-deleted and
+  unfinished attempts, a newer failed round, a saved translation. All 17 checks passed with three
+  reads, none touching `saved_translations`. The dev server renders a dictation passage page on the
+  changed route with no console errors.
+
+  **Owed before acceptance: a signed-in end-to-end run.** Criterion (b) names the dev server. The
+  scratch D1 run exercises the same query and assembler on workerd's D1, but the feedback path
+  needs a signed-in session, so no real model call has yet run with a brief and its effect on the
+  feedback is unobserved. Writing and Reading are not started.
+
+- 2026-09-15 — **accepted: grader context is a separate layer from measurement.** Recorded as
+  [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). The owner observed on
+  2026-09-14 that learning records go unused and each exercise's grader data stays isolated.
+  Checked in code, every grader remembers one object rather than the learner — Reading one passage,
+  Writing one session, Dictation feedback one attempt. Writing contributes nothing to the shared
+  learner layer, and the only cross-mode input any grader receives is at most eight profile
+  phrases on the Reading evaluator. The record separates what a grader is *told* about the learner
+  — derived per call, allowed to carry earlier coach feedback labelled as such — from what the
+  system *measures*, which stays exactly as it was; saved translations are excluded from context.
+
+  In the same decision the owner confirmed the proposal's five decisions as recommended and
+  authorized **"Now — Learner context for graders"** (Stage 1: a per-call learner brief, rolled out
+  Dictation → Writing → Reading, with Reading behind an anchoring spike) and a **Stage 2** Next item
+  (structured feedback categories, context only). Decision 5 was applied in this change rather than
+  deferred. `docs/learner-model-design.md` §1 said Writing contributes CEFR signal and practice
+  counters, and §7 said Reading's `cefr_guess` is folded into the CEFR estimate; neither was ever
+  true in code, and both bullets now say so with a dated correction. The roadmap's *Fold writing
+  into the ability profile* item made the same counters claim and was corrected alongside. Folding
+  `cefr_guess` in remains a measurement change that needs its own evidence.
+
+  *Review corrections (2026-09-15).* An outside review, forwarded by the owner, found three
+  overstatements. Each was checked against the code, all three held, and ADR 0010, the proposal and
+  the roadmap item were corrected with the five decisions unchanged. The Reading gate compared
+  standard deviations, which measure stability rather than bias — a context that moved every score
+  down by eight points on every call would have passed — so it is now a bias evaluation: several
+  recordings, ground truth fixed before the runs, and pre-registered limits on mean score shift,
+  false positives and crowded-out real errors, with the single-recording spike demoted to a screen.
+  The claim that a brief is re-derivable as of any past evaluation was false, because the profile
+  row is overwritten at each recompute and feedback lands after its row is created; a brief is now
+  promised to be deterministic over current history only. And tag mastery was labelled "measured"
+  although Reading's six tags blend down-weighted LLM observations into it, so every tag line now
+  states its provenance. The same check found that Writing's rubric `dimension` is a closed set only
+  in the prompt — stored values are unvalidated — so the brief normalises it.
+
+  Design and evidence: `docs/learner-context-proposal.md`. Nothing is implemented yet.
+
 - 2026-08-27 — **in_review: material library expansion drafts — 80 passages and 48 IELTS
   prompts.** Both halves of the authorized expansion are generated and validated; **nothing is
   published**, no TTS has been spent, and no D1 row has been written.

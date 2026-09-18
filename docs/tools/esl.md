@@ -177,6 +177,17 @@ via the `reading_.trial.tsx` route-name prefix.
   (down-weighted) signal in `learner_tag_observations`. User-supplied passages carry no tags,
   so reading on them writes no observations. Fails soft — never blocks an evaluation.
 
+### Grader context rollout gate
+
+Reading still receives its existing `persistent_issues`/`strengths` profile. The new learner brief
+used by Dictation and Writing is **not yet connected to Reading**, because Reading's highlights
+become measurement observations (ADR 0010). Enablement requires the roadmap's bias experiment,
+including a comparison against the existing profile injection. The offline tools share the
+production prompt and attribution but do not change runtime behavior or write learner data.
+See [the experiment protocol](../spikes/reading-context-bias-protocol.md) for the recording format,
+pre-registration, commands and fixed thresholds. A single-recording variance screen cannot enable
+Reading context; any failed gate goes back to the owner.
+
 ### Right Panel Behaviour
 - History rail always shows `New Attempt` at the top.
 - On the new-passage page, the desktop history rail starts collapsed when there are no attempts yet, so the empty rail does not dominate the layout.

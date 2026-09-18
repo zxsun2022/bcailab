@@ -524,3 +524,56 @@ export async function listCompletedWritingRevisionsByUser(
     .all();
   return (result.results ?? []).map(mapWritingRevision);
 }
+
+/** The latest round with completed feedback from one recent Writing session. */
+export type WritingFeedbackRound = {
+  article_id: string;
+  agent_type: string;
+  feedback_json: string;
+  created_at: string;
+};
+
+/**
+ * The latest round with completed feedback from each of a learner's most recent non-deleted
+ * Writing sessions, newest first — the Writing source of the learner brief (ADR 0010). A deleted
+ * session keeps its revisions for recovery, so the article join is what keeps them out of
+ * coaching. One query, bounded by `limit`.
+ */
+export async function listLatestWritingFeedbackRoundsByUser(
+  db: Db,
+  input: { userId: string; limit?: number; excludeArticleId?: string }
+): Promise<WritingFeedbackRound[]> {
+  const limit = Math.min(Math.max(input.limit ?? 6, 1), 25);
+  const result = await db
+    .prepare(
+      `SELECT r.article_id, a.agent_type, r.feedback_json, r.created_at
+         FROM writing_articles a
+         JOIN writing_revisions r ON r.article_id = a.id
+        WHERE a.user_id = ?
+          AND a.deleted_at IS NULL
+          AND r.user_id = ?
+          AND (? IS NULL OR a.id <> ?)
+          AND r.id = (
+            SELECT r2.id
+              FROM writing_revisions r2
+             WHERE r2.article_id = a.id
+               AND r2.feedback_status = 'completed'
+               AND r2.feedback_json IS NOT NULL
+             ORDER BY r2.round_number DESC
+             LIMIT 1
+          )
+        ORDER BY r.created_at DESC, r.id DESC
+        LIMIT ?`
+    )
+    .bind(input.userId, input.userId, input.excludeArticleId ?? null, input.excludeArticleId ?? null, limit)
+    .all();
+  return (result.results ?? []).map((row) => {
+    const record = row as Record<string, unknown>;
+    return {
+      article_id: String(record.article_id),
+      agent_type: String(record.agent_type),
+      feedback_json: String(record.feedback_json),
+      created_at: String(record.created_at)
+    };
+  });
+}

@@ -259,3 +259,20 @@ describe("selectStarterPractice — continue", () => {
     expect(selectStarterPractice(base()).continueAction).toBeNull();
   });
 });
+
+it("resumes a published record outside the candidate window without changing the B2 recommendation", () => {
+  const old = passage("old-c2", "C2");
+  const result = selectStarterPractice(base({
+    level: "B2", candidates: [passage("new-b2", "B2")], recordPassages: [old],
+    records: [{ ...done(old.id), status: "in_progress", sentencesDone: 2 }]
+  }));
+  expect(result.continueAction).toMatchObject({ passageId: old.id });
+  expect(result.recommendations[0]).toMatchObject({ passageId: "new-b2", band: "B2" });
+});
+it("does not resume a record whose publication lookup excludes it or whose audio was withdrawn", () => {
+  for (const recordPassages of [[], [passage("old", "B2", "daily", false)]]) {
+    const result = selectStarterPractice(base({ recordPassages,
+      records: [{ ...done("old"), status: "in_progress" }] }));
+    expect(result.continueAction).toBeNull();
+  }
+});

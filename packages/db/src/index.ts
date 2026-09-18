@@ -14,3 +14,4 @@ export * from "./passages";
 export * from "./saved-translations";
 export * from "./writing-prompt-domain";
 export * from "./writing-prompts";
+export * from "./home";

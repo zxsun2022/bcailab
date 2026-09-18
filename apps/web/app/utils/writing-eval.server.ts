@@ -103,6 +103,7 @@ export const normalizeWritingFeedback = (
 };
 
 export const buildWritingEvaluationPrompt = (input: {
+  learnerContext?: string;
   agent: WritingAgent;
   userText: string;
   wordCount: number;
@@ -168,6 +169,8 @@ export const buildWritingEvaluationPrompt = (input: {
     )
   ];
 
+  if (input.learnerContext) parts.push("", input.learnerContext);
+
   const assignmentPrompt = input.assignment?.promptText ?? input.topic;
   if (assignmentPrompt) {
     parts.push("", "## Assignment", assignmentPrompt);
@@ -217,6 +220,7 @@ export const buildWritingEvaluationPrompt = (input: {
 };
 
 export const evaluateWriting = async (input: {
+  learnerContext?: string;
   env: Env;
   agentType: string;
   userText: string;
@@ -234,6 +238,7 @@ export const evaluateWriting = async (input: {
   }
 
   const prompt = buildWritingEvaluationPrompt({
+    learnerContext: input.learnerContext,
     agent,
     userText: input.userText,
     wordCount: input.wordCount,

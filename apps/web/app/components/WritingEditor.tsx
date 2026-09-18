@@ -100,6 +100,7 @@ export function WritingEditor({
   showTopic = false,
   topicReadOnly = false
 }: WritingEditorProps) {
+  const editorId = React.useId();
   const wordCount = value
     .trim()
     .split(/\s+/)
@@ -129,7 +130,9 @@ export function WritingEditor({
         />
       ) : null}
 
+      <label className="writing-label" htmlFor={editorId}>Your writing</label>
       <textarea
+        id={editorId}
         name={name}
         className="writing-editor-textarea"
         value={value}

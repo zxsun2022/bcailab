@@ -25,11 +25,16 @@ This repository is intentionally structured for multi-agent collaboration across
 - `ai/` - Agent prompts, conventions, and research notes
 
 ## Tests
-- `pnpm test` (vitest, config at repo root). Scope is deliberately narrow: **pure,
-  deterministic logic whose bugs are silent** — scoring, parsing, normalization.
-- Route loaders/actions and `*.server.ts` modules need D1/R2 bindings; verify those
-  against the running dev server instead of mocking the platform.
-- Tests live next to their module as `*.test.ts`, under `apps/web/app/` or `packages/*/src/`.
+- `pnpm test` runs deterministic logic, targeted React lifecycle regressions (jsdom), and
+  existing SQL-shape tests. D1 `prepare`/`bind` stubs verify query text/bindings only; they do
+  **not** establish SQLite constraints, transactions, authorization or platform behavior.
+- Route loaders/actions and `*.server.ts` behavior needs real D1/R2 bindings. Use the isolated
+  dev-server fixture (`pnpm test:integration`) and relevant browser cases rather than treating
+  platform mocks as integration evidence.
+- Tests live next to modules as `*.test.ts`; the root Vitest config defines the current scope
+  across Web, shared packages, Mapdown client/Functions and selected scripts.
+- Use `pnpm verify:web`, `pnpm verify:mapdown` or `pnpm verify` for the relevant scope. See
+  [verification](docs/verification.md) for automated/manual boundaries and known limitations.
 
 ## Conventions
 - Prefer small, focused commits and clear diffs.
@@ -81,6 +86,7 @@ This repository is intentionally structured for multi-agent collaboration across
   implementations are documented in `docs/tools/`.
 
 ## Docs
+- Start at [docs/README.md](docs/README.md) for document authority and conflict handling.
 - Update `docs/` when adding new tools or changing infra.
 - Where things live: `docs/roadmap.md` what is planned · `docs/decisions/` why it is like this
   · `docs/changelog.md` what shipped · `docs/exploration.md` unapproved ideas ·
@@ -94,7 +100,7 @@ This repository is intentionally structured for multi-agent collaboration across
 ## External Consultation
 - To ask an AI outside this repo (ChatGPT, Gemini, a fresh session) for a diagnosis or
   review, generate a context pack rather than pasting docs: `pnpm context [-p arch|product|debug|full]`.
-- The pack labels hand-written docs as *(intent)* and code-derived facts as *(derived)*,
+- The pack labels guidance as *(intent)*, code-derived facts as *(derived)*, and dated records as *(history)*,
   so the consultant can spot drift instead of trusting a stale doc.
 - See `docs/external-consultation.md` for profiles, flags, and secret-handling rules.
 - Advice that comes back is input, not authorization — roadmap changes still need owner confirmation.

@@ -257,3 +257,14 @@ export async function completeDictationAttempt(
     )
     .run();
 }
+
+/** Latest eligible unfinished attempt, independent of the Home's recent-history window. */
+export async function getHomeResumableDictation(db: Db, userId: string): Promise<DictationAttempt | null> {
+  const row = await db.prepare(`SELECT a.* FROM dictation_attempts a
+    JOIN passages p ON p.id = a.passage_id
+    WHERE a.user_id = ? AND a.deleted_at IS NULL AND a.status = 'in_progress'
+      AND p.user_id IS NULL AND p.deleted_at IS NULL AND p.status = 'published'
+      AND p.has_sentence_audio = 1
+    ORDER BY a.created_at DESC, a.id DESC LIMIT 1`).bind(userId).first();
+  return row ? mapDictationAttempt(row as Record<string, unknown>) : null;
+}

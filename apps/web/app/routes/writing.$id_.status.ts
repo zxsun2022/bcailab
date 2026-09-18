@@ -34,6 +34,10 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     }
 
     return json({
+      articleId: article.id,
+      revisionId: latest.id,
+      feedbackGeneration: latest.feedback_generation,
+      feedbackStartedAt: latest.feedback_started_at ?? latest.created_at,
       articleTitle: article.title,
       feedbackStatus: latest.feedback_status,
       feedback,

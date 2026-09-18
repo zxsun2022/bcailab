@@ -2,14 +2,17 @@ import type { AppLoadContext } from "@remix-run/cloudflare";
 import { setDictationAttemptFeedback } from "@bcailab/db";
 import { callGemini, parseJsonFromText } from "~/utils/llm.server";
 import type { DiffOp } from "~/utils/dictation-diff";
+import { assembleDictationFeedbackContext } from "~/utils/learner-context.server";
 
 /**
  * LLM error-pattern feedback for a completed dictation attempt (design §8).
  *
  * The deterministic diff already *measures* what went wrong; the model's only job
- * is to name the recurring patterns behind those errors. Input is the non-match ops
- * plus the CEFR band — never the raw audio, and never the learner profile (v1 does
- * not touch `esl_learner_profiles`).
+ * is to name the recurring patterns behind those errors. Input is the non-match ops,
+ * the passage band, and the learner brief (ADR 0010) — the learner's own level, tag
+ * accuracy labelled by provenance, earlier dictation feedback, and grammar notes from
+ * Writing. Never the raw audio. The brief is context only: this grader's measurement is
+ * the diff, computed before the call, so the brief cannot contaminate it.
  *
  * Runs in the background via `waitUntil`, filling the `feedback_json` null slot the
  * summary page polls. Failure must never fail the attempt: the attempt row is
@@ -52,12 +55,25 @@ const describeOps = (results: SentenceResultInput[]): string =>
     })
     .join("\n");
 
-const buildPrompt = (band: string, opsSummary: string): string =>
-  `A learner at CEFR level ${band} completed an English listening dictation exercise.
-Below are their transcription errors, derived by comparing what they typed against the
-reference text word by word.
+/**
+ * The band belongs to the passage. The learner's own level arrives in the learner context and
+ * is never inferred from the material they happened to pick. Exported for prompt fixtures.
+ */
+export const buildDictationFeedbackPrompt = (input: {
+  passageBand: string | null;
+  opsSummary: string;
+  learnerContext: string;
+}): string => {
+  const exercise = input.passageBand
+    ? `A learner completed an English listening dictation exercise on a passage graded CEFR ${input.passageBand}.`
+    : "A learner completed an English listening dictation exercise.";
+  const learnerContext = input.learnerContext ? `\n${input.learnerContext}\n` : "";
+  return `${exercise}
+${learnerContext}
+Below are their transcription errors on this attempt, derived by comparing what they typed
+against the reference text word by word.
 
-${opsSummary}
+${input.opsSummary}
 
 Identify 2 to ${MAX_PATTERNS} recurring error patterns. Look for things like homophone
 confusion, dropped articles, missed verb or plural endings, weak-form and linking
@@ -70,6 +86,7 @@ For each pattern give:
 
 Respond with JSON only, no markdown fences:
 {"patterns": [{"pattern": "...", "evidence": "...", "tip": "..."}]}`;
+};
 
 const coerceFeedback = (value: unknown): DictationFeedback | null => {
   if (!value || typeof value !== "object") return null;
@@ -91,17 +108,31 @@ const coerceFeedback = (value: unknown): DictationFeedback | null => {
 
 const runFeedback = async (
   context: AppLoadContext,
-  input: { attemptId: string; userId: string; band: string; results: SentenceResultInput[] }
+  input: { attemptId: string; userId: string; band: string | null; results: SentenceResultInput[] }
 ): Promise<void> => {
   try {
     const opsSummary = describeOps(input.results);
     // A flawless attempt has no patterns to find — skip the call entirely.
     if (!opsSummary) return;
 
+    // Assembled inside this background task, so its reads never reach the learner's request.
+    const learnerContext = await assembleDictationFeedbackContext(context, {
+      userId: input.userId,
+      attemptId: input.attemptId
+    });
+
     const { text } = await callGemini({
       env: context.env,
       task: "dictation_feedback",
-      parts: [{ text: buildPrompt(input.band, opsSummary) }],
+      parts: [
+        {
+          text: buildDictationFeedbackPrompt({
+            passageBand: input.band,
+            opsSummary,
+            learnerContext
+          })
+        }
+      ],
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -123,7 +154,7 @@ const runFeedback = async (
 /** Fire-and-forget; resolves immediately when the platform supports `waitUntil`. */
 export const scheduleDictationFeedback = async (
   context: AppLoadContext,
-  input: { attemptId: string; userId: string; band: string; results: SentenceResultInput[] }
+  input: { attemptId: string; userId: string; band: string | null; results: SentenceResultInput[] }
 ): Promise<void> => {
   const task = runFeedback(context, input);
   if (context.ctx?.waitUntil) {

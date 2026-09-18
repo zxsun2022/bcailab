@@ -2,6 +2,26 @@
 
 AI-powered iterative writing coach. Users submit a piece of writing, receive structured feedback, revise, and resubmit — repeating the cycle until their writing meets the standard they are aiming for. The AI acts as an editor, not a ghostwriter: it identifies what to improve and why, but the user does the rewriting.
 
+## Feedback retry lifecycle
+
+A retry keeps the original revision creation time and starts a new feedback generation.
+Its response includes article/revision identity, generation and task start time; the browser
+consumes it once. Poll results for another round or an older generation are ignored. Pending
+age uses task start time. Polling stops when feedback completes, fails or becomes stale.
+
+## Local draft recovery
+
+Signed-in freeform, assignment and revision editors save a versioned draft on this device.
+The key includes the account and entry identity (assignment content hash or article).
+Text, topic, coach, base revision, update time and first-submit key travel together. Refresh
+and loader revalidation retain edits; failed requests retain the same submission identity.
+Success removes only the submitted version, preserving newer edits (including another tab's).
+Legacy unscoped drafts are left untouched and never silently attributed to the current account.
+Storage failure displays a warning to keep the page open or copy the text. These drafts are
+local recovery, not encrypted storage or cross-device sync. Revision drafts retain their base
+round as metadata: if the server has advanced, unsent edits are recovered with a notice to review
+that older draft. Simply viewing a saved round does not create a local draft copy. Anonymous trials remain non-persistent.
+
 ## Design Principles
 
 - **Coach, not ghostwriter.** AI identifies issues; user executes revisions. The product never rewrites text on behalf of the user during a session.
@@ -13,7 +33,7 @@ AI-powered iterative writing coach. Users submit a piece of writing, receive str
 
 | Page | Route | Behaviour |
 |------|-------|-----------|
-| Writing layout | `/writing` | Auth required. Three-column shell with article list sidebar. |
+| Writing layout | `/writing` | Auth required. Shared Studio shell with product navigation; article history stays on Writing surfaces. |
 | Assignment library | `/writing` (index) | Lists owner-published General English and IELTS assignments plus the user's six most recent pieces. CEFR labels guide discovery and do not gate access. |
 | Freeform writing | `/writing/new` | Create a piece from a user-supplied topic and coach. |
 | Assignment preview | `/writing/prompt/:slug` | Preview one published assignment and its accessible material without creating an article. The first draft submission creates the durable work. |
@@ -51,48 +71,28 @@ creating an account. It escapes the `/writing` layout (which calls `requireUser`
 
 ## Layout
 
-Three-column collapsible shell following the **Canvas-centered** pattern (see `docs/css-layout-conventions.md`). Writing is the current reference implementation for the shared shell/detail model described in `docs/tool-shell-pattern.md`.
+The body editor has a persistent **Your writing** label, independently of its placeholder.
+The coach selector and text fields use control-strength boundaries and a visible keyboard focus
+outline in both themes; disabled submission keeps its native disabled state.
 
-### Shell Structure
+Writing uses the [shared Studio shell](../studio-app-shell.md). The product rail belongs to
+navigation; article history and revision controls belong to Writing surfaces.
 
-```
-.writing-shell (flex row, full viewport height)
-├── <WritingNavRail />          ← left panel (aside)
-└── .writing-main (flex: 1, overflow-y: auto)
-    └── .writing-canvas (max-width: 1020px, margin: 0 auto)
-        └── <Outlet />          ← route content
-```
+### Shell and columns
 
-### Columns
-
-- **Left panel — Navigation rail (`ToolNavRail` / `WritingNavRail`)**: Collapsible sidebar (260px expanded → 52px collapsed). All user articles sorted by `updated_at` DESC. Each entry shows title only (single line, no coach badge) for higher density. Pinned top: "Writing home", "+ New Article", "Progress". Pinned bottom: user avatar → settings. Article deletion uses the shared accessible confirmation dialog. Collapse state is persisted in `localStorage` key `"writing-nav-rail-collapsed"`. On mobile, the rail is an inert, focus-trapped drawer (280px) with Escape/close focus restoration and a backdrop.
-- **Center — Main canvas**: All route content renders inside `.writing-canvas` (max-width `1020px`, auto-centered). Sub-pages apply their own inner max-width for readability:
-  - Assignment library (`writing._index`): wide catalogue
-  - New freeform article (`writing.new`): `720px`
-  - Assignment preview (`writing.prompt.$slug`): assignment material followed by the editor
-  - Article detail (`writing.$id`): `center stage` containing a narrower `article column`, plus a separate right rail shell
-  - Progress (`writing.progress`): `760px`
-  - Settings (`writing.settings`): `600px`
-- **Right panel — Feedback aside (`WritingDetailAside`)**: Part of the article detail page (`writing.$id`), rendered inside a dedicated right rail shell that stays docked to the far right edge of the main area. Collapsible (persisted in `localStorage` key `"writing-aside-collapsed"`). When expanded: a wrapped navigation strip with `New Revision` first, then the latest round, then older rounds from left to right. The active state reflects either the selected historical round or compose mode. Feedback content below is scrollable. When collapsed: shrinks to the same `52px` width used by the left collapsed nav rail, with a collapse toggle and new-revision icon button. The rail shell owns the divider line so it spans the full desktop workspace height. On mobile (<1024px): hidden; feedback renders inline in the center panel instead.
-- Desktop feedback-aside collapse/expand animates the rail-shell width and fades the expanded rail body instead of replacing the panel contents in one frame.
-- **Detail workspace behaviour**: On desktop, the article detail page uses a full-width two-track shell. The right rail stays pinned to the main area's right edge; the left side is the `center stage`, and inside it the actual `article column` keeps its own max width and padding. The desktop detail page scrolls at the `center stage` level, so the vertical scrollbar sits at the boundary between the content area and the right rail. Collapsing the right aside changes the available width of the center stage, then the article column recenters inside that remaining space.
-
-### Responsive Behaviour
-
-| Breakpoint | Nav rail (left) | Canvas (center) | Feedback aside (right) |
-|------------|----------------|-----------------|----------------------|
-| < 1024px (mobile) | Hidden; drawer overlay (280px) via top-left hamburger | Full width, feedback inline below text | Hidden |
-| 1024–1279px (tablet) | Persistent, 260px (collapsible → 52px) | Centered, max-width 1020px | 300px (collapsible → 52px) |
-| ≥ 1280px (desktop) | Persistent, 260px (collapsible → 52px) | Centered, max-width 1020px | 300–340px (collapsible → 52px) |
-
-Nav rail collapse state is persisted in `localStorage`.
-
-### Mobile-specific UI
-
-- Hamburger toggle button fixed at top-left (`nav-rail-mobile-toggle`), matching Claude.ai's pattern
-- Backdrop overlay when nav rail is open
-- "← Articles" back link shown in article detail header
-- All content stacked vertically (single column)
+- **Product rail:** `WritingNavRail` supplies the Writing settings destination and user to
+  `ToolNavRail`. It does not query/list articles or add “Writing home” / “New Article” actions.
+  The shared rail owns collapse, mobile drawer, focus restoration and account controls.
+- **Main workspace:** `StudioShell` hosts the route outlet. Catalogue, freeform, assignment,
+  session list, progress and settings use `StudioPage` frames. Width values come from
+  [global styles](../../apps/web/app/styles/global.css) and the [design system](../design-system.md),
+  not a separate fixed 1020px Writing canvas contract.
+- **Article detail:** the main area has an article column and a right feedback rail. The
+  article column recenters within the remaining space when the feedback rail collapses.
+  `WritingDetailAside` owns round navigation (`New Revision`, latest, older rounds) and feedback;
+  its collapse preference uses `writing-aside-collapsed`. At narrow widths feedback renders inline.
+- **Returning and history:** breadcrumbs lead back to Writing/collection context. Session history
+  is managed on Writing pages, not injected into the global product navigation.
 
 ## Data Model
 
@@ -107,7 +107,7 @@ Nav rail collapse state is persisted in `localStorage`.
   and canonical Task 1 facts for every later revision and retry.
 - `(user_id, start_key)` is unique, so a repeated first-submit transport returns the same
   article and Round 1 instead of duplicating work. The browser keeps that start key stable
-  across Remix loader revalidation, including validation errors and failed submissions.
+  across refresh, return visits and Remix loader revalidation, including failed submissions.
 - `writing_revisions.feedback_generation` and `feedback_started_at` isolate retries and
   provide a server-authoritative stale-pending threshold.
 - `(article_id, round_number)` is unique.
@@ -267,10 +267,10 @@ Follows the same async pattern as Reading:
    assignment. A2/B1/B2/C1 labels are discovery aids, not prerequisites.
 2. Opening `/writing/prompt/:slug` renders the reviewed prompt and, for Task 1, the visual
    plus an accessible data/table/process/map representation. Previewing writes nothing.
-3. The draft is kept locally under the prompt ID and content hash. On submit, the server
+3. The draft is kept locally under the account, prompt ID and content hash. On submit, the server
    rechecks that the prompt is still published with the same hash.
 4. Article, immutable assignment snapshot, and Round 1 are created in one D1 batch. The
-   per-page start key makes repeat transport safe.
+   persisted draft start key makes repeat transport safe, including after refresh.
 5. The user is redirected to `/writing/:id`; the fixed assignment remains visible across
    latest, history, compose, and retry states.
 
@@ -365,6 +365,25 @@ Follows the same async pattern as Reading:
 | `apps/web/app/styles/global.css` | CSS | Three-column layout styles, writing-specific styles |
 | `apps/web/app/routes/_index.tsx` | Route | Update homepage: slug `esl/writing` → `writing` |
 | `docs/tools/writing.md` | Doc | This document |
+
+## Learner context for feedback
+
+Signed-in first submissions, revisions and feedback retries receive a per-call learner brief
+(ADR 0010), after the rubric and before the assignment and current draft. It contains the
+learner's level (or "not established"), critical/improvement notes from the latest completed
+feedback of up to six **other** non-deleted Writing sessions, and weak `article`, `final_s` and
+`past_ed` tags explicitly labelled as **listening evidence**, not writing accuracy. Notes retain
+all Writing dimensions, rather than the grammar-only projection used by Dictation. Earlier
+AI feedback is labelled as such and may only connect issues evidenced in the current draft.
+
+The current session is excluded before the six-session query limit. Its existing previous-round
+feedback and score history remain separate inputs for the round delta. Trials receive no brief;
+their prompts are unchanged. Reading/Dictation coach notes and saved translations are excluded.
+
+Assembly adds two bounded D1 reads inside the existing evaluation task, with no extra model call,
+no stored brief, and a 1,800-character ceiling. If assembly fails, feedback proceeds without it.
+Logs contain only counts and fixed failure messages. No output schema, measurement, CEFR
+resolution or feedback-generation/retry behavior changes.
 
 ## Configuration
 

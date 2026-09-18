@@ -103,6 +103,8 @@ export type StarterPracticeInput = {
   /** Resolved CEFR, or null when the system has not established one. */
   level: string | null;
   candidates: CandidatePassage[];
+  /** Published record destinations, independent of the recommendation window. */
+  recordPassages?: CandidatePassage[];
   records: PracticeRecord[];
   draft: WritingDraft | null;
   /** Completed attempts so far — drives the deterministic exploration cadence. */
@@ -154,7 +156,7 @@ const pickContinue = (
   // Newest unfinished dictation whose passage is still published — a resumable attempt
   // pointing at withdrawn material must not be offered (the "stale" state).
   const resumable = records
-    .filter((r) => r.mode === "dictation" && r.status === "in_progress" && byId.has(r.passageId))
+    .filter((r) => r.mode === "dictation" && r.status === "in_progress" && byId.get(r.passageId)?.hasSentenceAudio)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 
   const dictationAction: ContinueAction | null = resumable
@@ -191,7 +193,9 @@ const pickContinue = (
 export const selectStarterPractice = (input: StarterPracticeInput): StarterPractice => {
   const { candidates, records, level, draft, attemptCount } = input;
 
-  const continueAction = pickContinue(records, candidates, draft);
+  const recordPassages = input.recordPassages ?? candidates;
+  const knownPassages = [...candidates, ...recordPassages];
+  const continueAction = pickContinue(records, recordPassages, draft);
 
   const practisedByMode = new Map<string, PracticeRecord[]>();
   for (const record of records) {
@@ -207,7 +211,7 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
   const inBand = candidates.filter((c) => c.band === band).sort(byTitle);
   const bandsPractised = new Set(
     records
-      .map((r) => candidates.find((c) => c.id === r.passageId)?.band)
+      .map((r) => knownPassages.find((c) => c.id === r.passageId)?.band)
       .filter((b): b is string => Boolean(b))
   );
 
@@ -309,8 +313,8 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
       .filter((r) => r.mode === "dictation" && r.status === "completed")
       .sort((a, b) => a.accuracy - b.accuracy);
     for (const record of scored) {
-      const passage = candidates.find((c) => c.id === record.passageId);
-      if (!passage) continue;
+      const passage = recordPassages.find((c) => c.id === record.passageId);
+      if (!passage?.hasSentenceAudio) continue;
       primary = {
         mode: "dictation",
         passageId: passage.id,

@@ -35,7 +35,11 @@ import {
 } from "~/utils/writing-schema.server";
 import { parseWritingAssignmentSnapshot } from "~/utils/writing-prompt.server";
 
+import { useWritingDraft } from "~/utils/use-writing-draft";
+import { useWritingRetryResult, type WritingRetryResult } from "~/utils/use-writing-retry-result";
+
 type ActionData = {
+  retry?: WritingRetryResult;
   error?: string;
   ok?: boolean;
   redirectTo?: string;
@@ -121,6 +125,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
 
     return json({
       schemaReady: true as const,
+      userId: user.id,
+      baseRevision: latestRevision?.id ?? null,
       article: {
         id: article.id,
         title: article.title,
@@ -137,7 +143,9 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
             user_text: activeRevision.user_text,
             word_count: activeRevision.word_count,
             feedback_status: activeRevision.feedback_status,
-            created_at: activeRevision.feedback_started_at ?? activeRevision.created_at
+            created_at: activeRevision.created_at,
+            feedback_started_at: activeRevision.feedback_started_at ?? activeRevision.created_at,
+            feedback_generation: activeRevision.feedback_generation
           }
         : null,
       activeFeedback,
@@ -265,14 +273,14 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       const feedbackLanguage = formData.get("feedbackLanguage") === "zh" ? "zh" as const : "en" as const;
 
       try {
-        await retryRevisionFeedback(context, {
+        const retry = await retryRevisionFeedback(context, {
           userId: user.id,
           revisionId,
           articleId: article.id,
           agentType: article.agent_type,
           feedbackLanguage
         });
-        return json<ActionData>({ ok: true });
+        return json<ActionData>({ ok: true, retry });
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {
           logWritingSchemaMissing("writing.detail.action.retry", error);
@@ -297,7 +305,7 @@ export default function WritingArticlePage() {
     return <WritingUnavailableState />;
   }
 
-  return <WritingArticlePageReady data={data} />;
+  return <WritingArticlePageReady key={`${data.userId}:${data.article.id}:${data.activeRevision?.id ?? "none"}:${data.baseRevision ?? "none"}`} data={data} />;
 }
 
 function WritingArticlePageReady({
@@ -317,7 +325,12 @@ function WritingArticlePageReady({
     latestText
   } = data;
 
-  const [text, setText] = React.useState(latestText);
+  const local = useWritingDraft(data.userId, `revision:${article.id}`, {
+    text: latestText, coach: agent.id, startKey: `revision-${article.id}-${data.baseRevision}`,
+    baseRevision: data.baseRevision, restoreEarlierBase: true, persistInitial: false
+  });
+  const text = local.draft.text;
+  const { completeSubmit } = local;
   const [liveTitle, setLiveTitle] = React.useState(article.title);
   const [liveRevisions, setLiveRevisions] = React.useState<AsideRound[]>(revisions);
   const [liveActiveRevision, setLiveActiveRevision] = React.useState(activeRevision);
@@ -360,10 +373,6 @@ function WritingArticlePageReady({
   }, []);
 
   React.useEffect(() => {
-    setText(latestText);
-  }, [latestText]);
-
-  React.useEffect(() => {
     setLiveTitle(article.title);
   }, [article.title]);
 
@@ -386,8 +395,9 @@ function WritingArticlePageReady({
   React.useEffect(() => {
     const redirectTo = submitFetcher.data?.redirectTo;
     if (!redirectTo) return;
+    completeSubmit();
     navigate(redirectTo);
-  }, [navigate, submitFetcher.data]);
+  }, [navigate, submitFetcher.data, completeSubmit]);
 
   React.useEffect(() => {
     setTitleValue(article.title ?? "");
@@ -406,11 +416,11 @@ function WritingArticlePageReady({
   const liveIsStalePending =
     liveIsPending &&
     liveActiveRevision &&
-    pendingClock - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_STALE_MS;
+    pendingClock - new Date(liveActiveRevision.feedback_started_at + "Z").getTime() > PENDING_STALE_MS;
   const liveIsLongPending =
     liveIsPending &&
     liveActiveRevision &&
-    pendingClock - new Date(liveActiveRevision.created_at + "Z").getTime() > PENDING_LONG_WAIT_MS;
+    pendingClock - new Date(liveActiveRevision.feedback_started_at + "Z").getTime() > PENDING_LONG_WAIT_MS;
 
   React.useEffect(() => {
     if (!liveIsPending) return;
@@ -423,7 +433,6 @@ function WritingArticlePageReady({
     const nextRevision = submitFetcher.data?.revision;
     if (!submitFetcher.data?.ok || !nextRevision) return;
 
-    setText(nextRevision.userText);
     setLiveLatestRound(nextRevision.roundNumber);
     setLiveActiveFeedback(null);
     setLiveActiveRevision({
@@ -432,7 +441,9 @@ function WritingArticlePageReady({
       user_text: nextRevision.userText,
       word_count: nextRevision.wordCount,
       feedback_status: "pending",
-      created_at: nextRevision.createdAt
+      created_at: nextRevision.createdAt,
+      feedback_started_at: nextRevision.createdAt,
+      feedback_generation: 1
     });
     setLiveRevisions((current) => {
       const nextEntry: AsideRound = {
@@ -446,30 +457,15 @@ function WritingArticlePageReady({
     });
   }, [submitFetcher.data]);
 
-  React.useEffect(() => {
-    if (!retryFetcher.data?.ok || !liveActiveRevision) return;
-    setLiveActiveRevision((current) =>
-      current
-          ? {
-            ...current,
-            feedback_status: "pending",
-            created_at: new Date().toISOString().slice(0, 19)
-          }
-        : current
-    );
+  useWritingRetryResult(retryFetcher.data?.retry, article.id, liveActiveRevision, retry => {
+    setLiveActiveRevision(current => current ? {
+      ...current, feedback_status: "pending", feedback_generation: retry.generation,
+      feedback_started_at: retry.startedAt
+    } : current);
     setLiveActiveFeedback(null);
-    setLiveRevisions((current) =>
-      current.map((revision) =>
-        revision.id === liveActiveRevision.id
-          ? {
-              ...revision,
-              feedback_status: "pending",
-              band_estimate: null
-            }
-          : revision
-      )
-    );
-  }, [liveActiveRevision, retryFetcher.data]);
+    setLiveRevisions(current => current.map(revision => revision.id === retry.revisionId
+      ? { ...revision, feedback_status: "pending", band_estimate: null } : revision));
+  });
 
   // Poll pending latest-round feedback without reloading the whole page.
   React.useEffect(() => {
@@ -488,6 +484,10 @@ function WritingArticlePageReady({
         .then(async (response) => {
           if (!response.ok) return null;
           return (await response.json()) as {
+            articleId: string;
+            revisionId: string;
+            feedbackGeneration: number;
+            feedbackStartedAt: string;
             articleTitle: string | null;
             feedbackStatus: "pending" | "completed" | "failed";
             feedback: WritingFeedback | null;
@@ -496,7 +496,9 @@ function WritingArticlePageReady({
           };
         })
         .then((statusPayload) => {
-          if (cancelled || !statusPayload) return;
+          if (cancelled || !statusPayload || statusPayload.articleId !== article.id ||
+              statusPayload.revisionId !== liveActiveRevision.id ||
+              statusPayload.feedbackGeneration < liveActiveRevision.feedback_generation) return;
           if (statusPayload.articleTitle !== null) {
             setLiveTitle(statusPayload.articleTitle);
             if (!editingTitle) {
@@ -509,7 +511,9 @@ function WritingArticlePageReady({
             current
               ? {
                   ...current,
-                  feedback_status: statusPayload.feedbackStatus
+                  feedback_status: statusPayload.feedbackStatus,
+                  feedback_generation: statusPayload.feedbackGeneration,
+                  feedback_started_at: statusPayload.feedbackStartedAt
                 }
               : current
           );
@@ -768,16 +772,19 @@ function WritingArticlePageReady({
           </div>
 
           {isComposeView ? (
-            <submitFetcher.Form method="post" className="writing-submit-form is-compose">
+            <submitFetcher.Form method="post" className="writing-submit-form is-compose" onSubmit={local.beginSubmit}>
               <input type="hidden" name="_intent" value="submitRevision" />
               <input type="hidden" name="_transport" value="fetcher" />
               <input type="hidden" name="feedbackLanguage" value={feedbackLanguage} />
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
               {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
+              {local.draft.editId && local.draft.baseRevision !== data.baseRevision ? (
+                <p role="status">Recovered an unsent draft from an earlier round. Review it before submitting.</p>
+              ) : null}
               <WritingEditor
                 value={text}
-                onChange={setText}
+                onChange={text => local.update({ text })}
                 agent={fullAgent}
                 name="userText"
                 showGuide={false}
@@ -786,11 +793,12 @@ function WritingArticlePageReady({
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  disabled={!text.trim() || isLatestRoundPending || submitFetcher.state === "submitting"}
+                  disabled={!local.ready || !text.trim() || isLatestRoundPending || submitFetcher.state === "submitting"}
                 >
                   {submitFetcher.state === "submitting" ? "Submitting..." : "Submit revision"}
                 </button>
               </div>
+              {local.storageError ? <p role="alert">Draft could not be saved on this device. Keep this page open or copy your text before leaving.</p> : null}
               {submitFetcher.data?.error ? <div className="form-error">{submitFetcher.data.error}</div> : null}
             </submitFetcher.Form>
           ) : liveActiveRevision ? (

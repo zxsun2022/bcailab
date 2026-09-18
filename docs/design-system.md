@@ -66,8 +66,8 @@ Neutral light-mode tokens:
 - `--bg-card: #f6f2eb`
 - `--bg-card-hover: rgba(181,42,28,0.03)`
 - `--text: #2a2420`
-- `--text-muted: #8a8078`
-- `--text-faint: #b0a89e`
+- `--text-muted: #6d645c`
+- `--text-faint: #70665c`
 - `--border: #d8d0c4`
 
 Neutral dark-mode tokens:
@@ -77,9 +77,21 @@ Neutral dark-mode tokens:
 - `--bg-card: #1a1917`
 - `--bg-card-hover: #201f1c`
 - `--text: #e8e2d8`
-- `--text-muted: #8a8478`
-- `--text-faint: #5a5650`
+- `--text-muted: #b5ad9f`
+- `--text-faint: #a59d90`
 - `--border: rgba(232,226,216,0.08)`
+
+Readability roles (iteration 6):
+
+- `--text-muted` is necessary supporting copy; `--text-faint` is lower-emphasis labels and
+  placeholders, not permission to render unreadable information. Both clear 4.5:1 against
+  the page, alternate and card backgrounds in light, automatic-dark and explicit-dark modes.
+- `--border` remains a decorative separator. Writing/Dictation inputs and the Writing coach
+  selector use `--border-control`; check its alpha-composited dark value against both sides.
+- Studio keyboard focus uses a 2px `--text` outline with a 3px gap; forced colors uses
+  the system Highlight color. Keep the gap so filled action colors do not touch the outline.
+- Preserve native disabled semantics; disabled controls are not a model for normal text contrast.
+  Token-pair tests are a regression guard, not a complete accessibility audit.
 
 Dark extras:
 
@@ -101,7 +113,10 @@ Core spacing tokens:
 
 ## Layout Rules
 
-- Main container: centered, responsive fixed-max width (`--container-width: 1220px`)
+- Main container: centered, responsive fixed-max width (`--container-width: 1400px`).
+  Studio page widths use `standard` / `wide` / `workspace` tokens (780 / 1120 / 1400px);
+  [global.css](../apps/web/app/styles/global.css) owns the actual values. See
+  [Studio shell](studio-app-shell.md) for the page-frame contract.
 - Home: two-column hero on desktop, single-column <= 768px
 - Footer: reserved for the landing/about pages; tool surfaces do not render the global footer
 - Tool pages: same typography and card/field primitives

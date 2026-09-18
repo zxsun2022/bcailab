@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "pnpm --filter web dev",
     "build": "pnpm --filter web build",
-    "typecheck": "pnpm --filter web typecheck && pnpm typecheck:scripts && pnpm typecheck:session-cleanup",
+    "typecheck": "pnpm --filter web typecheck && pnpm typecheck:scripts && pnpm typecheck:session-cleanup && pnpm typecheck:grader-spikes",
+    "typecheck:grader-spikes": "tsc -p tsconfig.grader-spikes.json --noEmit",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json --noEmit",
     "typecheck:session-cleanup": "tsc -p workers/session-cleanup/tsconfig.json --noEmit",
     "lint": "eslint .",
@@ -14,7 +15,15 @@
     "benchmark:mapdown": "tsx scripts/mapdown-benchmark.ts",
     "context": "./scripts/context-pack.sh",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:web": "node scripts/verification/verify.mjs web",
+    "verify:mapdown": "node scripts/verification/verify.mjs mapdown",
+    "verify": "node scripts/verification/verify.mjs all",
+    "check:docs": "node scripts/verification/check-docs.mjs",
+    "test:integration": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs --check",
+    "test:browser:fixture": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs",
+    "verify:failures": "node scripts/verification/check-failures.mjs",
+    "test:context-pack": "node scripts/verification/check-context-pack.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260203.0",
@@ -25,6 +34,7 @@
     "eslint": "^9.39.5",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.11.0",
+    "jsdom": "26.1.0",
     "tsx": "^4.23.1",
     "typescript": "5.9.3",
     "typescript-eslint": "^8.67.0",

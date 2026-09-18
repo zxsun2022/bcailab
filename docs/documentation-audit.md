@@ -1,5 +1,13 @@
 # Documentation Audit — 2026-08-01
 
+**Document role:** historical-evidence (2026-08-01 snapshot).
+
+This report preserves observations from its date, including then-current tooling gaps.
+It is not current operational guidance: for example, lint is now configured and local verification
+exists. Start with [the docs guide](README.md) and [verification](verification.md). Generating packs
+on demand prevents a committed derived inventory from ageing; it does not prevent hand-written
+intent from drifting or an exported pack from becoming stale.
+
 An inventory of this repository's documentation, produced to decide whether and how to
 restructure it.
 

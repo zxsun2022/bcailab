@@ -5,7 +5,10 @@ import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import {
   getEslLearnerProfile,
   listDictationAttemptsByUser,
-  listLibraryPassages,
+  listHomeCandidates,
+  listHomeRecordPassages,
+  getHomeResumableDictation,
+  type HomePassage,
   listRecentReadingAttempts,
   listRecentWritingArticlesByUser,
   setLearnerDeclaredLevel
@@ -50,7 +53,6 @@ export const handle = {
 export const meta: MetaFunction = () => [{ title: "English Studio · bcailab" }];
 
 /** Bounded inputs. The Home is a summary; depth belongs on the progress page. */
-const LIBRARY_LIMIT = 60;
 const DICTATION_HISTORY_LIMIT = 40;
 const READING_HISTORY_LIMIT = 20;
 const WRITING_HISTORY_LIMIT = 1;
@@ -97,19 +99,28 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
   const db = context.env.DB;
 
-  const [library, profile] = await Promise.all([
-    listLibraryPassages(db, { limit: LIBRARY_LIMIT }),
-    getEslLearnerProfile(db, user.id)
+  let degraded = false;
+  let historyFailed = false;
+  let profileUnavailable = false;
+  const recover = async <T,>(source: string, read: Promise<T>, fallback: T): Promise<T> => {
+    try { return await read; }
+    catch {
+      degraded = true;
+      if (source === "profile") profileUnavailable = true;
+      if (source.endsWith("history") || source === "resume") historyFailed = true;
+      console.error(`english home ${source} unavailable`);
+      return fallback;
+    }
+  };
+  const [profile, dictationHistory, readingAttempts, articles, resume] = await Promise.all([
+    recover("profile", getEslLearnerProfile(db, user.id), null),
+    recover("dictation-history", listDictationAttemptsByUser(db, { userId: user.id, limit: DICTATION_HISTORY_LIMIT }), []),
+    recover("reading-history", listRecentReadingAttempts(db, { userId: user.id, limit: READING_HISTORY_LIMIT }), []),
+    recover("writing-history", listRecentWritingArticlesByUser(db, { userId: user.id, limit: WRITING_HISTORY_LIMIT }), []),
+    recover("resume", getHomeResumableDictation(db, user.id), null)
   ]);
-
-  const candidates: CandidatePassage[] = library.map((p) => ({
-    id: p.id,
-    title: p.title,
-    band: p.band,
-    topic: p.topic,
-    sentenceCount: p.sentence_count,
-    hasSentenceAudio: p.has_sentence_audio === 1
-  }));
+  const dictationAttempts = resume && !dictationHistory.some(a => a.id === resume.id)
+    ? [...dictationHistory, resume] : dictationHistory;
 
   const resolved = resolveCefr({
     declared: profile?.cefr_declared ?? null,
@@ -117,22 +128,23 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     measuredConfidence: profile?.cefr_measured_confidence ?? 0
   });
 
-  // Personalisation is the part that can fail. If it does, the Home still renders as a
-  // launcher rather than an error page or a blank screen.
+  // Unknown remains unknown in the UI; B1 is only a discovery starting point.
+  const center = CEFR_LEVELS.indexOf((resolved.level ?? "B1") as (typeof CEFR_LEVELS)[number]);
+  const bands = CEFR_LEVELS.slice(Math.max(0, center - 1), center + 2);
+  const [library, referenced] = await Promise.all([
+    recover("library", listHomeCandidates(db, [...bands]), []),
+    recover("record-passages", listHomeRecordPassages(db, dictationAttempts.map(a => a.passage_id)), [])
+  ]);
+  const toCandidate = (p: HomePassage): CandidatePassage => ({
+    id: p.id, title: p.title, band: p.band, topic: p.topic,
+    sentenceCount: p.sentence_count, hasSentenceAudio: p.has_sentence_audio === 1
+  });
+  const candidates = library.map(toCandidate);
+  const recordPassages = referenced.map(toCandidate);
   let practice: StarterPractice = { continueAction: null, recommendations: [], alternatives: [] };
   let recent: RecentItem[] = [];
-  let degraded = false;
 
-  try {
-    const [dictationAttempts, readingAttempts, articles] = await Promise.all([
-      listDictationAttemptsByUser(db, { userId: user.id, limit: DICTATION_HISTORY_LIMIT }),
-      listRecentReadingAttempts(db, { userId: user.id, limit: READING_HISTORY_LIMIT }),
-      listRecentWritingArticlesByUser(db, {
-        userId: user.id,
-        limit: WRITING_HISTORY_LIMIT
-      })
-    ]);
-
+  {
     const records: PracticeRecord[] = [
       ...dictationAttempts.map((a) => ({
         passageId: a.passage_id,
@@ -164,13 +176,17 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     practice = selectStarterPractice({
       level: resolved.level,
       candidates,
+      recordPassages,
       records,
       draft,
       attemptCount: profile?.total_attempts ?? 0
     });
 
-    const titleById = new Map(candidates.map((c) => [c.id, c.title]));
-    const sentenceCountById = new Map(candidates.map((c) => [c.id, c.sentenceCount]));
+    // Partial history must not claim that a passage has never been practised.
+    if (historyFailed) practice = { ...practice, recommendations: [], alternatives: [] };
+
+    const titleById = new Map(recordPassages.map((c) => [c.id, c.title]));
+    const sentenceCountById = new Map(recordPassages.map((c) => [c.id, c.sentenceCount]));
 
     /*
       One row per material, not per attempt.
@@ -202,6 +218,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     };
 
     for (const a of dictationAttempts) {
+      if (!titleById.has(a.passage_id)) continue;
       addAttempt(
         `dictation:${a.passage_id}`,
         {
@@ -242,9 +259,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       .sort((x, y) => y.at.localeCompare(x.at))
       .slice(0, RECENT_ROWS);
 
-  } catch (error) {
-    console.error("english home personalisation failed:", error);
-    degraded = true;
   }
 
   const hasHistory = (profile?.total_attempts ?? 0) > 0 || recent.length > 0;
@@ -259,7 +273,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     practice,
     recent,
     hasHistory,
-    degraded
+    degraded,
+    profileUnavailable
   });
 };
 
@@ -303,14 +318,15 @@ export default function EnglishHome() {
     practice,
     recent,
     hasHistory,
-    degraded
+    degraded,
+    profileUnavailable
   } = useLoaderData<typeof loader>();
 
   const { continueAction, recommendations, alternatives } = practice;
   const primary = recommendations[0];
   // Cold start is a state, not an error: no level and no history means the grid would be a
   // wall of "no data yet", so the page becomes a single call to action instead (§3.5).
-  const isCold = !level && !hasHistory;
+  const isCold = !level && !hasHistory && !profileUnavailable;
 
   // One line, not a grid. It states what the system knows and how far to trust it; the
   // level is never asserted before it has been established (§3.5).
@@ -325,7 +341,9 @@ export default function EnglishHome() {
   const volumeText =
     totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
   const basisSentence =
-    level == null
+    profileUnavailable
+      ? "Your level and total practice count are temporarily unavailable."
+      : level == null
       ? `${volumeText} so far — not enough yet to estimate your level.`
       : levelBasis === "measured"
         ? `Level ${level}, measured from your dictation accuracy at ${Math.round(levelConfidence * 100)}% confidence · ${volumeText}`
@@ -412,7 +430,7 @@ export default function EnglishHome() {
                 </p>
                 <p className="home-card-why">{primary.reason}</p>
                 <div className="home-card-actions">
-                  <Link to={primary.href} className="btn btn-primary">
+                  <Link to={primary.href} className={`btn ${continueAction ? "btn-ghost" : "btn-primary"}`}>
                     Start
                   </Link>
                 </div>
@@ -465,7 +483,7 @@ export default function EnglishHome() {
             </Link>
           </section>
 
-          {level == null ? <LevelPicker compact /> : null}
+          {level == null && !profileUnavailable ? <LevelPicker compact /> : null}
 
           {recent.length > 0 ? (
             <section className="home-recent-section" aria-label="Recent practice">
