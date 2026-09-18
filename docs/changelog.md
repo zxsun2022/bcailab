@@ -9,6 +9,31 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: iteration 6 — readability and Home action hierarchy.**
+  Strengthened the shared Web supporting-text tokens in light and both dark modes, preserving
+  palette/typography. Studio inputs and the Writing coach selector use control-strength boundaries;
+  placeholders remain readable and keyboard focus uses a separated 2px outline. Writing/Dictation
+  editors now have persistent visible labels. Home gives Continue the primary button when present,
+  otherwise recommendation Start; Recent status sits directly below its wrapping title.
+
+  Evidence: `pnpm verify:web` passes 227 tests, all Web/script/worker typechecks, build, 31 context
+  assertions and 29 real local D1/HTTP assertions. Lint: 0 errors, 7 existing warnings in this scope.
+  Six token-pair tests cover page/alternate/card surfaces and alpha-composited borders; substituting
+  the previous CSS fails all three supporting-text cases, and restored CSS passes. HTTP assertions
+  guard the combined, recommendation-only and cold Home button hierarchy.
+
+  Manual browser checks used synthetic accounts and identical fixture data across Light/Dark:
+  cold, recommendation-only, Continue-only, combined, empty/degraded and long-title Home; Writing
+  and Dictation labels/fields, Tab focus, Enter navigation, mobile drawer Escape/focus return.
+  Narrow 320/390px layouts had no horizontal page overflow. Rendered input placeholders measured
+  5.03:1 light / 6.55:1 dark; unfocused input boundaries 3.29:1 / 3.43:1 including alpha composition.
+  Home recent status measured 5.19:1 / 8.68:1. Decorative separators remain light.
+
+  Limits: this is not a complete accessibility certification; screen-reader speech, OS forced-colors
+  rendering, real reference audio and other Web tools' full visual matrices were not exercised.
+  Shared Web tokens also affect their consumers; Mapdown styling is separate. No recommendation,
+  measurement, Reading experiment or deployment change. Reproduce via [fixture instructions](../scripts/testing/README.md).
+
 - 2026-09-17 — **in_review: iteration 5 — documentation authority and drift repair.**
   Added the [documentation entry point](README.md), corrected Writing rail ownership, Home
   layout, container widths and test-scope claims, and removed the duplicate architecture route

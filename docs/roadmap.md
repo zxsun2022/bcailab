@@ -17,6 +17,34 @@ no-account acquisition funnel into it. A second product, **Mapdown**, was added 
 a static, local-first Markdown mind-map editor at `map.bcailab.com`, sharing this repo's
 infrastructure and eventually its accounts, but branded and styled independently (see Next).
 
+## Now — Readability and Home action hierarchy (iteration 6) — in_review
+
+Owner-authorized 2026-09-17: F06 and the bounded Home hierarchy follow-up.
+Keep the current palette, typography, recommendation logic and product boundaries.
+
+Acceptance:
+- Necessary supporting text and placeholders meet 4.5:1 against their rendered light/dark
+  backgrounds; required input boundaries and custom focus indicators meet 3:1. Preserve
+  light decorative dividers and distinguish disabled controls from actionable ones.
+- Continue is the primary Home action when available; recommendation Start is secondary.
+  Without Continue, recommendation Start is primary. Recent status stays next to its title
+  and wraps with long content on narrow screens.
+- Verify Home, Writing and Dictation in light/dark, narrow layouts and keyboard use, with
+  stable input labels and visible focus. Compare identical fixture data between themes.
+- Exercise cold, Continue-only, recommendation-only, combined, empty/degraded and long-title
+  Home states using isolated data. Record actual checks and limitations; update behavior docs.
+
+Review evidence (2026-09-17): `verify:web` passes 227 tests, typechecks, build and 29 isolated
+D1/HTTP assertions; lint has 0 errors and 7 existing warnings in this scope. Six contrast-token
+regressions include both dark modes; the old colors fail all three supporting-text cases.
+Manual browser checks covered the Home state matrix, light/dark input contrast, narrow reflow,
+labels, Tab focus and mobile navigation Escape/focus return. See [changelog](changelog.md) and
+[fixture instructions](../scripts/testing/README.md). Screen-reader speech, forced-colors rendering
+and real audio were not tested. Owner acceptance is pending.
+
+No Reading experiment, recommendation algorithm, font replacement, Mapdown redesign or
+release/CI changes. Report `in_review`; acceptance remains the owner's decision.
+
 ## Now — Documentation authority and drift repair (iteration 5) — in_review
 
 Owner-authorized 2026-09-17. Establish a concise docs entry point; repair the reviewed Writing

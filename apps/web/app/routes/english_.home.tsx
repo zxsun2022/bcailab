@@ -430,7 +430,7 @@ export default function EnglishHome() {
                 </p>
                 <p className="home-card-why">{primary.reason}</p>
                 <div className="home-card-actions">
-                  <Link to={primary.href} className="btn btn-primary">
+                  <Link to={primary.href} className={`btn ${continueAction ? "btn-ghost" : "btn-primary"}`}>
                     Start
                   </Link>
                 </div>

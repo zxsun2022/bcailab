@@ -730,7 +730,9 @@ export default function DictationSession() {
         ) : null}
       </div>
 
+      <label className="writing-label" htmlFor="dictation-answer">Your answer</label>
       <textarea
+        id="dictation-answer"
         ref={inputRef}
         className="dictation-input"
         value={answers[current] ?? ""}

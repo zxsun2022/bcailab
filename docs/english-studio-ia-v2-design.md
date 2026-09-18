@@ -206,6 +206,8 @@ bcailab                            ← all products
 
 - **Continue** (when unfinished work exists): resumable dictation, recent writing draft.
   Highest priority — requires no intelligence and is unambiguously right.
+  Its Continue button is primary; recommendation Start is secondary while Continue exists,
+  and becomes primary when no Continue action is available.
 - **Next** — exactly one recommendation card, with the *why* folded inside
   ("Dense in **word-final -s** — currently your weakest feature") and directional
   alternatives per decision 14. Honest language until matching exists: "fits your current
@@ -216,6 +218,9 @@ bcailab                            ← all products
   dictation↔reading handoff) → adjacent band → weakest-scoring revisit. Includes periodic
   adjacent-band exploration (§1.4). **No recommendation service, no repository layer, no
   feed framework.**
+
+Recent practice places each status directly below its title within the same link; both wrap
+on narrow screens, including long titles. The layout does not change recommendation selection.
 
 #### Home data bounds and failure behavior (2026-09-17)
 

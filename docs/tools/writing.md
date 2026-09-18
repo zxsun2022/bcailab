@@ -71,6 +71,10 @@ creating an account. It escapes the `/writing` layout (which calls `requireUser`
 
 ## Layout
 
+The body editor has a persistent **Your writing** label, independently of its placeholder.
+The coach selector and text fields use control-strength boundaries and a visible keyboard focus
+outline in both themes; disabled submission keeps its native disabled state.
+
 Writing uses the [shared Studio shell](../studio-app-shell.md). The product rail belongs to
 navigation; article history and revision controls belong to Writing surfaces.
 

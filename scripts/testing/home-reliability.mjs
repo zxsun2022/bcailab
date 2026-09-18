@@ -65,6 +65,15 @@ export async function checkHome(server, root, runtime) {
       if (source === 'library') check('Library failure retains independent Continue', data.practice.continueAction?.passageId === 'old-c2');
     }
   }
+  const combinedHtml = await (await fetch('http://127.0.0.1:5191/english/home', { headers: { Cookie: cookie } })).text();
+  check('Continue is primary when both actions exist', /<a[^>]*class="btn btn-primary"[^>]*>Continue<\/a>/.test(combinedHtml));
+  check('Recommendation is secondary alongside Continue', /<a[^>]*class="btn btn-ghost"[^>]*>Start<\/a>/.test(combinedHtml));
+  for (const [user, expected] of [['test-recommend', 'Start'], ['test-cold', 'Start dictation']]) {
+    const stateSession = await auth.createSession(db, user);
+    const stateCookie = (await auth.createSessionCookie(new Request('http://127.0.0.1:5191'), runtime.env, stateSession.id)).split(';')[0];
+    const html = await (await fetch('http://127.0.0.1:5191/english/home', { headers: { Cookie: stateCookie } })).text();
+    check('Primary action without Continue: ' + user, new RegExp('<a[^>]*class="btn btn-primary"[^>]*>' + expected + '</a>').test(html));
+  }
   const home = await server.ssrLoadModule(root + '/apps/web/app/routes/english_.home.tsx');
   const queries = [];
   await home.loader({ request: new Request('http://127.0.0.1:5191/english/home', { headers: { Cookie: cookie } }), params: {}, context: { ...runtime, env: { ...runtime.env, DB: faultDb(db, '', queries) } } });

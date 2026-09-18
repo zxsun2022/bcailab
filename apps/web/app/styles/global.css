@@ -136,8 +136,8 @@
   --bg-card: #f6f2eb;
   --bg-card-hover: rgba(181, 42, 28, 0.03);
   --text: #2a2420;
-  --text-muted: #8a8078;
-  --text-faint: #b0a89e;
+  --text-muted: #6d645c;
+  --text-faint: #70665c;
   --border: #d8d0c4;
   --border-hover: #b8b0a4;
   /* Outline for controls that carry their own hit target (chips, segmented buttons).
@@ -161,8 +161,8 @@
     --bg-card: #1a1917;
     --bg-card-hover: #201f1c;
     --text: #e8e2d8;
-    --text-muted: #8a8478;
-    --text-faint: #5a5650;
+    --text-muted: #b5ad9f;
+    --text-faint: #a59d90;
     --color-brand: #d85a3f;
     --color-action: #d85a3f;
     --color-action-hover: #ec7358;
@@ -205,8 +205,8 @@
   --bg-card: #1a1917;
   --bg-card-hover: #201f1c;
   --text: #e8e2d8;
-  --text-muted: #8a8478;
-  --text-faint: #5a5650;
+  --text-muted: #b5ad9f;
+  --text-faint: #a59d90;
   --color-brand: #d85a3f;
   --color-action: #d85a3f;
   --color-action-hover: #ec7358;
@@ -10270,8 +10270,8 @@ select.input:focus {
 
 .home-recent-row {
   display: flex;
-  justify-content: space-between;
-  gap: var(--space-sm);
+  flex-direction: column;
+  gap: 4px;
   padding: 6px 0;
   border-bottom: 1px solid var(--border);
   color: var(--text);
@@ -10290,8 +10290,13 @@ select.input:focus {
 .home-recent-meta {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  color: var(--text-faint);
-  white-space: nowrap;
+  color: var(--text-muted);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.home-recent-title {
+  overflow-wrap: anywhere;
 }
 
 /* The axis follows the data, so its bounds are labelled rather than assumed. */
@@ -10466,7 +10471,7 @@ select.input:focus {
 
 .home-recent-row {
   min-height: 44px;
-  align-items: center;
+  align-items: flex-start;
   padding: 8px 0;
 }
 
@@ -10500,5 +10505,23 @@ select.input:focus {
   .home-level-picker.is-compact .home-level-chip {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/* Necessary fields use control boundaries; cards and dividers keep --border. */
+.studio-app-shell :is(.input, .textarea, .writing-select, .writing-topic-input, .writing-editor-textarea, .dictation-input) {
+  border-color: var(--border-control);
+}
+.studio-app-shell :is(input, textarea)::placeholder {
+  color: var(--text-faint);
+  opacity: 1;
+}
+.studio-app-shell :is(a, button, input, textarea, select, summary):focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+@media (forced-colors: active) {
+  .studio-app-shell :is(a, button, input, textarea, select, summary):focus-visible {
+    outline-color: Highlight;
   }
 }

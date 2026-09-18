@@ -18,6 +18,10 @@ Technical design: `docs/dictation-v1-design.md`.
 The tool uses the shell pattern with a left rail (library nav + attempt history) and no right
 rail. The shell is public, so `ToolNavRail` accepts a null user and renders a sign-in button.
 
+The answer field has a persistent **Your answer** label, readable placeholder and control-strength
+boundary in both themes. Keyboard focus remains visible; checked answers keep the existing
+disabled state and the learner continues with the next-sentence action.
+
 ## Content Model
 
 Passages live in the shared material layer (`passages` / `passage_sentences`), not in

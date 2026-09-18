@@ -38,11 +38,16 @@ async function initialize(env) {
     await db.batch(wrangler.unstable_splitSqlQuery(await readFile(root + '/migrations/' + file, 'utf8')).map(s => db.prepare(s)));
   }
   await db.batch([
-    db.prepare("INSERT INTO users(id,email,name) VALUES ('test-a','a@example.invalid','Test A'),('test-b','b@example.invalid','Test B')"),
+    db.prepare("INSERT INTO users(id,email,name) VALUES ('test-a','a@example.invalid','Test A'),('test-b','b@example.invalid','Test B'),('test-cold','cold@example.invalid','Cold'),('test-recommend','recommend@example.invalid','Recommend')"),
     db.prepare("INSERT INTO writing_articles(id,user_id,agent_type,title) VALUES ('retry-article','test-a','general','Retry fixture')"),
     db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status) VALUES ('retry-round','retry-article','test-a',1,'This is a synthetic draft with enough words to exercise the writing feedback flow.',15,'failed')")
   ]);
   await seedHome(db);
+  await db.prepare("INSERT INTO esl_learner_profiles(id,user_id,cefr_declared,total_attempts) VALUES ('recommend-profile','test-recommend','B2',1)").run();
+  await db.prepare("UPDATE passages SET title=? WHERE id='a1-0'").bind('A long recent practice title about planning a journey together and deciding what to bring when the weather changes').run();
+  for (const passage of ['old-c2','b2']) for (let idx = 0; idx < 3; idx++) {
+    await db.prepare('INSERT INTO passage_sentences(id,passage_id,idx,text) VALUES (?,?,?,?)').bind(`${passage}-sentence-${idx}`,passage,idx,'This is a synthetic sentence.').run();
+  }
   const prompt = JSON.parse(await readFile(root + '/scripts/writing-prompt-seed/generated/prompts.generated.json', 'utf8'))[0];
   await db.prepare(`INSERT INTO writing_prompts(id,slug,family,task_type,prompt_kind,cefr_band,title,prompt_text,coach_id,topic,target_words,target_minutes,content_hash,review_manifest_json,owner_approved_hash,status,published_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,'{}',?,'published',datetime('now'))`).bind(prompt.id,prompt.slug,prompt.family,prompt.taskType,prompt.promptKind,prompt.cefrBand,prompt.title,prompt.promptText,prompt.coachId,prompt.topic,prompt.targetWords,prompt.targetMinutes,prompt.contentHash,prompt.contentHash).run();
 
@@ -68,7 +73,8 @@ const fixture = { name: 'synthetic-fixture', configureServer(server) {
       if (!runtime) { res.statusCode = 503; res.end('Open /writing/new first to initialize.'); return; }
       const url = new URL(req.url, 'http://127.0.0.1:5191');
       if (url.pathname === '/__test/login') {
-        const user = url.searchParams.get('user') === 'b' ? 'test-b' : 'test-a';
+        const users = { a: 'test-a', b: 'test-b', cold: 'test-cold', recommend: 'test-recommend' };
+        const user = users[url.searchParams.get('user')] ?? 'test-a';
         const auth = await server.ssrLoadModule(root + '/packages/auth/src/index.ts');
         const session = await auth.createSession(runtime.env.DB, user);
         res.setHeader('Set-Cookie', await auth.createSessionCookie(new Request(url), runtime.env, session.id));

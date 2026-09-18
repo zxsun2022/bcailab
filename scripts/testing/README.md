@@ -58,3 +58,21 @@ Failures return HTTP 500. React/draft/selection regressions run under `pnpm test
 and Home normal/profile-degraded states were exercised. Initial document hydration warnings
 were observed in the in-app browser; no update-depth loop occurred. Model output is synthetic;
 these checks establish lifecycle and data behavior, not coaching quality or production deployment.
+
+## Iteration 6 readability cases
+
+The same fixture also supports `/__test/login?user=cold` (no profile/history) and
+`?user=recommend` (declared B2, no unfinished work). Return to `/english/home` after login.
+User B has combined Continue/recommendation and a long recent title. Recommendation-only
+plus `?fixtureFailure=library` exercises the empty/degraded launcher. User A, after choosing
+B2 on Home, plus `?fixtureFailure=history` exercises Writing Continue without recommendations.
+`/dictation/b2` and `/dictation/old-c2` include synthetic reference sentences for input checks;
+no reference audio is seeded, so this is not an audio playback test.
+
+Check the same content in Light/Dark through the user menu, at desktop and 320–390px widths.
+Inspect actual rendered supporting text/placeholder backgrounds, alpha-composited input borders,
+Tab focus, Enter activation, and mobile navigation Escape/focus return. Recent statuses must wrap
+under their titles, without horizontal page overflow. Writing and Dictation expose the visible
+labels “Your writing” and “Your answer”. CSS token tests do not replace these browser checks.
+The HTTP suite also checks primary/secondary Home actions in combined, recommendation-only and
+cold states. Browser interaction remains manual; screen-reader speech and real audio are not covered.
