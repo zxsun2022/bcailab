@@ -5,9 +5,9 @@
 #
 # Design principle: docs/ carries *intent and conventions*; everything factual
 # (routes, schema, env var names, dependencies, git state) is derived live from
-# the repo at generation time, so the pack never ships stale claims.
+# the repo at generation time, so the pack captures code facts at generation time; hand-written claims may still drift.
 #
-# Secrets are never included — only the *names* of environment variables.
+# Default environment extraction includes names only; review explicitly requested sources for secrets.
 #
 # Usage:
 #   scripts/context-pack.sh                          # docs + derived facts
@@ -16,7 +16,7 @@
 #   scripts/context-pack.sh -s apps/web/app/utils/llm.server.ts -s apps/web/app/routes/translate.tsx
 #   scripts/context-pack.sh -o /tmp/pack.md
 #
-set -euo pipefail
+set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -32,6 +32,10 @@ usage() {
 }
 
 while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -p|--profile|-q|--question|-o|--out|-s|--source)
+      [[ $# -ge 2 ]] || { echo "Missing value for $1" >&2; exit 2; } ;;
+  esac
   case "$1" in
     -p|--profile) PROFILE="$2"; shift 2 ;;
     -q|--question) QUESTION="$2"; shift 2 ;;
@@ -49,11 +53,11 @@ esac
 
 STAMP="$(date +%Y%m%d-%H%M)"
 OUT="${OUT:-$ROOT/.context/context-pack-$PROFILE-$STAMP.md}"
-mkdir -p "$(dirname "$OUT")"
+
 
 # ---------- helpers ----------
 
-# Emit a file under a heading. Skips missing files.
+# Emit a preflight-validated file under a heading. Missing input is an error.
 #
 # Markdown is inlined rather than fenced — the docs contain their own ``` blocks,
 # which would terminate an outer fence early and corrupt everything after it.
@@ -61,9 +65,9 @@ mkdir -p "$(dirname "$OUT")"
 # Everything else is fenced with a language tag.
 emit_file() {
   local path="$1" lang="${2:-}"
-  [[ -f "$path" ]] || return 0
+  [[ -f "$path" ]] || { echo "Required input disappeared: $path" >&2; return 1; }
   if [[ "$lang" == "markdown" ]]; then
-    printf '\n### `%s`\n\n' "$path"
+    printf '\n### `%s` *(%s)*\n\n' "$path" "$(file_role "$path")"
     sed -E 's/^(#{1,3}) /\1### /' "$path"
     printf '\n'
   else
@@ -77,7 +81,10 @@ emit_file() {
 emit_cmd() {
   local title="$1" lang="$2"; shift 2
   printf '\n### %s\n\n```%s\n' "$title" "$lang"
-  "$@" 2>/dev/null || true
+  if ! "$@"; then
+    printf '\n[unavailable: command failed; do not treat this section as complete evidence]\n'
+    printf 'WARNING: context section unavailable: %s\n' "$title" >&2
+  fi
   printf '```\n'
 }
 
@@ -93,6 +100,55 @@ redact() {
     -e 's/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/<uuid-redacted>/g' \
     -e 's/(sk-|re_|AIza)[A-Za-z0-9_\-]{8,}/<key-redacted>/g'
 }
+
+# Hand-written history never becomes current derived evidence, even when explicitly requested.
+file_role() {
+  case "$1" in
+    *docs/changelog.md|*docs/documentation-audit.md|*docs/roadmap-accepted-history.md) echo history ;;
+    *.md) echo intent ;;
+    *) echo derived ;;
+  esac
+}
+
+# Validate selected input sets before touching output. Globs must not silently match nothing.
+shopt -s nullglob
+REQUIRED=(README.md docs/README.md docs/architecture.md package.json apps/web/package.json apps/mapdown/package.json wrangler.toml)
+if want product full; then
+  REQUIRED+=(docs/roadmap.md docs/access-model.md docs/changelog.md)
+  TOOL_DOCS=(docs/tools/*.md)
+  [[ ${#TOOL_DOCS[@]} -gt 0 ]] || { echo "Missing required tool documents" >&2; exit 1; }
+  REQUIRED+=("${TOOL_DOCS[@]}")
+fi
+if want arch product full; then
+  DECISIONS=(docs/decisions/*.md)
+  [[ ${#DECISIONS[@]} -gt 0 ]] || { echo "Missing required decision records" >&2; exit 1; }
+  REQUIRED+=("${DECISIONS[@]}" docs/mapdown/decisions.md AGENTS.md)
+fi
+if want arch full; then
+  REQUIRED+=(docs/infra-cloudflare.md docs/design-system.md docs/css-layout-conventions.md docs/verification.md)
+fi
+MIGRATIONS=(migrations/*.sql)
+ROUTES=(apps/web/app/routes/*)
+[[ ${#MIGRATIONS[@]} -gt 0 && ${#ROUTES[@]} -gt 0 ]] || { echo "Missing required migrations or routes" >&2; exit 1; }
+REQUIRED+=("${MIGRATIONS[@]}")
+if [[ ${#SOURCES[@]} -gt 0 ]]; then
+  want debug full || { echo "Requested sources require -p debug or -p full" >&2; exit 1; }
+  for source in "${SOURCES[@]}"; do
+    case "${source##*/}" in
+      .dev.vars*|.env*|*service-account*.json) echo "Refusing credential source: $source" >&2; exit 1 ;;
+    esac
+    [[ ! -L "$source" ]] || { echo "Refusing symlink source: $source" >&2; exit 1; }
+    REQUIRED+=("$source")
+  done
+fi
+for input in "${REQUIRED[@]}"; do
+  [[ -f "$input" && -r "$input" ]] || { echo "Missing or unreadable required input: $input" >&2; exit 1; }
+done
+git rev-parse --is-inside-work-tree >/dev/null || { echo "Context pack needs a Git checkout" >&2; exit 1; }
+mkdir -p "$(dirname "$OUT")"
+TEMP_OUT="$(mktemp "${OUT}.tmp.XXXXXX")"
+trap 'rm -f "$TEMP_OUT"' EXIT
+trap 'echo "Context generation failed at line $LINENO; previous output preserved." >&2' ERR
 
 # ---------- build ----------
 
@@ -110,17 +166,19 @@ Working tree: $(if [[ -n "$(git status --porcelain)" ]]; then echo "**dirty** ($
 
 You are being consulted about a codebase you cannot browse. This document is the
 *entire* context you have — it was generated mechanically from the repository, so
-the factual sections (routes, schema, dependencies, file inventory) reflect the
-code as of the commit above, not someone's memory of it.
+the derived sections reflect the checkout at generation time (including any uncommitted
+changes noted above). This is not an inspection of production or a guarantee that prose is current.
 
 Ground rules for your answer:
 
 - **Do not invent files, routes, or APIs.** If something you need is not in this
   pack, say explicitly what you'd need to see rather than guessing.
-- **Distinguish the two kinds of section below.** Sections marked *(intent)* are
+- **Distinguish the three kinds of section below.** Sections marked *(intent)* are
   hand-written docs describing goals and conventions — they may lag the code.
   Sections marked *(derived)* were extracted from the code at generation time and
-  are authoritative on what exists.
+  establish checkout facts within the extractor's limits, not remote deployment state.
+  Sections marked *(history)* preserve dated observations; they are not current facts,
+  active authorization, or proof that their old open questions remain open.
 - **Where intent and derived facts disagree, flag the drift** — that gap is often
   itself the bug.
 - Prefer concrete, diff-level recommendations over general advice. The reader is
@@ -147,6 +205,7 @@ cat <<'EOF'
 EOF
 
 emit_file README.md markdown
+emit_file docs/README.md markdown
 emit_file docs/architecture.md markdown
 
 if want product full; then
@@ -165,9 +224,9 @@ cat <<'EOF'
 
 ---
 
-## 2b. Accepted decisions *(intent)*
+## 2b. Decision records *(intent — read each status)*
 
-Append-only decision records. These say *why* the project is shaped the way it is, and which
+Decision records retain their own status and corrections. Accepted records say *why* the project is shaped the way it is, and which
 questions are closed. Do not propose reopening one without addressing its recorded reasoning.
 EOF
   for f in docs/decisions/*.md; do emit_file "$f" markdown; done
@@ -179,7 +238,7 @@ cat <<'EOF'
 
 ---
 
-## 2c. Delivery record *(intent)*
+## 2c. Delivery record *(history)*
 
 What has shipped and what was learned. History, not a plan.
 EOF
@@ -219,6 +278,7 @@ EOF
   emit_file docs/infra-cloudflare.md markdown
   emit_file docs/design-system.md markdown
   emit_file docs/css-layout-conventions.md markdown
+  emit_file docs/verification.md markdown
 fi
 
 cat <<'EOF'
@@ -271,7 +331,7 @@ find apps/web/app packages -name '*.ts' -o -name '*.tsx' 2>/dev/null \
   | xargs wc -l 2>/dev/null \
   | sort -rn \
   | sed '/ total$/d' \
-  | head -40
+  | sed -n '1,40p'
 printf '```\n'
 
 cat <<'EOF'
@@ -281,7 +341,7 @@ cat <<'EOF'
 ## 8. Database schema *(derived)*
 
 Cloudflare D1 (SQLite). Migrations are applied in filename order; the schema below
-is the concatenation of all migrations, which is the actual current shape.
+is the ordered migration history, not a reconstructed schema or a live database inspection.
 EOF
 
 for f in migrations/*.sql; do emit_file "$f" sql; done
@@ -324,6 +384,7 @@ EOF
 
 emit_file package.json json
 emit_file apps/web/package.json json
+emit_file apps/mapdown/package.json json
 
 cat <<'EOF'
 
@@ -336,24 +397,24 @@ new, and for seeing the maintainer's working rhythm.
 EOF
 
 emit_cmd "Last 25 commits" "" git log --oneline -25
-emit_cmd "Files changed most in the last 60 days" "" bash -c \
-  "git log --since='60 days ago' --name-only --pretty=format: | grep -v '^\$' | sort | uniq -c | sort -rn | head -25"
+emit_cmd "Files changed most in the last 60 days" "" bash -o pipefail -c \
+  "git log --since='60 days ago' --name-only --pretty=format: | grep -v '^\$' | sort | uniq -c | sort -rn | sed -n '1,25p'"
 
 if want debug full && [[ ${#SOURCES[@]} -gt 0 ]]; then
 cat <<'EOF'
 
 ---
 
-## 12. Requested source files *(derived — verbatim)*
+## 12. Requested files (each labelled intent, history or derived)
 EOF
   for s in "${SOURCES[@]}"; do
     if [[ -f "$s" ]]; then
       ext="${s##*.}"
-      printf '\n### `%s`\n\n```%s\n' "$s" "$ext"
+      printf '\n### `%s` *(%s)*\n\n```%s\n' "$s" "$(file_role "$s")" "$ext"
       redact < "$s"
       printf '```\n'
     else
-      printf '\n### `%s`\n\n_(requested but not found)_\n' "$s"
+      echo "Requested input disappeared: $s" >&2; exit 1
     fi
   done
 fi
@@ -369,7 +430,8 @@ printf '\n```\n'
 git ls-files | grep -vE '^(pnpm-lock.yaml|docs/.*\.docx)$'
 printf '```\n'
 
-} | redact > "$OUT"
+} | redact > "$TEMP_OUT"
+mv "$TEMP_OUT" "$OUT"
 
 # ---------- report ----------
 

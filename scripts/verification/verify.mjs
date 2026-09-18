@@ -15,6 +15,7 @@ if (Number(process.versions.node.split('.')[0]) < 22 || pnpm.status !== 0 || pnp
 }
 console.log(`VERIFY ${scope} — Node ${process.versions.node}, pnpm ${expectedPnpm}`);
 const steps = [['docs', ['run', 'check:docs']]];
+if (scope !== 'mapdown') steps.push(['context pack', ['test:context-pack']]);
 if (scope === 'all') steps.push(['unit tests', ['test']]);
 else steps.push(['unit tests', ['exec', 'vitest', 'run', ...(scope === 'web'
   ? ['apps/web', 'packages', 'scripts/writing-prompt-seed', 'scripts/grader-bias']

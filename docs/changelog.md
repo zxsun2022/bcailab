@@ -9,6 +9,26 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-17 — **in_review: iteration 5 — documentation authority and drift repair.**
+  Added the [documentation entry point](README.md), corrected Writing rail ownership, Home
+  layout, container widths and test-scope claims, and removed the duplicate architecture route
+  inventory. Marked the August audit as historical evidence. Moved already accepted roadmap
+  detail into [dated history](roadmap-accepted-history.md): 93 original paragraphs retained
+  verbatim, 22 old heading anchors preserved. Unaccepted work and the outstanding independent
+  Writing content-review caveat remain visible; no new acceptance or reprioritization occurred.
+
+  Context packs now distinguish intent, derived checkout facts and history; validate required
+  inputs and requested sources; warn on optional history failures; and replace output only after
+  successful generation. Expanded bounded document checks and added synthetic context regressions
+  to Web/combined verification. Checks do not establish semantic agreement or validate anchors.
+
+  Evidence: combined `pnpm verify` passes all 10 steps, including 744 tests, 25 real local D1/HTTP
+  assertions, both products' types/builds and lint (0 errors; 9 existing warnings). All 31 synthetic
+  context assertions pass; broken-link and document-role probes fail at the expected docs step
+  and restore their edits. All four profiles generate from the real checkout into temporary files.
+  Archive paragraphs/anchors were separately checked against the prior commit. No new browser,
+  model-quality, Reading experiment or deployment claim; product behavior is unchanged.
+
 - 2026-09-17 — **in_review: iteration 4 — local verification entry points.** Added
   `verify:web`, `verify:mapdown` and combined `verify` with toolchain checks, labelled fail-fast
   steps, explicit test/type/lint/build scope, bounded operational-doc checks and automatic

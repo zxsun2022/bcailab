@@ -236,6 +236,12 @@ The degraded notice stays visible and the module launcher remains available.
 
 ### 3.4 Home — status grid
 
+Historical design note (clarified 2026-09-17): the grid below describes the earlier proposal,
+not the current Home. Current Home shows Continue/recommendation, a compact basis line and
+Recent; detailed ability, coverage and trend panels live on Progress. See
+[the current surface ownership](architecture.md#navigation-and-surface-ownership).
+This retained proposal does not authorize restoring the grid.
+
 Panels, all reading existing data: **Level** (+ confidence, + basis sentence) · **Volume**
 (attempts, minutes) · **Coverage** (bands practised — makes exploration legible, §1.4) ·
 **Ability snapshot** (top tags by weakness/strength with trend arrows; "all 12 →" links to

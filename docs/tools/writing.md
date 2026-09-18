@@ -33,7 +33,7 @@ that older draft. Simply viewing a saved round does not create a local draft cop
 
 | Page | Route | Behaviour |
 |------|-------|-----------|
-| Writing layout | `/writing` | Auth required. Three-column shell with article list sidebar. |
+| Writing layout | `/writing` | Auth required. Shared Studio shell with product navigation; article history stays on Writing surfaces. |
 | Assignment library | `/writing` (index) | Lists owner-published General English and IELTS assignments plus the user's six most recent pieces. CEFR labels guide discovery and do not gate access. |
 | Freeform writing | `/writing/new` | Create a piece from a user-supplied topic and coach. |
 | Assignment preview | `/writing/prompt/:slug` | Preview one published assignment and its accessible material without creating an article. The first draft submission creates the durable work. |
@@ -71,48 +71,24 @@ creating an account. It escapes the `/writing` layout (which calls `requireUser`
 
 ## Layout
 
-Three-column collapsible shell following the **Canvas-centered** pattern (see `docs/css-layout-conventions.md`). Writing is the current reference implementation for the shared shell/detail model described in `docs/tool-shell-pattern.md`.
+Writing uses the [shared Studio shell](../studio-app-shell.md). The product rail belongs to
+navigation; article history and revision controls belong to Writing surfaces.
 
-### Shell Structure
+### Shell and columns
 
-```
-.writing-shell (flex row, full viewport height)
-├── <WritingNavRail />          ← left panel (aside)
-└── .writing-main (flex: 1, overflow-y: auto)
-    └── .writing-canvas (max-width: 1020px, margin: 0 auto)
-        └── <Outlet />          ← route content
-```
-
-### Columns
-
-- **Left panel — Navigation rail (`ToolNavRail` / `WritingNavRail`)**: Collapsible sidebar (260px expanded → 52px collapsed). All user articles sorted by `updated_at` DESC. Each entry shows title only (single line, no coach badge) for higher density. Pinned top: "Writing home", "+ New Article", "Progress". Pinned bottom: user avatar → settings. Article deletion uses the shared accessible confirmation dialog. Collapse state is persisted in `localStorage` key `"writing-nav-rail-collapsed"`. On mobile, the rail is an inert, focus-trapped drawer (280px) with Escape/close focus restoration and a backdrop.
-- **Center — Main canvas**: All route content renders inside `.writing-canvas` (max-width `1020px`, auto-centered). Sub-pages apply their own inner max-width for readability:
-  - Assignment library (`writing._index`): wide catalogue
-  - New freeform article (`writing.new`): `720px`
-  - Assignment preview (`writing.prompt.$slug`): assignment material followed by the editor
-  - Article detail (`writing.$id`): `center stage` containing a narrower `article column`, plus a separate right rail shell
-  - Progress (`writing.progress`): `760px`
-  - Settings (`writing.settings`): `600px`
-- **Right panel — Feedback aside (`WritingDetailAside`)**: Part of the article detail page (`writing.$id`), rendered inside a dedicated right rail shell that stays docked to the far right edge of the main area. Collapsible (persisted in `localStorage` key `"writing-aside-collapsed"`). When expanded: a wrapped navigation strip with `New Revision` first, then the latest round, then older rounds from left to right. The active state reflects either the selected historical round or compose mode. Feedback content below is scrollable. When collapsed: shrinks to the same `52px` width used by the left collapsed nav rail, with a collapse toggle and new-revision icon button. The rail shell owns the divider line so it spans the full desktop workspace height. On mobile (<1024px): hidden; feedback renders inline in the center panel instead.
-- Desktop feedback-aside collapse/expand animates the rail-shell width and fades the expanded rail body instead of replacing the panel contents in one frame.
-- **Detail workspace behaviour**: On desktop, the article detail page uses a full-width two-track shell. The right rail stays pinned to the main area's right edge; the left side is the `center stage`, and inside it the actual `article column` keeps its own max width and padding. The desktop detail page scrolls at the `center stage` level, so the vertical scrollbar sits at the boundary between the content area and the right rail. Collapsing the right aside changes the available width of the center stage, then the article column recenters inside that remaining space.
-
-### Responsive Behaviour
-
-| Breakpoint | Nav rail (left) | Canvas (center) | Feedback aside (right) |
-|------------|----------------|-----------------|----------------------|
-| < 1024px (mobile) | Hidden; drawer overlay (280px) via top-left hamburger | Full width, feedback inline below text | Hidden |
-| 1024–1279px (tablet) | Persistent, 260px (collapsible → 52px) | Centered, max-width 1020px | 300px (collapsible → 52px) |
-| ≥ 1280px (desktop) | Persistent, 260px (collapsible → 52px) | Centered, max-width 1020px | 300–340px (collapsible → 52px) |
-
-Nav rail collapse state is persisted in `localStorage`.
-
-### Mobile-specific UI
-
-- Hamburger toggle button fixed at top-left (`nav-rail-mobile-toggle`), matching Claude.ai's pattern
-- Backdrop overlay when nav rail is open
-- "← Articles" back link shown in article detail header
-- All content stacked vertically (single column)
+- **Product rail:** `WritingNavRail` supplies the Writing settings destination and user to
+  `ToolNavRail`. It does not query/list articles or add “Writing home” / “New Article” actions.
+  The shared rail owns collapse, mobile drawer, focus restoration and account controls.
+- **Main workspace:** `StudioShell` hosts the route outlet. Catalogue, freeform, assignment,
+  session list, progress and settings use `StudioPage` frames. Width values come from
+  [global styles](../../apps/web/app/styles/global.css) and the [design system](../design-system.md),
+  not a separate fixed 1020px Writing canvas contract.
+- **Article detail:** the main area has an article column and a right feedback rail. The
+  article column recenters within the remaining space when the feedback rail collapses.
+  `WritingDetailAside` owns round navigation (`New Revision`, latest, older rounds) and feedback;
+  its collapse preference uses `writing-aside-collapsed`. At narrow widths feedback renders inline.
+- **Returning and history:** breadcrumbs lead back to Writing/collection context. Session history
+  is managed on Writing pages, not injected into the global product navigation.
 
 ## Data Model
 

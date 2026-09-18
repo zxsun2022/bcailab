@@ -101,7 +101,10 @@ Core spacing tokens:
 
 ## Layout Rules
 
-- Main container: centered, responsive fixed-max width (`--container-width: 1220px`)
+- Main container: centered, responsive fixed-max width (`--container-width: 1400px`).
+  Studio page widths use `standard` / `wide` / `workspace` tokens (780 / 1120 / 1400px);
+  [global.css](../apps/web/app/styles/global.css) owns the actual values. See
+  [Studio shell](studio-app-shell.md) for the page-frame contract.
 - Home: two-column hero on desktop, single-column <= 768px
 - Footer: reserved for the landing/about pages; tool surfaces do not render the global footer
 - Tool pages: same typography and card/field primitives

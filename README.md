@@ -6,4 +6,4 @@ Personal tools lab running on Cloudflare.
 - `pnpm install`
 - `pnpm dev`
 
-See `docs/` for architecture and infra notes.
+Start with the [documentation guide](docs/README.md) for scope, behavior, verification and deployment.

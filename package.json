@@ -22,7 +22,8 @@
     "check:docs": "node scripts/verification/check-docs.mjs",
     "test:integration": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs --check",
     "test:browser:fixture": "TSX_TSCONFIG_PATH=apps/web/tsconfig.json node --import tsx scripts/testing/writing-reliability.mjs",
-    "verify:failures": "node scripts/verification/check-failures.mjs"
+    "verify:failures": "node scripts/verification/check-failures.mjs",
+    "test:context-pack": "node scripts/verification/check-context-pack.mjs"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "4.20260203.0",
