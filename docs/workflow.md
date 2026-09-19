@@ -13,21 +13,29 @@
 ## Git 分支策略
 
 ```
-feature/*  →  staging  →  main (production)
+功能分支  →  PR  →  main (production)
 ```
 
-- `main` 是生产分支，Cloudflare Pages Production 部署绑定此分支。
-- `staging` 是集成分支，用于汇总功能、触发 Preview 部署和进行测试。
-- `feature/*` 是功能分支，从 `staging` 创建，完成后合并回 `staging`。
+- `main` 是生产分支，Cloudflare Pages Production 部署绑定此分支。功能分支从 `main` 创建，
+  通过 PR 合并回 `main`；合并即触发生产部署。
+- 任何非 `main` 分支的推送都会触发一次 Pages Preview 部署，得到按提交和按分支命名的
+  preview URL，日常的线上验证用它即可。
+- `staging` **不是**集成分支，也不在上线路径上（自 2026-08-24 起没有再合并，所有 PR
+  都直接以 `main` 为目标）。它保留为一个**固定的 Preview 分支**：
+  `https://staging.bcailab.pages.dev` 与 `https://staging.mapdown.pages.dev` 是 Preview
+  环境跨应用登录（Web ↔ Mapdown SSO）依赖的固定 origin（见
+  [infra-cloudflare.md](infra-cloudflare.md) 中 "Cross-app Preview sign-in" 一段）。需要在这两个地址上
+  验收时，把待验收的提交推到 `staging`；**不要删除或重命名这个分支**。它落后于 `main`
+  是正常状态。
 
 ## 日常开发流程
 
 ### 第一步：本地开发
 
 ```bash
-# 1. 从 staging 创建功能分支
-git checkout staging
-git pull origin staging
+# 1. 从 main 创建功能分支
+git checkout main
+git pull origin main
 git checkout -b feature/my-feature
 
 # 2. 启动本地开发服务器
@@ -71,11 +79,11 @@ git push origin feature/my-feature
 #    格式：https://<commit-hash>.bcailab.pages.dev
 
 # 4. 在 preview URL 上验证功能
+#    涉及 Web ↔ Mapdown 跨应用登录的改动需要固定 origin 时，把该提交推到 staging：
+#    git push origin feature/my-feature:staging
+#    （若 staging 上有 main 以外的提交，先确认它们已无用，再用 --force-with-lease）
 
-# 5. 验证通过后，合并到 staging
-git checkout staging
-git merge feature/my-feature
-git push origin staging
+# 5. 验证通过后，开 PR 合并到 main（见第三步）
 ```
 
 **测试环境注意事项：**
@@ -95,13 +103,10 @@ pnpm exec wrangler d1 migrations apply bcailab-db --remote
 # 2. 确认迁移已生效，再推代码
 pnpm exec wrangler d1 migrations list bcailab-db --remote   # 应显示 No migrations to apply
 
-# 3. 从 staging 合并到 main（推送即触发自动构建部署）
-git checkout main
-git pull origin main
-git merge staging
-git push origin main
+# 3. 合并功能分支的 PR 到 main（合并即触发自动构建部署）
+gh pr merge <PR 编号>
 
-# 4. Cloudflare Pages 自动构建部署到正式环境
+# 4. Cloudflare Pages 自动构建部署到正式环境；按下文确认部署真的跑完了
 ```
 
 **正式环境注意事项：**
@@ -117,28 +122,36 @@ git push origin main
   而必须拆成多次发布。
 - 正式环境的 `OAUTH_REDIRECT_URL` 应为 `https://bcailab.com/auth/callback`。
 
-### 推送后要确认部署真的跑完了
+### 推送后确认部署状态
 
-推送到 `main` 会创建一条 Pages 生产部署记录，但**记录存在不等于构建发生**。正常一次构建
-只要约 80 秒（queued 30s → build 30s → deploy 12s）；若部署长时间停在 `queued` 且各阶段
-状态为 `idle`，说明它没有被消费，站点仍在跑上一次的版本。
+Pages 项目配置了 build watch paths（`bcailab`：`apps/web/*`、`packages/*`；见
+[infra-cloudflare.md](infra-cloudflare.md)）。**只改了这些路径以外文件的推送（纯 `docs/`、
+`scripts/` 等）会被有意跳过**：仍会生成一条部署记录，但它停在 `Idle`、不会构建。这是
+预期行为，线上代码本来就没有变化，**不需要重试**。
+
+改动涉及 `apps/web/` 或 `packages/` 时，正常一次构建约 80 秒（queued 30s → build 30s →
+deploy 12s），要确认它确实成功：
 
 ```bash
-# 看最近的部署与状态（Status 若不是 deploy success，就不要认为已上线）
+# 看最近的部署与状态
 pnpm exec wrangler pages deployment list --project-name=bcailab
+```
 
-# 卡住时用官方重试接口重新触发（只针对该部署，不改变内容）
+如果一次**触及了 watch paths** 的推送也停在 `Idle`/`queued`，那才是异常，这时可以重试：
+
+```bash
 # POST /accounts/<account_id>/pages/projects/bcailab/deployments/<deployment_id>/retry
 # 重试会生成一条新的部署记录，轮询它的 stages 直到 deploy=success。
 ```
 
 判断线上跑的是哪个版本，可以比对待部署提交的构建产物与生产 HTML 引用的文件名
-（`apps/web/build/client/assets/` 里的哈希文件名应与 `https://bcailab.com/` 引用的一致），
-或看项目的 `canonical_deployment` 指向哪个 commit。
+（`apps/web/build/client/assets/` 里的哈希文件名应与 `https://bcailab.com/` 引用的一致）。
+注意：`canonical_deployment` 只会指向**最后一次构建过的**提交，纯文档提交被跳过后它落后于
+`main` 是正常的。
 
-2026-09-19 实测：一次直接 `git push` 到 `main` 的部署在 `queued` 停留 18 分钟未构建，
-手动重试后 100 秒内完成。部署列表显示自 2026-08-26 起有相当比例的部署停在 `queued/idle`，
-属于长期现象；推完代码后要主动确认，不要默认"推送即上线"。
+2026-09-18 复核：部署列表中所有 `Idle` 记录（2026-08-26 至今）对应的提交都只改了
+watch paths 以外的文件，所有改了 `apps/web/` 的提交都一次构建成功；此前把它记成"部署队列
+长期卡住"是误判。
 
 ## 数据库 Migration 速查
 
