@@ -382,6 +382,130 @@ gaining no authenticated cookie or mutation endpoint.
 Migration `0021_mapdown_publication_view.sql` is applied before the code that reads it is
 deployed, `--remote` for production D1 (ADR 0008).
 
+## Now — Mapdown canvas-first chrome — accepted (2026-08-26)
+
+Authorized by the owner on 2026-08-26. The editor currently reads as a web page with a toolbar
+above a canvas band: `.editor-shell` is a four-row grid and the map occupies the third row. The
+owner's complaint is that this feels fragmented next to Figma and Excalidraw, where the canvas is
+the page and the controls float on it.
+
+- Make the map fill the viewport and float the chrome over it: the toolbar, the status line, the
+  authoring hint and the existing zoom capsule become overlays that reserve no layout space.
+- Teach `fitMap` about those overlays. With chrome floating, fitting to the full viewport puts
+  the topmost nodes underneath the toolbar; the fit must target the unobscured area and centre
+  the map there. Default behaviour with no insets stays exactly as it is today, so the published
+  viewer is unaffected.
+- Keep the interaction contract intact. This is presentation only: no change to pan, zoom,
+  selection, editing, or the layout engine.
+
+Acceptance:
+
+- (a) The map occupies the full viewport, and no floating control reserves layout space.
+- (b) **Fit** leaves every node visible — nothing lands under the toolbar or the status line, at
+  desktop, tablet and mobile widths.
+- (c) The canvas remains a **single tab stop** (`spec/accessibility.md` §16), and the floating
+  controls are reachable by keyboard in a predictable order.
+- (d) Coarse-pointer targets stay at 44 px; `prefers-reduced-motion` is respected; light and dark
+  both hold up.
+- (e) Help and the document library still open above the chrome, and the existing
+  `data-overlay-background` inert mechanism still makes everything behind them unreachable.
+- (f) No regression to the 500/2000-node benchmark, since floating chrome must not change what
+  the canvas re-renders.
+
+**Not in this iteration**, and recorded in `docs/exploration.md` instead: expand/collapse motion,
+and the "smoother canvas" question the owner raised alongside it. The owner explicitly declined
+to commit to either.
+
+## Now — Mapdown: the root label is the map's name everywhere — accepted (2026-08-26)
+
+Authorized by the owner on 2026-08-26 after the document library shipped and every row read
+`Untitled`. This is not a new design decision — it finishes one already made. **D-18** settled
+the same question for download filenames on 2026-08-04, *after the same symptom*: "the internal
+document title is initialized or imported but has no editing surface, so it can remain
+`Untitled` while the visible map has a meaningful name. The root label is the identity users see
+and control." Downloads were changed then; the library and the published page were not, because
+neither existed yet.
+
+`spec/storage-export.md` §10.3 is the constraint that shapes the fix: *"The root node text is not
+automatically forced to equal the filename/title."* So the two values must **not** be merged.
+`title` keeps its real job — the imported filename or front-matter title, i.e. provenance — and
+stops being what a person is shown.
+
+- Show the root label wherever a map is named to a person: the library rows, the library detail
+  panel, the rename field, the destructive-action confirmations, and the published page's `<h1>`,
+  `<title>` and `og:title`. Fall back to `title`, then to a neutral placeholder when the root is
+  empty.
+- Search and sort operate on the displayed name, not on the hidden one.
+- Carry `rootLabel` on the document index entry, written wherever `nodeCount` already is, so the
+  library renders a row without loading its snapshot.
+- **Rename edits the root node**, not `title`. It is otherwise a button with no visible effect —
+  the same defect in the opposite direction.
+
+**The asymmetry is accepted, not hidden** (owner's decision, 2026-08-26). Renaming the map open
+in the editor goes through history and is undoable, because `spec/vision.md` §4.8 requires every
+structural action to be undoable. Renaming a map that is not open edits its stored snapshot
+directly, where no history exists; it is covered by the library's existing in-tab undo instead.
+
+Acceptance:
+
+- (a) A map created, imported, or copied from a published link shows its root label in the
+  library and on its published page — never `Untitled` while the root says something else. This
+  includes a row that exists **only** in an account: the save endpoints derive the stored name
+  with the same rule the client uses, so the account list does not become the one surface left
+  behind. A row last written by an older client keeps its provenance title until it is saved
+  again; no migration backfills it.
+- (b) An empty root falls back predictably, and the fallback is the same string in the library
+  and on the published page.
+- (c) Rename changes what the canvas shows. On the open map it is undoable through history; on
+  any other map it is covered by the library's in-tab undo.
+- (d) Search and sort match what the row displays.
+- (e) `title` is unchanged as a stored field: import still populates it from the filename or
+  front matter, and Markdown import/export semantics do not move (§10.3).
+- (f) Download filenames still follow D-18, unchanged.
+
+**Not in this iteration.** Existing publications are frozen, so a published map keeps its old
+public title until its owner runs *Update published version* — that is D-29's freeze semantics
+working, not a bug to route around. No data migration: existing index entries gain `rootLabel`
+the next time they are written. Whether the library should become Mapdown's landing surface is a
+separate question the owner deferred until names are real.
+
+## Now — English Studio material, memory, and interaction iteration — accepted (2026-08-15)
+
+The owner authorized this iteration and decisions D1-D5 on 2026-08-09. Implementation
+continued past the original branch: `codex/english-studio-major-iteration` is now fully
+contained in **`codex/ui-navigation-polish`**, which carries the UI/IA work that followed and
+is the branch to review. The detailed design and failure registry live in
+[the iteration plan](english-studio-major-iteration-proposal.md); what has shipped and its
+acceptance state is in [the changelog](changelog.md). Only the owner moves an item to
+accepted.
+
+### Product boundary and invariants
+
+- This branch covers English Studio only. Mapdown Create with AI remains authorized in Next,
+  but is a separate branch and release.
+- Prompt levels are discovery metadata, not measured ability. Never render a null level as B1
+  and never lock material by band.
+- Translation text is persisted only after an explicit signed-in **Save** action. There is no
+  automatic history or anonymous persistence.
+- Writing-to-profile measurement remains deferred. Prompt metadata must allow a future writing
+  vocabulary without claiming that the vocabulary exists now.
+- New Reading evaluations stop requesting `next_drills`; stored historical feedback that has
+  the field must remain readable.
+
+### Remaining quality note
+
+The accepted Writing prompt-bank record still notes that a second-party content review has
+not happened; publication used the owner as both reviewer and approver. This caveat remains
+open. A new review/publication task would need its own scope and fresh manifest. Accepted A–E
+scope and evidence are preserved in [the historical record](roadmap-accepted-history.md).
+
+### Explicitly excluded from this iteration
+
+Mapdown Create with AI; writing-to-profile measurement; Dictation v2/session matching;
+long-document translation; first-token/provider/AI-Gateway work; model-routing hot config;
+LLM-signal weight promotion; Chinese UI; paid tier; profile settings; and further
+Reading/Dictation library expansion.
+
 ### A. Writing prompt bank and guided entry — accepted
 
 - Add a reviewable `writing_prompts` contract with stable identity, family/task type, prompt
