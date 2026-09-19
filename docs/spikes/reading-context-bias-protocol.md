@@ -16,6 +16,9 @@ explains the tools; it does not change those decisions or enable Reading's new b
 
 ## Prepare the recording set
 
+The ready-made slate, passages, recording scripts, annotation rules and manifest builder are in
+the [corpus kit](reading-bias-corpus/README.md). This section states the requirements it meets.
+
 Each recording has one tested tag. To cover two present and two absent recordings for **each**
 of `th_sound` and `linking`, this format needs at least eight distinct recordings (exceeding the
 roadmap minimum of six). Use at least two speakers and at least two recordings with known errors
