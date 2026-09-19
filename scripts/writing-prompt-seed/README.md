@@ -56,5 +56,9 @@ pnpm writing-prompts publish --remote --owner-manifest <approval.json> --confirm
 pnpm writing-prompts verify --remote
 ```
 
-The publish operation is one multi-row SQLite statement, so a constraint or identity conflict
-cannot leave a partially published batch. Re-running the same reviewed batch is idempotent.
+The publish operation is packed into multi-row SQLite statements of at most
+`PUBLISH_STATEMENT_BUDGET_BYTES` (60 KB), because D1 refuses a statement above roughly 100 KB —
+the second batch's single 72-prompt statement measured 133 KB and was rejected with
+`SQLITE_TOOBIG`. Each statement repeats the same upsert clause, so re-running the same reviewed
+batch is idempotent and a failed statement leaves nothing behind, while a failure between
+statements is repaired by re-running rather than by a manual fix-up.

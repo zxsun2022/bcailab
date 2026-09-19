@@ -352,7 +352,7 @@ change was needed, so the item's boundary held even though its cost estimate did
 - Local D1 checks confirm the new counts per band and per task family, and that Reading,
   Dictation and Writing catalogues page correctly at the larger size with no unbounded query.
 
-### Progress — drafts complete, in_review (2026-08-27)
+### Progress — published, in_review (2026-09-18)
 
 - **Passages 40 → 80.** The existing forty were one passage per topic per band across ten
   topics; the new forty add ten topics on the same grid (education, technology, money,
@@ -360,16 +360,36 @@ change was needed, so the item's boundary held even though its cost estimate did
   one passage per topic per band. All eighty pass `intake.ts`: 8–12 sentences, no sentence over
   110 characters, no digits, valid titles, and no duplicate title anywhere in the library.
 - **IELTS prompts 24 → 48**, source 48 → 72. Task 1 goes 2 → 4 per material kind across all six
-  kinds; Task 2 goes 3 → 6 per family across all four. `validate`, `derive --check`,
-  `review-pack` and `preflight` all pass; 72 prompts and 24 Task 1 SVG assets are derived and
-  committed. General prompts untouched at 24.
-- **693 tests, both typechecks, lint (0 errors) and both production builds pass.**
-- **Not done, and blocking publication.** (a) The independent second-model content check the
-  material pipeline's review policy requires has **not** been run — the same model generated
-  this batch, so its self-review is not the independent pass. (b) No owner review yet. (c) The
-  batch hash moved from `38d84de9` to `034b84f4`, so the committed approval file no longer
-  matches and `publish` stays blocked until a new approval records both reviews. (d) No TTS has
-  been spent and no D1 row, local or remote, has been written.
+  kinds; Task 2 goes 3 → 6 per family across all four. General prompts untouched at 24.
+- **Published to production 2026-09-18.** Two people reviewed the content on 2026-09-18 at
+  16:00 America/Vancouver — kaixi as the independent reader, Z.Sun as owner — recorded in
+  [the batch approval](approvals/writing-prompts-034b84f4.json). Forty passages were published
+  (TTS → R2 → D1) and the whole eighty-passage library re-tagged. Production D1 now reads 80
+  library passages with 822 sentence rows and 60 carrying reference audio (the twenty published
+  before reference audio existed still have none); the writing bank holds 72 published prompts,
+  24 per family. `preflight --remote` and `verify --remote` pass; the new Task 1 assets answer
+  200 from the production domain.
+- **A pipeline defect surfaced only at this size.** The writing bank's publish path built one
+  multi-row `INSERT`. At 72 prompts that statement measured 133 KB and D1 refused it
+  (`SQLITE_TOOBIG`, against a limit near 100 KB), where the 48-prompt first batch had fitted at
+  about 89 KB. Statements are now packed to a documented 60 KB budget, each repeating the same
+  upsert clause; three tests cover the split. The refused attempt wrote nothing — a statement is
+  atomic — and the retry published all 72 in three statements.
+- **Provenance moved for the already-published 48.** Publication is a whole-bank upsert, so
+  those rows now carry batch `034b84f4`'s `review_manifest_json` and a `reviewed_at` where the
+  column was previously null. Per-row `owner_approved_hash` (the content hash) and every prompt
+  text are unchanged, and both columns are storage provenance that the app never renders. What
+  is no longer visible in the database is that the first batch's own record — the one whose note
+  states no second-party review was performed — lives on only as the committed
+  [approval file](approvals/writing-prompts-38d84de9.json) and in git history.
+- **Still open.** (a) The review policy asks for a second *independent model* pass; what happened
+  here is a second human reader, which the approval file records rather than hides. (b) The
+  reference-audio backfill for the twenty older passages remains optional and unspent.
+  (c) Reading's topic/state filters stay deferred at twenty per band.
+- **Catalogue size check.** Counts were confirmed against production D1 per band and per task
+  family. The Writing catalogue query is bounded (`limit` clamped to 12–24 with a `hasNext`
+  probe) and the Home candidate queries were exercised against an eighty-passage fixture in the
+  isolated D1/HTTP suite, so neither grew unbounded with the library.
 
 ### The honest caveat, recorded deliberately
 

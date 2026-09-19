@@ -120,7 +120,8 @@ navigation; article history and revision controls belong to Writing surfaces.
 - D1 stores prompt metadata and learner work. Reviewed Task 1 SVGs are immutable,
   content-addressed public assets generated from the same canonical prompt source.
 - The reusable `@bcailab/db` validator enforces one prompt's domain contract plus unique
-  batch identities. The authorized first release's exact 48-prompt distribution lives in
+  batch identities. The published bank's exact distribution — 24 General, 24 IELTS Academic
+  Task 1 and 24 Task 2 — lives in `WRITING_PROMPT_BATCH_CENSUS` in
   `scripts/writing-prompt-seed/policy.ts`, so a later batch does not require changing an app
   runtime package. Root `pnpm typecheck` includes this seed pipeline, and its deterministic
   JSON ordering and explicit SQL quoting rules have direct tests.

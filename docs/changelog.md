@@ -9,6 +9,53 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-18 — **in_review: material library expansion published to production.** The second
+  material batch is live: graded passages 40 → 80 (twenty per band across A2/B1/B2/C1) and IELTS
+  writing prompts 24 → 48, for 72 published prompts in the bank (24 general, 24 Academic Task 1,
+  24 Academic Task 2). Nothing was rewritten in learner data; no migration, no schema, no
+  environment variable and no route change was involved.
+
+  **Review record.** Two people reviewed the content on 2026-09-18 at 16:00 America/Vancouver —
+  kaixi took the independent pass and Z.Sun approved as owner — recorded in
+  [the batch approval](approvals/writing-prompts-034b84f4.json), the first batch of this bank to
+  carry a second-party review. The file states plainly that the independent pass is a second
+  human reader, not a second model pass; generation and self-check ran on the same model, which
+  is what the material policy asks for and what this batch still does not have.
+
+  **A publish-path defect surfaced at this size.** The bank's publish built one multi-row
+  `INSERT`. At 72 prompts the statement measured 133 KB and D1 refused it with `SQLITE_TOOBIG`
+  (limit near 100 KB); the 48-prompt first batch had fitted at about 89 KB, so this was the first
+  run to hit the ceiling. `buildPublishedPromptStatements` now packs rows to a documented 60 KB
+  budget, each statement repeating the same upsert clause so a re-run still converges, and three
+  tests cover the split, single-statement and empty-batch cases. The refused attempt wrote
+  nothing, because a D1 statement is atomic; the retry applied all 72 in three statements.
+
+  **Evidence.** Publication ran as TTS → R2 → D1 per passage, with the whole eighty-passage
+  library re-tagged afterwards. Production D1 reads 80 library passages, 822 sentence rows,
+  705 tag rows and 60 passages with completed reference audio; the twenty published before
+  reference audio existed still have none, as recorded. `preflight --remote` and
+  `verify --remote` pass on batch `034b84f4`. Sentence audio and reference recordings were
+  re-downloaded from the production bucket at their synthesized byte sizes, new Task 1 assets
+  answer 200 from the production domain, and the pipeline's own tests, `typecheck:scripts` and
+  lint pass. The full `pnpm verify` gate was re-run after the fix.
+
+  **Provenance moved for the 48 already-published rows.** Publication is a whole-bank upsert, so
+  those rows now carry batch `034b84f4`'s `review_manifest_json`, and their `reviewed_at` is set
+  where it was previously null. Per-row `owner_approved_hash` — the content hash — and every
+  prompt text are unchanged, and neither column is rendered anywhere in the app. The first
+  batch's own record, whose note states that no second-party review was performed, no longer
+  appears in the database; it survives as the committed
+  [approval file](approvals/writing-prompts-38d84de9.json) and in git history.
+
+  **Limits.** Whether the two reviewers re-read the 48 already-published prompts, rather than
+  only the new content, is not recorded; the batch manifest covers the pack as a whole. No
+  learner used the new material before this entry, no model quality was measured, and the
+  item's own caveat stands: this is supply-side work against demand nobody has measured yet.
+  Owner acceptance is pending. The passages pipeline's documented single-file form
+  (`publish.ts <file>`, as opposed to `--all`) drops its first positional argument and fails with
+  a usage error; it was worked around with the explicit `--r2-bucket` form and is reported rather
+  than fixed here.
+
 - 2026-09-17 — **in_review: iteration 6 — readability and Home action hierarchy.**
   Strengthened the shared Web supporting-text tokens in light and both dark modes, preserving
   palette/typography. Studio inputs and the Writing coach selector use control-strength boundaries;

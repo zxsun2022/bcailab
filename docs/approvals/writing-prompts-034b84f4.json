@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "batchHash": "034b84f4802a53c9de3b2f5ec389ddf8e463ba0ce453100bbf4bdc92ee449aea",
+  "independentReview": {
+    "status": "passed",
+    "reviewer": "kaixi",
+    "reviewedAt": "2026-09-18T23:00:00Z",
+    "note": "Second batch, reviewed by two humans on 2026-09-18 at 16:00 America/Vancouver: kaixi took the independent pass and Z.Sun (owner) approved. This batch's independent pass is a second human reader, not a second model pass; generation and self-check ran on the same model. No second-party review was performed for the first batch (38d84de9), so this is the first batch of the bank to carry one."
+  },
+  "ownerReview": {
+    "status": "approved",
+    "ownerApprovedHash": "034b84f4802a53c9de3b2f5ec389ddf8e463ba0ce453100bbf4bdc92ee449aea",
+    "reviewer": "Z.Sun",
+    "reviewedAt": "2026-09-18T23:00:00Z"
+  }
+}

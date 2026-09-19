@@ -8,7 +8,7 @@ import {
 } from "@bcailab/db";
 import { deriveWritingPrompt, sha256, stableJson } from "./derive";
 import { validateWritingPromptReleaseBatch } from "./policy";
-import { buildPublishedPromptValueRow, sqlQuote } from "./publish-sql";
+import { buildPublishedPromptStatements, sqlQuote } from "./publish-sql";
 
 const SEED_DIR = import.meta.dirname;
 const REPO_ROOT = path.resolve(SEED_DIR, "..", "..");
@@ -256,52 +256,18 @@ const preflightCommand = async (args: string[]) => {
   );
 };
 
-const buildPublishSql = (
+const publishStatements = (
   prompts: GeneratedWritingPrompt[],
   pack: ReviewPack,
   approval: ApprovalManifest
-): string => {
+): string[] => {
   const reviewManifest = JSON.stringify({
     schemaVersion: 1,
     batchHash: pack.batchHash,
     independentReview: approval.independentReview,
     ownerReview: approval.ownerReview
   });
-  const values = prompts
-    .map((prompt) => buildPublishedPromptValueRow(prompt, reviewManifest))
-    .join(",\n");
-  return `INSERT INTO writing_prompts (
-    id, slug, family, task_type, prompt_kind, cefr_band,
-    title, prompt_text, coach_id, topic, target_words, target_minutes,
-    task_material_json, asset_path, asset_alt_text, accessible_description,
-    source_label, content_hash, review_manifest_json, owner_approved_hash,
-    status, published_at, updated_at
-  ) VALUES\n${values}
-  ON CONFLICT(id) DO UPDATE SET
-    slug = excluded.slug,
-    family = excluded.family,
-    task_type = excluded.task_type,
-    prompt_kind = excluded.prompt_kind,
-    cefr_band = excluded.cefr_band,
-    title = excluded.title,
-    prompt_text = excluded.prompt_text,
-    coach_id = excluded.coach_id,
-    topic = excluded.topic,
-    target_words = excluded.target_words,
-    target_minutes = excluded.target_minutes,
-    task_material_json = excluded.task_material_json,
-    asset_path = excluded.asset_path,
-    asset_alt_text = excluded.asset_alt_text,
-    accessible_description = excluded.accessible_description,
-    source_label = excluded.source_label,
-    content_hash = excluded.content_hash,
-    review_manifest_json = excluded.review_manifest_json,
-    owner_approved_hash = excluded.owner_approved_hash,
-    status = 'published',
-    reviewed_at = COALESCE(writing_prompts.reviewed_at, datetime('now')),
-    published_at = COALESCE(writing_prompts.published_at, datetime('now')),
-    retired_at = NULL,
-    updated_at = datetime('now');`;
+  return buildPublishedPromptStatements(prompts, reviewManifest);
 };
 
 const loadCurrentReview = async (prompts: GeneratedWritingPrompt[]): Promise<ReviewPack> => {
@@ -344,16 +310,21 @@ const publishCommand = async (args: string[]) => {
   if (target.remote && readFlag(args, "--confirm-remote") !== pack.batchHash) {
     throw new Error(`Remote publish requires --confirm-remote ${pack.batchHash}`);
   }
-  const sql = buildPublishSql(batch.prompts, pack, approval);
-  runWrangler([
-    "d1",
-    "execute",
-    D1_NAME,
-    ...target.flags,
-    "--command",
-    sql
-  ]);
-  console.log(`Published ${batch.prompts.length} reviewed prompts to ${target.remote ? "remote" : "local"} D1.`);
+  const statements = publishStatements(batch.prompts, pack, approval);
+  statements.forEach((sql, index) => {
+    runWrangler([
+      "d1",
+      "execute",
+      D1_NAME,
+      ...target.flags,
+      "--command",
+      sql
+    ]);
+    console.log(`  statement ${index + 1}/${statements.length} applied`);
+  });
+  console.log(
+    `Published ${batch.prompts.length} reviewed prompts to ${target.remote ? "remote" : "local"} D1 in ${statements.length} statement(s).`
+  );
 };
 
 const verifyCommand = async (args: string[]) => {
