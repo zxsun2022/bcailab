@@ -47,6 +47,8 @@ export const recordDictationObservations = async (
     passageId: string;
     attemptId: string;
     sentences: DictationSentenceInput[];
+    /** The completed attempt's active practice time (`dictation_attempts.practice_seconds`). */
+    practiceSeconds: number;
   }
 ): Promise<void> => {
   try {
@@ -63,12 +65,11 @@ export const recordDictationObservations = async (
         hits: tally.hits
       }))
     });
-    // Dictation now contributes to the shared profile (v1 deliberately did not). No duration
-    // is tracked for dictation, so practice seconds stay 0; the attempt count and the
-    // recompute throttle still advance.
+    // Dictation contributes to the shared profile (v1 deliberately did not), including its
+    // active practice time, credited once when the attempt completes.
     await incrementEslLearnerProfileCounters(context.env.DB, {
       userId: input.userId,
-      practiceSeconds: 0
+      practiceSeconds: input.practiceSeconds
     });
   } catch (error) {
     console.error("learner-model observation write failed:", error);

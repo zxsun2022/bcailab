@@ -209,7 +209,9 @@ so this item stays active for that half and its acceptance is deliberately not c
   built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
   and server-side rendering. Those remain separate directions requiring their own evidence and
   authorization.
-- **Dictation contributes practice duration** (owner-authorized 2026-08-12, not started).
+- **Dictation contributes practice duration** (owner-authorized 2026-08-12; **in_review
+  2026-09-18**, evidence in `docs/changelog.md`, rule in `docs/tools/dictation.md`; production
+  needs migration 0022 applied before the deploy).
   `total_practice_seconds` counts reading only: `learner-model.server.ts` passes
   `practiceSeconds: 0` for dictation because nothing times a dictation attempt. A learner who
   practises both modes therefore has a duration covering half their work. The surfaces were

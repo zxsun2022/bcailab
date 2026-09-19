@@ -74,7 +74,7 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   whether its three prerequisites hold. Today none of them do:
   1. **The profile is blind in two of four skills.** Writing contributes only counters because it
      has no tag vocabulary (Next), and Dictation passes `practiceSeconds: 0` because nothing
-     times an attempt (Next, authorized 2026-08-12, not started). A queue built now would
+     times an attempt (Next, authorized 2026-08-12; in_review 2026-09-18). A queue built now would
      schedule on half the evidence while presenting itself as informed.
   2. **Material is too thin to schedule over.** Ten passages per band, against a design
      assumption of roughly 500. A Today queue over that repeats within days, and a visibly
