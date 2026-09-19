@@ -117,6 +117,29 @@ git push origin main
   而必须拆成多次发布。
 - 正式环境的 `OAUTH_REDIRECT_URL` 应为 `https://bcailab.com/auth/callback`。
 
+### 推送后要确认部署真的跑完了
+
+推送到 `main` 会创建一条 Pages 生产部署记录，但**记录存在不等于构建发生**。正常一次构建
+只要约 80 秒（queued 30s → build 30s → deploy 12s）；若部署长时间停在 `queued` 且各阶段
+状态为 `idle`，说明它没有被消费，站点仍在跑上一次的版本。
+
+```bash
+# 看最近的部署与状态（Status 若不是 deploy success，就不要认为已上线）
+pnpm exec wrangler pages deployment list --project-name=bcailab
+
+# 卡住时用官方重试接口重新触发（只针对该部署，不改变内容）
+# POST /accounts/<account_id>/pages/projects/bcailab/deployments/<deployment_id>/retry
+# 重试会生成一条新的部署记录，轮询它的 stages 直到 deploy=success。
+```
+
+判断线上跑的是哪个版本，可以比对待部署提交的构建产物与生产 HTML 引用的文件名
+（`apps/web/build/client/assets/` 里的哈希文件名应与 `https://bcailab.com/` 引用的一致），
+或看项目的 `canonical_deployment` 指向哪个 commit。
+
+2026-09-19 实测：一次直接 `git push` 到 `main` 的部署在 `queued` 停留 18 分钟未构建，
+手动重试后 100 秒内完成。部署列表显示自 2026-08-26 起有相当比例的部署停在 `queued/idle`，
+属于长期现象；推完代码后要主动确认，不要默认"推送即上线"。
+
 ## 数据库 Migration 速查
 
 ```bash
