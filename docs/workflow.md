@@ -122,28 +122,36 @@ gh pr merge <PR 编号>
   而必须拆成多次发布。
 - 正式环境的 `OAUTH_REDIRECT_URL` 应为 `https://bcailab.com/auth/callback`。
 
-### 推送后要确认部署真的跑完了
+### 推送后确认部署状态
 
-推送到 `main` 会创建一条 Pages 生产部署记录，但**记录存在不等于构建发生**。正常一次构建
-只要约 80 秒（queued 30s → build 30s → deploy 12s）；若部署长时间停在 `queued` 且各阶段
-状态为 `idle`，说明它没有被消费，站点仍在跑上一次的版本。
+Pages 项目配置了 build watch paths（`bcailab`：`apps/web/*`、`packages/*`；见
+[infra-cloudflare.md](infra-cloudflare.md)）。**只改了这些路径以外文件的推送（纯 `docs/`、
+`scripts/` 等）会被有意跳过**：仍会生成一条部署记录，但它停在 `Idle`、不会构建。这是
+预期行为，线上代码本来就没有变化，**不需要重试**。
+
+改动涉及 `apps/web/` 或 `packages/` 时，正常一次构建约 80 秒（queued 30s → build 30s →
+deploy 12s），要确认它确实成功：
 
 ```bash
-# 看最近的部署与状态（Status 若不是 deploy success，就不要认为已上线）
+# 看最近的部署与状态
 pnpm exec wrangler pages deployment list --project-name=bcailab
+```
 
-# 卡住时用官方重试接口重新触发（只针对该部署，不改变内容）
+如果一次**触及了 watch paths** 的推送也停在 `Idle`/`queued`，那才是异常，这时可以重试：
+
+```bash
 # POST /accounts/<account_id>/pages/projects/bcailab/deployments/<deployment_id>/retry
 # 重试会生成一条新的部署记录，轮询它的 stages 直到 deploy=success。
 ```
 
 判断线上跑的是哪个版本，可以比对待部署提交的构建产物与生产 HTML 引用的文件名
-（`apps/web/build/client/assets/` 里的哈希文件名应与 `https://bcailab.com/` 引用的一致），
-或看项目的 `canonical_deployment` 指向哪个 commit。
+（`apps/web/build/client/assets/` 里的哈希文件名应与 `https://bcailab.com/` 引用的一致）。
+注意：`canonical_deployment` 只会指向**最后一次构建过的**提交，纯文档提交被跳过后它落后于
+`main` 是正常的。
 
-2026-09-19 实测：一次直接 `git push` 到 `main` 的部署在 `queued` 停留 18 分钟未构建，
-手动重试后 100 秒内完成。部署列表显示自 2026-08-26 起有相当比例的部署停在 `queued/idle`，
-属于长期现象；推完代码后要主动确认，不要默认"推送即上线"。
+2026-09-18 复核：部署列表中所有 `Idle` 记录（2026-08-26 至今）对应的提交都只改了
+watch paths 以外的文件，所有改了 `apps/web/` 的提交都一次构建成功；此前把它记成"部署队列
+长期卡住"是误判。
 
 ## 数据库 Migration 速查
 
