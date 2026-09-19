@@ -382,9 +382,13 @@ change was needed, so the item's boundary held even though its cost estimate did
   is no longer visible in the database is that the first batch's own record — the one whose note
   states no second-party review was performed — lives on only as the committed
   [approval file](approvals/writing-prompts-38d84de9.json) and in git history.
-- **Still open.** (a) The review policy asks for a second *independent model* pass; what happened
-  here is a second human reader, which the approval file records rather than hides. (b) The
-  reference-audio backfill for the twenty older passages remains optional and unspent.
+- **Still open.** (a) A second-model pass was run after publication rather than before it, so it
+  could not gate anything: it found no defect but did flag that lexical difficulty was never
+  measured by the corrections, with a complete separation at B2 on the tagger's own
+  `rare_word_ratio`. Its reading and options are in
+  [the model review](spikes/material-batch-034b84f4-model-review.md); whether to act, and whether
+  the existing B2 shelf rather than the new one is the anomaly, is the owner's call.
+  (b) The reference-audio backfill for the twenty older passages remains optional and unspent.
   (c) Reading's topic/state filters stay deferred at twenty per band.
 - **Catalogue size check.** Counts were confirmed against production D1 per band and per task
   family. The Writing catalogue query is bounded (`limit` clamped to 12–24 with a `hasNext`

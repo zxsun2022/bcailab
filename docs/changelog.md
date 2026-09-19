@@ -20,7 +20,9 @@ make the final transition; see `AGENTS.md`.
   [the batch approval](approvals/writing-prompts-034b84f4.json), the first batch of this bank to
   carry a second-party review. The file states plainly that the independent pass is a second
   human reader, not a second model pass; generation and self-check ran on the same model, which
-  is what the material policy asks for and what this batch still does not have.
+  is what the material policy asks for. A separate second-model pass was run afterwards, at the
+  owner's request and after publication; it is recorded in
+  [the batch's model review](spikes/material-batch-034b84f4-model-review.md).
 
   **A publish-path defect surfaced at this size.** The bank's publish built one multi-row
   `INSERT`. At 72 prompts the statement measured 133 KB and D1 refused it with `SQLITE_TOOBIG`
@@ -49,9 +51,19 @@ make the final transition; see `AGENTS.md`.
 
   **Limits.** Whether the two reviewers re-read the 48 already-published prompts, rather than
   only the new content, is not recorded; the batch manifest covers the pack as a whole. No
-  learner used the new material before this entry, no model quality was measured, and the
-  item's own caveat stands: this is supply-side work against demand nobody has measured yet.
-  Owner acceptance is pending. The passages pipeline's documented single-file form
+  learner used the new material before this entry, and no model quality was measured against
+  learner outcomes. The post-hoc model review found no defect: the mechanical constraints, the
+  twelve Task 1 items' arithmetic, the derived SVGs, and production against the reviewed drafts
+  all hold. It flagged one thing worth a decision — lexical difficulty was never measured by the
+  earlier corrections, and at B2 the new ten are simpler than the existing shelf on the tagger's
+  own `rare_word_ratio` by a margin that separates the two groups completely, while sentence
+  length matches at every band. Whether that is the new batch sitting low or the existing B2
+  shelf being the anomaly is unresolved, because that proxy also puts the existing B2 shelf above
+  the existing C1 shelf. Nothing was changed as a result; the reading, the numbers and the
+  options are in [the model review](spikes/material-batch-034b84f4-model-review.md), and the
+  choice is the owner's. The item's own caveat stands: this is supply-side work against demand
+  nobody has measured yet. Owner acceptance is pending. The passages pipeline's documented
+  single-file form
   (`publish.ts <file>`, as opposed to `--all`) drops its first positional argument and fails with
   a usage error; it was worked around with the explicit `--r2-bucket` form and is reported rather
   than fixed here.
