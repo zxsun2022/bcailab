@@ -36,6 +36,7 @@ const mapDictationAttempt = (row: Record<string, unknown>): DictationAttempt => 
     row.feedback_json === null || row.feedback_json === undefined ? null : String(row.feedback_json),
   status: String(row.status ?? "completed"),
   sentences_done: Number(row.sentences_done ?? 0),
+  practice_seconds: Number(row.practice_seconds ?? 0),
   created_at: String(row.created_at),
   deleted_at: row.deleted_at === null || row.deleted_at === undefined ? null : String(row.deleted_at)
 });
@@ -173,7 +174,7 @@ export async function getInProgressDictationAttempt(
   const row = await db
     .prepare(
       `SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, status,
-              sentences_done, created_at, deleted_at
+              sentences_done, practice_seconds, created_at, deleted_at
          FROM dictation_attempts
         WHERE user_id = ? AND passage_id = ? AND status = 'in_progress' AND deleted_at IS NULL
         ORDER BY created_at DESC LIMIT 1`
@@ -199,19 +200,23 @@ export async function saveDictationAttemptProgress(
     accuracy: number;
     sentenceResults: string;
     sentencesDone: number;
+    /** The attempt's running active-time total. Only ever raises the stored value. */
+    practiceSeconds: number;
   }
 ): Promise<string> {
   if (input.attemptId) {
     await db
       .prepare(
         `UPDATE dictation_attempts
-            SET accuracy = ?, sentence_results = ?, sentences_done = ?
+            SET accuracy = ?, sentence_results = ?, sentences_done = ?,
+                practice_seconds = MAX(practice_seconds, ?)
           WHERE id = ? AND user_id = ? AND status = 'in_progress'`
       )
       .bind(
         input.accuracy,
         input.sentenceResults,
         input.sentencesDone,
+        input.practiceSeconds,
         input.attemptId,
         input.userId
       )
@@ -223,15 +228,27 @@ export async function saveDictationAttemptProgress(
   await db
     .prepare(
       `INSERT INTO dictation_attempts
-         (id, user_id, passage_id, accuracy, sentence_results, status, sentences_done)
-       VALUES (?, ?, ?, ?, ?, 'in_progress', ?)`
+         (id, user_id, passage_id, accuracy, sentence_results, status, sentences_done, practice_seconds)
+       VALUES (?, ?, ?, ?, ?, 'in_progress', ?, ?)`
     )
-    .bind(id, input.userId, input.passageId, input.accuracy, input.sentenceResults, input.sentencesDone)
+    .bind(
+      id,
+      input.userId,
+      input.passageId,
+      input.accuracy,
+      input.sentenceResults,
+      input.sentencesDone,
+      input.practiceSeconds
+    )
     .run();
   return id;
 }
 
-/** Finalizes an in-progress attempt with the authoritative whole-passage score. */
+/**
+ * Finalizes an in-progress attempt with the authoritative whole-passage score, and returns the
+ * attempt's final practice time — the larger of what checks already stored and the total the
+ * completion reports — so the caller credits the learner profile with exactly that.
+ */
 export async function completeDictationAttempt(
   db: Db,
   input: {
@@ -240,22 +257,27 @@ export async function completeDictationAttempt(
     accuracy: number;
     sentenceResults: string;
     sentencesDone: number;
+    practiceSeconds: number;
   }
-): Promise<void> {
-  await db
+): Promise<{ practiceSeconds: number }> {
+  const row = await db
     .prepare(
       `UPDATE dictation_attempts
-          SET accuracy = ?, sentence_results = ?, sentences_done = ?, status = 'completed'
-        WHERE id = ? AND user_id = ?`
+          SET accuracy = ?, sentence_results = ?, sentences_done = ?, status = 'completed',
+              practice_seconds = MAX(practice_seconds, ?)
+        WHERE id = ? AND user_id = ?
+        RETURNING practice_seconds`
     )
     .bind(
       input.accuracy,
       input.sentenceResults,
       input.sentencesDone,
+      input.practiceSeconds,
       input.attemptId,
       input.userId
     )
-    .run();
+    .first<{ practice_seconds: number }>();
+  return { practiceSeconds: Number(row?.practice_seconds ?? 0) };
 }
 
 /** Latest eligible unfinished attempt, independent of the Home's recent-history window. */

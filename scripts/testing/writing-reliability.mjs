@@ -7,6 +7,7 @@ import { createServer } from '../../apps/web/node_modules/vite/dist/node/index.j
 import remixDev from '../../apps/web/node_modules/@remix-run/dev/dist/index.js';
 import wrangler from '../../node_modules/wrangler/wrangler-dist/cli.js';
 import { checkWriting } from './writing-checks.mjs';
+import { checkDictation } from './dictation-checks.mjs';
 import { seedHome, faultDb, checkHome } from './home-reliability.mjs';
 import baseConfig from '../../apps/web/vite.config.ts';
 const root = resolve(import.meta.dirname, '../..');
@@ -106,7 +107,7 @@ try {
   await server.listen();
   await fetch('http://127.0.0.1:5191/writing/new', { redirect: 'manual' });
   if (process.argv.includes('--check')) {
-    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background)];
+    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background), ...await checkDictation(server, root, runtime)];
     console.log(`PASS D1/HTTP: ${checks.length} assertions on fresh migrated D1 and a fake model.`);
     checks.forEach(label => console.log('  PASS ' + label));
   } else {

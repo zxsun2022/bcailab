@@ -9,6 +9,30 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-18 — **in_review: Dictation contributes practice duration.** A signed-in dictation
+  attempt now records its active practice time and, on completion, adds it to
+  `total_practice_seconds` instead of 0; Progress labels the card *Practice time* again, since it
+  now covers every mode that measures a duration (Reading and Dictation; Writing is not timed).
+  The client measures time between interactions with each gap capped at 60 seconds and hidden-tab
+  time excluded; the server caps the total at 300 seconds per sentence and stores it with
+  `MAX(stored, reported)`, so retries, stale requests and resumes cannot count time twice. Rule in
+  `docs/tools/dictation.md`. Migration `0022_dictation_practice_seconds.sql` adds the column with
+  default 0, so historical attempts stay at zero and are not back-estimated; per ADR 0008 it must
+  be applied to production **before** this code deploys.
+
+  Found and fixed during browser verification: every check revalidates the loader, and reading the
+  resume total from loader data on each render re-added the current visit's time (a 5-second step
+  reported as +65 s). The baseline is now read once at mount.
+
+  **Evidence.** 12 new unit tests (the clock rule and server clamp; the MAX/RETURNING write path)
+  and 11 new D1/HTTP assertions in `pnpm test:integration` on fresh migrated D1: stored total per
+  check, retry idempotence, resume handing back the stored total, stale totals never lowering it,
+  no profile credit before completion, exactly-once credit on completion, the per-passage cap,
+  accumulation across attempts, and no storage for anonymous practice. In the isolated browser
+  fixture, a 75-second idle gap added exactly 60 s (369 → 429), the next 5 s after revalidation
+  added 5 s (429 → 434), and Progress showed *7m · Practice time*. Not covered: real audio
+  playback (the fixture seeds no sentence audio) and mobile virtual keyboards.
+
 - 2026-09-19 — **accepted: iterations 4–6, Writing reliability and the material expansion; every
   passage now has a reference recording.** The owner accepted the work delivered in this branch,
   after it had been deployed and after the second-model review of the material batch. Accepted:

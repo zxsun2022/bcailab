@@ -23,6 +23,13 @@ import {
 } from "~/utils/dictation-feedback.server";
 import { recordDictationObservations } from "~/utils/learner-model.server";
 import { openLoginPopup } from "~/utils/login-popup";
+import {
+  activeSeconds,
+  clampAttemptPracticeSeconds,
+  recordActivity,
+  startActiveClock,
+  suspendActiveClock
+} from "~/utils/practice-time";
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
   { title: data?.passage ? `${data.passage.title} · Dictation · bcailab` : "Dictation · bcailab" }
@@ -49,6 +56,7 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     attemptId: string;
     answers: Record<number, string>;
     sentencesDone: number;
+    practiceSeconds: number;
   } | null = null;
   if (inProgress) {
     try {
@@ -58,7 +66,10 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       resume = {
         attemptId: inProgress.id,
         answers,
-        sentencesDone: inProgress.sentences_done
+        sentencesDone: inProgress.sentences_done,
+        // The client continues this total rather than restarting it, so a resumed attempt
+        // reports stored time plus new time and nothing is counted twice.
+        practiceSeconds: inProgress.practice_seconds
       };
     } catch {
       // Unparseable stored results should not block practice; start fresh instead.
@@ -128,6 +139,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "");
   const sentences = await listPassageSentences(context.env.DB, passageId);
+  // The attempt's running active-time total as the client measured it; sanitised and capped
+  // here, and stored with MAX so a retry or resume cannot count time twice.
+  const practiceSeconds = clampAttemptPracticeSeconds(formData.get("practiceSeconds"), sentences.length);
 
   if (intent === "check") {
     const idx = Number(formData.get("idx"));
@@ -194,7 +208,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         passageId,
         accuracy: runningAccuracy,
         sentenceResults: JSON.stringify(merged),
-        sentencesDone: merged.length
+        sentencesDone: merged.length,
+        practiceSeconds
       });
     }
 
@@ -265,15 +280,17 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
           passageId,
           accuracy: scored.accuracy,
           sentenceResults: JSON.stringify(results),
-          sentencesDone: results.length
+          sentencesDone: results.length,
+          practiceSeconds
         }));
 
-      await completeDictationAttempt(context.env.DB, {
+      const completed = await completeDictationAttempt(context.env.DB, {
         attemptId,
         userId: user.id,
         accuracy: scored.accuracy,
         sentenceResults: JSON.stringify(results),
-        sentencesDone: results.length
+        sentencesDone: results.length,
+        practiceSeconds
       });
 
       // Background: fills feedback_json, which the summary panel polls for.
@@ -297,7 +314,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         sentences: sentences.map((sentence, position) => ({
           reference: sentence.text,
           ops: results[position]!.ops
-        }))
+        })),
+        practiceSeconds: completed.practiceSeconds
       });
     }
 
@@ -461,6 +479,38 @@ export default function DictationSession() {
   const [audioState, setAudioState] = React.useState<"idle" | "loading" | "playing">("idle");
   const [progress, setProgress] = React.useState(0);
 
+  // Active practice time for this page visit, continued from what a resumed attempt already
+  // stored. Idle and hidden-tab time are excluded by the rule in `~/utils/practice-time`.
+  const clockRef = React.useRef(startActiveClock());
+  // Read once at mount. Every check revalidates the loader, whose `resume.practiceSeconds`
+  // then already includes this visit's time; re-reading it would count that time twice.
+  const [baselineSeconds] = React.useState(() => resume?.practiceSeconds ?? 0);
+  const markActivity = React.useCallback(() => {
+    clockRef.current = recordActivity(clockRef.current, Date.now());
+  }, []);
+  const practiceSecondsSoFar = () => {
+    markActivity();
+    return String(baselineSeconds + activeSeconds(clockRef.current));
+  };
+
+  React.useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        clockRef.current = suspendActiveClock(clockRef.current, Date.now());
+      }
+    };
+    window.addEventListener("keydown", markActivity);
+    window.addEventListener("pointerdown", markActivity);
+    window.addEventListener("input", markActivity);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("keydown", markActivity);
+      window.removeEventListener("pointerdown", markActivity);
+      window.removeEventListener("input", markActivity);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [markActivity]);
+
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   // Landing on the page must not blast audio at the user; playback is theirs to start.
@@ -546,7 +596,8 @@ export default function DictationSession() {
         text: answers[current] ?? "",
         replays: String(Math.max(0, (playCounts[current] ?? 0) - 1)),
         attemptId: attemptId ?? "",
-        progress: JSON.stringify(progress)
+        progress: JSON.stringify(progress),
+        practiceSeconds: practiceSecondsSoFar()
       },
       { method: "post" }
     );
@@ -560,7 +611,8 @@ export default function DictationSession() {
           attemptId: attemptId ?? "",
           answers: JSON.stringify(answers),
           // Replays are listens beyond the first, so a sentence heard once reports 0.
-          replays: JSON.stringify(playCounts.map((count) => Math.max(0, count - 1)))
+          replays: JSON.stringify(playCounts.map((count) => Math.max(0, count - 1))),
+          practiceSeconds: practiceSecondsSoFar()
         },
         { method: "post" }
       );
@@ -678,6 +730,8 @@ export default function DictationSession() {
             setProgress(1);
           }}
           onTimeUpdate={(event) => {
+            // Listening is practice even when the learner is not touching anything.
+            markActivity();
             const el = event.currentTarget;
             if (el.duration > 0) setProgress(el.currentTime / el.duration);
           }}

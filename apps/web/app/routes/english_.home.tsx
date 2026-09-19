@@ -334,10 +334,9 @@ export default function EnglishHome() {
   // "Attempts", not "sessions": this counts `total_attempts`, and the studio has no session
   // entity outside Writing's own workspace vocabulary (ADR 0007).
   //
-  // Attempt count only. Duration used to sit here too, but `total_practice_seconds` counts
-  // reading alone — dictation records none — so a learner using both modes read a number
-  // that silently omitted half their work. The count carries this line's whole job; the
-  // duration detail belongs on Progress, correctly labelled.
+  // Attempt count only. Duration used to sit here too, when `total_practice_seconds` counted
+  // reading alone and silently omitted dictation. Dictation is timed now, but the count
+  // still carries this line's whole job; the duration detail belongs on Progress.
   const volumeText =
     totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
   const basisSentence =

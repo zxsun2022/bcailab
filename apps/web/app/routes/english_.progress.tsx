@@ -267,13 +267,14 @@ export default function EnglishProgressPage() {
                   <div className="dash-stat-value">{totalAttempts}</div>
                   <div className="dash-stat-label">Attempts</div>
                 </div>
-                {/* Only reading attempts carry a duration — dictation writes 0 seconds
-                    because nothing times it. Labelling this "practice time" overclaimed,
-                    and at zero it rendered "0m" beside a real attempt count. */}
+                {/* One duration for every mode that measures one: reading (recording
+                    length) and dictation (active time). Writing is not timed. Dictation
+                    attempts from before its timer existed stay at 0 rather than being
+                    estimated. Hidden at zero so "0m" never sits beside a real attempt count. */}
                 {totalPracticeSeconds > 0 ? (
                   <div className="dash-stat-card">
                     <div className="dash-stat-value">{formatPracticeTime(totalPracticeSeconds)}</div>
-                    <div className="dash-stat-label">Reading time</div>
+                    <div className="dash-stat-label">Practice time</div>
                   </div>
                 ) : null}
               </div>

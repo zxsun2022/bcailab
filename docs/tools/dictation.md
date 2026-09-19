@@ -89,6 +89,30 @@ distort measured difficulty. For the same reason the rail shows an unfinished at
 
 Anonymous practice remains session-only.
 
+## Practice time
+
+A signed-in attempt records its **active** practice time in `dictation_attempts.practice_seconds`
+(migration 0022), and a completed attempt adds that total to the learner profile's
+`total_practice_seconds`, which Progress shows as *Practice time* alongside Reading's
+recording lengths. Writing is not timed.
+
+The rule (`apps/web/app/utils/practice-time.ts`):
+
+- Time counts between consecutive interactions on the session page — keys, pointer presses,
+  text input, and audio playback progress — but **one gap counts at most 60 seconds**. Leaving
+  mid-sentence adds at most a minute, not the whole absence.
+- Hiding the tab closes the open gap at that moment; counting restarts only at the next
+  interaction after the learner returns. Time before the first interaction is not counted.
+- The client sends the attempt's running total with every check and on completion. A resumed
+  attempt continues from the stored total (read once when the page loads), so stored time is
+  never re-counted.
+- The server sanitises the value, caps it at 300 seconds per sentence of the passage, and
+  stores it with `MAX(stored, reported)`: a retried or stale request can neither add time twice
+  nor lower it.
+- Only completion credits the profile, exactly once per attempt, matching `total_attempts`.
+  Time on an attempt that is never finished stays on its row and is not in the profile total.
+- Attempts made before migration 0022 stay at 0; they are not back-estimated.
+
 ## Learner model
 
 On completion, a signed-in attempt also feeds the shared learner model: its diff ops are

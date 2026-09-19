@@ -184,6 +184,8 @@ export type DictationAttempt = {
   /** 'in_progress' while the learner is still working through the passage. */
   status: string;
   sentences_done: number;
+  /** Active practice time in seconds (migration 0022); 0 for attempts made before it. */
+  practice_seconds: number;
   created_at: string;
   deleted_at: string | null;
 };
