@@ -12,6 +12,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "mapdown", "dev"],
       "port": 5174
+    },
+    {
+      "name": "web-fixture",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["test:browser:fixture"],
+      "port": 5191
     }
   ]
 }
