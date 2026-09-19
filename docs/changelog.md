@@ -9,6 +9,41 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-19 — **accepted: iterations 4–6, Writing reliability and the material expansion; every
+  passage now has a reference recording.** The owner accepted the work delivered in this branch,
+  after it had been deployed and after the second-model review of the material batch. Accepted:
+  local verification entry points (iteration 4), documentation authority and drift repair
+  (iteration 5), readability and Home action hierarchy (iteration 6), Writing reliability and Home
+  data correctness (F01–F05), and the material library expansion with its publication. Their
+  verbatim scope, evidence and caveats moved to
+  [accepted roadmap history](roadmap-accepted-history.md) with their original anchors preserved;
+  the active roadmap now keeps summaries only. **Two steps of "Learner context for graders" were
+  accepted in the same pass and the item stays open**: the Dictation and Writing briefs are
+  accepted, Reading is not — it is last in the rollout order (D3) and gated on a bias evaluation
+  that has not been run, so nothing in Reading changed and acceptance of that half was deliberately
+  not claimed.
+
+  **Reference recordings completed.** The twenty library passages published before reference audio
+  existed had none, and Reading's reference player is simply empty for such a passage: the in-app
+  lazy path serves only a learner's own text, and `publish.ts` skips ids already in D1. The new
+  [`scripts/material-seed/reference-backfill.ts`](../scripts/material-seed/reference-backfill.ts)
+  closes the gap as a one-off. It shares the publish pipeline's TTS and bucket handling rather than
+  copying it — `publish.ts` now exports those helpers and runs its CLI only when executed directly
+  — skips any passage already marked complete, and caches each synthesized MP3 under
+  `out/audio/<id>/reference.mp3`. Production D1 reads 80 of 80 library passages with
+  `reference_audio_status = 'completed'`, and three of the uploaded objects were re-downloaded from
+  the production bucket at their recorded byte sizes. One run was interrupted mid-way by the
+  intermittent wrangler `7403` error documented in [workflow](workflow.md); it failed on the D1
+  update after the upload, so the retry found the passage still incomplete, reused the cached audio
+  and synthesized only the four passages left. No text, sentence, tag, metric or learner row was
+  touched by the backfill.
+
+  **Evidence.** `pnpm verify` passes all 10 checks (unit tests, both products' typechecks and
+  builds, lint at 0 errors, bounded docs checks, context-pack regression, and the isolated D1/HTTP
+  assertions). `pnpm typecheck:scripts` covers the new script. The documentation entry point's
+  rules were followed for the acceptance move: original headings retained as links, old anchors
+  preserved in the roadmap, and no status inferred for work the owner did not accept.
+
 - 2026-09-18 — **in_review: material library expansion published to production.** The second
   material batch is live: graded passages 40 → 80 (twenty per band across A2/B1/B2/C1) and IELTS
   writing prompts 24 → 48, for 72 published prompts in the bank (24 general, 24 Academic Task 1,

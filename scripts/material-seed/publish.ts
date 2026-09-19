@@ -35,6 +35,7 @@ import { mkdir, readFile, readdir, writeFile, stat } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import os from "node:os";
+import { pathToFileURL } from "node:url";
 
 const SEED_DIR = import.meta.dirname;
 const REPO_ROOT = path.resolve(SEED_DIR, "..", "..");
@@ -43,6 +44,11 @@ const AUDIO_CACHE_DIR = path.join(OUT_DIR, "audio");
 
 /** Overridable with --r2-bucket; the dev server binds the preview bucket instead. */
 let r2Bucket = "bcailab-assets";
+
+/** Used by the reference-audio backfill, which shares this pipeline's bucket handling. */
+export const setR2Bucket = (name: string): void => {
+  r2Bucket = name;
+};
 const D1_NAME = "bcailab-db";
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
@@ -174,7 +180,7 @@ const listEnUsVoices = async (): Promise<VoiceInfo[]> => {
  * Preference chain mirrors `pickReferenceVoice` in esl-passage-reference.server.ts,
  * parameterized by gender: chirp3+gender → chirp3 → neural2+gender → neural2.
  */
-const pickVoice = async (gender: "MALE" | "FEMALE"): Promise<string> => {
+export const pickVoice = async (gender: "MALE" | "FEMALE"): Promise<string> => {
   const voices = await listEnUsVoices();
   const chain: Array<(v: VoiceInfo) => boolean> = [
     (v) => v.name.includes("Chirp3") && v.ssmlGender === gender,
@@ -189,7 +195,7 @@ const pickVoice = async (gender: "MALE" | "FEMALE"): Promise<string> => {
   throw new Error("No supported American English voice is available.");
 };
 
-const synthesizeMp3 = async (text: string, voiceName: string): Promise<Buffer> => {
+export const synthesizeMp3 = async (text: string, voiceName: string): Promise<Buffer> => {
   const token = await getAccessToken();
   const response = await fetch(SYNTHESIZE_URL, {
     method: "POST",
@@ -208,7 +214,7 @@ const synthesizeMp3 = async (text: string, voiceName: string): Promise<Buffer> =
 
 /* ---------- wrangler ---------- */
 
-const wrangler = (args: string[]): string => {
+export const wrangler = (args: string[]): string => {
   try {
     return execFileSync("pnpm", ["exec", "wrangler", ...args], {
       cwd: REPO_ROOT,
@@ -232,6 +238,24 @@ const localFlags = (): string[] =>
 
 const d1Target = (local: boolean): string[] => (local ? localFlags() : ["--remote"]);
 
+/** Uploads one file to the seed pipeline's bucket. Shared with the reference-audio backfill. */
+export const putObjectToR2 = (
+  key: string,
+  filePath: string,
+  contentType: string,
+  local: boolean
+): void => {
+  wrangler([
+    "r2", "object", "put", `${r2Bucket}/${key}`,
+    "--file", filePath, "--content-type", contentType,
+    ...(local ? localFlags() : ["--remote"])
+  ]);
+};
+
+/** The voice gender convention of this pipeline: deterministic per passage id. */
+export const genderForPassage = (passageId: string): "MALE" | "FEMALE" =>
+  parseInt(passageId[0]!, 16) % 2 === 0 ? "MALE" : "FEMALE";
+
 const passageExistsInD1 = (passageId: string, local: boolean): boolean => {
   const output = wrangler([
     "d1", "execute", D1_NAME, ...d1Target(local), "--json",
@@ -241,7 +265,7 @@ const passageExistsInD1 = (passageId: string, local: boolean): boolean => {
   return (parsed[0]?.results?.length ?? 0) > 0;
 };
 
-const sqlQuote = (value: string): string => `'${value.replace(/'/g, "''")}'`;
+export const sqlQuote = (value: string): string => `'${value.replace(/'/g, "''")}'`;
 
 /* ---------- publish ---------- */
 
@@ -256,8 +280,7 @@ const publishPassage = async (filePath: string, local: boolean): Promise<void> =
 
   // Alternate voice gender by uuid parity: deterministic per passage, so re-runs and
   // partial batches always pick the same voice.
-  const gender = parseInt(passage.id[0]!, 16) % 2 === 0 ? "MALE" : "FEMALE";
-  const voiceName = await pickVoice(gender);
+  const voiceName = await pickVoice(genderForPassage(passage.id));
   console.log(`● ${label}: ${passage.sentences.length} sentences, voice ${voiceName}`);
 
   const cacheDir = path.join(AUDIO_CACHE_DIR, passage.id);
@@ -279,11 +302,7 @@ const publishPassage = async (filePath: string, local: boolean): Promise<void> =
       console.log(`  ${idx}: synthesized (${bytes} bytes)`);
     }
     const r2Key = `dictation/${passage.id}/${idx}.mp3`;
-    wrangler([
-      "r2", "object", "put", `${r2Bucket}/${r2Key}`,
-      "--file", mp3Path, "--content-type", "audio/mpeg",
-      ...(local ? localFlags() : ["--remote"])
-    ]);
+    putObjectToR2(r2Key, mp3Path, "audio/mpeg", local);
     sentenceRows.push({ id: randomUUID(), idx, text, r2Key, bytes });
   }
 
@@ -305,11 +324,7 @@ const publishPassage = async (filePath: string, local: boolean): Promise<void> =
     console.log(`  reference: synthesized (${referenceBytes} bytes)`);
   }
   const referenceR2Key = `material/${passage.id}/reference.mp3`;
-  wrangler([
-    "r2", "object", "put", `${r2Bucket}/${referenceR2Key}`,
-    "--file", referencePath, "--content-type", "audio/mpeg",
-    ...(local ? localFlags() : ["--remote"])
-  ]);
+  putObjectToR2(referenceR2Key, referencePath, "audio/mpeg", local);
 
   const wordCount = referenceText.trim().split(/\s+/).filter(Boolean).length;
 
@@ -378,7 +393,9 @@ const main = async () => {
   }
 };
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exit(1);
+  });
+}

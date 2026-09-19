@@ -1,4 +1,4 @@
-# Accepted roadmap evidence — archived 2026-09-17
+# Accepted roadmap evidence — archived 2026-09-17, extended 2026-09-18
 
 **Document role:** historical-evidence.
 
@@ -664,6 +664,264 @@ The owner authorized a fourth and fifth Mapdown checkpoint on 2026-08-06:
   this roadmap — when it is added, this constraint applies to it. **Step 3 shipped 2026-08-06
   (PR #37), so this gate is clear**; the front matter now carries `shape:` and `palette:` and a
   published URL can safely reference either axis.
+
+## Now — Readability and Home action hierarchy (iteration 6) — accepted (2026-09-18)
+
+Owner-authorized 2026-09-17: F06 and the bounded Home hierarchy follow-up.
+Keep the current palette, typography, recommendation logic and product boundaries.
+
+Acceptance:
+- Necessary supporting text and placeholders meet 4.5:1 against their rendered light/dark
+  backgrounds; required input boundaries and custom focus indicators meet 3:1. Preserve
+  light decorative dividers and distinguish disabled controls from actionable ones.
+- Continue is the primary Home action when available; recommendation Start is secondary.
+  Without Continue, recommendation Start is primary. Recent status stays next to its title
+  and wraps with long content on narrow screens.
+- Verify Home, Writing and Dictation in light/dark, narrow layouts and keyboard use, with
+  stable input labels and visible focus. Compare identical fixture data between themes.
+- Exercise cold, Continue-only, recommendation-only, combined, empty/degraded and long-title
+  Home states using isolated data. Record actual checks and limitations; update behavior docs.
+
+Review evidence (2026-09-17): `verify:web` passes 227 tests, typechecks, build and 29 isolated
+D1/HTTP assertions; lint has 0 errors and 7 existing warnings in this scope. Six contrast-token
+regressions include both dark modes; the old colors fail all three supporting-text cases.
+Manual browser checks covered the Home state matrix, light/dark input contrast, narrow reflow,
+labels, Tab focus and mobile navigation Escape/focus return. See [changelog](changelog.md) and
+[fixture instructions](../scripts/testing/README.md). Screen-reader speech, forced-colors rendering
+and real audio were not tested. Owner accepted (2026-09-18).
+
+No Reading experiment, recommendation algorithm, font replacement, Mapdown redesign or
+release/CI changes. Report `in_review`; The owner accepted this on 2026-09-18.
+
+
+## Now — Documentation authority and drift repair (iteration 5) — accepted (2026-09-18)
+
+Owner-authorized 2026-09-17. Establish a concise docs entry point; repair the reviewed Writing
+rail, Home, layout-width and testing-scope conflicts against code. Preserve settled product
+boundaries and distinguish historical review evidence from current guidance.
+
+Acceptance:
+- The entry point answers what is authorized, how actual behavior is established, how to verify,
+  and how to publish; conflicts between intent, implementation and dated evidence have a rule.
+- Architecture describes component relationships rather than duplicating the complete route list.
+- Already accepted roadmap details move to a dated historical record without losing text,
+  evidence or old anchors. Keep summaries, still-open caveats and all unaccepted work reachable;
+  do not infer new acceptance or reorder active work.
+- Context packs fail on missing selected inputs and explicitly requested files, classify history
+  separately from intent/derived facts, and never leave an apparently successful partial pack.
+  Generated output stays untracked; existing secret-handling boundaries remain.
+- Extend bounded docs checks to the repaired/entry documents and explicit document-role markers.
+  Exercise context profiles and failure cases using synthetic copies, including a missing input.
+
+Review evidence (2026-09-17): the documentation entry point and factual repairs are complete.
+Accepted history preserves 93 original paragraphs and 22 old heading anchors; unaccepted work
+remains active. Combined verification passes (744 tests, 25 D1/HTTP assertions), plus 31 context
+checks and two expected documentation failures. All four real-checkout pack profiles generate.
+See [delivery record](changelog.md) and [documentation entry point](README.md). Owner accepted (2026-09-18).
+
+No product behavior, visual refresh, CI/deployment changes, Reading experiment or wholesale docs
+folder reorganization. Report delivery as `in_review`; the owner accepted it on 2026-09-18.
+
+
+## Now — Local verification entry points (iteration 4) — accepted (2026-09-18)
+
+Owner-authorized 2026-09-17. Add `verify:web`, `verify:mapdown`, and `verify` with explicit
+scope for tests, typechecks, lint, builds and operational documentation checks. Preserve the
+per-package TypeScript choices. Root verification must include Mapdown client and Functions.
+Reuse the isolated Writing/Home D1 fixture as an automatic check and document how to repeat
+browser checks; do not silently report manual browser checks as automated passes.
+
+Acceptance:
+- All three commands run locally, identify their scope and failing step, and exit nonzero on
+  failure. Required tools/input files cannot be silently skipped. Check Node compatibility and
+  the repository's declared pnpm version before starting.
+- Web covers its shared packages, existing seed/grader/worker checks, React regressions, build
+  and isolated D1/HTTP checks. Mapdown covers client and Functions tests/types, lint and build.
+  Combined verification covers both without relying on the legacy Web-only root build.
+- Deliberate unit, type and lint failures block the appropriate product command; a Functions
+  type error blocks combined verification. A broken operational-doc link also blocks verification.
+  Keep a reproducible failure-injection command that restores its temporary changes.
+- Document command boundaries, prerequisite tools, D1/browser invocation and limitations.
+  Limit doc checking to verification/workflow instructions and required inputs; semantic doc
+  drift and historical-doc reorganization belong to a later iteration.
+
+Review evidence (2026-09-17): all three verify commands pass; 744 tests, 25 D1/HTTP assertions,
+and eight injected failures confirm scope and fail-fast behavior. See [verification instructions](verification.md)
+and [changelog](changelog.md). Browser interaction checks remain manual; owner acceptance is pending.
+
+No CI, remote settings, deployment mechanism, production migration, product behavior or Reading
+experiment changes are authorized in this iteration. Delivery is `in_review`, with evidence in
+changelog; The owner accepted this on 2026-09-18.
+
+
+## Now — Writing reliability and Home data correctness — accepted (2026-09-18)
+
+Owner-authorized 2026-09-16: iterations 1–3 of the review follow-up plan. Implement in this
+order, one independently reviewable change per iteration. The review's findings F01–F05 are
+inputs, not authorization for the remaining review batches.
+
+### 1. Writing retry lifecycle (F01) — in_review
+
+Consume each retry response once, by article/revision/feedback generation; keep feedback task
+start time separate from revision creation time. Acceptance: a React regression fails on the old
+loop and passes after the fix; retry → pending → completed terminates; old responses cannot reset
+completed feedback or overwrite another article/round; browser polling continues then stops with
+no update-depth warning. Additive response fields preserve existing API consumers.
+
+### 2. Writing draft recovery and account isolation (F02/F03) — in_review
+
+One account-scoped local draft contract for freeform, assignments and new rounds, carrying text,
+topic/coach, base revision, update time and first-submit identity. Existing unscoped keys are not
+automatically assigned to whoever is signed in. Anonymous trials remain non-persistent. Acceptance:
+refresh/return and failed requests preserve input; server revalidation does not overwrite dirty
+edits; account B cannot see account A's draft; a lost successful first-submit response followed by
+refresh/retry creates one article and Round 1; success only clears the corresponding submitted
+version; unavailable storage is visible. Verify through an isolated browser and real local D1.
+
+### 3. Home bounded inputs and degradation (F04/F05) — in_review
+
+Separate level/adjacent candidates from record-referenced passages needed for Continue/Recent.
+Keep queries and returned rows bounded; absence from a candidate window is not withdrawal.
+Acceptance: >60 and uneven-band fixtures retain B2 recommendations and old eligible unfinished
+work; withdrawn passages stay excluded; profile/history/library failures each have an intentional
+fallback, with unknown level never displayed as B1; authentication failures retain their existing
+behavior. Verify SQL against local D1 and error paths against the dev server.
+
+### Delivery and exclusions
+
+Review evidence (2026-09-17): see the four reliability entries in [changelog](changelog.md)
+and [the reproducible local fixture](../scripts/testing/README.md). Owner accepted (2026-09-18).
+
+Each iteration includes its behavioral docs, defect-specific regression tests and changelog
+entry marked `in_review`. Minimal React/D1/browser test support belongs with these fixes; the
+broader verify/CI/docs reorganization is not authorized here. No Reading enablement, Stage 2
+category work, quota redesign, visual refresh, Mapdown changes, push or deployment is included.
+
+
+## Now — Material library expansion — accepted (2026-09-18)
+
+The owner authorized this on 2026-08-27, together with
+[ADR 0009](decisions/0009-ielts-is-a-material-family-not-a-second-product.md), which settles
+that IELTS is a family of material rather than a second product. This is a **content-and-review
+push, not engineering**: the pipelines already exist and are unchanged by this item
+(`scripts/material-seed/` for passages, `scripts/writing-prompt-seed/` for prompts).
+
+**Counts confirmed by the owner 2026-08-27.** Drafts for both halves are generated and
+validated; nothing is published.
+
+**Correction to this item's own framing (2026-08-27).** "Content-and-review push, not
+engineering" held for the passages and was wrong for the writing prompts. The first batch's
+census — exactly 48 prompts, 12 per IELTS task, 2 per Task 1 kind, 3 per Task 2 kind — was
+frozen as literals in three places: `scripts/writing-prompt-seed/policy.ts`, a second copy in
+`packages/db/src/writing-prompt-content.test.ts`, and the `validate` command's summary line.
+Any second batch was therefore a code change by construction. The census now lives in one
+`WRITING_PROMPT_BATCH_CENSUS` constant with its totals derived from it, the duplicate assertion
+is gone, and the summary counts instead of stating. No schema, taxonomy, evaluator or navigation
+change was needed, so the item's boundary held even though its cost estimate did not.
+
+### Scope
+
+- **Graded passages: 40 → 80** (from ten per band to twenty, across A2/B1/B2/C1). One passage
+  continues to serve both dictation and reading-aloud. Every newly published passage gets its
+  per-sentence audio *and* its whole-passage reference recording in the same pass, so TTS is
+  paid once.
+- **IELTS writing prompts: 24 → 48** (from twelve to twenty-four each for Academic Task 1 and
+  Task 2). Task 1 additions need reviewed chart/table/process/map assets on the same terms as
+  the first batch.
+- **General writing prompts: unchanged at 24.** Writing thinness is not the current complaint;
+  passage thinness is.
+
+### Explicitly out of scope
+
+- **IELTS Listening and IELTS Reading material.** ADR 0009 keeps them out: they need
+  question-type schemas and timed-section semantics that do not exist, which is product work
+  with its own authorization, not a content push.
+- **Reading's topic/state filters.** The stated trigger was "a band passes roughly thirty";
+  twenty per band still browses fine, so this stays deferred rather than being folded in.
+- **Backfilling reference audio** for the twenty passages published before reference recordings
+  existed. Optional, costs a fresh TTS pass, and is not blocking anything.
+- Any schema, taxonomy, evaluator, or navigation change.
+
+### Acceptance criteria
+
+- Every new passage passes `intake.ts` with zero errors — sentence count, per-sentence length,
+  title shape, duplicate titles, and the digits rule — before any review time is spent on it.
+- Generation follows the recorded review policy: a capable model generates, a second independent
+  LLM pass checks each item against the constraints and flags doubt, and the owner reviews the
+  flagged set plus an agreed sample. Register stays distinct per band (one sub-agent per band).
+- New writing prompts pass deterministic validation and are published with a batch manifest and
+  hash, exactly as batch `38d84de9` was. **Publication requires owner approval of the manifest**;
+  an agent never publishes a batch on its own.
+- Publication is idempotent and additive: republishing changes nothing, and no existing passage,
+  prompt, learner attempt, or stored assignment snapshot is rewritten.
+- `tag.ts` is re-run across the whole library afterwards, since it replaces tags wholesale and
+  is the intended path rather than a migration.
+- Local D1 checks confirm the new counts per band and per task family, and that Reading,
+  Dictation and Writing catalogues page correctly at the larger size with no unbounded query.
+
+### Progress — published, in_review (2026-09-18)
+
+- **Passages 40 → 80.** The existing forty were one passage per topic per band across ten
+  topics; the new forty add ten topics on the same grid (education, technology, money,
+  neighbourhood, sport, music, pets, housing, friendship, celebrations), so the library stays
+  one passage per topic per band. All eighty pass `intake.ts`: 8–12 sentences, no sentence over
+  110 characters, no digits, valid titles, and no duplicate title anywhere in the library.
+- **IELTS prompts 24 → 48**, source 48 → 72. Task 1 goes 2 → 4 per material kind across all six
+  kinds; Task 2 goes 3 → 6 per family across all four. General prompts untouched at 24.
+- **Published to production 2026-09-18.** Two people reviewed the content on 2026-09-18 at
+  16:00 America/Vancouver — kaixi as the independent reader, Z.Sun as owner — recorded in
+  [the batch approval](approvals/writing-prompts-034b84f4.json). Forty passages were published
+  (TTS → R2 → D1) and the whole eighty-passage library re-tagged. Production D1 now reads 80
+  library passages with 822 sentence rows and 60 carrying reference audio (the twenty published
+  before reference audio existed still have none); the writing bank holds 72 published prompts,
+  24 per family. `preflight --remote` and `verify --remote` pass; the new Task 1 assets answer
+  200 from the production domain.
+- **A pipeline defect surfaced only at this size.** The writing bank's publish path built one
+  multi-row `INSERT`. At 72 prompts that statement measured 133 KB and D1 refused it
+  (`SQLITE_TOOBIG`, against a limit near 100 KB), where the 48-prompt first batch had fitted at
+  about 89 KB. Statements are now packed to a documented 60 KB budget, each repeating the same
+  upsert clause; three tests cover the split. The refused attempt wrote nothing — a statement is
+  atomic — and the retry published all 72 in three statements.
+- **Provenance moved for the already-published 48.** Publication is a whole-bank upsert, so
+  those rows now carry batch `034b84f4`'s `review_manifest_json` and a `reviewed_at` where the
+  column was previously null. Per-row `owner_approved_hash` (the content hash) and every prompt
+  text are unchanged, and both columns are storage provenance that the app never renders. What
+  is no longer visible in the database is that the first batch's own record — the one whose note
+  states no second-party review was performed — lives on only as the committed
+  [approval file](approvals/writing-prompts-38d84de9.json) and in git history.
+- **The second-model review, and what the owner decided about it.** A model other than the one
+  that generated the batch was asked, after publication, to review it independently. It found no
+  defect — mechanical constraints, every Task 1 item's arithmetic, the derived SVGs and production
+  against the reviewed drafts all held — and flagged four wording or arithmetic choices plus one
+  substantive observation: the earlier register corrections measured sentence length but never
+  lexical difficulty, and at B2 the new ten passages are simpler than the existing shelf on the
+  tagger's own `rare_word_ratio` by a margin that separates the groups completely, while that
+  proxy also places the existing B2 shelf above the existing C1 shelf. The owner accepted the
+  batch as published on 2026-09-18 and kept the observation as guidance for the next batch rather
+  than reopening this one. Reading and options:
+  [the model review](spikes/material-batch-034b84f4-model-review.md).
+- **The reference-audio gap is closed.** The twenty passages published before reference recordings
+  existed were backfilled on 2026-09-19 by
+  [`scripts/material-seed/reference-backfill.ts`](../scripts/material-seed/reference-backfill.ts),
+  a one-off that reuses the publish pipeline's TTS and bucket handling, skips any passage already
+  marked complete, and caches synthesized MP3s so a failure does not re-spend. All eighty library
+  passages now carry a completed reference recording, verified in production D1 with the uploaded
+  objects re-downloaded from the bucket at their recorded byte sizes. One run was interrupted by
+  the intermittent wrangler `7403` error after its upload; the retry reused the cached audio.
+- **Deferred.** Reading's topic/state filters stay deferred at twenty per band.
+- **Catalogue size check.** Counts were confirmed against production D1 per band and per task
+  family. The Writing catalogue query is bounded (`limit` clamped to 12–24 with a `hasNext`
+  probe) and the Home candidate queries were exercised against an eighty-passage fixture in the
+  isolated D1/HTTP suite, so neither grew unbounded with the library.
+
+### The honest caveat, recorded deliberately
+
+Expansion here is **supply-side work against unmeasured demand**. The library is thin, but no
+learner has yet exhausted a band, because there are effectively no learners. Twenty per band is
+chosen to remove the most visible thinness, not because a measurement asked for it — the
+demand-driven alternative (expand what the practice engine asks for and cannot find) needs a
+practice engine that does not exist yet. If usage later shows learners concentrating in one
+band or one family, that evidence should redirect the *next* batch rather than this one.
 
 ## Former Next summary
 
