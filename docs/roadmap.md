@@ -190,6 +190,13 @@ so this item stays active for that half and its acceptance is deliberately not c
   corpus and the actual preliminary/full experiments. Reading's new projection/assembler and
   prompt integration remain unimplemented until the gate is evaluated; existing profile injection
   is unchanged. No bias result or Stage 1 completion is claimed.
+- **Reading gate corpus kit — in_review (2026-09-18); recordings pending.**
+  [`docs/spikes/reading-bias-corpus/`](spikes/reading-bias-corpus/README.md) gives an eight-recording,
+  two-speaker slate over two passages that isolate `th_sound` and `linking`, recording scripts,
+  ground-truth and known-error annotation rules, and `scripts/grader-bias/prepare.ts`, which builds
+  the registered manifest (hashes, offsets, and the candidate brief rendered by the production
+  learner-context code). Two owner decisions precede recording: the pinned model, and whether the
+  tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
 
 ## Next

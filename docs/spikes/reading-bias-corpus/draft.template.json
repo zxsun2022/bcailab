@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "model": "TODO: the exact reading_eval model production uses (see README step 1)",
+  "briefDate": "TODO: YYYY-MM-DD, the day you freeze the draft",
+  "passages": {
+    "th": "On Thursday, three of my brothers went north with their father. They thought the weather would be worth the long drive, and they brought thick clothes. My mother gave them something warm to eat. Nothing went wrong, and they both enjoyed the trip.",
+    "link": "Pick it up and put it on a shelf in an office. Take an apple or an orange if you are hungry. Turn off all of the lights at eight o'clock and lock up. Ask a friend if an extra hand is needed."
+  },
+  "claims": {
+    "th_sound": {
+      "mastery": 0.55,
+      "exposure": 24,
+      "legacyPhrase": "Weak on the 'th' sound (about 55% accurate)"
+    },
+    "linking": {
+      "mastery": 0.55,
+      "exposure": 24,
+      "legacyPhrase": "Weak on linking between words (about 55% accurate)"
+    }
+  },
+  "recordings": [
+    {
+      "id": "a-th-present",
+      "speaker": "speaker-a",
+      "audio": "audio/a-th-present.m4a",
+      "passage": "th",
+      "durationSeconds": 0,
+      "testedTag": "th_sound",
+      "weaknessPresent": true,
+      "groundTruth": "TODO: scripted th substitutions actually made, plus the listen-check (README §4)",
+      "otherErrors": [{ "kind": "mispronunciation", "quote": "warm" }]
+    },
+    {
+      "id": "a-th-absent",
+      "speaker": "speaker-a",
+      "audio": "audio/a-th-absent.m4a",
+      "passage": "th",
+      "durationSeconds": 0,
+      "testedTag": "th_sound",
+      "weaknessPresent": false,
+      "groundTruth": "TODO: listen-check confirming every th word is realised correctly (README §4)",
+      "otherErrors": []
+    },
+    {
+      "id": "b-th-present",
+      "speaker": "speaker-b",
+      "audio": "audio/b-th-present.m4a",
+      "passage": "th",
+      "durationSeconds": 0,
+      "testedTag": "th_sound",
+      "weaknessPresent": true,
+      "groundTruth": "TODO",
+      "otherErrors": []
+    },
+    {
+      "id": "b-th-absent",
+      "speaker": "speaker-b",
+      "audio": "audio/b-th-absent.m4a",
+      "passage": "th",
+      "durationSeconds": 0,
+      "testedTag": "th_sound",
+      "weaknessPresent": false,
+      "groundTruth": "TODO",
+      "otherErrors": [{ "kind": "stress", "quote": "enjoyed" }]
+    },
+    {
+      "id": "a-link-present",
+      "speaker": "speaker-a",
+      "audio": "audio/a-link-present.m4a",
+      "passage": "link",
+      "durationSeconds": 0,
+      "testedTag": "linking",
+      "weaknessPresent": true,
+      "groundTruth": "TODO",
+      "otherErrors": []
+    },
+    {
+      "id": "a-link-absent",
+      "speaker": "speaker-a",
+      "audio": "audio/a-link-absent.m4a",
+      "passage": "link",
+      "durationSeconds": 0,
+      "testedTag": "linking",
+      "weaknessPresent": false,
+      "groundTruth": "TODO",
+      "otherErrors": [{ "kind": "mispronunciation", "quote": "shelf" }]
+    },
+    {
+      "id": "b-link-present",
+      "speaker": "speaker-b",
+      "audio": "audio/b-link-present.m4a",
+      "passage": "link",
+      "durationSeconds": 0,
+      "testedTag": "linking",
+      "weaknessPresent": true,
+      "groundTruth": "TODO",
+      "otherErrors": [{ "kind": "stress", "quote": "extra" }]
+    },
+    {
+      "id": "b-link-absent",
+      "speaker": "speaker-b",
+      "audio": "audio/b-link-absent.m4a",
+      "passage": "link",
+      "durationSeconds": 0,
+      "testedTag": "linking",
+      "weaknessPresent": false,
+      "groundTruth": "TODO",
+      "otherErrors": []
+    }
+  ]
+}

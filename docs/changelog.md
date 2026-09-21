@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-18 — **in_review: Reading bias corpus kit.** The gate's remaining input is a recorded,
+  annotated corpus. [`docs/spikes/reading-bias-corpus/`](spikes/reading-bias-corpus/README.md) now
+  gives an eight-recording slate: two speakers, two present and two absent recordings per tag, and
+  scripted errors outside the tested tag in four of them. It uses two 43-word passages that isolate
+  the tags (23 `th_sound` words and 1 linking boundary; 25 linking boundaries and 1 `th_sound`
+  word), word-by-word recording scripts checked against the production tagger, and
+  listen-check/ground-truth rules.
+  `scripts/grader-bias/prepare.ts` turns the filled template into the manifest `grader-bias.ts`
+  runs: SHA-256 per file, JavaScript offsets from quotes, and the candidate brief rendered by the
+  production `buildLearnerBrief`/`renderLearnerContext` from one synthetic claim per tag. It
+  refuses unfilled `TODO` placeholders, which the registered validator would otherwise accept as
+  ground truth. Audio stays git-ignored. Evidence: 7 new tests over the real template, the
+  existing 14 metrics tests, the grader-spike typecheck, and a smoke run of
+  prepare → validate → `--run` refusal on synthetic bytes with no model call. **Open for the
+  owner:** the pinned model (`reading_eval` honours `GEMINI_MODEL`), and whether the tags-only
+  brief is Reading's first rollout shape. No recording, ground truth or bias result exists.
+
 - 2026-09-18 — **in_review: Dictation contributes practice duration.** A signed-in dictation
   attempt now records its active practice time and, on completion, adds it to
   `total_practice_seconds` instead of 0; Progress labels the card *Practice time* again, since it
