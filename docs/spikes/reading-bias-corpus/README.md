@@ -18,6 +18,25 @@ Files:
 - `audio/`: your recordings. Git ignores this directory: the committed manifest pins each file by
   SHA-256, and the audio is never published.
 
+## 0. What you need
+
+Nothing is deployed and nothing touches production. The experiment runs from a checkout on your
+own machine, sends each recording straight to the model API, and writes its report into
+`docs/spikes/`. It reads no learner data and writes nothing to D1, R2 or Pages.
+
+- **This repository**, with `pnpm install` already run.
+- **`GEMINI_API_KEY`** in `.dev.vars` at the repo root (the same file local development uses), or
+  exported in the shell. `GEMINI_BASE_URL` is optional and only needed to route through the AI
+  Gateway. The validation step needs no key at all.
+- **A way to record audio.** A phone voice-memo app is enough: quiet room, `.m4a`/`.mp3`/`.wav`,
+  a few seconds to a minute per file, under 20 MiB. No studio, no editing software — splicing is
+  not allowed anyway.
+- **Two speakers** reading the same two passages. Any two people; they are recorded under
+  pseudonyms.
+- **A listener** to check each recording against its script. Ideally not the speaker.
+- **Time and cost.** Roughly an hour to record and annotate eight files. The full run is 120
+  model calls, each one short clip plus the Reading prompt, and takes a few minutes.
+
 ## 1. Decide before recording (owner)
 
 These two choices are fixed by the committed manifest. Changing either one afterwards means a new
