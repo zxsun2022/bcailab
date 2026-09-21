@@ -4,6 +4,7 @@ import { json } from "@remix-run/cloudflare";
 import { Link, useFetcher, useLoaderData } from "@remix-run/react";
 import {
   completeDictationAttempt,
+  getDictationAttemptById,
   getInProgressDictationAttempt,
   getLibraryPassageById,
   listPassageSentences,
@@ -22,6 +23,11 @@ import {
   type DictationFeedback
 } from "~/utils/dictation-feedback.server";
 import { recordDictationObservations } from "~/utils/learner-model.server";
+import {
+  mergeSentenceResult,
+  parseSentenceResults,
+  type SentenceResult
+} from "~/utils/dictation-progress";
 import { openLoginPopup } from "~/utils/login-popup";
 import {
   activeSeconds,
@@ -59,22 +65,18 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     practiceSeconds: number;
   } | null = null;
   if (inProgress) {
-    try {
-      const stored = JSON.parse(inProgress.sentence_results) as SentenceResult[];
-      const answers: Record<number, string> = {};
-      for (const entry of stored) answers[entry.idx] = entry.userText;
-      resume = {
-        attemptId: inProgress.id,
-        answers,
-        sentencesDone: inProgress.sentences_done,
-        // The client continues this total rather than restarting it, so a resumed attempt
-        // reports stored time plus new time and nothing is counted twice.
-        practiceSeconds: inProgress.practice_seconds
-      };
-    } catch {
-      // Unparseable stored results should not block practice; start fresh instead.
-      resume = null;
+    const answers: Record<number, string> = {};
+    for (const entry of parseSentenceResults(inProgress.sentence_results)) {
+      answers[entry.idx] = entry.userText;
     }
+    resume = {
+      attemptId: inProgress.id,
+      answers,
+      sentencesDone: inProgress.sentences_done,
+      // The client continues this total rather than restarting it, so a resumed attempt
+      // reports stored time plus new time and nothing is counted twice.
+      practiceSeconds: inProgress.practice_seconds
+    };
   }
 
   return json(
@@ -95,14 +97,6 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     },
     subject.setCookie ? { headers: { "Set-Cookie": subject.setCookie } } : undefined
   );
-};
-
-type SentenceResult = {
-  idx: number;
-  userText: string;
-  accuracy: number;
-  replays: number;
-  ops: DiffOp[];
 };
 
 type ActionData =
@@ -175,23 +169,23 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     // practice is session-only by design.
     let attemptId: string | null = null;
     if (user) {
-      const priorRaw = String(formData.get("progress") ?? "[]");
-      let prior: SentenceResult[] = [];
-      try {
-        prior = JSON.parse(priorRaw) as SentenceResult[];
-      } catch {
-        prior = [];
-      }
-      const merged = [
-        ...prior.filter((entry) => entry.idx !== idx),
-        {
-          idx,
-          userText,
-          accuracy: diff.accuracy,
-          replays: Number(formData.get("replays") ?? 0),
-          ops: storableOps(diff.ops)
-        }
-      ].sort((a, b) => a.idx - b.idx);
+      // Merge into what the server stored, not into what this page remembers: a resumed page
+      // starts with no checked sentences and would otherwise drop everything checked earlier.
+      const requestedId = String(formData.get("attemptId") ?? "");
+      const claimed = requestedId
+        ? await getDictationAttemptById(context.env.DB, { id: requestedId, userId: user.id })
+        : await getInProgressDictationAttempt(context.env.DB, { userId: user.id, passageId });
+      const open =
+        claimed && claimed.status === "in_progress" && claimed.passage_id === passageId
+          ? claimed
+          : null;
+      const merged = mergeSentenceResult(open?.sentence_results, {
+        idx,
+        userText,
+        accuracy: diff.accuracy,
+        replays: Number(formData.get("replays") ?? 0),
+        ops: storableOps(diff.ops)
+      });
 
       const checkedRefTokens = merged.reduce(
         (sum, entry) => sum + (sentences.find((s) => s.idx === entry.idx)?.text.split(/\s+/).length ?? 0),
@@ -203,7 +197,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
           : merged.reduce((sum, entry) => sum + entry.accuracy, 0) / merged.length;
 
       attemptId = await saveDictationAttemptProgress(context.env.DB, {
-        attemptId: String(formData.get("attemptId") ?? "") || null,
+        attemptId: open?.id ?? null,
         userId: user.id,
         passageId,
         accuracy: runningAccuracy,
@@ -580,15 +574,8 @@ export default function DictationSession() {
   const busy = fetcher.state !== "idle";
 
   const check = () => {
-    // `progress` carries what has been checked so far so the server can merge rather
-    // than re-score the whole passage on every sentence.
-    const progress = Object.entries(checked).map(([idx, entry]) => ({
-      idx: Number(idx),
-      userText: answers[Number(idx)] ?? "",
-      accuracy: entry.accuracy,
-      replays: Math.max(0, (playCounts[Number(idx)] ?? 0) - 1),
-      ops: entry.ops.filter((op) => op.op !== "match")
-    }));
+    // Only this sentence is sent: the server merges it into the attempt's stored results, which
+    // survive a resume, and scores it from the reference text the client never receives.
     fetcher.submit(
       {
         _intent: "check",
@@ -596,7 +583,6 @@ export default function DictationSession() {
         text: answers[current] ?? "",
         replays: String(Math.max(0, (playCounts[current] ?? 0) - 1)),
         attemptId: attemptId ?? "",
-        progress: JSON.stringify(progress),
         practiceSeconds: practiceSecondsSoFar()
       },
       { method: "post" }
