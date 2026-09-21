@@ -20,6 +20,8 @@ export async function checkDictation(server, root, runtime) {
   const stored = async id => (await db.prepare('SELECT practice_seconds, status FROM dictation_attempts WHERE id = ?').bind(id).first());
   const profileSeconds = async () =>
     Number((await db.prepare("SELECT total_practice_seconds FROM esl_learner_profiles WHERE user_id = 'test-dictation'").first())?.total_practice_seconds ?? 0);
+  // `progress` is what a resumed page would send — empty, because it has checked nothing yet.
+  // The server must ignore it and merge into its own stored results instead.
   const sentence = (idx, practiceSeconds, attemptId = '', progress = '[]') =>
     post({ _intent: 'check', idx: String(idx), text: 'This is a synthetic sentence.', replays: '0', attemptId, progress, practiceSeconds: String(practiceSeconds) });
 
@@ -49,6 +51,32 @@ export async function checkDictation(server, root, runtime) {
   await post({ _intent: 'complete', attemptId: second.attemptId, answers, replays: '[0,0,0]', practiceSeconds: '999999' });
   check('An implausible total is capped by passage length (3 sentences × 300s)', (await stored(second.attemptId)).practice_seconds === 900);
   check('The profile accumulates across attempts', (await profileSeconds()) === 960);
+
+  // Resume regression: a page that resumes an attempt knows nothing about the sentences already
+  // checked, and must not overwrite them (docs/tools/dictation.md, "Progress and resume").
+  const resumed = await sentence(0, 5);
+  const resumedId = resumed.attemptId;
+  await sentence(1, 10, resumedId);
+  const beforeResume = await db.prepare('SELECT sentence_results, sentences_done FROM dictation_attempts WHERE id = ?').bind(resumedId).first();
+  check('Two sentences are stored before the resume', JSON.parse(beforeResume.sentence_results).length === 2 && beforeResume.sentences_done === 2);
+  // A resumed page sends only the sentence it just checked.
+  await sentence(2, 15, resumedId);
+  const afterResume = await db.prepare('SELECT sentence_results, sentences_done FROM dictation_attempts WHERE id = ?').bind(resumedId).first();
+  const kept = JSON.parse(afterResume.sentence_results);
+  check('A check after a resume keeps the earlier sentences', kept.map(r => r.idx).join(',') === '0,1,2' && afterResume.sentences_done === 3);
+  check('Resumed answers survive for the summary', kept.every(r => r.userText === 'This is a synthetic sentence.'));
+  const reloaded = await fetch(`http://127.0.0.1:5191/dictation/b2?_data=${route}`, { headers: { Cookie: cookie } });
+  const reloadedResume = (await reloaded.json()).resume;
+  check('Resume returns every stored answer and position', reloadedResume?.sentencesDone === 3 && Object.keys(reloadedResume.answers).length === 3);
+  await post({ _intent: 'complete', attemptId: resumedId, answers, replays: '[0,0,0]', practiceSeconds: '20' });
+
+  // Re-checking one sentence replaces only that entry.
+  const recheck = await sentence(0, 5);
+  await sentence(1, 10, recheck.attemptId);
+  await sentence(0, 12, recheck.attemptId);
+  const afterRecheck = JSON.parse((await db.prepare('SELECT sentence_results FROM dictation_attempts WHERE id = ?').bind(recheck.attemptId).first()).sentence_results);
+  check('Re-checking a sentence replaces only that entry', afterRecheck.map(r => r.idx).join(',') === '0,1');
+  await post({ _intent: 'complete', attemptId: recheck.attemptId, answers, replays: '[0,0,0]', practiceSeconds: '20' });
 
   const anonymous = await fetch(`http://127.0.0.1:5191/dictation/b2?_data=${route}`, {
     method: 'POST', body: new URLSearchParams({ _intent: 'check', idx: '0', text: 'x', replays: '0', attemptId: '', progress: '[]', practiceSeconds: '30' })

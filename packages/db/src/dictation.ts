@@ -135,7 +135,7 @@ export async function getDictationAttemptById(
 ): Promise<DictationAttempt | null> {
   const row = await db
     .prepare(
-      "SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, status, sentences_done, created_at, deleted_at FROM dictation_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
+      "SELECT id, user_id, passage_id, accuracy, sentence_results, feedback_json, status, sentences_done, practice_seconds, created_at, deleted_at FROM dictation_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL"
     )
     .bind(input.id, input.userId)
     .first();

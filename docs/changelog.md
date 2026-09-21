@@ -9,6 +9,21 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-20 — **in_review: dictation resume no longer discards earlier sentences.** Resuming an
+  unfinished dictation attempt and checking one more sentence overwrote the attempt's stored
+  results with just that sentence: `sentences_done` fell back to 1, a second resume dropped the
+  learner at the wrong sentence, and the answers to the lost sentences were gone — the summary
+  scores the whole passage from the restored answers, so they would have been scored blank. The
+  cause was merging into the list the page sent, which a resumed page starts empty. The check
+  action now loads the attempt it is updating and merges into its stored `sentence_results`
+  (new `apps/web/app/utils/dictation-progress.ts`, tolerant of unreadable storage); the client no
+  longer sends its own progress at all. One extra bounded read per checked sentence.
+  Evidence: 9 unit tests over parse/merge, and 5 D1/HTTP assertions in `pnpm test:integration`
+  (two sentences stored before a resume; a post-resume check keeping them; answers surviving for
+  the summary; the loader returning all three; re-checking replacing only its own entry). The new
+  assertions were confirmed to fail against the previous behaviour. `pnpm verify` passes all 10
+  checks. No migration and no schema change.
+
 - 2026-09-18 — **in_review: Reading bias corpus kit.** The gate's remaining input is a recorded,
   annotated corpus. [`docs/spikes/reading-bias-corpus/`](spikes/reading-bias-corpus/README.md) now
   gives an eight-recording slate: two speakers, two present and two absent recordings per tag, and

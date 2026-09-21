@@ -82,6 +82,12 @@ stopping partway keeps the work. Reopening a passage restores the answers alread
 and returns the learner to where they stopped; finishing sets `status = 'completed'`,
 which is what makes the next visit start fresh rather than resuming a finished passage.
 
+A check sends only the sentence just checked. The server merges it into the attempt's **stored**
+`sentence_results`, replacing that index and keeping every other sentence. Merging into a
+client-supplied list instead would drop the earlier sentences whenever the page had resumed,
+because a resumed page has checked nothing yet — and the summary scores the whole passage from
+the restored answers, so those sentences would then be scored blank.
+
 Partial attempts are deliberately excluded from `passage_stats`: a running score over the
 sentences checked so far is not comparable with a finished attempt's, so counting it would
 distort measured difficulty. For the same reason the rail shows an unfinished attempt as
