@@ -9,6 +9,55 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-21 — **in_review: Reading evaluation runs — retry timing, one run at a time, consistent
+  results, and polling on library passages.** This fixes state and retry reliability. It does not
+  stop slow evaluations from being cancelled: `waitUntil` still ends 30 s after the response, and
+  a durable runner (Queues) remains the follow-up.
+  - **Retry timing.** Staleness was measured from the attempt's `created_at`, so a retry was
+    stale on its first poll: the page stopped waiting and offered another retry. It is now
+    measured from the current run's start (`evaluation_started_at`, migration 0023).
+  - **One run at a time.** Nothing stopped two retries from each starting a model call. Every run
+    now has an id (`evaluation_run_id`) and is claimed with one conditional `UPDATE`. A failed
+    run can be retried at once; a run inside the stale window is waited for; an attempt with a
+    result is never re-run. A failure is written only by the run that still owns the attempt.
+  - **Consistent results.** The result and the completed status were separate writes, and the
+    practice counters, `passage_stats` and tag observations shared their `catch` — so a failed
+    statistics write turned a saved evaluation into `failed`. Result and status are now one D1
+    batch, where the first stored result wins. Side effects run once, only for the run that
+    stored the result, and each failure is logged without touching the evaluation. Reads that
+    preceded the model call used to sit outside the `try`; a throw there left the attempt pending
+    until stale.
+  - **Library passages never auto-updated.** `/reading/:id/status` still required passage
+    ownership after the page moved to the shared library-or-own predicate (`c9686ad`), so every
+    poll on a library passage returned 404.
+  - **Timezone.** SQLite timestamps were parsed with `new Date()`, which reads the zoneless form
+    as local time. Workers run in UTC, which hid it; they are now parsed as UTC explicitly.
+  - **Structured logs.** One line per run event (`reading_evaluation`: `started`, then an outcome
+    phase, with `runId`, `trigger` and `elapsedMs`). A `started` line with no outcome identifies a
+    cancelled run, which success-only data could never show. `usedFallback` marks results that
+    came from the heuristic substitute, since `evaluateEslReadingAttempt` returns one instead of
+    failing when the model call fails.
+
+  Evidence:
+  - **17 D1/HTTP assertions** in `pnpm test:integration`: status resolving on a library passage;
+    a retried old attempt waiting rather than stale; its result appearing through the poll target;
+    two concurrent retries making exactly one model call and storing one evaluation; no new run
+    during a live run, after a stored result, or right after submission; a superseded run unable
+    to mark failure; result and status stored together once; a failure unable to overwrite a
+    result; and an injected statistics failure leaving the evaluation completed.
+  - **Mutation controls.** Each safeguard was removed in turn and the suite rerun. An
+    unconditional claim, staleness from `created_at`, and the old owner-only status check each
+    failed their assertion. The staleness control first went *undetected*, which is how the
+    timezone bug was found.
+  - **6 unit tests** for staleness and UTC parsing, passing under UTC, America/Los_Angeles and
+    Asia/Shanghai.
+  - `pnpm verify` passes.
+
+  Not covered: the browser page itself, since the fixture cannot record audio; the client polling
+  code is unchanged and was exercised through its HTTP target. Also not covered: a real model, and
+  real platform cancellation. Migration `0023_reading_evaluation_runs.sql` must be applied to
+  production **before** this deploys (ADR 0008).
+
 - 2026-09-21 — **in_review: motion defects — the mobile nav drawer, and reduced motion on Web.**
   Three defects from an external animation audit, each re-checked against the code first.
   - **The mobile nav drawer never animated.** `.tool-nav-rail` switched from `display: none` to

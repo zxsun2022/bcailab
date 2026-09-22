@@ -22,6 +22,8 @@ const mapEslReadingAttempt = (row: Record<string, unknown>): EslReadingAttempt =
     row.evaluation_status === "pending" || row.evaluation_status === "failed"
       ? row.evaluation_status
       : "completed",
+  evaluation_run_id: row.evaluation_run_id ? String(row.evaluation_run_id) : null,
+  evaluation_started_at: row.evaluation_started_at ? String(row.evaluation_started_at) : null,
   created_at: String(row.created_at),
   deleted_at: row.deleted_at ? String(row.deleted_at) : null
 });
@@ -58,6 +60,8 @@ export async function createEslReadingAttempt(
     audioBytes: number;
     durationMs?: number | null;
     evaluationStatus?: "pending" | "completed" | "failed";
+    /** The first evaluation run, claimed in the same insert that creates the attempt. */
+    evaluationRunId?: string | null;
   }
 ): Promise<{ attempt: EslReadingAttempt; supportsAsyncEvaluationStatus: boolean }> {
   const id = input.id ?? crypto.randomUUID();
@@ -73,7 +77,7 @@ export async function createEslReadingAttempt(
   try {
     await db
       .prepare(
-        "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms, evaluation_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO esl_reading_attempts (id, passage_id, user_id, mode, audio_format, audio_mime_type, r2_key, audio_bytes, duration_ms, evaluation_status, evaluation_run_id, evaluation_started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? IS NULL THEN NULL ELSE datetime('now') END)"
       )
       .bind(
         id,
@@ -85,7 +89,9 @@ export async function createEslReadingAttempt(
         input.r2Key,
         input.audioBytes,
         input.durationMs ?? null,
-        input.evaluationStatus ?? "pending"
+        input.evaluationStatus ?? "pending",
+        input.evaluationRunId ?? null,
+        input.evaluationRunId ?? null
       )
       .run();
     return {
@@ -254,6 +260,124 @@ export async function deleteEslReadingEvaluationsByAttemptIds(
       .bind(input.userId, ...chunk)
       .run();
   }
+}
+
+/* ---------- evaluation runs (migration 0023) ---------- */
+
+/** The same condition in every statement: an attempt with any stored evaluation is done. */
+const HAS_EVALUATION =
+  "EXISTS (SELECT 1 FROM esl_reading_evaluations e WHERE e.attempt_id = esl_reading_attempts.id)";
+
+export type EvaluationClaim =
+  | { outcome: "claimed" }
+  /** A run started less than the stale window ago; keep waiting for it. */
+  | { outcome: "running" }
+  /** A result is already stored; never start another. */
+  | { outcome: "completed" }
+  | { outcome: "missing" };
+
+/**
+ * Take the right to run one evaluation, with a single conditional UPDATE so two concurrent
+ * requests cannot both win: SQLite applies writes one at a time, and the second sees the first
+ * run's fresh start time. Allowed unless a result exists or a run is still inside the stale window.
+ * An explicit failure is claimable at once.
+ */
+export async function claimEslReadingEvaluationRun(
+  db: Db,
+  input: { attemptId: string; userId: string; runId: string; staleSeconds: number }
+): Promise<EvaluationClaim> {
+  const result = await db
+    .prepare(
+      `UPDATE esl_reading_attempts
+          SET evaluation_status = 'pending', evaluation_run_id = ?, evaluation_started_at = datetime('now')
+        WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+          AND NOT ${HAS_EVALUATION}
+          AND NOT (evaluation_status = 'pending'
+                   AND COALESCE(evaluation_started_at, created_at) > datetime('now', ?))`
+    )
+    .bind(input.runId, input.attemptId, input.userId, `-${Math.max(0, Math.floor(input.staleSeconds))} seconds`)
+    .run();
+  if ((result.meta?.changes ?? 0) === 1) return { outcome: "claimed" };
+
+  const row = await db
+    .prepare(
+      `SELECT ${HAS_EVALUATION} AS has_evaluation FROM esl_reading_attempts
+        WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
+    )
+    .bind(input.attemptId, input.userId)
+    .first<{ has_evaluation: number }>();
+  if (!row) return { outcome: "missing" };
+  return { outcome: Number(row.has_evaluation) === 1 ? "completed" : "running" };
+}
+
+/**
+ * Store a result and mark the attempt completed in one D1 batch, so neither can exist without
+ * the other. The first result stored wins: a later run — including a slow run that was retried
+ * but did finish — finds a result already present and stores nothing, so the side effects that
+ * follow run exactly once per attempt. `saved` is true only for the run that stored it.
+ */
+export async function saveEslReadingEvaluationResult(
+  db: Db,
+  input: {
+    attemptId: string;
+    userId: string;
+    modelName: string;
+    rubricVersion: string;
+    outputJson: string;
+  }
+): Promise<{ saved: boolean; attemptExists: boolean }> {
+  const id = crypto.randomUUID();
+  const [inserted] = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO esl_reading_evaluations (id, attempt_id, user_id, model_name, rubric_version, output_json)
+         SELECT ?, ?, ?, ?, ?, ?
+          WHERE EXISTS (SELECT 1 FROM esl_reading_attempts a
+                         WHERE a.id = ? AND a.user_id = ? AND a.deleted_at IS NULL)
+            AND NOT EXISTS (SELECT 1 FROM esl_reading_evaluations e WHERE e.attempt_id = ?)`
+      )
+      .bind(
+        id,
+        input.attemptId,
+        input.userId,
+        input.modelName,
+        input.rubricVersion,
+        input.outputJson,
+        input.attemptId,
+        input.userId,
+        input.attemptId
+      ),
+    db
+      .prepare(
+        `UPDATE esl_reading_attempts SET evaluation_status = 'completed'
+          WHERE id = ? AND user_id = ? AND ${HAS_EVALUATION}`
+      )
+      .bind(input.attemptId, input.userId)
+  ]);
+  if ((inserted?.meta?.changes ?? 0) === 1) return { saved: true, attemptExists: true };
+  const row = await db
+    .prepare("SELECT 1 AS found FROM esl_reading_attempts WHERE id = ? AND user_id = ? AND deleted_at IS NULL")
+    .bind(input.attemptId, input.userId)
+    .first();
+  return { saved: false, attemptExists: Boolean(row) };
+}
+
+/**
+ * Mark a run failed — only while it still owns the attempt and no result exists, so a stale run
+ * cannot overwrite a newer run's pending state or a stored success. Returns whether it applied.
+ */
+export async function failEslReadingEvaluationRun(
+  db: Db,
+  input: { attemptId: string; userId: string; runId: string }
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      `UPDATE esl_reading_attempts SET evaluation_status = 'failed'
+        WHERE id = ? AND user_id = ? AND evaluation_run_id = ? AND NOT ${HAS_EVALUATION}`
+    )
+    .bind(input.attemptId, input.userId, input.runId)
+    .run();
+  return (result.meta?.changes ?? 0) === 1;
 }
 
 export async function createEslReadingEvaluation(

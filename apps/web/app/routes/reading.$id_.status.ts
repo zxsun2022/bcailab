@@ -19,8 +19,11 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     throw new Response("Not found", { status: 404 });
   }
 
+  // The same predicate as the page: library passages and the caller's own. Requiring ownership
+  // here as well made every poll on a library passage 404, so its feedback never appeared
+  // without a reload. Attempt data is still scoped by `ownsAttempt` below.
   const passage = await getPassageForUser(context.env.DB, { id: passageId, userId: user.id });
-  if (!passage || passage.user_id !== user.id || passage.deleted_at) {
+  if (!passage) {
     throw new Response("Not found", { status: 404 });
   }
 
@@ -49,7 +52,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     ? deriveEslAttemptEvaluationState({
         storedStatus: attempt.evaluation_status,
         hasEvaluation: Boolean(parsed),
-        createdAt: attempt.created_at
+        createdAt: attempt.created_at,
+        startedAt: attempt.evaluation_started_at
       })
     : null;
 

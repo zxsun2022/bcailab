@@ -8,6 +8,7 @@ import remixDev from '../../apps/web/node_modules/@remix-run/dev/dist/index.js';
 import wrangler from '../../node_modules/wrangler/wrangler-dist/cli.js';
 import { checkWriting } from './writing-checks.mjs';
 import { checkDictation } from './dictation-checks.mjs';
+import { checkReading } from './reading-checks.mjs';
 import { seedHome, faultDb, checkHome } from './home-reliability.mjs';
 import baseConfig from '../../apps/web/vite.config.ts';
 const root = resolve(import.meta.dirname, '../..');
@@ -24,8 +25,13 @@ binding = "R2"
 bucket_name = "test"
 `);
 const feedback = { annotations: [], round_summary: { critical_count: 0, improvement_count: 0, strengths_count: 0, overall_comment: 'Synthetic feedback completed.', band_estimate: 'B1' }, delta: null };
+// Reading evaluation requests only (identified by the Reading prompt's opening line), so other
+// model calls — the learner-model naming pass, Writing feedback — do not blur the count.
+let readingEvalCalls = 0;
 const model = createHttpServer(async (req, res) => {
-  for await (const chunk of req) { void chunk; }
+  let body = '';
+  for await (const chunk of req) body += chunk;
+  if (body.includes('professional English reading and recitation coach')) readingEvalCalls++;
   setTimeout(() => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(feedback) }] } }] })); }, 4000);
 });
 let runtime, initialization;
@@ -107,7 +113,7 @@ try {
   await server.listen();
   await fetch('http://127.0.0.1:5191/writing/new', { redirect: 'manual' });
   if (process.argv.includes('--check')) {
-    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background), ...await checkDictation(server, root, runtime)];
+    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background), ...await checkDictation(server, root, runtime), ...await checkReading(server, root, runtime, background, () => readingEvalCalls)];
     console.log(`PASS D1/HTTP: ${checks.length} assertions on fresh migrated D1 and a fake model.`);
     checks.forEach(label => console.log('  PASS ' + label));
   } else {

@@ -48,6 +48,10 @@ export type EslReadingAttempt = {
   audio_bytes: number;
   duration_ms: number | null;
   evaluation_status: "pending" | "completed" | "failed";
+  /** The evaluation run that currently owns this attempt (migration 0023); null before it. */
+  evaluation_run_id: string | null;
+  /** When that run started; staleness is measured from here, falling back to created_at. */
+  evaluation_started_at: string | null;
   created_at: string;
   deleted_at: string | null;
 };

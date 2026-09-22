@@ -1,7 +1,8 @@
 import type { AppLoadContext } from "@remix-run/cloudflare";
 import {
+  claimEslReadingEvaluationRun,
   createEslReadingAttempt,
-  createEslReadingEvaluation,
+  failEslReadingEvaluationRun,
   getEslLearnerProfile,
   getEslReadingAttemptById,
   getPassageTags,
@@ -10,13 +11,14 @@ import {
   listEslReadingAttemptsByPassage,
   listLatestEslReadingEvaluationsByPassage,
   recordPassageAttemptStat,
-  updateEslReadingAttemptEvaluationStatus,
+  saveEslReadingEvaluationResult,
   type Passage
 } from "@bcailab/db";
-import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
+import { evaluateEslReadingAttempt, FALLBACK_MODEL_NAME } from "~/utils/esl-reading-eval.server";
 import { attributeReadingErrors } from "~/utils/learner-model";
 import { scheduleLearnerModelRecompute } from "~/utils/learner-model.server";
 import {
+  ESL_PENDING_EVAL_STALE_MS,
   isSupportedEslAudioMime,
   isSupportedReadingMode,
   MAX_ESL_READING_AUDIO_BYTES,
@@ -135,164 +137,210 @@ export const parseEslAttemptSubmission = async (
   };
 };
 
-const runReadingAttemptEvaluation = async (
-  context: AppLoadContext,
-  input: {
-    userId: string;
-    attemptId: string;
-    passage: Passage;
-    mode: EslReadingMode;
-    outputLanguage: ReadingOutputLanguage;
-    durationMs: number | null;
-    audioBytes: Uint8Array;
-    audioMimeType: string;
-  }
+type EvaluationTrigger = "submit" | "retry";
+
+type EvaluationRun = {
+  userId: string;
+  attemptId: string;
+  runId: string;
+  trigger: EvaluationTrigger;
+  passage: Passage;
+  mode: EslReadingMode;
+  outputLanguage: ReadingOutputLanguage;
+  durationMs: number | null;
+  audioBytes: Uint8Array;
+  audioMimeType: string;
+};
+
+/**
+ * One structured line per run event, so a run can be followed from `started` to its outcome in
+ * `wrangler pages deployment tail`. A `started` line with no outcome line is a run the platform
+ * cancelled (Cloudflare logs its own "waitUntil() tasks did not complete" warning alongside).
+ * Identifiers and timings only: no audio, passage text or model output.
+ */
+const logRun = (
+  run: Pick<EvaluationRun, "runId" | "attemptId" | "trigger">,
+  event: string,
+  fields: Record<string, unknown> = {}
 ) => {
-  const currentAttempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
-    includeDeleted: true
+  const line = JSON.stringify({
+    event: "reading_evaluation",
+    phase: event,
+    runId: run.runId,
+    attemptId: run.attemptId,
+    trigger: run.trigger,
+    ...fields
   });
-  if (!currentAttempt || currentAttempt.user_id !== input.userId || currentAttempt.deleted_at) {
-    return;
-  }
+  if (event.endsWith("error")) console.error(line);
+  else console.log(line);
+};
 
-  const allAttempts = await listEslReadingAttemptsByPassage(context.env.DB, {
-    userId: input.userId,
-    passageId: input.passage.id
-  });
-  const pastAttempts = allAttempts.filter((attempt) => attempt.id !== input.attemptId);
-  const evaluations = await listLatestEslReadingEvaluationsByPassage(context.env.DB, {
-    userId: input.userId,
-    passageId: input.passage.id
-  });
-  const evaluationByAttemptId = new Map(
-    evaluations.map((evaluation) => [evaluation.attempt_id, evaluation])
-  );
-  const historyEntries = pastAttempts.map((attempt) => {
-    const evaluation = evaluationByAttemptId.get(attempt.id);
-    const parsed = evaluation ? parseEslReadingEvaluationOutput(evaluation.output_json) : null;
-    return {
-      date: attempt.created_at,
-      mode: attempt.mode,
-      overallScore: parsed?.scores.overall ?? 0,
-      durationSeconds: attempt.duration_ms != null ? attempt.duration_ms / 1000 : null,
-      fullEvaluation: parsed ?? undefined
-    };
-  });
+const errorText = (error: unknown): string =>
+  (error instanceof Error ? error.message : String(error)).slice(0, 300);
 
-  const profile = await getEslLearnerProfile(context.env.DB, input.userId);
-  let learnerProfile: EslLearnerProfileData | null = null;
-  if (profile) {
-    try {
-      learnerProfile = {
-        persistent_issues: JSON.parse(profile.persistent_issues_json),
-        strengths: JSON.parse(profile.strengths_json)
-      };
-    } catch {
-      learnerProfile = null;
-    }
-  }
-
+/** A side effect of a stored result. Its failure is logged and never touches the evaluation. */
+const afterSave = async (
+  run: EvaluationRun,
+  name: string,
+  task: () => Promise<unknown>
+): Promise<void> => {
   try {
-    const evaluation = await evaluateEslReadingAttempt({
+    await task();
+  } catch (error) {
+    logRun(run, "side_effect_error", { sideEffect: name, error: errorText(error) });
+  }
+};
+
+const markRunFailed = async (context: AppLoadContext, run: EvaluationRun) => {
+  try {
+    const applied = await failEslReadingEvaluationRun(context.env.DB, {
+      attemptId: run.attemptId,
+      userId: run.userId,
+      runId: run.runId
+    });
+    // Not applied: a newer run owns the attempt, or a result already exists. Either way this
+    // run's failure is no longer the attempt's state.
+    if (!applied) logRun(run, "failure_not_recorded");
+  } catch (error) {
+    logRun(run, "fail_write_error", { error: errorText(error) });
+  }
+};
+
+const runReadingAttemptEvaluation = async (context: AppLoadContext, run: EvaluationRun) => {
+  const startedAt = Date.now();
+  const elapsedMs = () => Date.now() - startedAt;
+  logRun(run, "started");
+
+  // Everything up to the model's answer. Any failure here — reads included — is this run's
+  // failure; previously the reads sat outside the try and a thrown read left the attempt pending.
+  let evaluation: Awaited<ReturnType<typeof evaluateEslReadingAttempt>>;
+  try {
+    const allAttempts = await listEslReadingAttemptsByPassage(context.env.DB, {
+      userId: run.userId,
+      passageId: run.passage.id
+    });
+    const pastAttempts = allAttempts.filter((attempt) => attempt.id !== run.attemptId);
+    const evaluations = await listLatestEslReadingEvaluationsByPassage(context.env.DB, {
+      userId: run.userId,
+      passageId: run.passage.id
+    });
+    const evaluationByAttemptId = new Map(
+      evaluations.map((stored) => [stored.attempt_id, stored])
+    );
+    const historyEntries = pastAttempts.map((attempt) => {
+      const stored = evaluationByAttemptId.get(attempt.id);
+      const parsed = stored ? parseEslReadingEvaluationOutput(stored.output_json) : null;
+      return {
+        date: attempt.created_at,
+        mode: attempt.mode,
+        // A stored output without scores must not fail every later run on this passage.
+        overallScore: parsed?.scores?.overall ?? 0,
+        durationSeconds: attempt.duration_ms != null ? attempt.duration_ms / 1000 : null,
+        fullEvaluation: parsed ?? undefined
+      };
+    });
+
+    const profile = await getEslLearnerProfile(context.env.DB, run.userId);
+    let learnerProfile: EslLearnerProfileData | null = null;
+    if (profile) {
+      try {
+        learnerProfile = {
+          persistent_issues: JSON.parse(profile.persistent_issues_json),
+          strengths: JSON.parse(profile.strengths_json)
+        };
+      } catch {
+        learnerProfile = null;
+      }
+    }
+
+    evaluation = await evaluateEslReadingAttempt({
       env: context.env,
-      passageText: input.passage.content_text,
-      mode: input.mode,
-      outputLanguage: input.outputLanguage,
-      audioBytes: input.audioBytes,
-      audioMimeType: input.audioMimeType,
-      durationMs: input.durationMs,
+      passageText: run.passage.content_text,
+      mode: run.mode,
+      outputLanguage: run.outputLanguage,
+      audioBytes: run.audioBytes,
+      audioMimeType: run.audioMimeType,
+      durationMs: run.durationMs,
       history: historyEntries,
       learnerProfile
     });
+  } catch (error) {
+    logRun(run, "evaluate_error", { elapsedMs: elapsedMs(), error: errorText(error) });
+    await markRunFailed(context, run);
+    return;
+  }
 
-    const activeAttempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
-      includeDeleted: true
-    });
-    if (!activeAttempt || activeAttempt.user_id !== input.userId || activeAttempt.deleted_at) {
-      return;
-    }
-
-    await createEslReadingEvaluation(context.env.DB, {
-      attemptId: input.attemptId,
-      userId: input.userId,
+  // Result and completed status are written in one batch; the first stored result wins.
+  let saved: { saved: boolean; attemptExists: boolean };
+  try {
+    saved = await saveEslReadingEvaluationResult(context.env.DB, {
+      attemptId: run.attemptId,
+      userId: run.userId,
       modelName: evaluation.modelName,
       rubricVersion: evaluation.output.rubric_version,
       outputJson: JSON.stringify(evaluation.output)
     });
-    await updateEslReadingAttemptEvaluationStatus(context.env.DB, {
-      id: input.attemptId,
-      userId: input.userId,
-      status: "completed"
-    });
+  } catch (error) {
+    logRun(run, "save_error", { elapsedMs: elapsedMs(), error: errorText(error) });
+    await markRunFailed(context, run);
+    return;
+  }
+  if (!saved.saved) {
+    logRun(run, saved.attemptExists ? "superseded" : "attempt_gone", { elapsedMs: elapsedMs() });
+    return;
+  }
+  logRun(run, "completed", {
+    elapsedMs: elapsedMs(),
+    // `evaluateEslReadingAttempt` substitutes a heuristic result when the model call fails, so a
+    // completed run is not necessarily a model result. Counted separately for that reason.
+    usedFallback: evaluation.modelName === FALLBACK_MODEL_NAME
+  });
 
-    const practiceSeconds = input.durationMs ? Math.round(input.durationMs / 1000) : 0;
-    await incrementEslLearnerProfileCounters(context.env.DB, {
-      userId: input.userId,
-      practiceSeconds
-    });
-
-    // Empirical difficulty for the material layer. Normalized to 0..1 so reading and
-    // dictation scores are comparable; a no-op for user-created passages.
-    await recordPassageAttemptStat(context.env.DB, {
-      passageId: input.passage.id,
+  // Side effects of the stored result. Only the run that stored it reaches here, so they happen
+  // once per attempt; each fails on its own and none can turn the saved evaluation into a failure.
+  const practiceSeconds = run.durationMs ? Math.round(run.durationMs / 1000) : 0;
+  await afterSave(run, "practice_counters", () =>
+    incrementEslLearnerProfileCounters(context.env.DB, { userId: run.userId, practiceSeconds })
+  );
+  // Empirical difficulty for the material layer. Normalized to 0..1 so reading and
+  // dictation scores are comparable; a no-op for user-created passages.
+  await afterSave(run, "passage_stat", () =>
+    recordPassageAttemptStat(context.env.DB, {
+      passageId: run.passage.id,
       mode: "reading",
       accuracy: Math.min(1, Math.max(0, evaluation.output.scores.overall / 100))
-    });
-
-    // Learner model: attribute the evaluation's highlights to the tag vocabulary. Marked
-    // source='llm' and down-weighted in aggregation (design §5.2). User passages carry no
-    // tags, so this is empty for them and writes nothing. Fails soft.
-    try {
-      const passageTags = await getPassageTags(context.env.DB, input.passage.id);
-      const tallies = attributeReadingErrors(passageTags, evaluation.output.highlights ?? []);
-      if (tallies.size > 0) {
-        await insertLearnerTagObservations(context.env.DB, {
-          userId: input.userId,
-          mode: "reading",
-          passageId: input.passage.id,
-          attemptId: input.attemptId,
-          source: "llm",
-          tallies: [...tallies].map(([tag, tally]) => ({
-            tag,
-            exposure: tally.exposure,
-            hits: tally.hits
-          }))
-        });
-      }
-      await scheduleLearnerModelRecompute(context, input.userId);
-    } catch (error) {
-      console.error("learner-model reading observation failed:", error);
+    })
+  );
+  // Learner model: attribute the evaluation's highlights to the tag vocabulary. Marked
+  // source='llm' and down-weighted in aggregation (design §5.2). User passages carry no
+  // tags, so this is empty for them and writes nothing.
+  await afterSave(run, "tag_observations", async () => {
+    const passageTags = await getPassageTags(context.env.DB, run.passage.id);
+    const tallies = attributeReadingErrors(passageTags, evaluation.output.highlights ?? []);
+    if (tallies.size > 0) {
+      await insertLearnerTagObservations(context.env.DB, {
+        userId: run.userId,
+        mode: "reading",
+        passageId: run.passage.id,
+        attemptId: run.attemptId,
+        source: "llm",
+        tallies: [...tallies].map(([tag, tally]) => ({
+          tag,
+          exposure: tally.exposure,
+          hits: tally.hits
+        }))
+      });
     }
-  } catch {
-    const activeAttempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
-      includeDeleted: true
-    });
-    if (!activeAttempt || activeAttempt.user_id !== input.userId || activeAttempt.deleted_at) {
-      return;
-    }
-    await updateEslReadingAttemptEvaluationStatus(context.env.DB, {
-      id: input.attemptId,
-      userId: input.userId,
-      status: "failed"
-    });
-  }
+    await scheduleLearnerModelRecompute(context, run.userId);
+  });
 };
 
 const scheduleReadingAttemptEvaluation = async (
   context: AppLoadContext,
-  input: {
-    userId: string;
-    attemptId: string;
-    passage: Passage;
-    mode: EslReadingMode;
-    outputLanguage: ReadingOutputLanguage;
-    durationMs: number | null;
-    audioBytes: Uint8Array;
-    audioMimeType: string;
-  },
+  run: EvaluationRun,
   options: { preferBackground?: boolean } = {}
 ) => {
-  const evaluationTask = runReadingAttemptEvaluation(context, input);
+  const evaluationTask = runReadingAttemptEvaluation(context, run);
   if (options.preferBackground !== false && context.ctx?.waitUntil) {
     context.ctx.waitUntil(evaluationTask);
   } else {
@@ -309,6 +357,8 @@ export const createAndScheduleEslReadingAttempt = async (
   }
 ): Promise<{ attemptId: string }> => {
   const attemptId = crypto.randomUUID();
+  // The first run is claimed by the insert itself, so the submit and a retry can never both own it.
+  const runId = crypto.randomUUID();
   const r2Key = buildAttemptR2Key(input.userId, attemptId, input.submission.audioFormat);
   let supportsAsyncEvaluationStatus = true;
   const canRunInBackground = Boolean(context.ctx?.waitUntil);
@@ -331,7 +381,8 @@ export const createAndScheduleEslReadingAttempt = async (
       r2Key,
       audioBytes: input.submission.audioBuffer.byteLength,
       durationMs: input.submission.durationMs,
-      evaluationStatus: "pending"
+      evaluationStatus: "pending",
+      evaluationRunId: runId
     }));
   } catch {
     await context.env.R2.delete(r2Key).catch(() => undefined);
@@ -351,6 +402,8 @@ export const createAndScheduleEslReadingAttempt = async (
     {
       userId: input.userId,
       attemptId,
+      runId,
+      trigger: "submit",
       passage: input.passage,
       mode: input.submission.mode,
       outputLanguage: input.submission.outputLanguage,
@@ -364,6 +417,14 @@ export const createAndScheduleEslReadingAttempt = async (
   return { attemptId };
 };
 
+/**
+ * Retry an attempt's evaluation. The claim is one conditional UPDATE, so of two concurrent retries
+ * only one starts a model call. Outcomes:
+ * - `started`: this request owns a new run;
+ * - `running`: a run started inside the stale window — keep waiting, start nothing;
+ * - `completed`: a result is already stored — start nothing.
+ * An explicitly failed run is claimable at once.
+ */
 export const retryEslReadingAttemptEvaluation = async (
   context: AppLoadContext,
   input: {
@@ -372,7 +433,7 @@ export const retryEslReadingAttemptEvaluation = async (
     passage: Passage;
     outputLanguage: ReadingOutputLanguage;
   }
-) => {
+): Promise<{ outcome: "started" | "running" | "completed" }> => {
   const attempt = await getEslReadingAttemptById(context.env.DB, input.attemptId, {
     includeDeleted: true
   });
@@ -383,31 +444,38 @@ export const retryEslReadingAttemptEvaluation = async (
     throw new EslAttemptSubmissionError("Invalid attempt mode.", 400);
   }
 
-  const audioObject = await context.env.R2.get(attempt.r2_key);
-  if (!audioObject) {
-    await updateEslReadingAttemptEvaluationStatus(context.env.DB, {
-      id: attempt.id,
-      userId: input.userId,
-      status: "failed"
-    });
-    throw new EslAttemptSubmissionError("Recording file is unavailable.", 500);
-  }
-
-  await updateEslReadingAttemptEvaluationStatus(context.env.DB, {
-    id: attempt.id,
+  const runId = crypto.randomUUID();
+  const claim = await claimEslReadingEvaluationRun(context.env.DB, {
+    attemptId: attempt.id,
     userId: input.userId,
-    status: "pending"
+    runId,
+    staleSeconds: ESL_PENDING_EVAL_STALE_MS / 1000
   });
+  if (claim.outcome === "missing") throw new EslAttemptSubmissionError("Attempt not found.", 404);
+  if (claim.outcome !== "claimed") return { outcome: claim.outcome };
 
-  const audioBuffer = await audioObject.arrayBuffer();
-  await scheduleReadingAttemptEvaluation(context, {
+  const run: EvaluationRun = {
     userId: input.userId,
     attemptId: attempt.id,
+    runId,
+    trigger: "retry",
     passage: input.passage,
     mode: attempt.mode,
     outputLanguage: input.outputLanguage,
     durationMs: attempt.duration_ms,
-    audioBytes: new Uint8Array(audioBuffer),
+    audioBytes: new Uint8Array(0),
     audioMimeType: attempt.audio_mime_type
-  });
+  };
+
+  // Only the claiming request reads the recording.
+  const audioObject = await context.env.R2.get(attempt.r2_key).catch(() => null);
+  if (!audioObject) {
+    logRun(run, "audio_missing_error");
+    await markRunFailed(context, run);
+    throw new EslAttemptSubmissionError("Recording file is unavailable.", 500);
+  }
+  run.audioBytes = new Uint8Array(await audioObject.arrayBuffer());
+
+  await scheduleReadingAttemptEvaluation(context, run);
+  return { outcome: "started" };
 };

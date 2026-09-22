@@ -103,7 +103,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     const effective = deriveEslAttemptEvaluationState({
       storedStatus: attempt.evaluation_status,
       hasEvaluation: Boolean(parsed),
-      createdAt: attempt.created_at
+      createdAt: attempt.created_at,
+      startedAt: attempt.evaluation_started_at
     });
     return {
       id: attempt.id,
@@ -133,7 +134,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
     ? deriveEslAttemptEvaluationState({
         storedStatus: selectedAttempt.evaluation_status,
         hasEvaluation: Boolean(selectedOutput),
-        createdAt: selectedAttempt.created_at
+        createdAt: selectedAttempt.created_at,
+        startedAt: selectedAttempt.evaluation_started_at
       })
     : null;
 

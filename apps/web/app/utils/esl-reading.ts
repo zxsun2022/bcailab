@@ -1,5 +1,11 @@
 export const MAX_ESL_PASSAGE_CHARS = 8000;
 export const MAX_ESL_READING_AUDIO_BYTES = 20 * 1024 * 1024;
+/**
+ * How long a pending evaluation run is waited for before the page offers a retry. The run executes
+ * under `waitUntil`, which Cloudflare cancels 30 s after the response ends; this is the app's own
+ * margin on top of that, not a platform value. Polling past it cannot rescue a cancelled task.
+ * Measured from the run's start (`evaluation_started_at`), so a retry gets the full window.
+ */
 export const ESL_PENDING_EVAL_STALE_MS = 45 * 1000;
 
 export const ESL_READING_MODES = ["reading", "recitation"] as const;
@@ -130,10 +136,24 @@ export const formatDuration = (ms: number): string => {
   return `${min}:${String(sec).padStart(2, "0")}`;
 };
 
+/**
+ * SQLite `datetime('now')` text ("YYYY-MM-DD HH:MM:SS") is UTC but carries no zone, and
+ * `new Date()` reads that form as local time. Workers run in UTC, which hid this; anywhere else
+ * the age of a run is off by the host's offset. Parse it as UTC explicitly.
+ */
+export const parseSqliteUtc = (value: string): number => {
+  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(value)
+    ? `${value.replace(" ", "T")}Z`
+    : value;
+  return new Date(iso).getTime();
+};
+
 export const deriveEslAttemptEvaluationState = (input: {
   storedStatus: "pending" | "completed" | "failed";
   hasEvaluation: boolean;
   createdAt: string;
+  /** Start of the current run; attempts from before migration 0023 have none and use createdAt. */
+  startedAt?: string | null;
   now?: number;
 }): {
   status: "pending" | "completed" | "failed";
@@ -143,7 +163,7 @@ export const deriveEslAttemptEvaluationState = (input: {
     return { status: "completed", isStalePending: false };
   }
 
-  const ageMs = (input.now ?? Date.now()) - new Date(input.createdAt).getTime();
+  const ageMs = (input.now ?? Date.now()) - parseSqliteUtc(input.startedAt || input.createdAt);
   const isStalePending = ageMs > ESL_PENDING_EVAL_STALE_MS;
 
   if (input.storedStatus === "pending") {
