@@ -2,8 +2,11 @@ import * as React from "react";
 import { Link, useLocation } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
+import { useT } from "~/i18n/context";
+import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 import {
   ENGLISH_MODULES,
+  moduleCopy,
   resolveEnglishModuleDestination,
   type EnglishModule,
   type EnglishModuleGroup
@@ -57,6 +60,7 @@ export function ToolNavRail({
   settingsTo,
   user,
 }: ToolNavRailProps) {
+  const t = useT();
   const location = useLocation();
   const collapsedKey = "english-studio-nav-rail-collapsed";
   const isProgressView = [
@@ -186,7 +190,7 @@ export function ToolNavRail({
   // lh3.googleusercontent.com, which answers 503 to requests carrying a Referer it does
   // not recognise, so the avatar breaks without it.
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
-  const displayName = user?.name ?? user?.email ?? "Account";
+  const displayName = user?.name ?? user?.email ?? t("common.account");
 
   return (
     <>
@@ -197,7 +201,7 @@ export function ToolNavRail({
           ref={mobileToggleRef}
           type="button"
           className="nav-rail-mobile-toggle"
-          aria-label="Open navigation"
+          aria-label={t("rail.openNav")}
           aria-controls="english-studio-navigation"
           aria-expanded={mobileOpen}
           onClick={() => setMobileOpen(true)}
@@ -216,7 +220,7 @@ export function ToolNavRail({
         className={`tool-nav-rail${collapsed && !mobileOpen ? " is-collapsed" : ""}${mobileOpen ? " is-mobile-open" : ""}`}
         role={mobileOpen ? "dialog" : undefined}
         aria-modal={mobileOpen ? true : undefined}
-        aria-label={mobileOpen ? "English Studio navigation" : undefined}
+        aria-label={mobileOpen ? t("rail.navDialog") : undefined}
         tabIndex={mobileOpen ? -1 : undefined}
       >
 
@@ -226,14 +230,14 @@ export function ToolNavRail({
           <button
             type="button"
             className="nav-rail-mobile-close"
-            aria-label="Close navigation"
+            aria-label={t("rail.closeNav")}
             onClick={() => setMobileOpen(false)}
           >
             <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="nav-rail-icon">
               <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
-          <Link to="/" className="nav-rail-logo" aria-label="Back to bcailab home">
+          <Link to="/" className="nav-rail-logo" aria-label={t("rail.backHome")}>
             <img
               src="/brand/logo-64.png"
               srcSet="/brand/logo-64.png 1x, /brand/logo-128.png 2x"
@@ -246,7 +250,7 @@ export function ToolNavRail({
           <button
             type="button"
             className="nav-rail-toggle"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? t("rail.expand") : t("rail.collapse")}
             onClick={toggleCollapsed}
           >
             {collapsed ? <IconChevronRight /> : <IconChevronLeft />}
@@ -264,8 +268,10 @@ export function ToolNavRail({
                 : ""
             }`}
           >
-            <span className="nav-rail-module-mark" aria-hidden="true">H</span>
-            <span className="nav-rail-label">Home</span>
+            <span className="nav-rail-module-mark" aria-hidden="true">
+              {t("common.home").slice(0, 1)}
+            </span>
+            <span className="nav-rail-label">{t("common.home")}</span>
           </Link>
           {user ? (
             <Link
@@ -274,8 +280,10 @@ export function ToolNavRail({
                 isProgressView ? " is-current" : ""
               }`}
             >
-              <span className="nav-rail-module-mark" aria-hidden="true">P</span>
-              <span className="nav-rail-label">Progress</span>
+              <span className="nav-rail-module-mark" aria-hidden="true">
+                {t("common.progress").slice(0, 1)}
+              </span>
+              <span className="nav-rail-label">{t("common.progress")}</span>
             </Link>
           ) : null}
           {(["practice", "utility"] as const).map((group) => (
@@ -289,14 +297,17 @@ export function ToolNavRail({
           ))}
         </nav>
 
-        {/* Pinned bottom: universal account menu when signed in, sign-in prompt when not */}
+        {/* Pinned bottom: the language switch, then the universal account menu when signed
+            in or a sign-in prompt when not. The switch sits outside the account menu so a
+            signed-out visitor who cannot read the interface can still find it. */}
         <div className="nav-rail-pinned-bottom">
+          <LanguageSwitcher variant="rail" />
           {user ? (
             <div className="nav-rail-user-shell" ref={userMenuRef}>
               <button
                 type="button"
                 className="nav-rail-user-btn"
-                aria-label="Open user menu"
+                aria-label={t("common.openUserMenu")}
                 aria-haspopup="menu"
                 aria-expanded={userMenuOpen}
                 onClick={() => setUserMenuOpen((open) => !open)}
@@ -310,23 +321,23 @@ export function ToolNavRail({
                 <span className="nav-rail-user-name">{displayName}</span>
               </button>
               {userMenuOpen ? (
-                <div className="nav-rail-user-menu" role="menu" aria-label="User menu">
+                <div className="nav-rail-user-menu" role="menu" aria-label={t("common.userMenu")}>
                   <div className="nav-rail-user-profile">
-                    <div className="nav-rail-user-fullname">{user.name ?? "Signed in"}</div>
+                    <div className="nav-rail-user-fullname">{user.name ?? t("common.signedIn")}</div>
                     {user.email ? (
                       <div className="nav-rail-user-email">{user.email}</div>
                     ) : null}
                   </div>
                   <Link to="/profile" className="menu-item" role="menuitem">
-                    Profile
+                    {t("common.profile")}
                   </Link>
                   <div className="nav-rail-user-section">
-                    <div className="menu-label">Theme</div>
+                    <div className="menu-label">{t("common.theme")}</div>
                     <div className="menu-theme-options">
                       {([
-                        { value: "system", label: "Auto" },
-                        { value: "light", label: "Light" },
-                        { value: "dark", label: "Dark" }
+                        { value: "system", label: t("theme.auto") },
+                        { value: "light", label: t("theme.light") },
+                        { value: "dark", label: t("theme.dark") }
                       ] as const).map((option) => (
                         <button
                           key={option.value}
@@ -344,12 +355,12 @@ export function ToolNavRail({
                   </div>
                   {settingsTo ? (
                     <Link to={settingsTo} className="menu-item" role="menuitem">
-                      Settings
+                      {t("common.settings")}
                     </Link>
                   ) : null}
                   <form method="post" action="/logout">
                     <button type="submit" className="menu-item" role="menuitem">
-                      Log out
+                      {t("common.logOut")}
                     </button>
                   </form>
                 </div>
@@ -367,7 +378,7 @@ export function ToolNavRail({
                   alt=""
                   referrerPolicy="no-referrer"
                 />
-              <span className="nav-rail-user-name">Sign in</span>
+              <span className="nav-rail-user-name">{t("common.signIn")}</span>
             </button>
           )}
         </div>
@@ -387,6 +398,7 @@ function EnglishModuleGroupLinks({
   pathname: string;
   suppressActive: boolean;
 }) {
+  const t = useT();
   const modules = ENGLISH_MODULES.filter(
     (module) => module.status === "active" && module.group === group
   );
@@ -401,10 +413,11 @@ function EnglishModuleGroupLinks({
   return (
     <div className="nav-rail-studio-group">
       <div className="nav-rail-studio-group-label">
-        {group === "practice" ? "Practice" : "Tools"}
+        {group === "practice" ? t("common.practice") : t("common.tools")}
       </div>
       {modules.map((module) => {
         const destination = resolveEnglishModuleDestination(module, signedIn);
+        const { label } = moduleCopy(t, module);
         const active = !suppressActive &&
           (pathname === module.route || pathname.startsWith(`${module.route}/`));
         return (
@@ -415,9 +428,9 @@ function EnglishModuleGroupLinks({
             onClick={(event) => handleClick(event, module)}
           >
             <span className="nav-rail-module-mark" aria-hidden="true">
-              {module.label.slice(0, 1)}
+              {label.slice(0, 1)}
             </span>
-            <span className="nav-rail-label">{module.label}</span>
+            <span className="nav-rail-label">{label}</span>
           </Link>
         );
       })}

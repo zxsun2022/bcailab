@@ -201,6 +201,114 @@ acceptance is deliberately not claimed here.
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
 
+## Now — Chinese interface for Chinese-speaking learners
+
+The owner named the first cohort on 2026-09-22 — Chinese-speaking learners — and required a
+Chinese interface, confirming three decisions the same day. Recorded as
+[ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md), which supersedes
+[ADR 0003](decisions/0003-defer-chinese-ui.md); mechanism, coverage and reasoning in
+[the design](chinese-ui-design.md).
+
+This runs alongside "Now — Learner context for graders", which is open only for its Reading half
+and is blocked there on two owner decisions and a recording corpus that do not exist yet. Neither
+item is deprioritized by the other, and nothing here touches the learner brief.
+
+Half the capability already exists and the scope depends on knowing which half: Reading and
+Writing already produce Chinese feedback from a shared `localStorage` preference that defaults to
+English and is reachable only from inside those two tools' settings; **Dictation has no language
+option at all**; and the interface is English with no catalogue, switcher or locale routing.
+
+### Decisions (owner, 2026-09-22)
+
+- **D1 — Scope is the whole of English Studio**, including the homepage that leads with it.
+  Mapdown, Posts and `/about` are out. Learning material stays English.
+- **D2 — One URL per page.** The locale is a cookie, negotiated from `Accept-Language` on a first
+  visit, with an explicit switcher and no redirect. No `/zh` prefix; search engines will index the
+  English rendering, and that cost is accepted.
+- **D3 — Feedback language follows the interface by default**, and Dictation gains Chinese output.
+  The existing setting survives as an explicit override.
+- **D4 / D5 (recommended, not separately confirmed)** — Simplified only, with `zh-TW` negotiating
+  to it; and nothing stored is retranslated.
+
+### Scope
+
+- A pure locale module plus a cookie and a `POST /locale` switcher that works without JavaScript,
+  a `LocaleProvider` beside the existing `Outlet` context rather than inside it, and one helper so
+  route `meta` is localized too. Design §3.
+- Two typed catalogues, where the Chinese one is typed against the English one so a missing string
+  is a type error rather than a silent English fallback.
+- Every learner-facing surface of English Studio in the design's §4 coverage list, including page
+  titles, meta descriptions, validation and error text, empty states and assistive text.
+- Locale-aware typography rules for the styles that do not survive translation — mono uppercase
+  labels with letter-spacing, italic emphasis, line height and fit — written into
+  `docs/design-system.md` as rules, not patched per component. Design §6.
+- The feedback preference becomes three-valued (follow the interface / English / Chinese), and
+  `dictation-feedback.server.ts` gains the language directive the other two graders have. Design §5.
+
+### Acceptance criteria
+
+- (a) **Negotiation is pure and unit-tested**: cookie outranks header; `zh`, `zh-CN`, `zh-Hans`,
+  `zh-SG`, `zh-TW`, `zh-HK` resolve to `zh`; weighting decides a mixed header; unknown or
+  malformed input resolves to `en` and never throws.
+- (b) **An untranslated string cannot ship.** The Chinese catalogue is typed against the English
+  one, and a test asserts the two key sets are identical. There is no runtime fallback that
+  renders English inside a Chinese page.
+- (c) **Server-rendered in the negotiated language**, with no flash of English after hydration;
+  `<html lang>` matches; the error boundary renders with a sane `lang` when loader data is absent.
+- (d) **Coverage is checked against the design's §4 list**, surface by surface, and the checklist
+  is recorded. No user-visible English remains on a covered surface, including titles, meta
+  descriptions, form errors, empty states and `aria-label`s.
+- (e) **Switching works without JavaScript**: the form posts, the cookie is set for a year, the
+  visitor returns to the page they were on, and an explicit choice outranks the header on every
+  later visit.
+- (f) **One URL, two languages, no stale cache.** Document responses are verified not to be
+  cached across locales — either uncached or varying on the cookie.
+- (g) **Feedback language.** Default follows the interface; the setting offers three states; an
+  existing explicit `en`/`zh` preference migrates to an explicit override and is never silently
+  converted; Dictation feedback is produced in Chinese when selected, for first attempts, retries
+  and trials alike, proven by prompt fixtures whose only change is the language directive.
+- (h) **Nothing else moves.** No migration; no change to stored feedback schemas,
+  `learner-context.ts`, the learner brief's English rendering, `learner_tag_observations`,
+  `SOURCE_WEIGHT`, or CEFR resolution. Stored feedback renders in its original language.
+- (i) **Verification.** `pnpm test`, typechecks, lint (0 errors) and both production builds pass;
+  the first-contact path is walked on an isolated dev server with `Accept-Language: zh-CN` and
+  again after switching to English; light and dark themes and mobile width are each checked for
+  the typography rules in (d), with screenshot evidence.
+- (j) **Docs in the same PR.** The feedback-language sections of `docs/tools/dictation.md`,
+  `docs/tools/esl.md` and `docs/tools/writing.md`; the Chinese typography rules in
+  `docs/design-system.md`; `docs/access-model.md` if locale affects any access rule; and a
+  `docs/changelog.md` entry marked `in_review` per stage.
+
+### Stages
+
+Independently shippable, in the order a Chinese visitor meets them, so stopping early still
+leaves the most valuable part done.
+
+1. **Mechanism and first contact** — negotiation, cookie, switcher, provider, meta helper,
+   typography rules; homepage, `/english`, header, login popup, and Dictation end to end.
+2. **The remaining tools** — Reading, Writing, Translate, Speech, with their trials, settings and
+   progress surfaces.
+3. **Signed-in surfaces and feedback language** — Home, Progress, the three-valued preference, and
+   Dictation's Chinese feedback.
+
+### Explicitly excluded
+
+Mapdown, Posts and `/about`; learning material, prompts, passage titles and TTS audio; Traditional
+Chinese; locale-prefixed URLs and any Chinese SEO work; bilingual feedback output; retranslating
+stored feedback; product analytics; and giving signed-out visitors Dictation feedback — which
+stays signed-in only, so the Chinese entry path still ends without an explanation of the learner's
+errors. That hole is real and is recorded in the design's §8, not fixed here.
+
+### Progress
+
+- **Stage 1 — mechanism and first contact: `in_review` (2026-09-22).** Negotiation, cookie,
+  no-JS switcher, provider, meta helper and Chinese typography rules; the homepage, `/english`,
+  site header, studio rail, sign-in popup, error boundary and Dictation library/session/summary
+  render in Chinese. Evidence and the surface-by-surface checklist: `docs/changelog.md` and
+  design §9. Stages 2 and 3 are not started; until they are, Reading, Writing, Translate, Speech,
+  Home and Progress show English content inside a Chinese rail.
+
+
 ## Next
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
   product direction “AI-generated structure → Mapdown visualization” without putting a model
@@ -269,8 +377,10 @@ acceptance is deliberately not claimed here.
   **Trigger to revisit:** a further spike run on more jargon-dense or unfamiliar-register
   material reproduces variance that actually crosses the 4-point threshold. Evidence and
   reasoning: [ADR 0005](decisions/0005-reading-grader-stays-single-call.md).
-- Chinese UI (at least Translate + landing pages) — deferred 2026-07-15,
-  [ADR 0003](decisions/0003-defer-chinese-ui.md).
+- ~~Chinese UI (at least Translate + landing pages)~~ — promoted to "Now — Chinese interface for
+  Chinese-speaking learners" (owner requirement, 2026-09-22), at a wider scope than this entry
+  described. [ADR 0003](decisions/0003-defer-chinese-ui.md) is superseded by
+  [ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md).
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
 - **Dictation v2 — level-adaptive material matching.** Retrieve from the tagged library rather

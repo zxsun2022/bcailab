@@ -4,15 +4,20 @@ import type { User } from "@bcailab/db";
 import { Link, useMatches } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
+import { useT } from "~/i18n/context";
+import type { MessageKey } from "~/i18n/translate";
+import { LanguageSwitcher } from "~/components/LanguageSwitcher";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
 
 type BreadcrumbHandle = {
-  breadcrumb?: { label: string; href?: string };
+  /** `labelKey` is translated; `label` is shown as written (for names, not prose). */
+  breadcrumb?: { label: string; labelKey?: MessageKey; href?: string };
   hideHeaderUserMenu?: boolean;
 };
 
 export const Header: React.FC<{ user: User | null }> = ({ user }) => {
+  const t = useT();
   const matches = useMatches();
   const breadcrumbs = matches
     .filter((match) => (match.handle as BreadcrumbHandle)?.breadcrumb)
@@ -72,10 +77,12 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   <span className="breadcrumb-sep">/</span>
                   {crumb.href ? (
                     <Link to={crumb.href} className="breadcrumb-link">
-                      {crumb.label}
+                      {crumb.labelKey ? t(crumb.labelKey) : crumb.label}
                     </Link>
                   ) : (
-                    <span className="breadcrumb-current">{crumb.label}</span>
+                    <span className="breadcrumb-current">
+                      {crumb.labelKey ? t(crumb.labelKey) : crumb.label}
+                    </span>
                   )}
                 </React.Fragment>
               ))}
@@ -84,9 +91,10 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
         </div>
         {!hideUserMenu ? (
           <div className="nav-actions" ref={menuRef}>
+            <LanguageSwitcher variant="header" />
             {!user ? (
               <Button type="button" onClick={handleLogin}>
-                Sign in
+                {t("common.signIn")}
               </Button>
             ) : (
               <div className="menu-shell">
@@ -94,7 +102,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   type="button"
                   className="avatar-button"
                   onClick={() => setMenuOpen((prev) => !prev)}
-                  aria-label="Open user menu"
+                  aria-label={t("common.openUserMenu")}
                 >
                   {/* Google serves avatars from lh3.googleusercontent.com, which answers
                       503 to requests carrying a Referer it does not recognise. Suppressing
@@ -103,26 +111,26 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                   <img
                     className="avatar-image"
                     src={user.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp"}
-                    alt={user.name ?? user.email ?? "User"}
+                    alt={user.name ?? user.email ?? t("common.user")}
                     referrerPolicy="no-referrer"
                   />
                 </button>
                 {menuOpen ? (
                   <div className="menu">
                     <div className="menu-profile">
-                      <div className="menu-name">{user.name ?? "Signed in"}</div>
+                      <div className="menu-name">{user.name ?? t("common.signedIn")}</div>
                       <div className="menu-muted">{user.email}</div>
                     </div>
                     <Link to="/profile" className="menu-item" onClick={() => setMenuOpen(false)}>
-                      Profile
+                      {t("common.profile")}
                     </Link>
                     <div className="menu-section">
-                      <div className="menu-label">Theme</div>
+                      <div className="menu-label">{t("common.theme")}</div>
                       <div className="menu-theme-options">
                         {([
-                          { value: "system", label: "Auto" },
-                          { value: "light", label: "Light" },
-                          { value: "dark", label: "Dark" }
+                          { value: "system", label: t("theme.auto") },
+                          { value: "light", label: t("theme.light") },
+                          { value: "dark", label: t("theme.dark") }
                         ] as const).map((option) => (
                           <button
                             key={option.value}
@@ -140,7 +148,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                     </div>
                     <form method="post" action="/logout">
                       <button type="submit" className="menu-item">
-                        Log out
+                        {t("common.logOut")}
                       </button>
                     </form>
                   </div>

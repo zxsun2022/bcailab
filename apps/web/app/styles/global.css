@@ -91,7 +91,10 @@
 
   --font-display: "Playfair Display", Georgia, "Noto Serif SC", "Songti SC", serif;
   --font-body: "Source Serif 4", Georgia, "Noto Serif SC", "Songti SC", serif;
-  --font-mono: "DM Mono", Menlo, Consolas, monospace;
+  /* DM Mono has no CJK glyphs. Labels set in it fall back to a Chinese sans in the Chinese
+     interface rather than to whatever the platform picks for "monospace" (ADR 0011). */
+  --font-mono: "DM Mono", Menlo, Consolas, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", monospace;
 
   /* Brand and interaction colours. Brand identity and action share a hue today, but
      remain separate contracts so either can evolve without changing component intent. */
@@ -10586,3 +10589,79 @@ select.input:focus {
     box-shadow: inset 0 0 0 1px var(--color-warning);
   }
 }
+
+/* ---------- interface language switch (ADR 0011) ---------- */
+
+.locale-switch-form {
+  margin: 0;
+}
+
+/* Site header: a quiet text button beside Sign in. It names the other language in that
+   language, so it stays findable by someone who cannot read the current one. */
+.locale-switch {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.locale-switch:hover {
+  color: var(--text);
+  border-color: var(--border-hover);
+}
+
+.locale-switch:focus-visible,
+.locale-switch-rail:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+/* Studio rail: the same row shape as the module links above it, so the collapsed rail
+   shows a mark (EN / 中) exactly where a module shows its initial. */
+.locale-switch-rail {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+/* ---------- Chinese interface typography (design §6, docs/design-system.md) ----------
+
+   These rules key on `:lang(zh)`, which matches an element's own language. English learning
+   material rendered inside a Chinese page carries `lang="en"`, so it keeps the Latin rules. */
+
+/* The system's letter-spacing is tuned for Latin type: tracked uppercase labels and tightened
+   display headlines. Chinese is set solid. Specificity (0,2,1) outranks every tracking rule in
+   this file, which is at most two classes. */
+:root body *:lang(zh) {
+  letter-spacing: normal;
+}
+
+/* Latin headline leading (1.1–1.25) crowds two-line Chinese headings. */
+:root body :is(h1, h2, h3):lang(zh) {
+  line-height: 1.35;
+}
+
+/* Chinese has no italic. A synthesised oblique is a typographic error, not emphasis — whether
+   it comes from <em> or from a class such as the landing tagline. Where the chrome emphasises,
+   it already carries colour or weight, which survive. */
+:root body *:lang(zh) {
+  font-style: normal;
+}
+
+/* A one-character last line ("录。") is the Chinese widow; `pretty` rebalances short runs. */
+:root body :is(p, h1, h2, h3):lang(zh) {
+  text-wrap: pretty;
+}
+
+.dictation-blank {
+  color: var(--text-faint);
+}
+

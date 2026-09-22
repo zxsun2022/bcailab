@@ -1,100 +1,107 @@
+import type { MessageKey, Translate } from "~/i18n/translate";
+
 export type EnglishModuleAccess = "public" | "trial" | "auth";
 export type EnglishModuleGroup = "practice" | "utility";
 export type EnglishModuleStatus = "active" | "planned";
+export type EnglishModuleId =
+  | "dictation"
+  | "reading"
+  | "writing"
+  | "translate"
+  | "speech"
+  | "dictionary";
+export type EnglishModuleTag =
+  | "listening"
+  | "scoring"
+  | "freeToTry"
+  | "speaking"
+  | "evaluation"
+  | "writing"
+  | "feedback"
+  | "translation"
+  | "llm"
+  | "tts"
+  | "vocabulary";
 
 export type EnglishModule = {
-  id: string;
-  label: string;
+  id: EnglishModuleId;
   route: string;
   trialRoute?: string;
   access: EnglishModuleAccess;
   group: EnglishModuleGroup;
   status: EnglishModuleStatus;
-  description: string;
-  detail: string;
-  tags: readonly string[];
+  tags: readonly EnglishModuleTag[];
 };
 
 /**
  * The single source of truth for English Studio navigation and module access.
  * Product surfaces may choose different presentation, but must not copy routes
  * or anonymous-access rules.
+ *
+ * Copy — each module's name, description, detail and tag labels — lives in the interface
+ * catalogues under `module.<id>.*` and `moduleTag.<tag>`, so it exists in every interface
+ * language (ADR 0011). Read it through `moduleCopy`.
  */
 export const ENGLISH_MODULES: readonly EnglishModule[] = [
   {
     id: "dictation",
-    label: "Dictation",
     route: "/dictation",
     access: "public",
     group: "practice",
     status: "active",
-    description: "Listen sentence by sentence and type what you hear.",
-    detail:
-      "Graded passages from A2 to C1 with per-sentence audio, unlimited replays, and a speed toggle. Every sentence is scored instantly against the reference. Free to try without an account.",
-    tags: ["Listening", "Scoring", "Free to try"]
+    tags: ["listening", "scoring", "freeToTry"]
   },
   {
     id: "reading",
-    label: "Reading",
     route: "/reading",
     trialRoute: "/reading/trial",
     access: "trial",
     group: "practice",
     status: "active",
-    description: "Read aloud or recite passages, get AI evaluation on every attempt.",
-    detail:
-      "Save passages, record attempts, and receive structured feedback on pronunciation, fluency, and completeness — with a progress dashboard across attempts.",
-    tags: ["Speaking", "Evaluation", "Free to try"]
+    tags: ["speaking", "evaluation", "freeToTry"]
   },
   {
     id: "writing",
-    label: "Writing",
     route: "/writing",
     trialRoute: "/writing/trial",
     access: "trial",
     group: "practice",
     status: "active",
-    description: "Draft, get structured feedback, revise, and track rounds.",
-    detail:
-      "Choose a coach persona, submit a draft, and work through revision rounds with scored feedback that remembers where you left off.",
-    tags: ["Writing", "Feedback", "Free to try"]
+    tags: ["writing", "feedback", "freeToTry"]
   },
   {
     id: "translate",
-    label: "Translate",
     route: "/translate",
     access: "public",
     group: "utility",
     status: "active",
-    description: "DeepL-style translation between English, Chinese, and more.",
-    detail:
-      "Two-pane translation driven by an LLM: auto-detect the source language, keep formatting intact, and swap directions in one click. Free to try without an account.",
-    tags: ["Translation", "LLM", "Free to try"]
+    tags: ["translation", "llm", "freeToTry"]
   },
   {
     id: "speech",
-    label: "Speech",
     route: "/speech",
     access: "auth",
     group: "utility",
     status: "active",
-    description: "Turn any text into natural audio you can replay anywhere.",
-    detail:
-      "Generate MP3 audio with natural voices, keep a private history, and use it as listening or shadowing material.",
-    tags: ["TTS", "Listening"]
+    tags: ["tts", "listening"]
   },
   {
     id: "dictionary",
-    label: "AI Dictionary",
     route: "/esl/dictionary",
     access: "auth",
     group: "utility",
     status: "planned",
-    description: "Word and phrase explanation with bilingual support.",
-    detail: "Planned: contextual explanations that connect back to your reading and writing practice.",
-    tags: ["Vocabulary"]
+    tags: ["vocabulary"]
   }
 ] as const;
+
+/** A module's learner-facing copy in the current interface language. */
+export const moduleCopy = (t: Translate, module: Pick<EnglishModule, "id" | "tags">) => ({
+  label: t(`module.${module.id}.label` satisfies MessageKey),
+  description: t(`module.${module.id}.description` satisfies MessageKey),
+  detail: t(`module.${module.id}.detail` satisfies MessageKey),
+  tags: module.tags.map((tag) => t(`moduleTag.${tag}` satisfies MessageKey))
+});
 
 export type EnglishModuleDestination = {
   href: string;

@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   ENGLISH_MODULES,
+  moduleCopy,
   resolveEnglishModuleDestination,
   type EnglishModuleAccess
 } from "./english-modules";
+import { createTranslator } from "./i18n/translate";
 
 const moduleWithAccess = (access: EnglishModuleAccess) => {
   const module = ENGLISH_MODULES.find((entry) => entry.access === access);
@@ -50,5 +52,28 @@ describe("English Studio module access resolution", () => {
         requiresLogin: false
       });
     }
+  });
+});
+
+describe("English Studio module copy", () => {
+  it("resolves every module's copy in both interface languages", () => {
+    for (const locale of ["en", "zh"] as const) {
+      const t = createTranslator(locale);
+      for (const module of ENGLISH_MODULES) {
+        const copy = moduleCopy(t, module);
+        expect(copy.label).not.toMatch(/^module\./);
+        expect(copy.description.length).toBeGreaterThan(0);
+        expect(copy.tags.every((tag) => !tag.startsWith("moduleTag."))).toBe(true);
+      }
+    }
+  });
+
+  it("keeps the English copy the registry used to carry", () => {
+    const dictation = ENGLISH_MODULES.find((entry) => entry.id === "dictation")!;
+    expect(moduleCopy(createTranslator("en"), dictation)).toMatchObject({
+      label: "Dictation",
+      description: "Listen sentence by sentence and type what you hear.",
+      tags: ["Listening", "Scoring", "Free to try"]
+    });
   });
 });

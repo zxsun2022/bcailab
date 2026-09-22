@@ -14,7 +14,7 @@ shipped (`docs/changelog.md`).
 |---|---|---|---|
 | [0001](0001-vanmemo-stays-a-separate-product.md) | vanmemo stays a separate product | Accepted | 2026-07-21 |
 | [0002](0002-translate-stays-inside-english-studio.md) | Translate stays inside English Studio as its free funnel | Accepted | 2026-07-16 |
-| [0003](0003-defer-chinese-ui.md) | Defer a Chinese UI | Accepted | 2026-07-15 |
+| [0003](0003-defer-chinese-ui.md) | Defer a Chinese UI | Superseded by 0011 | 2026-07-15 |
 | [0004](0004-dictation-v2-retrieves-rather-than-generates.md) | Dictation v2 retrieves from a library rather than generating per request | Accepted | 2026-07-20 |
 | [0005](0005-reading-grader-stays-single-call.md) | Reading grader stays a single LLM call | Accepted | 2026-07-23 |
 | [0006](0006-learner-surface-invariants.md) | Two learner-surface invariants | Accepted | 2026-07-28 |
@@ -22,6 +22,7 @@ shipped (`docs/changelog.md`).
 | [0008](0008-schema-migrations-precede-deploys.md) | Schema migrations precede deploys, and D1 commands are version- and target-explicit | Accepted | 2026-08-18 |
 | [0009](0009-ielts-is-a-material-family-not-a-second-product.md) | IELTS is a material family, not a second product | Accepted | 2026-08-27 |
 | [0010](0010-grader-context-is-separate-from-measurement.md) | Grader context is a separate layer from measurement | Accepted | 2026-09-15 |
+| [0011](0011-chinese-ui-same-url-feedback-follows-interface.md) | A Chinese UI on the same URLs, with feedback following the interface | Accepted | 2026-09-22 |
 
 **Mapdown's decisions live in `docs/mapdown/decisions.md`**, not here. That log predates this
 directory, is self-contained, and covers one product end to end; duplicating it would create

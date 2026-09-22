@@ -6,11 +6,20 @@ import { createSession, createSessionCookie } from "@bcailab/auth";
 import { getUserCredentialByEmail, setUserPassword } from "@bcailab/db";
 import { getAuthEnv } from "~/utils/auth-env.server";
 import { getOptionalUser } from "~/utils/auth.server";
-import { normalizeEmail, requestLoginCode, verifyLoginCode } from "~/utils/email-otp.server";
+import {
+  normalizeEmail,
+  requestLoginCode,
+  verifyLoginCode,
+  type LoginCodeFailure
+} from "~/utils/email-otp.server";
 import { hashPassword, verifyPassword } from "~/utils/password.server";
 import { validatePasswordStrength, MIN_PASSWORD_LENGTH } from "~/utils/password";
 import { getClientIp } from "~/utils/translate-quota.server";
 import { useThemePreference } from "~/utils/use-theme-preference";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
+import type { MessageKey } from "~/i18n/translate";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
 
@@ -18,7 +27,17 @@ export const handle = {
   hideHeader: true
 };
 
-export const meta: MetaFunction = () => [{ title: "Sign in · bcailab" }];
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.login.title") }
+];
+
+const LOGIN_CODE_FAILURE: Record<LoginCodeFailure, MessageKey> = {
+  rate_limited: "login.error.rateLimited",
+  send_failed: "login.error.sendFailed",
+  expired: "login.error.expired",
+  too_many_attempts: "login.error.tooManyAttempts",
+  incorrect: "login.error.incorrectCode"
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await getOptionalUser(request, context);
@@ -43,10 +62,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = asIntent(String(formData.get("intent") ?? ""));
   const email = normalizeEmail(String(formData.get("email") ?? ""));
+  // Every error below is shown to the visitor as written, in the interface language.
+  const t = getRequestTranslator(request);
 
   if (!email) {
     return json<ActionData>(
-      { intent, ok: false, error: "Enter a valid email address." },
+      { intent, ok: false, error: t("login.error.email") },
       { status: 400 }
     );
   }
@@ -56,7 +77,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     // Deliberately generic: never reveal whether the email exists or has a password.
     // PBKDF2's cost is the primary brute-force mitigation on this endpoint.
     const invalid = json<ActionData>(
-      { intent: "password", ok: false, error: "Incorrect email or password." },
+      { intent: "password", ok: false, error: t("login.error.credentials") },
       { status: 400 }
     );
     if (!password) return invalid;
@@ -75,7 +96,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const newPassword = String(formData.get("password") ?? "");
     if (!/^\d{6}$/.test(code)) {
       return json<ActionData>(
-        { intent: "reset", ok: false, error: "Enter the 6-digit code from the email." },
+        { intent: "reset", ok: false, error: t("login.error.codeFormat") },
         { status: 400 }
       );
     }
@@ -84,14 +105,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         {
           intent: "reset",
           ok: false,
-          error: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`
+          error: t("login.error.passwordLength", { min: MIN_PASSWORD_LENGTH })
         },
         { status: 400 }
       );
     }
     const result = await verifyLoginCode({ db: context.env.DB, env: context.env, email, code });
     if (!result.ok) {
-      return json<ActionData>({ intent: "reset", ok: false, error: result.error }, { status: 400 });
+      return json<ActionData>(
+        { intent: "reset", ok: false, error: t(LOGIN_CODE_FAILURE[result.code]) },
+        { status: 400 }
+      );
     }
     await setUserPassword(context.env.DB, result.user.id, await hashPassword(newPassword));
     const session = await createSession(context.env.DB, result.user.id);
@@ -107,7 +131,10 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       ip: getClientIp(request)
     });
     if (!result.ok) {
-      return json<ActionData>({ intent: "request", ok: false, error: result.error }, { status: 429 });
+      return json<ActionData>(
+        { intent: "request", ok: false, error: t(LOGIN_CODE_FAILURE[result.code]) },
+        { status: 429 }
+      );
     }
     if (result.devCode) {
       // No email provider configured. Exposing the code in the response is a
@@ -117,7 +144,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       const isLocal = hostname === "localhost" || hostname === "127.0.0.1" || hostname.endsWith(".localhost");
       if (!isLocal) {
         return json<ActionData>(
-          { intent: "request", ok: false, error: "Email sign-in is not configured on this deployment." },
+          { intent: "request", ok: false, error: t("login.error.notConfigured") },
           { status: 503 }
         );
       }
@@ -129,20 +156,23 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     const code = String(formData.get("code") ?? "").trim();
     if (!/^\d{6}$/.test(code)) {
       return json<ActionData>(
-        { intent: "verify", ok: false, error: "Enter the 6-digit code from the email." },
+        { intent: "verify", ok: false, error: t("login.error.codeFormat") },
         { status: 400 }
       );
     }
     const result = await verifyLoginCode({ db: context.env.DB, env: context.env, email, code });
     if (!result.ok) {
-      return json<ActionData>({ intent: "verify", ok: false, error: result.error }, { status: 400 });
+      return json<ActionData>(
+        { intent: "verify", ok: false, error: t(LOGIN_CODE_FAILURE[result.code]) },
+        { status: 400 }
+      );
     }
     const session = await createSession(context.env.DB, result.user.id);
     const setCookie = await createSessionCookie(request, getAuthEnv(context.env), session.id);
     return json<ActionData>({ intent: "verify", ok: true }, { headers: { "Set-Cookie": setCookie } });
   }
 
-  return json<ActionData>({ intent: "request", ok: false, error: "Unknown action." }, { status: 400 });
+  return json<ActionData>({ intent: "request", ok: false, error: t("common.unknownAction") }, { status: 400 });
 };
 
 type Mode = "code" | "password" | "reset";
@@ -156,6 +186,7 @@ export default function LoginPage() {
   // For the code and reset flows: "email" collects the address, "code" collects the OTP.
   const [step, setStep] = React.useState<"email" | "code">("email");
   useThemePreference();
+  const t = useT();
 
   const busy = fetcher.state !== "idle";
   const data = fetcher.data;
@@ -198,7 +229,7 @@ export default function LoginPage() {
   const emailField = (
     <>
       <label className="login-label" htmlFor="login-email">
-        Email address
+        {t("login.email")}
       </label>
       <input
         id="login-email"
@@ -225,7 +256,7 @@ export default function LoginPage() {
           height={44}
           className="login-logo"
         />
-        <h1 className="login-title">Sign in to bcailab</h1>
+        <h1 className="login-title">{t("login.title")}</h1>
 
         <button
           type="button"
@@ -236,11 +267,11 @@ export default function LoginPage() {
               : "/auth/google";
           }}
         >
-          Continue with Google
+          {t("login.google")}
         </button>
 
         <div className="login-divider">
-          <span>or use email</span>
+          <span>{t("login.orEmail")}</span>
         </div>
 
         {mode === "password" ? (
@@ -248,7 +279,7 @@ export default function LoginPage() {
             <input type="hidden" name="intent" value="password" />
             {emailField}
             <label className="login-label" htmlFor="login-password">
-              Password
+              {t("login.password")}
             </label>
             <input
               id="login-password"
@@ -259,13 +290,13 @@ export default function LoginPage() {
               required
             />
             <button type="submit" className="login-submit" disabled={busy || !email.trim()}>
-              {busy ? "Signing in…" : "Sign in"}
+              {busy ? t("login.signingIn") : t("common.signIn")}
             </button>
             <button type="button" className="login-alt" onClick={() => switchMode("code")}>
-              Sign in with an email code instead
+              {t("login.useCode")}
             </button>
             <button type="button" className="login-alt" onClick={() => switchMode("reset")}>
-              Forgot or never set a password?
+              {t("login.forgot")}
             </button>
           </fetcher.Form>
         ) : mode === "reset" ? (
@@ -274,10 +305,10 @@ export default function LoginPage() {
               <input type="hidden" name="intent" value="request" />
               {emailField}
               <button type="submit" className="login-submit" disabled={busy || !email.trim()}>
-                {busy ? "Sending…" : "Send reset code"}
+                {busy ? t("login.sending") : t("login.sendReset")}
               </button>
               <button type="button" className="login-alt" onClick={() => switchMode("password")}>
-                Back to password sign-in
+                {t("login.backToPassword")}
               </button>
             </fetcher.Form>
           ) : (
@@ -285,7 +316,7 @@ export default function LoginPage() {
               <input type="hidden" name="intent" value="reset" />
               <input type="hidden" name="email" value={email} />
               <label className="login-label" htmlFor="reset-code">
-                Enter the 6-digit code sent to {email}
+                {t("login.enterCode", { email })}
               </label>
               <input
                 id="reset-code"
@@ -301,7 +332,7 @@ export default function LoginPage() {
                 required
               />
               <label className="login-label" htmlFor="reset-password">
-                New password
+                {t("login.newPassword")}
               </label>
               <input
                 id="reset-password"
@@ -310,15 +341,17 @@ export default function LoginPage() {
                 name="password"
                 autoComplete="new-password"
                 minLength={MIN_PASSWORD_LENGTH}
-                placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+                placeholder={t("login.passwordMin", { min: MIN_PASSWORD_LENGTH })}
                 required
               />
-              {devCode ? <p className="login-devcode">Dev mode: your code is {devCode}</p> : null}
+              {devCode ? (
+                <p className="login-devcode">{t("login.devCode", { code: devCode })}</p>
+              ) : null}
               <button type="submit" className="login-submit" disabled={busy}>
-                {busy ? "Saving…" : "Set password & sign in"}
+                {busy ? t("login.saving") : t("login.setPassword")}
               </button>
               <button type="button" className="login-alt" onClick={() => setStep("email")}>
-                Use a different email
+                {t("login.differentEmail")}
               </button>
             </fetcher.Form>
           )
@@ -327,10 +360,10 @@ export default function LoginPage() {
             <input type="hidden" name="intent" value="request" />
             {emailField}
             <button type="submit" className="login-submit" disabled={busy || !email.trim()}>
-              {busy ? "Sending…" : "Send sign-in code"}
+              {busy ? t("login.sending") : t("login.sendCode")}
             </button>
             <button type="button" className="login-alt" onClick={() => switchMode("password")}>
-              Sign in with a password instead
+              {t("login.usePassword")}
             </button>
           </fetcher.Form>
         ) : (
@@ -338,7 +371,7 @@ export default function LoginPage() {
             <input type="hidden" name="intent" value="verify" />
             <input type="hidden" name="email" value={email} />
             <label className="login-label" htmlFor="login-code">
-              Enter the 6-digit code sent to {email}
+              {t("login.enterCode", { email })}
             </label>
             <input
               id="login-code"
@@ -354,10 +387,10 @@ export default function LoginPage() {
               required
             />
             {devCode ? (
-              <p className="login-devcode">Dev mode: your code is {devCode}</p>
+              <p className="login-devcode">{t("login.devCode", { code: devCode })}</p>
             ) : null}
             <button type="submit" className="login-submit" disabled={busy}>
-              {busy ? "Verifying…" : "Verify & sign in"}
+              {busy ? t("login.verifying") : t("login.verify")}
             </button>
             <button
               type="button"
@@ -366,7 +399,7 @@ export default function LoginPage() {
                 setStep("email");
               }}
             >
-              Use a different email
+              {t("login.differentEmail")}
             </button>
           </fetcher.Form>
         )}
