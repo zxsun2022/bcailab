@@ -39,6 +39,8 @@ import {
   startActiveClock,
   suspendActiveClock
 } from "~/utils/practice-time";
+import { parseFeedbackLanguage } from "~/utils/feedback-language";
+import { useFeedbackLanguage } from "~/utils/use-feedback-language";
 
 export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   const t = metaTranslator(matches);
@@ -306,7 +308,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         // user-supplied passages share the table and are left untagged (design §5.4). An
         // unbanded passage is described without a band rather than handed an invented one.
         band: passage.band,
-        results
+        results,
+        // What the page resolved: the learner's choice, or the interface language.
+        feedbackLanguage: parseFeedbackLanguage(formData.get("feedbackLanguage"))
       });
 
       // Learner model: attribute this attempt's errors to the tag vocabulary and record
@@ -372,6 +376,14 @@ function DiffTokens({ ops }: { ops: DiffOp[] }) {
 
 /* ---------- feedback panel ---------- */
 
+const CJK = /[\u4e00-\u9fff]/;
+
+/** The `lang` of a stored feedback's text: Chinese if it contains Chinese, otherwise English. */
+const feedbackTextLanguage = (feedback: DictationFeedback): "zh" | "en" =>
+  feedback.patterns.some((pattern) => CJK.test(pattern.pattern) || CJK.test(pattern.tip))
+    ? "zh"
+    : "en";
+
 type FeedbackStatus = { ready: boolean; feedback: DictationFeedback | null };
 
 const FEEDBACK_POLL_MS = 2000;
@@ -432,14 +444,14 @@ function FeedbackPanel({ attemptId }: { attemptId: string }) {
   return (
     <div className="dictation-feedback-panel">
       <p className="dictation-feedback-panel-title">{t("dictation.feedbackTitle")}</p>
-      {/* The patterns are model output in English until feedback follows the interface
-          language (Chinese UI stage 3); marking them keeps a zh page pronouncing them right. */}
-      <ul className="dictation-pattern-list" lang="en">
+      {/* Model output, in whichever language it was requested in. Stored feedback records no
+          language, so it is read from the text: older feedback is English. */}
+      <ul className="dictation-pattern-list" lang={feedbackTextLanguage(feedback)}>
         {feedback.patterns.map((pattern, index) => (
           <li key={index} className="dictation-pattern">
             <p className="dictation-pattern-name">{pattern.pattern}</p>
             {pattern.evidence ? (
-              <p className="dictation-pattern-evidence">{pattern.evidence}</p>
+              <p className="dictation-pattern-evidence" lang="en">{pattern.evidence}</p>
             ) : null}
             <p className="dictation-pattern-tip">{pattern.tip}</p>
           </li>
@@ -455,6 +467,7 @@ export default function DictationSession() {
   const { authed, resume, quota, passage, sentences } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
   const t = useT();
+  const [feedbackLanguage] = useFeedbackLanguage();
 
   // Resume drops the learner back where they stopped instead of at sentence one.
   const [current, setCurrent] = React.useState(() =>
@@ -612,7 +625,8 @@ export default function DictationSession() {
           answers: JSON.stringify(answers),
           // Replays are listens beyond the first, so a sentence heard once reports 0.
           replays: JSON.stringify(playCounts.map((count) => Math.max(0, count - 1))),
-          practiceSeconds: practiceSecondsSoFar()
+          practiceSeconds: practiceSecondsSoFar(),
+          feedbackLanguage
         },
         { method: "post" }
       );

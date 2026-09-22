@@ -238,9 +238,14 @@ When coaches requiring formatting (Business Writing, Academic) are added, migrat
 ### Feedback Language
 
 Same as Reading tool:
-- User selects the shared feedback language (Chinese / English) from either tool's settings.
-- Preference is stored under `bcailab-feedback-language`, defaults to English, and deterministically
-  migrates the old Writing key before the old Reading key.
+- User selects the shared feedback language from either tool's settings: **Follow interface**
+  (the default), English, or Chinese. "Follow interface" requests feedback in the language the
+  page is shown in (ADR 0011); an explicit choice outranks the interface.
+- The preference is stored under `bcailab-feedback-language-v2` as `auto`, `en` or `zh`
+  (`apps/web/app/utils/feedback-language.ts`). Earlier keys are migrated once and removed: a stored
+  `zh` stays an explicit Chinese choice; a stored `en` becomes `auto`, because the earlier code
+  wrote `en` as a default on first read and a choice cannot be told apart from it.
+- Forms post the resolved language (`en` or `zh`); the server contract is unchanged.
 - Controls the language of `diagnosis`, `guiding_question`, `overall_comment`, and `delta` strings.
 - The user's writing text language is not affected.
 

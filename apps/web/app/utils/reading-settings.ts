@@ -1,19 +1,10 @@
 import {
-  FEEDBACK_LANGUAGE_EVENT,
-  FEEDBACK_LANGUAGE_OPTIONS,
-  FEEDBACK_LANGUAGE_STORAGE_KEY,
-  getStoredFeedbackLanguage,
+  FEEDBACK_LANGUAGE_PREFERENCES,
   parseFeedbackLanguage,
-  setStoredFeedbackLanguage,
   type FeedbackLanguage
 } from "~/utils/feedback-language";
 
-/** @deprecated Use the shared feedback-language names for new code. */
-export const READING_OUTPUT_LANGUAGE_STORAGE_KEY = FEEDBACK_LANGUAGE_STORAGE_KEY;
-/** @deprecated Use the shared feedback-language names for new code. */
-export const READING_SETTINGS_EVENT = FEEDBACK_LANGUAGE_EVENT;
-export const READING_OUTPUT_LANGUAGE_OPTIONS = FEEDBACK_LANGUAGE_OPTIONS;
+/** Reading's names for the shared feedback language (Reading and Writing share one setting). */
+export const READING_OUTPUT_LANGUAGE_OPTIONS = FEEDBACK_LANGUAGE_PREFERENCES;
 export type ReadingOutputLanguage = FeedbackLanguage;
 export const parseReadingOutputLanguage = parseFeedbackLanguage;
-export const getStoredReadingOutputLanguage = getStoredFeedbackLanguage;
-export const setStoredReadingOutputLanguage = setStoredFeedbackLanguage;

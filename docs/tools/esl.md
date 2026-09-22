@@ -128,10 +128,11 @@ via the `reading_.trial.tsx` route-name prefix.
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
-- Reading settings include feedback language with `English` and `Chinese`. Reading and Writing
-  now share `bcailab-feedback-language`; migration precedence is the old Writing key, then the
-  old Reading key, then English. The winner is persisted and both old keys are removed. Same-tab
-  changes use a custom event and cross-tab changes use the browser `storage` event.
+- Reading settings include the shared feedback language — Follow interface (default), English or
+  Chinese — the same preference Writing uses (`bcailab-feedback-language-v2`; migration rules in
+  `docs/tools/writing.md`, *Feedback Language*). The page posts the resolved `en`/`zh` as
+  `outputLanguage`. Same-tab changes use a custom event and cross-tab changes use the browser
+  `storage` event.
 - Recorder controls expose state-specific accessible names (`Start recording` / `Stop recording`),
   the preview player has a name, and unsupported/denied/failed microphone paths render an alert.
 - After the first successful submit for a passage, the app also synthesizes one background reference TTS in American English and attaches it to the passage.

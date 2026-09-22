@@ -28,8 +28,15 @@ The library, session, summary and quota gate render in the visitor's interface l
 or Simplified Chinese — ADR 0011). What is being learned stays English in both: passage titles and
 topics, sentences, the learner's answer, the reference and the diff tokens, each marked
 `lang="en"`. Errors the action returns (quota, malformed submission) are worded in the request's
-language. **Coach feedback is still English only**; making it follow the interface is stage 3 of
-the Chinese interface item in `docs/roadmap.md`.
+language.
+
+Coach feedback follows the shared feedback language (Follow interface / English / Chinese — see
+`docs/tools/writing.md`, *Feedback Language*). The completing request posts the resolved language,
+and for Chinese the prompt gains one instruction: write `pattern` and `tip` in Simplified Chinese
+and keep `evidence` as the learner's English words. English feedback adds nothing, and its prompt
+is pinned byte-for-byte to the pre-change prompt by hash fixtures. Stored feedback records no
+language, so the panel reads it from the text: Chinese if the text contains Chinese, otherwise
+English. Evidence is always marked `lang="en"`. Feedback stays signed-in only.
 
 ## Content Model
 

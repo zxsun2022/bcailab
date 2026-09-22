@@ -21,6 +21,10 @@ import {
   StudioPageHeader,
   StudioPageTabs
 } from "~/components/StudioPage";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import type { MessageKey, Translate } from "~/i18n/translate";
+import { PASSAGE_TAGS, type PassageTagName } from "~/utils/passage-tags";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/english/progress" },
@@ -28,7 +32,9 @@ export const handle = {
   hideHeaderUserMenu: true
 };
 
-export const meta: MetaFunction = () => [{ title: "Progress · English Studio · bcailab" }];
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.progress.title") }
+];
 
 type TagRow = { tag: string; label: string; mastery: TagMastery };
 
@@ -131,6 +137,7 @@ function trendDomain(points: number[]): { low: number; high: number } {
  * built for it (learner-model-design §9.1).
  */
 function AccuracyTrend({ points }: { points: number[] }) {
+  const t = useT();
   if (points.length < 2) return null;
   // A fixed 0–100 axis flattened real movement — a 26-point gain rendered as a nearly
   // straight line. The axis follows the data instead, and the endpoints are labelled so a
@@ -150,7 +157,11 @@ function AccuracyTrend({ points }: { points: number[] }) {
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         role="img"
-        aria-label={`Accuracy across the last ${points.length} completed passages, from ${Math.round(points[0]! * 100)} to ${Math.round(points[points.length - 1]! * 100)} percent.`}
+        aria-label={t("progressPage.trendLabel", {
+          count: points.length,
+          from: Math.round(points[0]! * 100),
+          to: Math.round(points[points.length - 1]! * 100)
+        })}
       >
         <polyline
           points={coords.join(" ")}
@@ -166,24 +177,31 @@ function AccuracyTrend({ points }: { points: number[] }) {
   );
 }
 
-function formatPracticeTime(seconds: number): string {
-  if (seconds <= 0) return "0m";
+function formatPracticeTime(seconds: number, t: Translate): string {
+  if (seconds <= 0) return t("duration.m", { m: 0 });
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${seconds}s`;
+  if (hours > 0) return t("duration.hm", { h: hours, m: minutes });
+  if (minutes > 0) return t("duration.m", { m: minutes });
+  return t("duration.s", { s: seconds });
 }
 
-function levelBasisNote(level: string | null, basis: "measured" | "declared" | "default"): string {
-  if (basis === "measured") {
-    return `Based on your dictation accuracy, we've set your level to ${level}.`;
-  }
-  if (basis === "declared") {
-    return "This is the level you picked. It will adjust automatically as you practise dictation.";
-  }
-  return "Practise a few dictation passages and we'll estimate your level from your accuracy.";
+function levelBasisNote(
+  t: Translate,
+  level: string | null,
+  basis: "measured" | "declared" | "default"
+): string {
+  if (basis === "measured") return t("progressPage.basisMeasured", { level: level ?? "" });
+  if (basis === "declared") return t("progressPage.basisDeclared");
+  return t("progressPage.basisDefault");
 }
+
+/** A feature's name in the interface language. `TAG_DESCRIPTIONS` stays English: the learner
+ *  brief in grading prompts is built from it. */
+const tagLabel = (t: Translate, row: TagRow): string =>
+  (PASSAGE_TAGS as readonly string[]).includes(row.tag)
+    ? t(`learnerTag.${row.tag as PassageTagName}` satisfies MessageKey)
+    : row.label;
 
 function trendMark(trend: number): { symbol: string; className: string } | null {
   if (trend >= 0.05) return { symbol: "↑", className: "is-up" };
@@ -192,6 +210,7 @@ function trendMark(trend: number): { symbol: string; className: string } | null 
 }
 
 function TagMasteryList({ rows }: { rows: TagRow[] }) {
+  const t = useT();
   return (
     <div className="dash-score-list">
       {rows.map((row) => {
@@ -199,7 +218,7 @@ function TagMasteryList({ rows }: { rows: TagRow[] }) {
         const trend = trendMark(row.mastery.trend);
         return (
           <div key={row.tag} className="dash-score-row">
-            <div className="dash-score-label">{row.label}</div>
+            <div className="dash-score-label">{tagLabel(t, row)}</div>
             <div className="dash-score-track">
               <div className="dash-score-fill" style={{ width: `${pct}%` }} />
             </div>
@@ -229,13 +248,14 @@ export default function EnglishProgressPage() {
     trend,
     hasData
   } = useLoaderData<typeof loader>();
+  const t = useT();
 
   return (
     <StudioShell user={user}>
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Progress"
-          description="One view of your English across every module. Dictation is the most precise signal; reading contributes a lighter one."
+          title={t("progressPage.title")}
+          description={t("progressPage.description")}
         />
         <StudioPageTabs>
           <ProgressWorkspaceTabs />
@@ -245,27 +265,24 @@ export default function EnglishProgressPage() {
         {!hasData ? (
           <div className="studio-empty">
             <div className="studio-empty-mark" aria-hidden="true" />
-            <div className="studio-empty-title">No data yet</div>
-            <p className="studio-empty-desc">
-              Practise a dictation passage to start building your profile — it doubles as a
-              level check.
-            </p>
+            <div className="studio-empty-title">{t("readingProgress.noData")}</div>
+            <p className="studio-empty-desc">{t("progressPage.emptyBody")}</p>
             <Link to="/dictation" className="btn btn-primary btn-sm">
-              Start dictation
+              {t("progressPage.startDictation")}
             </Link>
           </div>
         ) : (
           <>
             <div className="dash-section">
-              <h3 className="dash-section-title">Level</h3>
+              <h3 className="dash-section-title">{t("progressPage.level")}</h3>
               <div className="dash-stats">
                 <div className="dash-stat-card">
                   <div className="dash-stat-value">{level ?? "—"}</div>
-                  <div className="dash-stat-label">CEFR estimate</div>
+                  <div className="dash-stat-label">{t("progressPage.cefrEstimate")}</div>
                 </div>
                 <div className="dash-stat-card">
                   <div className="dash-stat-value">{totalAttempts}</div>
-                  <div className="dash-stat-label">Attempts</div>
+                  <div className="dash-stat-label">{t("progressPage.attempts")}</div>
                 </div>
                 {/* One duration for every mode that measures one: reading (recording
                     length) and dictation (active time). Writing is not timed. Dictation
@@ -273,30 +290,25 @@ export default function EnglishProgressPage() {
                     estimated. Hidden at zero so "0m" never sits beside a real attempt count. */}
                 {totalPracticeSeconds > 0 ? (
                   <div className="dash-stat-card">
-                    <div className="dash-stat-value">{formatPracticeTime(totalPracticeSeconds)}</div>
-                    <div className="dash-stat-label">Practice time</div>
+                    <div className="dash-stat-value">{formatPracticeTime(totalPracticeSeconds, t)}</div>
+                    <div className="dash-stat-label">{t("progressPage.practiceTime")}</div>
                   </div>
                 ) : null}
               </div>
-              <p className="dash-section-hint">{levelBasisNote(level, levelBasis)}</p>
+              <p className="dash-section-hint">{levelBasisNote(t, level, levelBasis)}</p>
             </div>
 
             {trend.length >= 2 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Dictation accuracy</h3>
-                <p className="dash-section-hint">
-                  Your last {trend.length} completed passages, oldest first.
-                </p>
+                <h3 className="dash-section-title">{t("progressPage.dictationAccuracy")}</h3>
+                <p className="dash-section-hint">{t("progressPage.lastPassages", { count: trend.length })}</p>
                 <AccuracyTrend points={trend} />
               </div>
             ) : null}
 
             <div className="dash-section">
-              <h3 className="dash-section-title">Coverage</h3>
-              <p className="dash-section-hint">
-                Which levels you have practised. A wider spread makes the level estimate
-                more confident, so working a band above or below is useful.
-              </p>
+              <h3 className="dash-section-title">{t("progressPage.coverage")}</h3>
+              <p className="dash-section-hint">{t("progressPage.coverageHint")}</p>
               <div className="studio-coverage">
                 {COVERAGE_BANDS.map((band) => (
                   <span
@@ -308,19 +320,20 @@ export default function EnglishProgressPage() {
                 ))}
               </div>
               <p className="dash-section-hint">
-                {coverage.length} of {COVERAGE_BANDS.length} levels practised
+                {t("progressPage.coverageCount", { count: coverage.length, total: COVERAGE_BANDS.length })}
               </p>
             </div>
 
             {namedIssues.length > 0 || namedStrengths.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">What we're seeing</h3>
+                <h3 className="dash-section-title">{t("progressPage.seeing")}</h3>
                 {namedIssues.length > 0 ? (
                   <div className="dash-note-list">
                     {namedIssues.map((issue, i) => (
                       <div key={`issue-${i}`} className="dash-note-item">
-                        <div className="dash-note-text">{issue}</div>
-                        <div className="dash-note-meta">Working on</div>
+                        {/* Named by the profile pass, whose prompt and output are English. */}
+                        <div className="dash-note-text" lang="en">{issue}</div>
+                        <div className="dash-note-meta">{t("progressPage.workingOn")}</div>
                       </div>
                     ))}
                   </div>
@@ -329,8 +342,8 @@ export default function EnglishProgressPage() {
                   <div className="dash-note-list" style={{ marginTop: "0.5rem" }}>
                     {namedStrengths.map((s, i) => (
                       <div key={`strength-${i}`} className="dash-note-item">
-                        <div className="dash-note-text">{s}</div>
-                        <div className="dash-note-meta">Strength</div>
+                        <div className="dash-note-text" lang="en">{s}</div>
+                        <div className="dash-note-meta">{t("progressPage.strength")}</div>
                       </div>
                     ))}
                   </div>
@@ -340,34 +353,32 @@ export default function EnglishProgressPage() {
 
             {workingOn.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Working on</h3>
-                <p className="dash-section-hint">
-                  Accuracy on each feature, lowest first. An arrow shows a recent shift.
-                </p>
+                <h3 className="dash-section-title">{t("progressPage.workingOn")}</h3>
+                <p className="dash-section-hint">{t("progressPage.workingOnHint")}</p>
                 <TagMasteryList rows={workingOn} />
               </div>
             ) : null}
 
             {strengths.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Strengths</h3>
+                <h3 className="dash-section-title">{t("progressPage.strengths")}</h3>
                 <TagMasteryList rows={strengths} />
               </div>
             ) : null}
 
             <div className="dash-section">
-              <h3 className="dash-section-title">Keep going</h3>
+              <h3 className="dash-section-title">{t("progressPage.keepGoing")}</h3>
               <div className="dash-recent-list">
                 <Link to="/dictation" className="dash-recent-item">
-                  <div className="dash-recent-title">Dictation</div>
+                  <div className="dash-recent-title">{t("progressPage.dictation")}</div>
                   <div className="dash-recent-meta">
-                    <span className="nav-rail-agent-badge">Sharpens the estimate</span>
+                    <span className="nav-rail-agent-badge">{t("progressPage.sharpens")}</span>
                   </div>
                 </Link>
                 <Link to="/reading" className="dash-recent-item">
-                  <div className="dash-recent-title">Reading & Recitation</div>
+                  <div className="dash-recent-title">{t("progressPage.reading")}</div>
                   <div className="dash-recent-meta">
-                    <span className="nav-rail-agent-badge">Adds a lighter signal</span>
+                    <span className="nav-rail-agent-badge">{t("progressPage.lighter")}</span>
                   </div>
                 </Link>
               </div>

@@ -1,4 +1,17 @@
 import { cefrOrdinal, CEFR_LEVELS, type CefrLevel } from "./learner-model";
+import { en } from "~/i18n/messages/en";
+import { interpolate, type MessageKey, type MessageVars } from "~/i18n/translate";
+
+/**
+ * A learner-facing reason: the catalogue key and values the page renders in the interface
+ * language, plus the same sentence in English. The English is built from the catalogue entry
+ * itself, so the two cannot drift, and existing callers of `reason` see unchanged text.
+ */
+const explain = (reasonKey: MessageKey, reasonVars?: MessageVars) => ({
+  reason: interpolate(en[reasonKey], reasonVars),
+  reasonKey,
+  reasonVars
+});
 
 /**
  * The recommendation seam. Design: `docs/english-studio-ia-v2-design.md` §3.3, §6.4.
@@ -58,7 +71,10 @@ export type ContinueAction =
   | {
       kind: "writing";
       articleId: string;
+      /** The draft's title, or "Untitled draft" in English when it has none. */
       title: string;
+      /** True when `title` is the English placeholder, so a page can word it itself. */
+      untitled: boolean;
       updatedAt: string;
       href: string;
     };
@@ -75,8 +91,11 @@ export type RecommendedAction = {
   sentenceCount: number;
   rationale: Rationale;
   /** Learner-facing. Honest: level fit and practice history only — never a personalisation
-   *  claim, because nothing here ranks by the learner's tag profile yet. */
+   *  claim, because nothing here ranks by the learner's tag profile yet. English; pages
+   *  render `reasonKey` / `reasonVars` in the interface language. */
   reason: string;
+  reasonKey: MessageKey;
+  reasonVars?: MessageVars;
   href: string;
 };
 
@@ -176,6 +195,7 @@ const pickContinue = (
         kind: "writing",
         articleId: draft.articleId,
         title: draft.title?.trim() || "Untitled draft",
+        untitled: !draft.title?.trim(),
         updatedAt: draft.updatedAt,
         href: `/writing/${draft.articleId}`
       }
@@ -238,7 +258,10 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
           topic: fresh.topic,
           sentenceCount: fresh.sentenceCount,
           rationale: "adjacent_band",
-          reason: `A step ${cefrOrdinal(adjacent) > cefrOrdinal(band) ? "up" : "down"} from ${band}. Practising more than one level sharpens the level estimate.`,
+          ...explain(
+            cefrOrdinal(adjacent) > cefrOrdinal(band) ? "practice.reason.stepUp" : "practice.reason.stepDown",
+            { band }
+          ),
           href: passageHref("dictation", fresh.id)
         };
         break;
@@ -258,9 +281,7 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
         topic: fresh.topic,
         sentenceCount: fresh.sentenceCount,
         rationale: "level_fit",
-        reason: level
-          ? "Fits your current level."
-          : "A useful starting point — this also helps us estimate your level.",
+        ...explain(level ? "practice.reason.levelFit" : "practice.reason.startingPoint"),
         href: passageHref("dictation", fresh.id)
       };
     }
@@ -279,7 +300,7 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
         topic: dictated.topic,
         sentenceCount: dictated.sentenceCount,
         rationale: "cross_mode",
-        reason: "You have already taken this as dictation — read it aloud to close the loop.",
+        ...explain("practice.reason.crossMode"),
         href: passageHref("reading", dictated.id)
       };
     }
@@ -299,7 +320,7 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
           topic: fresh.topic,
           sentenceCount: fresh.sentenceCount,
           rationale: "adjacent_band",
-          reason: `Nothing new left at ${band}, so here is a ${adjacent} passage.`,
+          ...explain("practice.reason.nothingNew", { band, adjacent }),
           href: passageHref("dictation", fresh.id)
         };
         break;
@@ -323,7 +344,7 @@ export const selectStarterPractice = (input: StarterPracticeInput): StarterPract
         topic: passage.topic,
         sentenceCount: passage.sentenceCount,
         rationale: "revisit",
-        reason: `Your lowest score so far (${Math.round(record.accuracy * 100)}%). A second run usually moves it.`,
+        ...explain("practice.reason.revisit", { pct: Math.round(record.accuracy * 100) }),
         href: passageHref("dictation", passage.id)
       };
       break;
