@@ -10,7 +10,8 @@ import { type ReadingOutputLanguage } from "~/utils/reading-settings";
 import { callGemini, parseJsonFromText, toBase64, toStringArray } from "./llm.server";
 
 const RUBRIC_VERSION = "2026-04-02";
-const FALLBACK_MODEL_NAME = "local-heuristic-fallback";
+/** Model name stored when the model call failed and a heuristic evaluation was substituted. */
+export const FALLBACK_MODEL_NAME = "local-heuristic-fallback";
 
 type HistoryEntry = {
   date: string;

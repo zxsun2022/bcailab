@@ -26,7 +26,10 @@ export function faultDb(db, source, counted) {
       const match = source === 'profile' ? /FROM esl_learner_profiles/i.test(sql)
         : source === 'history' ? /FROM dictation_attempts/i.test(sql)
         : source === 'library' ? /ROW_NUMBER/i.test(sql)
-        : source === 'auth' ? /FROM sessions/i.test(sql) : false;
+        : source === 'auth' ? /FROM sessions/i.test(sql)
+        // Writes that follow a stored Reading result; reads stay intact so the run itself succeeds.
+        : source === 'reading-side-effects' ? /^\s*(INSERT INTO|UPDATE)\s+(esl_learner_profiles|passage_stats|learner_tag_observations)\b/i.test(sql)
+        : false;
       if (match) throw new Error('Synthetic ' + source + ' failure');
       return target.prepare(sql);
     };

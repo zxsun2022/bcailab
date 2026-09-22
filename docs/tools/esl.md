@@ -140,10 +140,47 @@ via the `reading_.trial.tsx` route-name prefix.
 - Passage reference TTS is also generated asynchronously in the background after the first submit.
 - New attempts redirect immediately to their detail page with a pending state while evaluation is running.
 - If an attempt gets stuck without feedback (for example an interrupted request), the detail page exposes `Retry feedback` to enqueue evaluation again without re-recording, with an in-page requesting/evaluating state.
+- **Evaluation runs** (migration 0023). Each evaluation is a run with its own id
+  (`evaluation_run_id`) and start time (`evaluation_started_at`). Submission claims the first run
+  in the same insert that creates the attempt; a retry claims a new one with a single conditional
+  `UPDATE`, so two concurrent retries cannot both start a model call. A retry is claimable when
+  the last run failed, or when it has been pending past the stale window. It is refused while a
+  run is still inside the window (the page keeps waiting) and once a result exists.
+- **Staleness is measured from the current run's start**, falling back to `created_at` for older
+  attempts. The window is `ESL_PENDING_EVAL_STALE_MS` (45 s): the app's own margin over
+  Cloudflare cancelling `waitUntil` tasks 30 s after the response ends. Waiting longer cannot
+  rescue a cancelled run, so slow evaluations are a separate reliability problem that retries
+  do not solve. SQLite timestamps are parsed as UTC explicitly (`parseSqliteUtc`).
+- **Result and status are one write.** The evaluation row and `evaluation_status = 'completed'`
+  are stored in one D1 batch, and the first stored result wins. A later run, including a slow
+  one that was retried but did finish, stores nothing. A failure is written only by the run that
+  still owns the attempt, and never over a stored result.
+- **Side effects cannot fail an evaluation.** Practice counters, `passage_stats` and tag
+  observations run only for the run that stored the result, so once per attempt. Each is
+  isolated: its failure is logged as `side_effect_error` and the evaluation stays completed.
+- **Logs.** Every run emits `{"event":"reading_evaluation","phase":…}` lines with `runId`,
+  `attemptId`, `trigger` (`submit`/`retry`) and `elapsedMs`, viewable with
+  `pnpm exec wrangler pages deployment tail --project-name=bcailab`. The phases are:
+  - `started`;
+  - `completed`, with `usedFallback`: a completed run is not necessarily a model result;
+  - `superseded`;
+  - `attempt_gone`;
+  - `evaluate_error`;
+  - `save_error`;
+  - `side_effect_error`;
+  - `audio_missing_error`;
+  - `failure_not_recorded`;
+  - `fail_write_error`.
+  A `started` line with no outcome is a run the platform cancelled; Cloudflare logs its own
+  `waitUntil() tasks did not complete` warning alongside it.
+- The status resource `/reading/:id/status` authorizes the passage with the same predicate as the
+  page (a library passage, or the caller's own). It used to require ownership, so polling on a
+  library passage returned 404 and its feedback never appeared without a reload.
 - Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
 - Highlights render the explicit target word or phrase from `text_quote` when available, otherwise they fall back to a validated `text_span`. The UI suppresses obviously broken partial-word spans instead of showing misleading chips.
 - Progress dashboard aggregates current non-deleted passages plus evaluated attempts, showing total passages, evaluated attempts, practice time, best score, overall-score trend, average subscores, recent AI progress notes, and recent passages with their latest score.
-- Primary evaluator: Gemini (`GEMINI_MODEL`, default `gemini-flash-latest`).
+- Primary evaluator: Gemini. The `reading_eval` task uses `gemini-3.6-flash`
+  (`apps/web/app/utils/llm.server.ts`), and `GEMINI_MODEL` overrides it when set.
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
   - Passage text and current audio
