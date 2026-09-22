@@ -1060,3 +1060,18 @@ band or one family, that evidence should redirect the *next* batch rather than t
   `docs/mapdown/decisions.md` before reopening any settled question — it has nineteen records,
   several of which correct an earlier
   mistake of mine and say so.
+- **Dictation contributes practice duration** (owner-authorized 2026-08-12; in_review 2026-09-18;
+  **accepted 2026-09-21**, evidence in `docs/changelog.md`, rule in `docs/tools/dictation.md`; production
+  needs migration 0022 applied before the deploy).
+  `total_practice_seconds` counts reading only: `learner-model.server.ts` passes
+  `practiceSeconds: 0` for dictation because nothing times a dictation attempt. A learner who
+  practises both modes therefore has a duration covering half their work. The surfaces were
+  made honest rather than left overclaiming — Home dropped duration entirely, Progress renamed
+  its card to *Reading time* and hides it at zero — so this item is about restoring the
+  measurement, not about the copy. Acceptance: (a) a dictation attempt records elapsed practice
+  time and adds it to `total_practice_seconds`; (b) resuming an in-progress attempt does not
+  double-count time already recorded; (c) idle time with no interaction is excluded, by a
+  documented rule; (d) Progress presents one duration covering every mode that measures one,
+  renamed back from *Reading time*; and (e) existing rows are unaffected — historical dictation
+  attempts stay at zero rather than being back-estimated. Explicitly excluded: timing Writing,
+  whose unit of work is a submitted round rather than a timed sitting.

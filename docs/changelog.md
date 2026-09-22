@@ -9,7 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-09-21 — **in_review: Reading evaluation runs — retry timing, one run at a time, consistent
+- 2026-09-21 — **accepted: owner sweep of every outstanding `in_review` entry.** The owner
+  accepted the six entries still awaiting review:
+  - Reading evaluation runs;
+  - the motion defects;
+  - the dictation resume fix;
+  - Dictation practice duration;
+  - the Reading bias corpus kit;
+  - the Reading bias-test tooling.
+  Accepting the last two accepts the tools, not a bias result. No corpus has been recorded and no
+  experiment run, so "Learner context for graders" stays open for its Reading half. The sweep also
+  corrects labels left behind on 2026-09-18: the eleven entries accepted then — iterations 4–6,
+  the Writing reliability entries F01–F05, the material library expansion and its drafts, and the
+  Dictation and Writing learner-context steps — had kept their `in_review` label here. All 17
+  entries below now read `accepted`. Dictation practice duration moved from the roadmap's Next to
+  the accepted history.
+
+- 2026-09-21 — **accepted: Reading evaluation runs — retry timing, one run at a time, consistent
   results, and polling on library passages.** This fixes state and retry reliability. It does not
   stop slow evaluations from being cancelled: `waitUntil` still ends 30 s after the response, and
   a durable runner (Queues) remains the follow-up.
@@ -58,7 +74,7 @@ make the final transition; see `AGENTS.md`.
   real platform cancellation. Migration `0023_reading_evaluation_runs.sql` must be applied to
   production **before** this deploys (ADR 0008).
 
-- 2026-09-21 — **in_review: motion defects — the mobile nav drawer, and reduced motion on Web.**
+- 2026-09-21 — **accepted: motion defects — the mobile nav drawer, and reduced motion on Web.**
   Three defects from an external animation audit, each re-checked against the code first.
   - **The mobile nav drawer never animated.** `.tool-nav-rail` switched from `display: none` to
     `flex` in the same frame as its `transform`, so the element had no previous box and the browser
@@ -92,7 +108,7 @@ make the final transition; see `AGENTS.md`.
   - At 1280 px the rail stays visible, clickable and 224 px wide.
   Screen-reader speech, and motion on a real device, were not checked.
 
-- 2026-09-20 — **in_review: dictation resume no longer discards earlier sentences.** Resuming an
+- 2026-09-20 — **accepted: dictation resume no longer discards earlier sentences.** Resuming an
   unfinished dictation attempt and checking one more sentence overwrote the attempt's stored
   results with just that sentence: `sentences_done` fell back to 1, a second resume dropped the
   learner at the wrong sentence, and the answers to the lost sentences were gone — the summary
@@ -107,7 +123,7 @@ make the final transition; see `AGENTS.md`.
   assertions were confirmed to fail against the previous behaviour. `pnpm verify` passes all 10
   checks. No migration and no schema change.
 
-- 2026-09-18 — **in_review: Reading bias corpus kit.** The gate's remaining input is a recorded,
+- 2026-09-18 — **accepted: Reading bias corpus kit.** The gate's remaining input is a recorded,
   annotated corpus. [`docs/spikes/reading-bias-corpus/`](spikes/reading-bias-corpus/README.md) now
   gives an eight-recording slate: two speakers, two present and two absent recordings per tag, and
   scripted errors outside the tested tag in four of them. It uses two 43-word passages that isolate
@@ -124,7 +140,7 @@ make the final transition; see `AGENTS.md`.
   owner:** the pinned model (`reading_eval` honours `GEMINI_MODEL`), and whether the tags-only
   brief is Reading's first rollout shape. No recording, ground truth or bias result exists.
 
-- 2026-09-18 — **in_review: Dictation contributes practice duration.** A signed-in dictation
+- 2026-09-18 — **accepted: Dictation contributes practice duration.** A signed-in dictation
   attempt now records its active practice time and, on completion, adds it to
   `total_practice_seconds` instead of 0; Progress labels the card *Practice time* again, since it
   now covers every mode that measures a duration (Reading and Dictation; Writing is not timed).
@@ -183,7 +199,7 @@ make the final transition; see `AGENTS.md`.
   rules were followed for the acceptance move: original headings retained as links, old anchors
   preserved in the roadmap, and no status inferred for work the owner did not accept.
 
-- 2026-09-18 — **in_review: material library expansion published to production.** The second
+- 2026-09-18 — **accepted: material library expansion published to production.** The second
   material batch is live: graded passages 40 → 80 (twenty per band across A2/B1/B2/C1) and IELTS
   writing prompts 24 → 48, for 72 published prompts in the bank (24 general, 24 Academic Task 1,
   24 Academic Task 2). Nothing was rewritten in learner data; no migration, no schema, no
@@ -242,7 +258,7 @@ make the final transition; see `AGENTS.md`.
   a usage error; it was worked around with the explicit `--r2-bucket` form and is reported rather
   than fixed here.
 
-- 2026-09-17 — **in_review: iteration 6 — readability and Home action hierarchy.**
+- 2026-09-17 — **accepted: iteration 6 — readability and Home action hierarchy.**
   Strengthened the shared Web supporting-text tokens in light and both dark modes, preserving
   palette/typography. Studio inputs and the Writing coach selector use control-strength boundaries;
   placeholders remain readable and keyboard focus uses a separated 2px outline. Writing/Dictation
@@ -267,7 +283,7 @@ make the final transition; see `AGENTS.md`.
   Shared Web tokens also affect their consumers; Mapdown styling is separate. No recommendation,
   measurement, Reading experiment or deployment change. Reproduce via [fixture instructions](../scripts/testing/README.md).
 
-- 2026-09-17 — **in_review: iteration 5 — documentation authority and drift repair.**
+- 2026-09-17 — **accepted: iteration 5 — documentation authority and drift repair.**
   Added the [documentation entry point](README.md), corrected Writing rail ownership, Home
   layout, container widths and test-scope claims, and removed the duplicate architecture route
   inventory. Marked the August audit as historical evidence. Moved already accepted roadmap
@@ -287,7 +303,7 @@ make the final transition; see `AGENTS.md`.
   Archive paragraphs/anchors were separately checked against the prior commit. No new browser,
   model-quality, Reading experiment or deployment claim; product behavior is unchanged.
 
-- 2026-09-17 — **in_review: iteration 4 — local verification entry points.** Added
+- 2026-09-17 — **accepted: iteration 4 — local verification entry points.** Added
   `verify:web`, `verify:mapdown` and combined `verify` with toolchain checks, labelled fail-fast
   steps, explicit test/type/lint/build scope, bounded operational-doc checks and automatic
   isolated D1/HTTP verification. Mapdown client and Functions are checked through their own
@@ -304,7 +320,7 @@ make the final transition; see `AGENTS.md`.
   claim is made. No CI, deployment settings, remote migrations or product behavior changed.
   See [verification scope and reproduction](verification.md).
 
-- 2026-09-17 — **in_review: Writing draft recovery across server round changes.**
+- 2026-09-17 — **accepted: Writing draft recovery across server round changes.**
   The revision draft key is stable per account/article; its base round is metadata. Unsent
   edits remain recoverable when another client advances the server round, with an explicit
   earlier-round notice. Viewing saved work no longer creates a pristine local draft copy.
@@ -312,7 +328,7 @@ make the final transition; see `AGENTS.md`.
   The isolated browser retained the earlier unsent text after D1 advanced to Round 2.
   A final retry run made two status requests and the count stayed at two after completion.
 
-- 2026-09-17 — **in_review: Home bounded inputs and independent degradation (F04/F05).**
+- 2026-09-17 — **accepted: Home bounded inputs and independent degradation (F04/F05).**
   Recommendation candidates now have per-band limits, separate from published record destinations.
   A dedicated eligible-resume query retains older unfinished dictation outside recent history.
   Profile/history/library failures recover independently; missing profile data is labelled unavailable,
@@ -324,7 +340,7 @@ make the final transition; see `AGENTS.md`.
   product reads, individual failure paths and authentication. Browser checks verified normal Home
   and profile-failure copy. Reproduction instructions: [reliability fixtures](../scripts/testing/README.md).
 
-- 2026-09-17 — **in_review: Writing draft recovery and account isolation (F02/F03).**
+- 2026-09-17 — **accepted: Writing draft recovery and account isolation (F02/F03).**
   Freeform, assignments and new rounds share an account-scoped local draft contract. Text,
   context and first-submit key survive refresh; revalidation does not replace dirty edits.
   Successful submission clears only its own version; unavailable storage is visible, and
@@ -336,7 +352,7 @@ make the final transition; see `AGENTS.md`.
   server response, refreshing and retrying produced one new article with exactly one Round 1 in
   real local D1. Test support uses synthetic accounts and a simulated model; no quality claim.
 
-- 2026-09-17 — **in_review: Writing retry lifecycle (F01).** Retry responses now identify
+- 2026-09-17 — **accepted: Writing retry lifecycle (F01).** Retry responses now identify
   article, revision, generation and task start time. The page consumes each response once and
   rejects stale polling results; creation timestamps remain unchanged. React regression tests
   reproduced the repeated-update mechanism before the guard and pass after it. An isolated,
@@ -345,7 +361,7 @@ make the final transition; see `AGENTS.md`.
   this is not a claim that all browser console errors are resolved. The fixture lives in
   `scripts/testing/writing-reliability.mjs`; it uses no owner data or real model credentials.
 
-- 2026-09-16 — **in_review: Reading context bias-test tooling.** Added `--brief` to the variance
+- 2026-09-16 — **accepted: Reading context bias-test tooling.** Added `--brief` to the variance
   screen and a registered-corpus harness for baseline / brief / legacy-profile comparisons. Both
   use the production prompt and highlight normalizer, replacing the screen's old score-only
   prompt; historical variance reports are not direct controls. Metrics reuse production tag
@@ -362,7 +378,7 @@ make the final transition; see `AGENTS.md`.
   corpus has been supplied, no Reading bias experiment has run, and no new Reading brief is enabled.
   See [the protocol and input format](spikes/reading-context-bias-protocol.md).
 
-- 2026-09-15 — **in_review: learner context for graders — Writing feedback step.** Signed-in
+- 2026-09-15 — **accepted: learner context for graders — Writing feedback step.** Signed-in
   first drafts, revisions and retries now receive other sessions' coach notes and related listening
   weaknesses. The current session is excluded in SQL before limiting to six sources. Within-session
   feedback still drives the delta; trials keep byte-identical prompts. Two bounded reads run inside
@@ -377,7 +393,7 @@ make the final transition; see `AGENTS.md`.
   acceptance or evidence of broad coaching quality. Scope/read-budget checks and limitations are
   recorded in [the verification note](spikes/learner-context-writing-verification.md).
 
-- 2026-09-15 — **in_review: learner context for graders — Dictation feedback step.** Dictation
+- 2026-09-15 — **accepted: learner context for graders — Dictation feedback step.** Dictation
   feedback, the first grader in the rollout order, now receives the learner brief (ADR 0010): the
   learner's own level or "not established", tag accuracy with each line's provenance, patterns
   named in the feedback on their last six completed attempts, and grammar notes from the latest
@@ -437,7 +453,7 @@ make the final transition; see `AGENTS.md`.
 
   Design and evidence: `docs/learner-context-proposal.md`. Nothing is implemented yet.
 
-- 2026-08-27 — **in_review: material library expansion drafts — 80 passages and 48 IELTS
+- 2026-08-27 — **accepted: material library expansion drafts — 80 passages and 48 IELTS
   prompts.** Both halves of the authorized expansion are generated and validated; **nothing is
   published**, no TTS has been spent, and no D1 row has been written.
 
