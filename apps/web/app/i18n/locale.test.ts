@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  intlLocale,
   negotiateAcceptLanguage,
   otherLocale,
   parseLocale,
@@ -130,5 +131,12 @@ describe("safeReturnPath", () => {
     42
   ])("refuses %s", (raw) => {
     expect(safeReturnPath(raw)).toBe("/");
+  });
+});
+
+describe("intlLocale", () => {
+  it("formats Chinese as zh-CN and leaves English to the browser", () => {
+    expect(intlLocale("zh")).toBe("zh-CN");
+    expect(intlLocale("en")).toBeUndefined();
   });
 });

@@ -30,6 +30,7 @@ import {
   parseReadingOutputLanguage,
   type ReadingOutputLanguage
 } from "~/utils/reading-settings";
+import type { MessageKey, MessageVars, Translate } from "~/i18n/translate";
 
 const audioFormatByMime: Record<string, string> = {
   "audio/webm": "webm",
@@ -53,15 +54,28 @@ const audioMimeByFormat: Record<string, string> = {
   flac: "audio/flac"
 };
 
+/**
+ * A rejected submission. `key` and `vars` let the route word it in the interface language;
+ * `message` keeps the English for logs and older callers.
+ */
 export class EslAttemptSubmissionError extends Error {
   status: number;
 
-  constructor(message: string, status = 400) {
+  constructor(
+    message: string,
+    status = 400,
+    readonly key?: MessageKey,
+    readonly vars?: MessageVars
+  ) {
     super(message);
     this.name = "EslAttemptSubmissionError";
     this.status = status;
   }
 }
+
+/** The error's text in the interface language, when it carries a key. */
+export const eslSubmissionErrorText = (error: EslAttemptSubmissionError, t: Translate): string =>
+  error.key ? t(error.key, error.vars) : error.message;
 
 export type ParsedEslAttemptSubmission = {
   mode: EslReadingMode;
@@ -95,7 +109,7 @@ export const parseEslAttemptSubmission = async (
 ): Promise<ParsedEslAttemptSubmission> => {
   const modeRaw = String(formData.get("mode") ?? "reading");
   if (!isSupportedReadingMode(modeRaw)) {
-    throw new EslAttemptSubmissionError("Invalid mode.");
+    throw new EslAttemptSubmissionError("Invalid mode.", 400, "reading.error.invalidMode");
   }
   const outputLanguage = parseReadingOutputLanguage(formData.get("outputLanguage"));
 
@@ -104,22 +118,21 @@ export const parseEslAttemptSubmission = async (
 
   const file = formData.get("audioFile");
   if (!(file instanceof File) || file.size <= 0) {
-    throw new EslAttemptSubmissionError("Please record audio first.");
+    throw new EslAttemptSubmissionError("Please record audio first.", 400, "reading.error.recordFirst");
   }
   if (file.size > MAX_ESL_READING_AUDIO_BYTES) {
-    throw new EslAttemptSubmissionError(
-      `Audio exceeds ${(MAX_ESL_READING_AUDIO_BYTES / (1024 * 1024)).toFixed(0)}MB.`
-    );
+    const mb = (MAX_ESL_READING_AUDIO_BYTES / (1024 * 1024)).toFixed(0);
+    throw new EslAttemptSubmissionError(`Audio exceeds ${mb}MB.`, 400, "reading.error.audioTooLarge", { mb });
   }
 
   const providedMimeType = file.type || "application/octet-stream";
   if (file.type && !isSupportedEslAudioMime(file.type)) {
-    throw new EslAttemptSubmissionError("Unsupported audio format.");
+    throw new EslAttemptSubmissionError("Unsupported audio format.", 400, "reading.error.unsupportedAudio");
   }
 
   const audioFormat = inferAudioFormat(providedMimeType, file.name);
   if (!audioFormat) {
-    throw new EslAttemptSubmissionError("Could not determine audio format.");
+    throw new EslAttemptSubmissionError("Could not determine audio format.", 400, "reading.error.unknownAudio");
   }
 
   const mimeType =
@@ -386,7 +399,7 @@ export const createAndScheduleEslReadingAttempt = async (
     }));
   } catch {
     await context.env.R2.delete(r2Key).catch(() => undefined);
-    throw new EslAttemptSubmissionError("Failed to submit. Please retry.", 500);
+    throw new EslAttemptSubmissionError("Failed to submit. Please retry.", 500, "reading.error.submitFailed");
   }
 
   if (!supportsAsyncEvaluationStatus) {
@@ -438,10 +451,10 @@ export const retryEslReadingAttemptEvaluation = async (
     includeDeleted: true
   });
   if (!attempt || attempt.user_id !== input.userId || attempt.passage_id !== input.passage.id || attempt.deleted_at) {
-    throw new EslAttemptSubmissionError("Attempt not found.", 404);
+    throw new EslAttemptSubmissionError("Attempt not found.", 404, "reading.error.attemptNotFound");
   }
   if (!isSupportedReadingMode(attempt.mode)) {
-    throw new EslAttemptSubmissionError("Invalid attempt mode.", 400);
+    throw new EslAttemptSubmissionError("Invalid attempt mode.", 400, "reading.error.invalidAttemptMode");
   }
 
   const runId = crypto.randomUUID();
@@ -451,7 +464,9 @@ export const retryEslReadingAttemptEvaluation = async (
     runId,
     staleSeconds: ESL_PENDING_EVAL_STALE_MS / 1000
   });
-  if (claim.outcome === "missing") throw new EslAttemptSubmissionError("Attempt not found.", 404);
+  if (claim.outcome === "missing") {
+    throw new EslAttemptSubmissionError("Attempt not found.", 404, "reading.error.attemptNotFound");
+  }
   if (claim.outcome !== "claimed") return { outcome: claim.outcome };
 
   const run: EvaluationRun = {

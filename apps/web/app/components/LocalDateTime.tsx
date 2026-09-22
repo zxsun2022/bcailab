@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useLocale } from "~/i18n/context";
+import { intlLocale } from "~/i18n/locale";
 
 type LocalDateTimeProps = {
   value: string;
@@ -45,8 +47,11 @@ const parseDateValue = (value: string): Date => {
   return new Date(value);
 };
 
-const formatLocalDateTime = (value: string, options: Intl.DateTimeFormatOptions) =>
-  new Intl.DateTimeFormat(undefined, options).format(parseDateValue(value));
+const formatLocalDateTime = (
+  value: string,
+  options: Intl.DateTimeFormatOptions,
+  locale: string | undefined
+) => new Intl.DateTimeFormat(locale, options).format(parseDateValue(value));
 
 export function LocalDateTime(props: LocalDateTimeProps) {
   const {
@@ -55,11 +60,12 @@ export function LocalDateTime(props: LocalDateTimeProps) {
     options = DEFAULT_OPTIONS,
     titleOptions = DEFAULT_TITLE_OPTIONS
   } = props;
+  const locale = intlLocale(useLocale());
 
   const displayText =
-    typeof window === "undefined" ? "" : formatLocalDateTime(value, options);
+    typeof window === "undefined" ? "" : formatLocalDateTime(value, options, locale);
   const fullText =
-    typeof window === "undefined" ? undefined : formatLocalDateTime(value, titleOptions);
+    typeof window === "undefined" ? undefined : formatLocalDateTime(value, titleOptions, locale);
 
   return (
     <time dateTime={value} className={className} title={fullText} suppressHydrationWarning>

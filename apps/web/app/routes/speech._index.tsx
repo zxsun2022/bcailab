@@ -38,6 +38,11 @@ import {
   StudioPageTabs
 } from "~/components/StudioPage";
 import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
+import { useLocale, useT } from "~/i18n/context";
+import { intlLocale } from "~/i18n/locale";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
+import type { Translate } from "~/i18n/translate";
 
 type LoaderLanguage = {
   code: string;
@@ -67,17 +72,23 @@ type ActionSuccess = {
   warning?: string;
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Speech · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.speech.title") }
 ];
 
 const filterSpeechVoices = (voices: SpeechVoiceOption[]): SpeechVoiceOption[] =>
   voices.filter((voice) => voice.family === "chirp3");
 
-const formatError = (error: unknown): string => {
-  if (error instanceof TtsValidationError) return error.message;
+/**
+ * Input problems are worded in the interface language; anything else is a provider message,
+ * shown as the provider sent it.
+ */
+const formatError = (error: unknown, t: Translate): string => {
+  if (error instanceof TtsValidationError) {
+    return error.key ? t(error.key, error.vars) : error.message;
+  }
   if (error instanceof Error && error.message) return error.message;
-  return "Failed to generate speech.";
+  return t("speech.error.generic");
 };
 
 const buildR2Key = (userId: string, generationId: string): string => {
@@ -88,8 +99,8 @@ const buildR2Key = (userId: string, generationId: string): string => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(undefined, {
+const formatDate = (value: string, locale: string | undefined) =>
+  new Date(value).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric"
@@ -351,7 +362,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       Object.entries(rawVoices).map(([code, voices]) => [code, filterSpeechVoices(voices)])
     );
   } catch (error) {
-    voiceError = formatError(error);
+    voiceError = formatError(error, getRequestTranslator(request));
   }
 
   const languages: LoaderLanguage[] = SUPPORTED_SPEECH_LANGUAGES.map((language) => ({
@@ -371,6 +382,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "generate");
+  const t = getRequestTranslator(request);
 
   if (intent === "delete") {
     const id = String(formData.get("id") ?? "");
@@ -379,14 +391,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         ? "/speech/history"
         : null;
     if (!id) {
-      return json<ActionError>({ error: "Missing record id." }, { status: 400 });
+      return json<ActionError>({ error: t("speech.error.missingId") }, { status: 400 });
     }
 
     const generation = await getTtsGenerationById(context.env.DB, id, {
       includeDeleted: true
     });
     if (!generation || generation.user_id !== user.id || generation.deleted_at) {
-      return json<ActionError>({ error: "Not found." }, { status: 404 });
+      return json<ActionError>({ error: t("speech.error.notFound") }, { status: 404 });
     }
 
     try {
@@ -398,14 +410,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       return redirect(next ? `/speech?record=${next.id}` : "/speech");
     } catch {
       return json<ActionError>(
-        { error: "Failed to delete the audio asset. Please try again." },
+        { error: t("speech.error.deleteFailed") },
         { status: 500 }
       );
     }
   }
 
   if (intent !== "generate") {
-    return json<ActionError>({ error: "Unsupported action." }, { status: 400 });
+    return json<ActionError>({ error: t("speech.error.unsupportedAction") }, { status: 400 });
   }
 
   const content = String(formData.get("content") ?? "");
@@ -413,7 +425,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const voiceName = String(formData.get("voiceName") ?? "");
 
   if (!SUPPORTED_SPEECH_LANGUAGES.some((language) => language.code === languageCode)) {
-    return json<ActionError>({ error: "Unsupported language." }, { status: 400 });
+    return json<ActionError>({ error: t("speech.error.unsupportedLanguage") }, { status: 400 });
   }
 
   try {
@@ -423,7 +435,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
     if (!selectedVoice) {
       return json<ActionError>(
-        { error: "Selected voice is invalid or unavailable for the chosen language." },
+        { error: t("speech.error.invalidVoice") },
         { status: 400 }
       );
     }
@@ -478,7 +490,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
     const warning =
       selectedVoice.family !== "chirp3" && alignment.marks.length < 2
-        ? "Current response did not include enough timing points for word-level highlighting."
+        ? t("speech.warning.timing")
         : undefined;
 
     return json<ActionSuccess>({
@@ -491,12 +503,20 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       warning
     });
   } catch (error) {
-    return json<ActionError>({ error: formatError(error) }, { status: 400 });
+    return json<ActionError>({ error: formatError(error, t) }, { status: 400 });
   }
 };
 
 export default function TtsIndexPage() {
   const { languages, voiceError, selected } = useLoaderData<typeof loader>();
+  const t = useT();
+  const locale = useLocale();
+  // Voice names are proper names; only the gender Google attaches is worded here.
+  const voiceLabel = (voice: SpeechVoiceOption) => {
+    const gender = voice.ssmlGender;
+    if (gender !== "FEMALE" && gender !== "MALE" && gender !== "NEUTRAL") return voice.label;
+    return `${voice.label.replace(/ \([^)]*\)$/, "")} (${t(`speech.gender.${gender}`)})`;
+  };
   const routeActionData = useActionData<typeof action>();
   const fetcher = useFetcher<typeof action>();
   const navigate = useNavigate();
@@ -710,7 +730,7 @@ export default function TtsIndexPage() {
 
     return (
       <div className="tts-transcript">
-        <div className="tts-transcript-title">Synced transcript</div>
+        <div className="tts-transcript-title">{t("speech.syncedTranscript")}</div>
         <div className="tts-transcript-body" ref={transcriptBodyRef}>
           {transcriptModel?.segments.map((segment, index) => {
             const isRead = segment.end <= currentChar;
@@ -756,8 +776,8 @@ export default function TtsIndexPage() {
   return (
     <StudioPage width="standard">
       <StudioPageHeader
-        title="Speech"
-        description="Turn text into natural audio and revisit each generation in History."
+        title={t("speech.title")}
+        description={t("speech.description")}
       />
       <StudioPageTabs>
         <SpeechWorkspaceTabs />
@@ -766,7 +786,7 @@ export default function TtsIndexPage() {
         <div className="tts-primary-content">
             {voiceError ? (
               <div className="banner tts-warning">
-                Voice list could not be loaded: {voiceError}
+                {t("speech.voiceListError", { error: voiceError })}
               </div>
             ) : null}
             {deleteErrorMessage ? <div className="form-error">{deleteErrorMessage}</div> : null}
@@ -776,12 +796,12 @@ export default function TtsIndexPage() {
                 <fetcher.Form method="post" className="tts-form speech-compose-form">
                   <input type="hidden" name="_intent" value="generate" />
                   <label id="speech-text-label" className="tts-input-label" htmlFor="speech-content">
-                    Text to speak
+                    {t("speech.textLabel")}
                   </label>
                   <Textarea
                     id="speech-content"
                     name="content"
-                    placeholder="Paste a paragraph, script, or lesson text…"
+                    placeholder={t("speech.placeholder")}
                     aria-describedby="speech-text-help speech-text-count"
                     value={content}
                     onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) =>
@@ -789,14 +809,17 @@ export default function TtsIndexPage() {
                     }
                   />
                   <div className="textarea-meta">
-                    <span id="speech-text-help">Markdown formatting is removed before synthesis.</span>
+                    <span id="speech-text-help">{t("speech.markdownHelp")}</span>
                     <span
                       id="speech-text-count"
                       className={`textarea-count ${isOverLimit ? "is-over-limit" : ""}`}
                     >
-                      {content.length.toLocaleString()} chars
+                      {t("speech.chars", { count: content.length.toLocaleString() })}
                       {isOverLimit
-                        ? ` · ${contentByteLength.toLocaleString()} / ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes — too long`
+                        ? t("speech.tooLongBytes", {
+                            bytes: contentByteLength.toLocaleString(),
+                            max: MAX_TTS_SSML_BYTES.toLocaleString()
+                          })
                         : null}
                     </span>
                   </div>
@@ -805,7 +828,7 @@ export default function TtsIndexPage() {
                     <div className="tts-select-grid">
                       <div className="tts-select-field">
                         <label className="tts-label" htmlFor="languageCode">
-                          Language
+                          {t("speech.language")}
                         </label>
                         <select
                           id="languageCode"
@@ -821,7 +844,7 @@ export default function TtsIndexPage() {
                               disabled={language.voices.length === 0}
                             >
                               {language.label}
-                              {language.voices.length === 0 ? " (no supported voice available)" : ""}
+                              {language.voices.length === 0 ? t("speech.noVoiceSuffix") : ""}
                             </option>
                           ))}
                         </select>
@@ -829,7 +852,7 @@ export default function TtsIndexPage() {
 
                       <div className="tts-select-field">
                         <label className="tts-label" htmlFor="voiceName">
-                          Voice
+                          {t("speech.voice")}
                         </label>
                         <select
                           id="voiceName"
@@ -840,17 +863,17 @@ export default function TtsIndexPage() {
                           disabled={voiceOptions.length === 0}
                         >
                           {voiceOptions.length === 0 ? (
-                            <option value="">No supported voice available</option>
+                            <option value="">{t("speech.noVoice")}</option>
                           ) : null}
                           {voiceOptions.map((voice) => (
-                            <option key={voice.name} value={voice.name}>{voice.label}</option>
+                            <option key={voice.name} value={voice.name}>{voiceLabel(voice)}</option>
                           ))}
                         </select>
                       </div>
 
                       <div className="tts-generate-wrap">
                         <Button type="submit" disabled={!canGenerate} className="tts-generate-btn">
-                          {isSubmitting ? "Generating…" : "Generate audio"}
+                          {isSubmitting ? t("speech.generating") : t("speech.generate")}
                         </Button>
                       </div>
                     </div>
@@ -864,27 +887,27 @@ export default function TtsIndexPage() {
             {selected ? (
               <Card className="tool-card-stack tts-primary-card tts-selected-card">
                 <div className="tts-result-header">
-                  <strong>Generated audio</strong>
+                  <strong>{t("speech.generatedAudio")}</strong>
                   <div className="tts-history-actions">
                     <Button type="button" variant="ghost" size="sm" onClick={handleCopyText}>
                       {copyState === "copied"
-                        ? "Copied"
+                        ? t("common.copied")
                         : copyState === "failed"
-                          ? "Copy failed"
-                          : "Copy text"}
+                          ? t("speech.copyFailed")
+                          : t("speech.copyText")}
                     </Button>
                     <a className="btn btn-ghost btn-sm" href={selected.downloadUrl}>
-                      Download MP3
+                      {t("speech.downloadMp3")}
                     </a>
                     <form method="post">
                       <input type="hidden" name="_intent" value="delete" />
                       <input type="hidden" name="id" value={selected.id} />
                       <ConfirmSubmitButton
                         className="btn btn-danger btn-sm"
-                        dialogTitle="Delete speech generation?"
-                        dialogDescription="This removes the generated audio and its history entry. This cannot be undone."
+                        dialogTitle={t("speech.deleteTitle")}
+                        dialogDescription={t("speech.deleteDescription")}
                       >
-                        Delete
+                        {t("common.delete")}
                       </ConfirmSubmitButton>
                     </form>
                   </div>
@@ -899,7 +922,7 @@ export default function TtsIndexPage() {
                 <div className="tts-history-meta" style={{ marginTop: "12px" }}>
                   <span>{selected.languageCode}</span>
                   <span>{selected.voiceName}</span>
-                  <span>{formatDate(selected.createdAt)}</span>
+                  <span>{formatDate(selected.createdAt, intlLocale(locale))}</span>
                 </div>
                 {activeAlignment
                   ? renderTranscript(activeAlignment.displayText)

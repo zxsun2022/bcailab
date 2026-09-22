@@ -5,10 +5,15 @@ import { getUserPasswordHash, setUserPassword, updateUserProfile } from "@bcaila
 import { requireUser } from "~/utils/auth.server";
 import { hashPassword, verifyPassword } from "~/utils/password.server";
 import { validatePasswordStrength, MIN_PASSWORD_LENGTH } from "~/utils/password";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 
 const MAX_NAME_LENGTH = 80;
 
-export const meta: MetaFunction = () => [{ title: "Profile · bcailab" }];
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.profile.title") }
+];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -24,12 +29,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
   const form = await request.formData();
   const intent = String(form.get("intent") ?? "");
+  // Errors below are shown as written, in the interface language.
+  const t = getRequestTranslator(request);
 
   if (intent === "update-profile") {
     const name = String(form.get("name") ?? "").trim();
     if (name.length > MAX_NAME_LENGTH) {
       return json<ActionData>(
-        { section: "profile", ok: false, error: `Name must be ${MAX_NAME_LENGTH} characters or fewer.` },
+        { section: "profile", ok: false, error: t("profile.error.nameTooLong", { max: MAX_NAME_LENGTH }) },
         { status: 400 }
       );
     }
@@ -49,7 +56,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     // password only requires the authenticated session.
     if (existing && !(await verifyPassword(current, existing))) {
       return json<ActionData>(
-        { section: "password", ok: false, error: "Current password is incorrect." },
+        { section: "password", ok: false, error: t("profile.error.currentIncorrect") },
         { status: 400 }
       );
     }
@@ -58,14 +65,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
         {
           section: "password",
           ok: false,
-          error: `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`
+          error: t("login.error.passwordLength", { min: MIN_PASSWORD_LENGTH })
         },
         { status: 400 }
       );
     }
     if (next !== confirm) {
       return json<ActionData>(
-        { section: "password", ok: false, error: "The two passwords do not match." },
+        { section: "password", ok: false, error: t("profile.error.mismatch") },
         { status: 400 }
       );
     }
@@ -73,16 +80,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     return json<ActionData>({ section: "password", ok: true });
   }
 
-  return json<ActionData>({ section: "profile", ok: false, error: "Unknown action." }, { status: 400 });
+  return json<ActionData>({ section: "profile", ok: false, error: t("common.unknownAction") }, { status: 400 });
 };
 
 export default function ProfilePage() {
   const { user, hasPassword } = useLoaderData<typeof loader>();
   const profileFetcher = useFetcher<ActionData>();
   const passwordFetcher = useFetcher<ActionData>();
+  const t = useT();
 
   const avatarSrc = user.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
-  const displayName = user.name ?? user.email ?? "Account";
+  const displayName = user.name ?? user.email ?? t("common.account");
 
   const profileData = profileFetcher.data;
   const passwordData = passwordFetcher.data;
@@ -92,10 +100,8 @@ export default function ProfilePage() {
   return (
     <div className="profile-page">
       <header className="profile-header">
-        <h1 className="profile-title">Profile</h1>
-        <p className="profile-description">
-          Manage how you appear across the studio and how you sign in.
-        </p>
+        <h1 className="profile-title">{t("profile.title")}</h1>
+        <p className="profile-description">{t("profile.description")}</p>
       </header>
 
       <div className="profile-identity">
@@ -112,13 +118,13 @@ export default function ProfilePage() {
       </div>
 
       <section className="profile-section">
-        <h2 className="profile-section-title">Account information</h2>
+        <h2 className="profile-section-title">{t("profile.accountInfo")}</h2>
         <profileFetcher.Form method="post" className="profile-form">
           <input type="hidden" name="intent" value="update-profile" />
 
           <div className="profile-field">
             <label className="profile-label" htmlFor="profile-name">
-              Display name
+              {t("profile.displayName")}
             </label>
             <input
               id="profile-name"
@@ -127,18 +133,18 @@ export default function ProfilePage() {
               name="name"
               defaultValue={user.name ?? ""}
               maxLength={MAX_NAME_LENGTH}
-              placeholder="Your name"
+              placeholder={t("profile.namePlaceholder")}
             />
-            <p className="profile-hint">Leave blank to fall back to your email address.</p>
+            <p className="profile-hint">{t("profile.nameHint")}</p>
           </div>
 
           <div className="profile-actions">
             <button type="submit" className="btn btn-primary" disabled={profileBusy}>
-              {profileBusy ? "Saving…" : "Save changes"}
+              {profileBusy ? t("common.saving") : t("profile.saveChanges")}
             </button>
             {profileData?.ok ? (
               <p className="profile-status" role="status">
-                Saved.
+                {t("profile.saved")}
               </p>
             ) : null}
             {profileData && !profileData.ok ? (
@@ -152,12 +158,10 @@ export default function ProfilePage() {
 
       <section className="profile-section">
         <h2 className="profile-section-title">
-          {hasPassword ? "Change password" : "Set a password"}
+          {hasPassword ? t("profile.changePassword") : t("profile.setPassword")}
         </h2>
         <p className="profile-section-intro">
-          {hasPassword
-            ? "Your account can sign in with an email code, Google, or this password."
-            : "Optional. Your account already signs in with an email code or Google — a password simply adds another way in."}
+          {hasPassword ? t("profile.withPassword") : t("profile.withoutPassword")}
         </p>
         <passwordFetcher.Form method="post" className="profile-form">
           <input type="hidden" name="intent" value="set-password" />
@@ -165,7 +169,7 @@ export default function ProfilePage() {
           {hasPassword ? (
             <div className="profile-field">
               <label className="profile-label" htmlFor="current-password">
-                Current password
+                {t("profile.currentPassword")}
               </label>
               <input
                 id="current-password"
@@ -180,7 +184,7 @@ export default function ProfilePage() {
 
           <div className="profile-field">
             <label className="profile-label" htmlFor="new-password">
-              New password
+              {t("login.newPassword")}
             </label>
             <input
               id="new-password"
@@ -189,14 +193,14 @@ export default function ProfilePage() {
               name="password"
               autoComplete="new-password"
               minLength={MIN_PASSWORD_LENGTH}
-              placeholder={`At least ${MIN_PASSWORD_LENGTH} characters`}
+              placeholder={t("login.passwordMin", { min: MIN_PASSWORD_LENGTH })}
               required
             />
           </div>
 
           <div className="profile-field">
             <label className="profile-label" htmlFor="confirm-password">
-              Confirm new password
+              {t("profile.confirmPassword")}
             </label>
             <input
               id="confirm-password"
@@ -211,11 +215,15 @@ export default function ProfilePage() {
 
           <div className="profile-actions">
             <button type="submit" className="btn btn-primary" disabled={passwordBusy}>
-              {passwordBusy ? "Saving…" : hasPassword ? "Update password" : "Set password"}
+              {passwordBusy
+                ? t("common.saving")
+                : hasPassword
+                  ? t("profile.updatePassword")
+                  : t("profile.setPasswordButton")}
             </button>
             {passwordData?.ok ? (
               <p className="profile-status" role="status">
-                Password saved.
+                {t("profile.passwordSaved")}
               </p>
             ) : null}
             {passwordData && !passwordData.ok ? (

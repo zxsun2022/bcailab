@@ -41,6 +41,14 @@ working rule.)
 - Speech currently exposes Chirp3 voices only.
 - Chirp3 generation does not provide usable word timepoints, so playback is shown without word-level synchronized highlighting.
 
+## Interface language
+
+Generate, history and settings render in the visitor's interface language (ADR 0011). Speech
+language names are autonyms (Français, 日本語) and stay as written; voice names are proper
+names, and only the gender Google attaches is translated. Input problems carry a message key
+(`TtsValidationError`); provider messages, such as a failed voice-list load, are shown as the
+provider sent them.
+
 ## Data & Deletion
 - D1 table: `tts_generations`
 - R2 key pattern: `tts/{userId}/{yyyy}/{mm}/{id}.mp3`

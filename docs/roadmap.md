@@ -305,8 +305,11 @@ errors. That hole is real and is recorded in the design's §8, not fixed here.
   no-JS switcher, provider, meta helper and Chinese typography rules; the homepage, `/english`,
   site header, studio rail, sign-in popup, error boundary and Dictation library/session/summary
   render in Chinese. Evidence and the surface-by-surface checklist: `docs/changelog.md` and
-  design §9. Stages 2 and 3 are not started; until they are, Reading, Writing, Translate, Speech,
-  Home and Progress show English content inside a Chinese rail.
+  design §9.
+- **Stage 2 — the remaining tools: `in_review` (2026-09-22).** Translate, Speech, Reading and
+  Writing, with their trials, settings and progress pages, and the profile page, render in the
+  interface language; dates follow it. Evidence: `docs/changelog.md` and design §9. Stage 3 is not
+  started; until it is, Home and the Progress overview show English content inside a Chinese rail.
 
 
 ## Next

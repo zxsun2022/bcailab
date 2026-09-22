@@ -7,6 +7,7 @@ import {
   getTranslateQuotaStatus
 } from "~/utils/translate-quota.server";
 import { isTranslateLanguageCode, type TranslateLanguageCode } from "~/utils/translate-languages";
+import { getRequestTranslator } from "~/i18n/locale.server";
 
 /**
  * Validation + quota gate shared by the two translate entry points: the `/translate`
@@ -43,6 +44,8 @@ export const prepareTranslateRequest = async (
   const { anonId, setCookie } = ensureAnonId(request);
   const identity = { userId: user?.id ?? null, anonId, ip: getClientIp(request) };
   const tierConfig = user ? TRANSLATE_TIERS.free : TRANSLATE_TIERS.anonymous;
+  // Errors are shown to the visitor as written, in the interface language.
+  const t = getRequestTranslator(request);
   const fail = (error: string, status: number, code?: TranslateRequestError["code"]) =>
     ({ ok: false as const, status, error, code, setCookie });
 
@@ -50,12 +53,15 @@ export const prepareTranslateRequest = async (
   const sourceRaw = String(formData.get("source") ?? "auto");
   const targetRaw = String(formData.get("target") ?? "en");
 
-  if (!text.trim()) return fail("Enter some text to translate.", 400);
+  if (!text.trim()) return fail(t("translate.error.empty"), 400);
   if (text.length > tierConfig.maxChars) {
     return fail(
       user
-        ? `Text is too long (max ${tierConfig.maxChars.toLocaleString()} characters).`
-        : `Text is too long for anonymous use (max ${tierConfig.maxChars.toLocaleString()} characters). Sign in to translate up to ${TRANSLATE_TIERS.free.maxChars.toLocaleString()}.`,
+        ? t("translate.error.tooLong", { max: tierConfig.maxChars.toLocaleString() })
+        : t("translate.error.tooLongAnonymous", {
+            max: tierConfig.maxChars.toLocaleString(),
+            signedInMax: TRANSLATE_TIERS.free.maxChars.toLocaleString()
+          }),
       400,
       "too_long"
     );
@@ -63,17 +69,15 @@ export const prepareTranslateRequest = async (
 
   const sourceLang =
     sourceRaw === "auto" || !isTranslateLanguageCode(sourceRaw) ? "auto" : sourceRaw;
-  if (!isTranslateLanguageCode(targetRaw)) return fail("Unsupported target language.", 400);
+  if (!isTranslateLanguageCode(targetRaw)) return fail(t("translate.error.unsupportedTarget"), 400);
   if (sourceLang !== "auto" && sourceLang === targetRaw) {
-    return fail("Source and target languages are the same.", 400);
+    return fail(t("translate.error.sameLanguage"), 400);
   }
 
   const quota = await getTranslateQuotaStatus(context.env.DB, identity);
   if (quota.remainingToday <= 0) {
     return fail(
-      user
-        ? "Daily translation limit reached. Please come back tomorrow."
-        : "You've used today's free translations. Sign in to continue — it's free.",
+      user ? t("translate.error.quotaSignedIn") : t("translate.error.quotaAnonymous"),
       429,
       "quota_exceeded"
     );

@@ -20,11 +20,10 @@ import {
 import { StudioShell } from "~/components/StudioShell";
 import { TranslateWorkspaceTabs } from "~/components/TranslateWorkspaceTabs";
 import { requireUser } from "~/utils/auth.server";
-import {
-  isTranslateLanguageCode,
-  translateLanguageLabel,
-  type TranslateLanguageCode
-} from "~/utils/translate-languages";
+import { storedLanguageName, type TranslateLanguageCode } from "~/utils/translate-languages";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 import { readAnonId } from "~/utils/translate-quota.server";
 import {
   TranslationSaveProofError,
@@ -41,10 +40,13 @@ export const handle = {
   hideHeaderUserMenu: true
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Saved translations · Translate · bcailab" },
-  { name: "description", content: "Translations you explicitly chose to save." }
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    { title: t("meta.translateSaved.title") },
+    { name: "description", content: t("meta.translateSaved.description") }
+  ];
+};
 
 const isSavedSchemaMissing = (error: unknown): boolean =>
   error instanceof Error && error.message.includes("no such table: saved_translations");
@@ -62,11 +64,6 @@ const parseCursor = (url: URL): SavedTranslationCursor | null => {
     throw new Response("Invalid cursor", { status: 400, headers: PRIVATE_HEADERS });
   }
   return { createdAt, id };
-};
-
-const languageLabel = (code: string | null): string => {
-  if (!code) return "Unknown";
-  return isTranslateLanguageCode(code) ? translateLanguageLabel(code) : code;
 };
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -118,6 +115,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     sourceText: String(formData.get("sourceText") ?? ""),
     translatedText: String(formData.get("translatedText") ?? "")
   };
+  const t = getRequestTranslator(request);
   const acceptedSubjects = [`user:${user.id}`];
   const anonId = readAnonId(request);
   if (anonId) acceptedSubjects.push(`anon:${anonId}`);
@@ -145,18 +143,18 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   } catch (error) {
     if (error instanceof TranslationSaveProofError) {
       return json<ActionData>(
-        { error: "This result can no longer be saved. Translate it again and retry." },
+        { error: t("translateSaved.error.expired") },
         { status: 400, headers: PRIVATE_HEADERS }
       );
     }
     if (isSavedSchemaMissing(error)) {
       return json<ActionData>(
-        { error: "Saved translations are not available on this environment yet." },
+        { error: t("translateSaved.error.unavailable") },
         { status: 503, headers: PRIVATE_HEADERS }
       );
     }
     return json<ActionData>(
-      { error: "Could not save this translation. Please retry." },
+      { error: t("translateSaved.error.failed") },
       { status: 500, headers: PRIVATE_HEADERS }
     );
   }
@@ -164,23 +162,24 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
 export default function SavedTranslationsPage() {
   const { user, items, nextCursor, deleted } = useLoaderData<typeof loader>();
+  const t = useT();
   return (
     <StudioShell user={user} canvasClassName="translate-shell-canvas">
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Saved translations"
-          description="Only translations you explicitly save appear here."
+          title={t("translateSaved.title")}
+          description={t("translateSaved.description")}
         />
         <StudioPageTabs>
           <TranslateWorkspaceTabs active="saved" />
         </StudioPageTabs>
         <StudioPageBody className="translate-saved-page">
-          {deleted ? <p className="translate-saved-notice" role="status">Translation permanently deleted.</p> : null}
+          {deleted ? <p className="translate-saved-notice" role="status">{t("translateSaved.deleted")}</p> : null}
           {items.length === 0 ? (
             <section className="translate-saved-empty">
-              <p className="writing-section-eyebrow">Private workspace</p>
-              <h2>No saved translations yet</h2>
-              <p>Translate something useful, then choose Save after the result is complete.</p>
+              <p className="writing-section-eyebrow">{t("translateSaved.privateWorkspace")}</p>
+              <h2>{t("translateSaved.emptyTitle")}</h2>
+              <p>{t("translateSaved.emptyBody")}</p>
             </section>
           ) : (
             <div className="translate-saved-list">
@@ -192,7 +191,9 @@ export default function SavedTranslationsPage() {
                   <Link key={item.id} to={`/translate/saved/${item.id}`} className="translate-saved-row">
                     <span className="translate-saved-row-copy">
                       <strong>{item.source_preview}</strong>
-                      <small>{languageLabel(sourceCode)} → {languageLabel(item.target_language)}</small>
+                      <small>
+                        {storedLanguageName(t, sourceCode)} → {storedLanguageName(t, item.target_language)}
+                      </small>
                     </span>
                     <LocalDateTime value={item.created_at} />
                   </Link>
@@ -206,7 +207,7 @@ export default function SavedTranslationsPage() {
               to={`?before=${encodeURIComponent(nextCursor.createdAt)}&beforeId=${encodeURIComponent(nextCursor.id)}`}
               rel="next"
             >
-              Older translations
+              {t("translateSaved.older")}
             </Link>
           ) : null}
         </StudioPageBody>

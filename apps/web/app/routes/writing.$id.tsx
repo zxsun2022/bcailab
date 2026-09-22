@@ -30,13 +30,16 @@ import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import {
   isWritingSchemaMissingError,
-  logWritingSchemaMissing,
-  WRITING_UNAVAILABLE_ERROR
+  logWritingSchemaMissing
 } from "~/utils/writing-schema.server";
 import { parseWritingAssignmentSnapshot } from "~/utils/writing-prompt.server";
 
 import { useWritingDraft } from "~/utils/use-writing-draft";
 import { useWritingRetryResult, type WritingRetryResult } from "~/utils/use-writing-retry-result";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
+import { writingAgentCopy } from "~/utils/writing-agent-copy";
 
 type ActionData = {
   retry?: WritingRetryResult;
@@ -56,13 +59,16 @@ const PENDING_LONG_WAIT_MS = 15_000;
 const ASIDE_COLLAPSED_KEY = "writing-aside-collapsed";
 const ASIDE_PANEL_ID = "writing-feedback-panel";
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  {
-    title: data?.article?.title
-      ? `${data.article.title} · Writing · English Studio · bcailab`
-      : "Writing · English Studio · bcailab"
-  }
-];
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    {
+      title: data?.article?.title
+        ? t("meta.writingArticle.title", { title: data.article.title })
+        : t("meta.writing.title")
+    }
+  ];
+};
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -195,6 +201,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 
     const formData = await request.formData();
     const intent = String(formData.get("_intent") ?? "");
+    // Errors below are shown to the learner as written, in the interface language.
+    const t = getRequestTranslator(request);
 
     if (intent === "deleteArticle") {
       try {
@@ -203,15 +211,15 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {
           logWritingSchemaMissing("writing.detail.action.delete", error);
-          return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
+          return json<ActionData>({ error: t("writing.unavailableError") }, { status: 503 });
         }
-        return json<ActionData>({ error: "Failed to delete. Please try again." }, { status: 500 });
+        return json<ActionData>({ error: t("writing.error.deleteFailed") }, { status: 500 });
       }
     }
 
     if (intent === "updateTitle") {
       const title = String(formData.get("title") ?? "").trim();
-      if (!title) return json<ActionData>({ error: "Title cannot be empty." }, { status: 400 });
+      if (!title) return json<ActionData>({ error: t("writing.error.titleEmpty") }, { status: 400 });
       try {
         await updateWritingArticleTitle(context.env.DB, {
           id: article.id,
@@ -222,16 +230,16 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {
           logWritingSchemaMissing("writing.detail.action.title", error);
-          return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
+          return json<ActionData>({ error: t("writing.unavailableError") }, { status: 503 });
         }
-        return json<ActionData>({ error: "Failed to update title." }, { status: 500 });
+        return json<ActionData>({ error: t("writing.error.titleFailed") }, { status: 500 });
       }
     }
 
     if (intent === "submitRevision") {
       const userText = String(formData.get("userText") ?? "").trim();
       if (!userText) {
-        return json<ActionData>({ error: "Please write something before submitting." }, { status: 400 });
+        return json<ActionData>({ error: t("writing.error.empty") }, { status: 400 });
       }
       const transport = String(formData.get("_transport") ?? "document");
       const feedbackLanguage = formData.get("feedbackLanguage") === "zh" ? "zh" as const : "en" as const;
@@ -261,15 +269,15 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {
           logWritingSchemaMissing("writing.detail.action.submit", error);
-          return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
+          return json<ActionData>({ error: t("writing.unavailableError") }, { status: 503 });
         }
-        return json<ActionData>({ error: "Failed to submit revision. Please retry." }, { status: 500 });
+        return json<ActionData>({ error: t("writing.error.submitRevisionFailed") }, { status: 500 });
       }
     }
 
     if (intent === "retryFeedback") {
       const revisionId = String(formData.get("revisionId") ?? "");
-      if (!revisionId) return json<ActionData>({ error: "Missing revision." }, { status: 400 });
+      if (!revisionId) return json<ActionData>({ error: t("writing.error.missingRevision") }, { status: 400 });
       const feedbackLanguage = formData.get("feedbackLanguage") === "zh" ? "zh" as const : "en" as const;
 
       try {
@@ -284,17 +292,20 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       } catch (error) {
         if (isWritingSchemaMissingError(error)) {
           logWritingSchemaMissing("writing.detail.action.retry", error);
-          return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
+          return json<ActionData>({ error: t("writing.unavailableError") }, { status: 503 });
         }
-        return json<ActionData>({ error: "Failed to retry feedback." }, { status: 500 });
+        return json<ActionData>({ error: t("writing.error.retryFailed") }, { status: 500 });
       }
     }
 
-    return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
+    return json<ActionData>({ error: t("writing.error.unsupported") }, { status: 400 });
   } catch (error) {
     if (!isWritingSchemaMissingError(error)) throw error;
     logWritingSchemaMissing("writing.detail.action", error);
-    return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
+    return json<ActionData>(
+      { error: getRequestTranslator(request)("writing.unavailableError") },
+      { status: 503 }
+    );
   }
 };
 
@@ -346,6 +357,7 @@ function WritingArticlePageReady({
   const titleInputRef = React.useRef<HTMLInputElement>(null);
 
   const fullAgent = getWritingAgentOrDefault(agent.id);
+  const t = useT();
 
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const essayPrompt = article.essay_prompt ?? "";
@@ -567,25 +579,25 @@ function WritingArticlePageReady({
     }
   };
 
-  const displayTitle = liveTitle || "Untitled";
+  const displayTitle = liveTitle || t("writingDetail.untitled");
   const collection = assignment?.taskType === "academic_task_1"
-    ? { label: "Visual reports", to: "/writing/library?category=task1" }
+    ? { label: t("writing.collection.task1.title"), to: "/writing/library?category=task1" }
     : assignment?.taskType === "academic_task_2"
-      ? { label: "Academic essays", to: "/writing/library?category=task2" }
+      ? { label: t("writing.collection.task2.title"), to: "/writing/library?category=task2" }
       : assignment
-        ? { label: "Everyday writing", to: "/writing/library?category=general" }
+        ? { label: t("writing.collection.general.title"), to: "/writing/library?category=general" }
         : null;
   // The trail names places, not the current session: the session's own name is the H1.
   // A session keeps its assignment's title until the learner renames it, so repeating it as a
   // leaf would print the same words twice.
   const breadcrumbItems = assignment && collection
     ? [
-        { label: "Writing", to: "/writing" },
+        { label: t("writing.title"), to: "/writing" },
         collection,
-        { label: assignment.title, to: `/writing/prompt/${assignment.promptSlug}` },
+        { label: assignment.title, to: `/writing/prompt/${assignment.promptSlug}`, lang: "en" },
         ...(displayTitle.trim() === assignment.title.trim() ? [] : [{ label: displayTitle }])
       ]
-    : [{ label: "Writing", to: "/writing" }, { label: displayTitle }];
+    : [{ label: t("writing.title"), to: "/writing" }, { label: displayTitle }];
   const currentWordCount = isComposeView
     ? text.trim().split(/\s+/).filter(Boolean).length
     : liveActiveRevision?.word_count ?? 0;
@@ -597,7 +609,7 @@ function WritingArticlePageReady({
         return (
           <>
             <div className="writing-compose-feedback-hint">
-              Feedback from Round {liveActiveRevision.round_number}
+              {t("writingDetail.feedbackFromRound", { round: liveActiveRevision.round_number })}
             </div>
             <WritingFeedbackPanel
               feedback={liveActiveFeedback}
@@ -609,21 +621,17 @@ function WritingArticlePageReady({
       }
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Writing in progress</div>
-          <p className="writing-status-desc">
-            Revise the latest draft and submit when you are ready for the next round.
-          </p>
+          <div className="writing-status-title">{t("writingDetail.inProgressTitle")}</div>
+          <p className="writing-status-desc">{t("writingDetail.inProgressBody")}</p>
         </div>
       );
     }
     if (liveIsPending && !liveIsStalePending) {
       return (
         <div className="writing-status-card" role="status" aria-live="polite">
-          <div className="writing-status-title">Draft saved — preparing feedback</div>
+          <div className="writing-status-title">{t("writingDetail.preparingTitle")}</div>
           <p className="writing-status-desc">
-            {liveIsLongPending
-              ? "This is taking longer than usual. Your draft is safe; you can stay here or return later."
-              : "Your draft is safe. Feedback is being prepared, and this page will update when it is ready."}
+            {liveIsLongPending ? t("writingDetail.preparingLong") : t("writingDetail.preparingBody")}
           </p>
         </div>
       );
@@ -631,10 +639,8 @@ function WritingArticlePageReady({
     if (liveIsStalePending && liveActiveRevision) {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Draft saved — feedback paused</div>
-          <p className="writing-status-desc">
-            The feedback job did not finish. Your draft is safe, and you can retry without resubmitting.
-          </p>
+          <div className="writing-status-title">{t("writingDetail.pausedTitle")}</div>
+          <p className="writing-status-desc">{t("writingDetail.pausedBody")}</p>
           <retryFetcher.Form method="post" className="writing-retry-form">
             <input type="hidden" name="_intent" value="retryFeedback" />
             <input type="hidden" name="revisionId" value={liveActiveRevision.id} />
@@ -644,7 +650,7 @@ function WritingArticlePageReady({
               className="btn btn-ghost btn-sm"
               disabled={retryFetcher.state === "submitting"}
             >
-              {retryFetcher.state === "submitting" ? "Requesting..." : "Retry feedback"}
+              {retryFetcher.state === "submitting" ? t("writingDetail.requesting") : t("writingDetail.retryFeedback")}
             </button>
           </retryFetcher.Form>
         </div>
@@ -653,10 +659,8 @@ function WritingArticlePageReady({
     if (liveActiveRevision?.feedback_status === "failed") {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Draft saved — feedback unavailable</div>
-          <p className="writing-status-desc">
-            AI feedback failed for this round. Your draft is safe.
-          </p>
+          <div className="writing-status-title">{t("writingDetail.unavailableTitle")}</div>
+          <p className="writing-status-desc">{t("writingDetail.unavailableBody")}</p>
           <retryFetcher.Form method="post" className="writing-retry-form">
             <input type="hidden" name="_intent" value="retryFeedback" />
             <input type="hidden" name="revisionId" value={liveActiveRevision.id} />
@@ -666,7 +670,7 @@ function WritingArticlePageReady({
               className="btn btn-ghost btn-sm"
               disabled={retryFetcher.state === "submitting"}
             >
-              Retry feedback
+              {t("writingDetail.retryFeedback")}
             </button>
           </retryFetcher.Form>
         </div>
@@ -684,10 +688,8 @@ function WritingArticlePageReady({
     if (liveLatestRound === 0) {
       return (
         <div className="writing-status-card">
-          <div className="writing-status-title">Start writing</div>
-          <p className="writing-status-desc">
-            Write your first draft above and submit for AI feedback.
-          </p>
+          <div className="writing-status-title">{t("writingDetail.startTitle")}</div>
+          <p className="writing-status-desc">{t("writingDetail.startBody")}</p>
         </div>
       );
     }
@@ -716,7 +718,7 @@ function WritingArticlePageReady({
                   <h1
                     className="writing-title"
                     onClick={() => setEditingTitle(true)}
-                    title="Click to edit title"
+                    title={t("writingDetail.editTitleHint")}
                   >
                     {displayTitle}
                   </h1>
@@ -724,13 +726,13 @@ function WritingArticlePageReady({
                     type="button"
                     className="writing-title-edit-btn"
                     onClick={() => setEditingTitle(true)}
-                    aria-label="Edit title"
+                    aria-label={t("writingDetail.editTitle")}
                   >
                     ✎
                   </button>
                 </>
               )}
-              <span className="writing-agent-label">{agent.label}</span>
+              <span className="writing-agent-label">{writingAgentCopy(t, fullAgent).label}</span>
               <div className="writing-detail-header-actions">
                 {asideCollapsed ? (
                   <Link
@@ -739,7 +741,7 @@ function WritingArticlePageReady({
                     aria-disabled={Boolean(isLatestRoundPending)}
                     onClick={(e) => { if (isLatestRoundPending) e.preventDefault(); }}
                   >
-                    New Revision
+                    {t("writingAside.newRevision")}
                   </Link>
                 ) : null}
                 <button
@@ -747,7 +749,7 @@ function WritingArticlePageReady({
                   className="writing-aside-toggle-btn"
                   aria-expanded={!asideCollapsed}
                   aria-controls={ASIDE_PANEL_ID}
-                  aria-label={asideCollapsed ? "Show feedback panel" : "Hide feedback panel"}
+                  aria-label={asideCollapsed ? t("writingDetail.showPanel") : t("writingDetail.hidePanel")}
                   onClick={handleAsideToggle}
                 >
                   <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
@@ -763,9 +765,12 @@ function WritingArticlePageReady({
 
             {isViewingPastRound && liveActiveRevision ? (
               <div className="writing-past-round-banner">
-                Viewing Round {liveActiveRevision.round_number} of {liveLatestRound}
+                {t("writingDetail.viewingRound", {
+                  round: liveActiveRevision.round_number,
+                  latest: liveLatestRound
+                })}
                 <Link to={`/writing/${article.id}`} className="btn btn-ghost btn-sm">
-                  Back to latest
+                  {t("writingDetail.backToLatest")}
                 </Link>
               </div>
             ) : null}
@@ -780,7 +785,7 @@ function WritingArticlePageReady({
               <WritingEssayPromptField value={essayPrompt} readOnly />
               {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
               {local.draft.editId && local.draft.baseRevision !== data.baseRevision ? (
-                <p role="status">Recovered an unsent draft from an earlier round. Review it before submitting.</p>
+                <p role="status">{t("writingDetail.recovered")}</p>
               ) : null}
               <WritingEditor
                 value={text}
@@ -795,10 +800,10 @@ function WritingArticlePageReady({
                   className="btn btn-primary"
                   disabled={!local.ready || !text.trim() || isLatestRoundPending || submitFetcher.state === "submitting"}
                 >
-                  {submitFetcher.state === "submitting" ? "Submitting..." : "Submit revision"}
+                  {submitFetcher.state === "submitting" ? t("writing.submitting") : t("writingDetail.submitRevision")}
                 </button>
               </div>
-              {local.storageError ? <p role="alert">Draft could not be saved on this device. Keep this page open or copy your text before leaving.</p> : null}
+              {local.storageError ? <p role="alert">{t("writing.draftNotSaved")}</p> : null}
               {submitFetcher.data?.error ? <div className="form-error">{submitFetcher.data.error}</div> : null}
             </submitFetcher.Form>
           ) : liveActiveRevision ? (
@@ -806,21 +811,21 @@ function WritingArticlePageReady({
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
               {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}
-              <div className="writing-readonly-text">{liveActiveRevision.user_text}</div>
+              <div className="writing-readonly-text" lang="en">{liveActiveRevision.user_text}</div>
               <div className="writing-editor-footer">
                 <span className="writing-editor-count">
-                  {currentWordCount} {currentWordCount === 1 ? "word" : "words"}
+                  {t(currentWordCount === 1 ? "writingEditor.wordOne" : "writingEditor.wordMany", {
+                    count: currentWordCount
+                  })}
                   {" · "}
-                  {fullAgent.minWords}–{fullAgent.maxWords} recommended
+                  {t("writingEditor.recommended", { min: fullAgent.minWords, max: fullAgent.maxWords })}
                 </span>
               </div>
             </div>
           ) : (
             <div className="writing-status-card">
-              <div className="writing-status-title">Start writing</div>
-              <p className="writing-status-desc">
-                Choose New Revision to draft the next round.
-              </p>
+              <div className="writing-status-title">{t("writingDetail.startTitle")}</div>
+              <p className="writing-status-desc">{t("writingDetail.chooseNewRevision")}</p>
             </div>
           )}
 

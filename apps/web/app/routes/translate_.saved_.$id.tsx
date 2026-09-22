@@ -13,7 +13,9 @@ import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/Studi
 import { StudioShell } from "~/components/StudioShell";
 import { TranslateWorkspaceTabs } from "~/components/TranslateWorkspaceTabs";
 import { requireUser } from "~/utils/auth.server";
-import { isTranslateLanguageCode, translateLanguageLabel } from "~/utils/translate-languages";
+import { storedLanguageName } from "~/utils/translate-languages";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" };
 
@@ -23,14 +25,9 @@ export const handle = {
   hideHeaderUserMenu: true
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Saved translation · Translate · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.translateSavedItem.title") }
 ];
-
-const languageLabel = (code: string | null): string => {
-  if (!code) return "Unknown";
-  return isTranslateLanguageCode(code) ? translateLanguageLabel(code) : code;
-};
 
 const notFound = () => new Response("Not found", { status: 404, headers: PRIVATE_HEADERS });
 
@@ -63,6 +60,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
 };
 
 function CopyButton({ text }: { text: string }) {
+  const t = useT();
   const [copied, setCopied] = React.useState(false);
   const copy = async () => {
     try {
@@ -75,32 +73,34 @@ function CopyButton({ text }: { text: string }) {
   };
   return (
     <button type="button" className="translate-pane-action" onClick={copy}>
-      {copied ? "Copied" : "Copy"}
+      {copied ? t("common.copied") : t("common.copy")}
     </button>
   );
 }
 export default function SavedTranslationDetailPage() {
   const { user, item } = useLoaderData<typeof loader>();
+  const t = useT();
+  const languageLabel = (code: string | null) => storedLanguageName(t, code);
   const sourceCode = item.source_language === "auto"
     ? item.detected_source_language
     : item.source_language;
   return (
     <StudioShell user={user} canvasClassName="translate-shell-canvas">
       <StudioPage width="standard">
-        <Link to="/translate/saved" className="session-project-return">Saved translations</Link>
+        <Link to="/translate/saved" className="session-project-return">{t("translateSaved.back")}</Link>
         <StudioPageHeader
           title={`${languageLabel(sourceCode)} → ${languageLabel(item.target_language)}`}
-          description={<><LocalDateTime value={item.created_at} /> · Explicitly saved and private to your account.</>}
+          description={<><LocalDateTime value={item.created_at} /> · {t("translateSaved.privateNote")}</>}
           action={
             <Form method="post">
               <input type="hidden" name="_intent" value="delete" />
               <ConfirmSubmitButton
                 className="btn btn-danger"
-                dialogTitle="Permanently delete this translation?"
-                dialogDescription="The saved source and translation will be deleted immediately. This cannot be undone."
-                confirmLabel="Delete permanently"
+                dialogTitle={t("translateSaved.deleteTitle")}
+                dialogDescription={t("translateSaved.deleteDescription")}
+                confirmLabel={t("translateSaved.deletePermanently")}
               >
-                Delete
+                {t("common.delete")}
               </ConfirmSubmitButton>
             </Form>
           }
@@ -110,7 +110,7 @@ export default function SavedTranslationDetailPage() {
           <section className="translate-saved-text" aria-labelledby="saved-source-heading">
             <div className="translate-saved-text-heading">
               <div>
-                <p className="writing-section-eyebrow">Source</p>
+                <p className="writing-section-eyebrow">{t("translateSaved.source")}</p>
                 <h2 id="saved-source-heading">{languageLabel(sourceCode)}</h2>
               </div>
               <CopyButton text={item.source_text} />
@@ -120,7 +120,7 @@ export default function SavedTranslationDetailPage() {
           <section className="translate-saved-text is-result" aria-labelledby="saved-result-heading">
             <div className="translate-saved-text-heading">
               <div>
-                <p className="writing-section-eyebrow">Translation</p>
+                <p className="writing-section-eyebrow">{t("translateSaved.translation")}</p>
                 <h2 id="saved-result-heading">{languageLabel(item.target_language)}</h2>
               </div>
               <CopyButton text={item.translated_text} />

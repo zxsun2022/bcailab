@@ -22,6 +22,17 @@ local recovery, not encrypted storage or cross-device sync. Revision drafts reta
 round as metadata: if the server has advanced, unsent edits are recovered with a notice to review
 that older draft. Simply viewing a saved round does not create a local draft copy. Anonymous trials remain non-persistent.
 
+## Interface language
+
+Every Writing surface renders in the visitor's interface language (English or Simplified Chinese
+— ADR 0011). What a learner reads about a coach — its name, description, writing guide and the
+names of the dimensions it grades — comes from the catalogues through
+`apps/web/app/utils/writing-agent-copy.ts`. `WRITING_AGENTS` itself stays English, because the
+grading prompt is built from it; a test pins the English catalogue to the roster so the two
+cannot drift. A round's assessment value is model output and is shown as stored; only the IELTS
+prefix ("Coach estimate · Band") is translated. Assignment titles, prompt text, topics and task
+material stay English and carry `lang="en"`.
+
 ## Design Principles
 
 - **Coach, not ghostwriter.** AI identifies issues; user executes revisions. The product never rewrites text on behalf of the user during a session.

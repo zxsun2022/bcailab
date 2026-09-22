@@ -7,6 +7,7 @@ import {
   translateSaveProofSubject
 } from "~/utils/translate-save-proof.server";
 import type { TranslateLanguageCode } from "~/utils/translate-languages";
+import { getRequestTranslator } from "~/i18n/locale.server";
 
 /**
  * Streaming translation endpoint (SSE), used by the `/translate` page whenever JavaScript
@@ -98,7 +99,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
           chars
         });
         controller.enqueue(
-          frame({ type: "error", error: "Translation failed. Please try again in a moment." })
+          frame({ type: "error", error: getRequestTranslator(request)("translate.error.failed") })
         );
       } finally {
         controller.close();

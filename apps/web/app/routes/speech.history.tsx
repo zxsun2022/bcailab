@@ -12,12 +12,16 @@ import {
   StudioPageHeader,
   StudioPageTabs
 } from "~/components/StudioPage";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 export const handle = {
   breadcrumb: { label: "history" }
 };
 
-export const meta: MetaFunction = () => [{ title: "Speech history · English Studio · bcailab" }];
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.speechHistory.title") }
+];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -35,12 +39,13 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export default function SpeechHistoryPage() {
   const { generations } = useLoaderData<typeof loader>();
+  const t = useT();
 
   return (
     <StudioPage width="standard">
       <StudioPageHeader
-        title="Speech"
-        description="Turn text into natural audio and revisit each generation in History."
+        title={t("speech.title")}
+        description={t("speech.description")}
       />
       <StudioPageTabs>
         <SpeechWorkspaceTabs />
@@ -48,15 +53,19 @@ export default function SpeechHistoryPage() {
       <StudioPageBody className="speech-workspace">
         {generations.length === 0 ? (
           <div className="speech-history-empty">
-            <h2>No generations yet</h2>
-            <p>Generated speech will appear here.</p>
+            <h2>{t("speech.historyEmptyTitle")}</h2>
+            <p>{t("speech.historyEmptyBody")}</p>
           </div>
         ) : (
           <div className="speech-history-list">
             {generations.map((generation) => (
               <article key={generation.id} className="speech-history-row">
                 <Link to={`/speech?record=${generation.id}`} className="speech-history-row-main">
-                  <h2>{generation.text.trim() || "Untitled generation"}</h2>
+                  {generation.text.trim() ? (
+                    <h2>{generation.text.trim()}</h2>
+                  ) : (
+                    <h2>{t("speech.untitled")}</h2>
+                  )}
                   <div className="tts-history-meta">
                     <span>{generation.languageCode}</span>
                     <span>{generation.voiceName}</span>
@@ -69,10 +78,10 @@ export default function SpeechHistoryPage() {
                   <input type="hidden" name="returnTo" value="/speech/history" />
                   <ConfirmSubmitButton
                     className="speech-history-delete"
-                    dialogTitle="Delete speech generation?"
-                    dialogDescription="This removes the generated audio and its history entry. This cannot be undone."
+                    dialogTitle={t("speech.deleteTitle")}
+                    dialogDescription={t("speech.deleteDescription")}
                   >
-                    Delete
+                    {t("common.delete")}
                   </ConfirmSubmitButton>
                 </form>
               </article>

@@ -253,3 +253,39 @@ product and brand names; a status text or message body a server sends with an er
 Reading, Writing, Translate, Speech, Home and Progress still render English inside the now
 Chinese rail — stage 2 and stage 3 translate them.
 
+### Stage 2 — the remaining tools (2026-09-22)
+
+Checked signed in on the isolated fixture (`pnpm test:browser:fixture`: in-memory D1, synthetic
+users, fake model) with an in-page detector that lists visible text and assistive labels with
+English words outside `lang="en"` regions, and signed out over HTTP for the trials.
+
+| Surface | Status |
+| --- | --- |
+| Translate: page, saved list, saved detail, language names, request/stream/save errors | Checked; the saved detail's delete dialog translated but not opened |
+| Speech: generate, history, settings, voice genders, validation errors | Checked; the fixture has no TTS credentials, so only the voice-list error state was seen (its provider message is shown as sent) |
+| Reading: catalogue, own texts, new passage, passage page, recorder, progress, settings | Checked; evaluation card, highlight kinds and retry states translated but not seen (no evaluated attempt in the fixture) |
+| Reading trial | Checked signed out over HTTP |
+| Writing: hub, three libraries, new session with the writing guide open, assignment page, sessions, progress, settings, a session with a failed round | Checked, including 375 px |
+| Writing feedback panel (annotations, delta, counts, band label) | Translated and unit-tested through `writing-agent-copy`; the fixture's synthetic feedback has no annotations, so the full panel was not seen |
+| Writing trial | Checked signed out over HTTP |
+| Profile | Checked |
+| Shared: confirm dialog, progress tabs, breadcrumbs, audio player, dates | Checked where they appear above |
+
+The English interface was re-checked over HTTP on the same eighteen routes: no Chinese appears
+beyond the switch and the pre-existing 日本語 autonym, and every page title is unchanged.
+
+**Found and fixed during the check:** dates rendered in the browser's language ("Sep 22, 2026")
+on a Chinese page — `LocalDateTime` now formats with the interface language; a "Back to Reading"
+link split across lines had escaped the source scan; assignment titles in breadcrumbs and the
+topic inside the assignment description were not marked `lang="en"`.
+
+**Deliberately English:** assignment titles, prompt text, topics, task material and chart data;
+passage titles and text; every model output (Reading evaluation, Writing feedback text, the
+assessment value itself); Speech language autonyms and voice names; the email address.
+
+**Left for stage 3 or later:** Home and Progress overview; the three-valued feedback language
+setting (Reading and Writing settings still show the two-value control, now in Chinese);
+Dictation's Chinese feedback; the sign-in email; the fallback title "Passage" shown only when a
+practised passage has since been removed; `WritingRevisionRail`, which nothing renders and so was
+not translated.
+

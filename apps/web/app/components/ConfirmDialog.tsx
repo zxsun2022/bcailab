@@ -1,5 +1,6 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { useT } from "~/i18n/context";
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
@@ -26,12 +27,13 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = "Delete",
+  confirmLabel,
   pending = false,
   error,
   onCancel,
   onConfirm
 }: ConfirmDialogProps) {
+  const t = useT();
   const titleId = React.useId();
   const descriptionId = React.useId();
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
@@ -135,7 +137,7 @@ export function ConfirmDialog({
             disabled={pending}
             onClick={onCancel}
           >
-            Cancel
+            {t("common.cancel")}
           </button>
           <button
             type="button"
@@ -143,7 +145,7 @@ export function ConfirmDialog({
             disabled={pending}
             onClick={onConfirm}
           >
-            {pending ? "Deleting..." : confirmLabel}
+            {pending ? t("common.deleting") : confirmLabel ?? t("common.delete")}
           </button>
         </div>
       </div>

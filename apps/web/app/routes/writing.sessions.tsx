@@ -8,11 +8,16 @@ import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/Studi
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
-export const meta: MetaFunction = () => [
-  { title: "Writing sessions · English Studio · bcailab" },
-  { name: "description", content: "Continue your recent assignment and freeform writing sessions." }
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    { title: t("meta.writingSessions.title") },
+    { name: "description", content: t("meta.writingSessions.description") }
+  ];
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -36,34 +41,35 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 export default function WritingSessionsPage() {
   const data = useLoaderData<typeof loader>();
+  const t = useT();
   if (!data.schemaReady) return <WritingUnavailableState />;
 
   return (
     <div className="studio-main-scroll">
       <StudioPage width="standard">
         <StudioBreadcrumbs items={[
-          { label: "Writing", to: "/writing" },
-          { label: "Sessions" }
+          { label: t("writing.title"), to: "/writing" },
+          { label: t("writingSessions.crumb") }
         ]} />
         <StudioPageHeader
-          title="Writing sessions"
-          description="Continue an assignment or freeform session. Each session keeps its own rounds and feedback together."
-          action={<Link to="/writing/new" className="btn btn-primary">New freeform session</Link>}
+          title={t("writingSessions.title")}
+          description={t("writingSessions.description")}
+          action={<Link to="/writing/new" className="btn btn-primary">{t("writing.newFreeform")}</Link>}
         />
         <StudioPageBody className="writing-sessions-page">
           {data.page.items.length === 0 ? (
             <div className="writing-sessions-page-empty">
-              <h2>No writing sessions yet</h2>
-              <p>Choose an assignment or start a freeform session. It will appear here after you submit your first draft.</p>
-              <Link to="/writing" className="btn btn-secondary">Browse writing assignments</Link>
+              <h2>{t("writingSessions.emptyTitle")}</h2>
+              <p>{t("writingSessions.emptyBody")}</p>
+              <Link to="/writing" className="btn btn-secondary">{t("writingSessions.browse")}</Link>
             </div>
           ) : (
             <div className="writing-sessions-list">
               {data.page.items.map((session) => (
                 <Link key={session.id} to={`/writing/${session.id}`} className="writing-session-row">
                   <span>
-                    <strong>{session.title ?? session.essay_prompt ?? "Untitled session"}</strong>
-                    <small>{session.prompt_id ? "Assignment session" : "Freeform session"}</small>
+                    <strong>{session.title ?? session.essay_prompt ?? t("writing.untitledSession")}</strong>
+                    <small>{session.prompt_id ? t("writing.assignmentSession") : t("writing.freeformSession")}</small>
                   </span>
                   <LocalDateTime
                     value={session.updated_at}
@@ -76,7 +82,7 @@ export default function WritingSessionsPage() {
           {data.page.next_cursor ? (
             <div className="writing-sessions-pagination">
               <Link to={`/writing/sessions?cursor=${encodeURIComponent(data.page.next_cursor)}`} className="btn btn-secondary">
-                Next sessions →
+                {t("writingSessions.next")}
               </Link>
             </div>
           ) : null}

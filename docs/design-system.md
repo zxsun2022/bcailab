@@ -61,6 +61,10 @@ are what is being learned. Marking them keeps the Latin rules above (their itali
 and lets a screen reader pronounce them as English inside a Chinese page. Interface copy is never
 written inline: it comes from the catalogues in `apps/web/app/i18n/messages/`.
 
+**Dates follow the interface.** `LocalDateTime` formats with `zh-CN` in the Chinese interface
+and with the browser's own conventions in the English one, so a Chinese page never shows
+"Sep 22, 2026".
+
 The language switch names the other language in that language ("中文" / "English") so it is
 findable by someone who cannot read the current one. It sits beside Sign in on the site header
 and above the account row in the studio rail, where the collapsed rail shows `EN` / `中`.

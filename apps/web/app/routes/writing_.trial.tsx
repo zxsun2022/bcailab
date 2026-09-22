@@ -28,9 +28,12 @@ import {
 } from "~/utils/writing-trial";
 import {
   isWritingSchemaMissingError,
-  logWritingSchemaMissing,
-  WRITING_UNAVAILABLE_ERROR
+  logWritingSchemaMissing
 } from "~/utils/writing-schema.server";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
+import { writingAgentCopy } from "~/utils/writing-agent-copy";
 
 /**
  * Anonymous writing trial (design Appendix A).
@@ -44,14 +47,13 @@ import {
  * into saved, tracked practice.
  */
 
-export const meta: MetaFunction = () => [
-  { title: "Try the Writing Coach · bcailab" },
-  {
-    name: "description",
-    content:
-      "Submit one piece of writing and get structured AI feedback. No account needed to try."
-  }
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    { title: t("meta.writingTrial.title") },
+    { name: "description", content: t("meta.writingTrial.description") }
+  ];
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await getOptionalUser(request, context);
@@ -87,12 +89,13 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   const subject = resolveQuotaSubject(request, null);
   const extraHeaders = subject.setCookie ? { "Set-Cookie": subject.setCookie } : undefined;
+  const t = getRequestTranslator(request);
 
   const formData = await request.formData();
   const userText = String(formData.get("userText") ?? "").trim();
   if (!userText) {
     return json<ActionData>(
-      { ok: false, error: "Please write something before submitting." },
+      { ok: false, error: t("writing.error.empty") },
       { status: 400, headers: extraHeaders }
     );
   }
@@ -100,7 +103,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const wordCount = countWords(userText);
   if (wordCount < 10) {
     return json<ActionData>(
-      { ok: false, error: "Please write at least 10 words." },
+      { ok: false, error: t("writing.error.tooShort") },
       { status: 400, headers: extraHeaders }
     );
   }
@@ -111,7 +114,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       {
         ok: false,
         code: "quota_exceeded",
-        error: "You've used today's free writing feedback. Sign in to keep going — it's free."
+        error: t("writing.error.trialQuota")
       },
       { status: 429, headers: extraHeaders }
     );
@@ -125,7 +128,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const assignmentMode = classifyWritingTrialAssignment(featuredSlug);
   if (assignmentMode === "invalid") {
     return json<ActionData>(
-      { ok: false, error: "This trial assignment is not available." },
+      { ok: false, error: t("writing.error.trialUnavailable") },
       { status: 409, headers: extraHeaders }
     );
   }
@@ -140,14 +143,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       if (!isWritingSchemaMissingError(error)) throw error;
       logWritingSchemaMissing("writing.trial.action", error);
       return json<ActionData>(
-        { ok: false, error: WRITING_UNAVAILABLE_ERROR },
+        { ok: false, error: t("writing.unavailableError") },
         { status: 503, headers: extraHeaders }
       );
     }
     const renderedHash = String(formData.get("contentHash") ?? "");
     if (!row || row.content_hash !== renderedHash) {
       return json<ActionData>(
-        { ok: false, error: "This trial assignment changed. Refresh before submitting." },
+        { ok: false, error: t("writing.error.trialChanged") },
         { status: 409, headers: extraHeaders }
       );
     }
@@ -177,7 +180,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     );
   } catch {
     return json<ActionData>(
-      { ok: false, error: "Feedback failed. Please retry." },
+      { ok: false, error: t("writing.error.feedbackFailed") },
       { status: 500, headers: extraHeaders }
     );
   }
@@ -186,6 +189,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 export default function WritingTrialPage() {
   const { allowed, remainingToday, featured } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
+  const t = useT();
   const [agentType, setAgentType] = React.useState(DEFAULT_AGENT_ID);
   const [text, setText] = React.useState("");
   const [useFeatured, setUseFeatured] = React.useState(Boolean(featured));
@@ -205,16 +209,13 @@ export default function WritingTrialPage() {
     return (
       <div className="trial-page">
         <div className="trial-gate">
-          <h1 className="trial-gate-title">You've used today's free feedback</h1>
-          <p className="trial-gate-body">
-            Sign in to keep writing — it's free, and your drafts, feedback rounds, and
-            progress are saved.
-          </p>
+          <h1 className="trial-gate-title">{t("writingTrial.gateTitle")}</h1>
+          <p className="trial-gate-body">{t("writingTrial.gateBody")}</p>
           <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
-            Sign in — it's free
+            {t("common.signInFree")}
           </button>
           <Link to="/english" className="trial-back">
-            Back to English Studio
+            {t("trial.backToStudio")}
           </Link>
         </div>
       </div>
@@ -227,14 +228,12 @@ export default function WritingTrialPage() {
         {/* The studio rail now routes anonymous visitors here from inside other modules,
             so the trial needs a way back before the quota runs out — not only on the gate. */}
         <Link to="/english" className="trial-studio-back">
-          &larr; English Studio
+          {t("trial.studioLink")}
         </Link>
-        <p className="trial-eyebrow">Free trial · no account needed</p>
-        <h1 className="trial-title">Writing Coach</h1>
+        <p className="trial-eyebrow">{t("trial.eyebrow")}</p>
+        <h1 className="trial-title">{t("writingTrial.title")}</h1>
         <p className="trial-subtitle">
-          {featured
-            ? "Start from a reviewed assignment or bring your own topic. Nothing is saved unless you later sign in and submit inside Writing."
-            : "Submit one piece of writing and get structured feedback: what's working, what to fix, and questions to guide your revision."}
+          {featured ? t("writingTrial.subtitleFeatured") : t("writingTrial.subtitle")}
         </p>
       </header>
 
@@ -243,12 +242,9 @@ export default function WritingTrialPage() {
           <WritingFeedbackPanel feedback={result.feedback} roundNumber={1} />
 
           <div className="trial-cta">
-            <p className="trial-cta-text">
-              This result isn't saved. Sign in to keep your drafts, work through revision
-              rounds with the coach, and track your progress over time.
-            </p>
+            <p className="trial-cta-text">{t("writingTrial.ctaText")}</p>
             <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
-              Sign in to save this
+              {t("readingTrial.signInToSave")}
             </button>
           </div>
         </>
@@ -260,13 +256,13 @@ export default function WritingTrialPage() {
               <input type="hidden" name="featuredSlug" value={featured.promptSlug} />
               <input type="hidden" name="contentHash" value={featured.contentHash} />
               <section className="writing-assignment-copy" aria-labelledby="trial-assignment-heading">
-                <p className="writing-section-eyebrow">Featured assignment</p>
-                <h2 id="trial-assignment-heading">{featured.title}</h2>
-                <p>{featured.promptText}</p>
+                <p className="writing-section-eyebrow">{t("writingTrial.featured")}</p>
+                <h2 id="trial-assignment-heading" lang="en">{featured.title}</h2>
+                <p lang="en">{featured.promptText}</p>
               </section>
               <WritingPromptMaterial assignment={featured} />
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setUseFeatured(false)}>
-                Use my own topic instead
+                {t("writingTrial.ownTopic")}
               </button>
             </>
           ) : null}
@@ -275,7 +271,7 @@ export default function WritingTrialPage() {
             <div className="writing-coach-row">
               <div className="writing-control-group">
                 <label className="writing-label" htmlFor="agentType">
-                  Coach
+                  {t("writing.coach")}
                 </label>
                 <select
                   id="agentType"
@@ -286,12 +282,12 @@ export default function WritingTrialPage() {
                 >
                   {agents.map((entry) => (
                     <option key={entry.id} value={entry.id}>
-                      {entry.label}
+                      {writingAgentCopy(t, entry).label}
                     </option>
                   ))}
                 </select>
               </div>
-              <p className="writing-coach-desc">{activeAgent.description}</p>
+              <p className="writing-coach-desc">{writingAgentCopy(t, activeAgent).description}</p>
             </div>
           ) : null}
 
@@ -305,11 +301,13 @@ export default function WritingTrialPage() {
               className="btn btn-primary"
               disabled={!text.trim() || fetcher.state === "submitting"}
             >
-              {fetcher.state === "submitting" ? "Getting feedback..." : "Get feedback"}
+              {fetcher.state === "submitting" ? t("writingTrial.gettingFeedback") : t("writingTrial.getFeedback")}
             </button>
             {remainingToday !== null ? (
               <span className="trial-remaining">
-                {remainingToday} free {remainingToday === 1 ? "try" : "tries"} left today
+                {t(remainingToday === 1 ? "readingTrial.remainingOne" : "readingTrial.remainingMany", {
+                  count: remainingToday
+                })}
               </span>
             ) : null}
           </div>

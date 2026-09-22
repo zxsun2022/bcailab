@@ -5,31 +5,34 @@ import { useThemePreference } from "~/utils/use-theme-preference";
 import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
 import { WRITING_FEEDBACK_LANGUAGE_OPTIONS } from "~/utils/writing-settings";
 import type { loader as writingLoader } from "~/routes/writing";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 export const handle = {
   breadcrumb: { label: "settings", href: "/writing/settings" }
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Writing settings · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.writingSettings.title") }
 ];
 
 export default function WritingSettingsPage() {
   const data = useRouteLoaderData<typeof writingLoader>("routes/writing");
   const user = data?.user;
 
+  const t = useT();
   const [themePreference, setThemePreference] = useThemePreference();
   const [feedbackLanguage, setFeedbackLanguage] = useWritingFeedbackLanguage();
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
-  const displayName = user?.name ?? user?.email ?? "Account";
+  const displayName = user?.name ?? user?.email ?? t("common.account");
 
   return (
     <div className="studio-main-scroll">
       <StudioPage width="standard">
         <StudioPageHeader
-          title="Writing settings"
-          description="Manage your account, appearance, and shared feedback language."
+          title={t("settings.writingTitle")}
+          description={t("settings.feedbackDescription")}
         />
         <StudioPageBody className="tool-settings-page">
           <div className="tool-settings-card">
@@ -44,15 +47,15 @@ export default function WritingSettingsPage() {
               </div>
             </div>
             <form method="post" action="/logout">
-              <button type="submit" className="settings-signout-btn">Sign out</button>
+              <button type="submit" className="settings-signout-btn">{t("settings.signOut")}</button>
             </form>
           </section>
 
           {/* General: theme */}
           <section className="tool-settings-section">
-            <div className="menu-label">Appearance</div>
+            <div className="menu-label">{t("settings.appearance")}</div>
             <div className="menu-setting-row">
-              <div className="menu-setting-title">Color mode</div>
+              <div className="menu-setting-title">{t("settings.colorMode")}</div>
             </div>
             <div className="menu-option-grid menu-option-grid-three">
               {(["system", "light", "dark"] as const).map((value) => (
@@ -63,7 +66,7 @@ export default function WritingSettingsPage() {
                   aria-pressed={themePreference === value}
                   onClick={() => setThemePreference(value)}
                 >
-                  {value === "system" ? "Auto" : value.charAt(0).toUpperCase() + value.slice(1)}
+                  {t(value === "system" ? "theme.auto" : value === "light" ? "theme.light" : "theme.dark")}
                 </button>
               ))}
             </div>
@@ -71,11 +74,11 @@ export default function WritingSettingsPage() {
 
           {/* Writing-specific: feedback language */}
           <section className="tool-settings-section">
-            <div className="menu-label">Writing feedback</div>
+            <div className="menu-label">{t("settings.writingFeedback")}</div>
             <div className="menu-setting-row">
-              <div className="menu-setting-title">Language</div>
+              <div className="menu-setting-title">{t("settings.language")}</div>
               <div className="menu-setting-hint">
-                New Writing and Reading feedback uses this language.
+                {t("settings.writingLanguageHint")}
               </div>
             </div>
             <div className="menu-option-grid menu-option-grid-two">
@@ -87,7 +90,7 @@ export default function WritingSettingsPage() {
                   aria-pressed={feedbackLanguage === option.value}
                   onClick={() => setFeedbackLanguage(option.value)}
                 >
-                  {option.label}
+                  {t(option.value === "zh" ? "feedbackLang.zh" : "feedbackLang.en")}
                 </button>
               ))}
             </div>
