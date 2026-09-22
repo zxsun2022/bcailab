@@ -9,7 +9,15 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-09-22 — **in_review: Chinese interface, stage 3 — signed-in surfaces and feedback
+- 2026-09-22 — **accepted: owner acceptance of the Chinese interface, stages 1–3.** The owner
+  accepted all three stages of "Now — Chinese interface for Chinese-speaking learners" (merged as
+  PRs #64, #65 and #66) and moved the item to the accepted history. The owner also accepted the one
+  departure from acceptance criterion (g): an earlier stored `en` feedback preference migrates to
+  Follow interface rather than to an explicit English choice, because the earlier code persisted
+  `en` as a default and a choice cannot be told apart from it. Feedback written before the change
+  is not retranslated (owner decision). The three entries below now read `accepted`.
+
+- 2026-09-22 — **accepted: Chinese interface, stage 3 — signed-in surfaces and feedback
   language.** Last of three stages. Home and the Progress overview render in the interface
   language, the shared feedback setting follows it by default, and Dictation feedback can be
   Chinese.
@@ -53,7 +61,7 @@ make the final transition; see `AGENTS.md`.
   and the brief's English rendering, `learner_tag_observations`, `SOURCE_WEIGHT`, CEFR resolution,
   stored feedback, and no migration.
 
-- 2026-09-22 — **in_review: Chinese interface, stage 2 — the remaining tools.** Second of three
+- 2026-09-22 — **accepted: Chinese interface, stage 2 — the remaining tools.** Second of three
   stages. Translate, Speech, Reading and Writing — with their trials, settings and progress pages
   — and the profile page now render in the interface language. About 550 catalogue keys, all
   typed and placeholder-checked like stage 1's.
@@ -85,7 +93,7 @@ make the final transition; see `AGENTS.md`.
   and, for Writing, unit-tested. Not in this stage: Home, the Progress overview, the three-valued
   feedback setting and Dictation's Chinese feedback (stage 3), and the sign-in email.
 
-- 2026-09-22 — **in_review: Chinese interface, stage 1 — mechanism and first contact.** First of
+- 2026-09-22 — **accepted: Chinese interface, stage 1 — mechanism and first contact.** First of
   the three stages in "Now — Chinese interface for Chinese-speaking learners". A Chinese visitor
   now meets the homepage, `/english`, the site header, the studio rail, the sign-in popup and
   Dictation end to end in Chinese; everyone else sees the same English as before.
