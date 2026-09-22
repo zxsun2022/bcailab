@@ -32,8 +32,14 @@ make the final transition; see `AGENTS.md`.
     come from new `learnerTag.*` copy; `TAG_DESCRIPTIONS` stays English because the learner brief
     in grading prompts is built from it, and a test pins the English copy to it. Names produced by
     the profile pass are English model output and are marked `lang="en"`.
+  - **Sign-in email.** The code email is written in the language of the page that asked for it:
+    the login route passes the request's locale to `requestLoginCode`, and a pure
+    `buildLoginCodeEmail` renders the subject and body. A test pins the English email to its
+    previous wording. No email provider runs locally, so this is proven by the test, not by a
+    received email. Feedback written before this change stays in its original language (owner
+    decision, 2026-09-22).
 
-  Evidence: 846 tests (new: migration and resolution of the preference, English byte-identity and
+  Evidence: 848 tests (new: sign-in email in both languages, migration and resolution of the preference, English byte-identity and
   Chinese-only-adds-the-directive prompt fixtures, feature-label parity); all typechecks; lint 0
   errors (the 9 existing warnings); both production builds. On the isolated fixture: Home in three
   learner states and Progress with and without data showed no untranslated interface text; the

@@ -311,7 +311,9 @@ history and a resumable dictation, one cold — with the same in-page detector.
 | What forms post | Checked: Reading posts `zh` under Follow in the Chinese interface; Writing posts `en` after choosing English; Dictation's completing request posts `zh` |
 | Dictation feedback in Chinese | Prompt proven by fixtures (English byte-identical to the pre-change prompt; Chinese adds only the directive). The fixture's fake model returns no patterns, so a Chinese feedback panel was not seen |
 
-**Known gaps after all three stages:** the sign-in email; the "Passage" fallback title; Writing
+| Sign-in email: subject and body | Written in the language of the page that requested the code; English pinned unchanged by test. No email provider runs locally, so no email was sent |
+
+**Known gaps after all three stages:** the "Passage" fallback title; Writing
 feedback text and Reading evaluation text written before this change stay in the language they
 were written in; a learner's typed Writing text is never translated.
 

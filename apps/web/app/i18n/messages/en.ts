@@ -1001,7 +1001,13 @@ export const en = {
   "progressPage.lighter": "Adds a lighter signal",
 
   // --- home errors ---
-  "homePage.error.unknownLevel": "Unknown level."
+  "homePage.error.unknownLevel": "Unknown level.",
+
+  // --- sign-in email ---
+  "email.loginCode.subject": "{code} is your bcailab sign-in code",
+  "email.loginCode.body": "Your bcailab sign-in code is: {code}",
+  "email.loginCode.expiry":
+    "It expires in 10 minutes. If you didn't request this, you can ignore this email."
 } satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;

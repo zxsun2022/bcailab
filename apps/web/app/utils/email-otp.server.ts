@@ -10,6 +10,8 @@ import {
   type User
 } from "@bcailab/db";
 import type { Env } from "~/types/env";
+import { DEFAULT_LOCALE, type Locale } from "~/i18n/locale";
+import { createTranslator, type Translate } from "~/i18n/translate";
 
 const CODE_TTL_MS = 10 * 60 * 1000;
 const MAX_VERIFY_ATTEMPTS = 5;
@@ -40,10 +42,20 @@ const hashCode = async (env: Env, email: string, code: string): Promise<string> 
     .join("");
 };
 
+/**
+ * The sign-in email, in the language of the page that asked for it (ADR 0011). Pure, so the
+ * English wording can be pinned by a test to what it was before a Chinese interface existed.
+ */
+export const buildLoginCodeEmail = (t: Translate, code: string) => ({
+  subject: t("email.loginCode.subject", { code }),
+  text: [t("email.loginCode.body", { code }), "", t("email.loginCode.expiry")].join("\n")
+});
+
 const sendLoginCodeEmail = async (
   env: Env,
   email: string,
-  code: string
+  code: string,
+  locale: Locale
 ): Promise<{ sent: boolean }> => {
   const apiKey = env.RESEND_API_KEY?.trim();
   if (!apiKey) {
@@ -61,12 +73,7 @@ const sendLoginCodeEmail = async (
     body: JSON.stringify({
       from: env.RESEND_FROM?.trim() || DEFAULT_FROM,
       to: [email],
-      subject: `${code} is your bcailab sign-in code`,
-      text: [
-        `Your bcailab sign-in code is: ${code}`,
-        "",
-        "It expires in 10 minutes. If you didn't request this, you can ignore this email."
-      ].join("\n")
+      ...buildLoginCodeEmail(createTranslator(locale), code)
     })
   });
 
@@ -97,6 +104,8 @@ export const requestLoginCode = async (input: {
   env: Env;
   email: string;
   ip: string;
+  /** The interface language of the page that asked; the email is written in it. */
+  locale?: Locale;
 }): Promise<RequestCodeResult> => {
   const oneHourAgoIso = new Date(Date.now() - 60 * 60 * 1000)
     .toISOString()
@@ -121,7 +130,12 @@ export const requestLoginCode = async (input: {
   });
 
   try {
-    const { sent } = await sendLoginCodeEmail(input.env, input.email, code);
+    const { sent } = await sendLoginCodeEmail(
+      input.env,
+      input.email,
+      code,
+      input.locale ?? DEFAULT_LOCALE
+    );
     // Without an email provider (local dev), let the route expose the code so
     // the flow stays testable end-to-end.
     return sent ? { ok: true } : { ok: true, devCode: code };

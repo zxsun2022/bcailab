@@ -313,7 +313,8 @@ errors. That hole is real and is recorded in the design's §8, not fixed here.
 - **Stage 3 — signed-in surfaces and feedback language: `in_review` (2026-09-22).** Home and the
   Progress overview render in the interface language; the shared feedback setting offers Follow
   interface / English / Chinese; Dictation feedback is produced in Chinese when the resolved
-  language is Chinese. Evidence: `docs/changelog.md` and design §9. **One departure from criterion
+  language is Chinese; the sign-in email is written in the requesting page's language. Earlier
+  feedback is not retranslated (owner, 2026-09-22). Evidence: `docs/changelog.md` and design §9. **One departure from criterion
   (g), for the owner's decision:** an earlier stored `en` migrates to Follow interface rather than
   to an explicit English choice, because the earlier code persisted `en` as a default and the two
   cannot be told apart (design §5, *As built*). A stored `zh` stays explicit as written.

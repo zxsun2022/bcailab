@@ -905,5 +905,10 @@ export const zh: Record<MessageKey, string> = {
   "progressPage.lighter": "提供较轻的参考",
 
   // --- home errors ---
-  "homePage.error.unknownLevel": "未知的级别。"
+  "homePage.error.unknownLevel": "未知的级别。",
+
+  // --- sign-in email ---
+  "email.loginCode.subject": "{code} 是你的 bcailab 登录验证码",
+  "email.loginCode.body": "你的 bcailab 登录验证码是：{code}",
+  "email.loginCode.expiry": "验证码 10 分钟内有效。如果不是你本人申请的，忽略这封邮件即可。"
 };
