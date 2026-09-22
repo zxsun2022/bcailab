@@ -146,9 +146,11 @@ unit, or an offline job runner; any new learner-facing surface; trials; and save
 
 ### Progress
 
-Accepted on 2026-09-18: the Dictation and Writing steps below. Still open: Reading, which the
-rollout order (D3) places last and the bias evaluation in (d) gates. Nothing in Reading changed,
-so this item stays active for that half and its acceptance is deliberately not claimed here.
+Accepted on 2026-09-18: the Dictation and Writing steps below. Accepted on 2026-09-21: the
+Reading gate tooling and its corpus kit — the tools, not a bias result. Still open: Reading, which
+the rollout order (D3) places last and the bias evaluation in (d) gates. No recording or experiment
+exists and nothing in Reading's prompt changed, so this item stays active for that half and its
+acceptance is deliberately not claimed here.
 
 - **Dictation feedback step — accepted (2026-09-18).** Dictation feedback, first in the rollout
   order, now receives the learner brief. Evidence: the pure
@@ -177,7 +179,7 @@ so this item stays active for that half and its acceptance is deliberately not c
   builds pass. Isolated dev-server checks verify user/deletion/current-session scope, the read
   budget and successful real-model first-draft, revision and retry feedback. Details in the same
   spike. Reading remains disabled for the new brief pending its bias gate.
-- **Reading gate tooling — in_review (2026-09-16); experiment pending.** The variance script
+- **Reading gate tooling — accepted (2026-09-21); experiment pending.** The variance script
   accepts `--brief` and now uses the production prompt/highlights. The registered-corpus harness
   compares baseline, candidate brief and legacy profile over five calls per condition and recording,
   using production attribution and the fixed thresholds in (d). It refuses uncommitted manifests,
@@ -190,7 +192,7 @@ so this item stays active for that half and its acceptance is deliberately not c
   corpus and the actual preliminary/full experiments. Reading's new projection/assembler and
   prompt integration remain unimplemented until the gate is evaluated; existing profile injection
   is unchanged. No bias result or Stage 1 completion is claimed.
-- **Reading gate corpus kit — in_review (2026-09-18); recordings pending.**
+- **Reading gate corpus kit — accepted (2026-09-21); recordings pending.**
   [`docs/spikes/reading-bias-corpus/`](spikes/reading-bias-corpus/README.md) gives an eight-recording,
   two-speaker slate over two passages that isolate `th_sound` and `linking`, recording scripts,
   ground-truth and known-error annotation rules, and `scripts/grader-bias/prepare.ts`, which builds
@@ -216,22 +218,6 @@ so this item stays active for that half and its acceptance is deliberately not c
   built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
   and server-side rendering. Those remain separate directions requiring their own evidence and
   authorization.
-- **Dictation contributes practice duration** (owner-authorized 2026-08-12; **in_review
-  2026-09-18**, evidence in `docs/changelog.md`, rule in `docs/tools/dictation.md`; production
-  needs migration 0022 applied before the deploy).
-  `total_practice_seconds` counts reading only: `learner-model.server.ts` passes
-  `practiceSeconds: 0` for dictation because nothing times a dictation attempt. A learner who
-  practises both modes therefore has a duration covering half their work. The surfaces were
-  made honest rather than left overclaiming — Home dropped duration entirely, Progress renamed
-  its card to *Reading time* and hides it at zero — so this item is about restoring the
-  measurement, not about the copy. Acceptance: (a) a dictation attempt records elapsed practice
-  time and adds it to `total_practice_seconds`; (b) resuming an in-progress attempt does not
-  double-count time already recorded; (c) idle time with no interaction is excluded, by a
-  documented rule; (d) Progress presents one duration covering every mode that measures one,
-  renamed back from *Reading time*; and (e) existing rows are unaffected — historical dictation
-  attempts stay at zero rather than being back-estimated. Explicitly excluded: timing Writing,
-  whose unit of work is a submitted round rather than a timed sitting.
-
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the
@@ -336,7 +322,7 @@ so this item stays active for that half and its acceptance is deliberately not c
 
 These entries are historical, not the active queue. Their original scope, evidence, caveats
 and recorded acceptance are preserved verbatim in [accepted roadmap history](roadmap-accepted-history.md).
-The 2026-09-18 entries were accepted by the owner before being moved here; the older ones were
+The 2026-09-18 and 2026-09-21 entries were accepted by the owner before being moved here; the older ones were
 not newly accepted by any documentation move.
 
 <a id="now--engineering-quality-iteration"></a>
@@ -431,6 +417,10 @@ not newly accepted by any documentation move.
 <a id="now--material-library-expansion"></a>
 
 - **Material library expansion — accepted (2026-09-18)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#now--material-library-expansion--accepted-2026-09-18); [delivery record](changelog.md).
+
+<a id="dictation-contributes-practice-duration"></a>
+
+- **Dictation contributes practice duration — accepted (2026-09-21)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#former-next-summary); [delivery record](changelog.md).
 
 ## Exploration, history, and decisions
 
