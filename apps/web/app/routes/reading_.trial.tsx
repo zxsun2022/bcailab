@@ -11,6 +11,7 @@ import {
 } from "~/utils/feature-quota.server";
 import {
   EslAttemptSubmissionError,
+  eslSubmissionErrorText,
   parseEslAttemptSubmission
 } from "~/utils/esl-reading-attempt.server";
 import { evaluateEslReadingAttempt } from "~/utils/esl-reading-eval.server";
@@ -18,6 +19,9 @@ import type { EslReadingEvaluationOutput } from "~/utils/esl-reading";
 import { EslAttemptComposer } from "~/components/EslAttemptComposer";
 import { EslEvaluation } from "~/components/EslEvaluation";
 import { openLoginPopup } from "~/utils/login-popup";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 
 /**
  * Anonymous reading trial (design Appendix A).
@@ -35,14 +39,13 @@ import { openLoginPopup } from "~/utils/login-popup";
  * `waitUntil` background task, and the result comes back in the action response.
  */
 
-export const meta: MetaFunction = () => [
-  { title: "Try Reading Practice · bcailab" },
-  {
-    name: "description",
-    content:
-      "Read a short passage aloud and get AI feedback on pronunciation, fluency, and rhythm. No account needed to try."
-  }
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    { title: t("meta.readingTrial.title") },
+    { name: "description", content: t("meta.readingTrial.description") }
+  ];
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await getOptionalUser(request, context);
@@ -77,13 +80,14 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
   const subject = resolveQuotaSubject(request, null);
   const extraHeaders = subject.setCookie ? { "Set-Cookie": subject.setCookie } : undefined;
+  const t = getRequestTranslator(request);
 
   const quota = await getFeatureQuotaStatus(context.env.DB, "reading_trial", subject);
   if (!quota.allowed) {
     return json<ActionData>(
       {
         code: "quota_exceeded",
-        error: "You've used today's free reading feedback. Sign in to keep going — it's free."
+        error: t("reading.error.trialQuota")
       },
       { status: 429, headers: extraHeaders }
     );
@@ -128,12 +132,12 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   } catch (error) {
     if (error instanceof EslAttemptSubmissionError) {
       return json<ActionData>(
-        { error: error.message },
+        { error: eslSubmissionErrorText(error, t) },
         { status: error.status ?? 400, headers: extraHeaders }
       );
     }
     return json<ActionData>(
-      { error: "Evaluation failed. Please retry." },
+      { error: t("reading.error.evaluationFailed") },
       { status: 500, headers: extraHeaders }
     );
   }
@@ -141,6 +145,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 
 export default function ReadingTrialPage() {
   const { allowed, remainingToday, passage } = useLoaderData<typeof loader>();
+  const t = useT();
   const [evaluation, setEvaluation] = React.useState<EslReadingEvaluationOutput | null>(null);
   const [quotaSpent, setQuotaSpent] = React.useState(false);
 
@@ -157,17 +162,13 @@ export default function ReadingTrialPage() {
     return (
       <div className="trial-page">
         <div className="trial-gate">
-          <h1 className="trial-gate-title">You've used today's free reading feedback</h1>
-          <p className="trial-gate-body">
-            Sign in to keep practicing — it's free. You get the full graded library, twenty
-            passages from CEFR A2 to C1, plus your own texts, every attempt kept, and scores
-            you can watch move over time.
-          </p>
+          <h1 className="trial-gate-title">{t("readingTrial.gateTitle")}</h1>
+          <p className="trial-gate-body">{t("readingTrial.gateBody")}</p>
           <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
-            Sign in — it's free
+            {t("common.signInFree")}
           </button>
           <Link to="/english" className="trial-back">
-            Back to English Studio
+            {t("trial.backToStudio")}
           </Link>
         </div>
       </div>
@@ -180,14 +181,11 @@ export default function ReadingTrialPage() {
         {/* The studio rail now routes anonymous visitors here from inside other modules,
             so the trial needs a way back before the quota runs out — not only on the gate. */}
         <Link to="/english" className="trial-studio-back">
-          &larr; English Studio
+          {t("trial.studioLink")}
         </Link>
-        <p className="trial-eyebrow">Free trial · no account needed</p>
-        <h1 className="trial-title">Reading Practice</h1>
-        <p className="trial-subtitle">
-          Read the passage below aloud. You'll get feedback on pronunciation, fluency,
-          rhythm, and clarity.
-        </p>
+        <p className="trial-eyebrow">{t("trial.eyebrow")}</p>
+        <h1 className="trial-title">{t("readingTrial.title")}</h1>
+        <p className="trial-subtitle">{t("readingTrial.subtitle")}</p>
       </header>
 
       {evaluation ? (
@@ -195,28 +193,26 @@ export default function ReadingTrialPage() {
           <EslEvaluation evaluation={evaluation} passageText={passage.text} />
 
           <div className="trial-cta">
-            <p className="trial-cta-text">
-              This attempt isn't saved. Sign in to unlock the full graded library — twenty
-              passages from CEFR A2 to C1 — add your own texts, keep every recording, and
-              track your scores over time.
-            </p>
+            <p className="trial-cta-text">{t("readingTrial.ctaText")}</p>
             <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
-              Sign in to save this
+              {t("readingTrial.signInToSave")}
             </button>
           </div>
         </>
       ) : (
-        <EslAttemptComposer submitLabel="Get feedback" mode="reading" onResult={handleResult}>
+        <EslAttemptComposer submitLabel={t("readingTrial.getFeedback")} mode="reading" onResult={handleResult}>
           {({ recorder }) => (
             <>
               <div className="trial-passage">
-                <h2 className="trial-passage-title">{passage.title}</h2>
-                <p className="trial-passage-text">{passage.text}</p>
+                <h2 className="trial-passage-title" lang="en">{passage.title}</h2>
+                <p className="trial-passage-text" lang="en">{passage.text}</p>
               </div>
               {recorder}
               {remainingToday !== null ? (
                 <p className="trial-remaining">
-                  {remainingToday} free {remainingToday === 1 ? "try" : "tries"} left today
+                  {t(remainingToday === 1 ? "readingTrial.remainingOne" : "readingTrial.remainingMany", {
+                    count: remainingToday
+                  })}
                 </p>
               ) : null}
             </>

@@ -3,6 +3,7 @@ import { Button } from "@bcailab/ui";
 import { useFetcher, useNavigate } from "@remix-run/react";
 import { formatDuration, type EslReadingMode } from "~/utils/esl-reading";
 import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
+import { useT } from "~/i18n/context";
 
 type RecordingState = "idle" | "recording" | "preview";
 
@@ -71,6 +72,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
   } = props;
   const fetcher = useFetcher<SubmitResult>();
   const navigate = useNavigate();
+  const t = useT();
   const [outputLanguage] = useReadingOutputLanguage();
 
   const [internalMode, setInternalMode] = React.useState<EslReadingMode>("reading");
@@ -140,7 +142,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
     if (recordingState !== "idle") return;
     setRecordingError(null);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setRecordingError("Audio recording is not supported in this browser.");
+      setRecordingError(t("reading.recorder.unsupported"));
       return;
     }
 
@@ -187,7 +189,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
         setRecordingState("idle");
         mediaRecorderRef.current = null;
         stopMediaStream();
-        setRecordingError("The recording stopped unexpectedly. Please try again.");
+        setRecordingError(t("reading.recorder.stopped"));
       };
 
       startTimeRef.current = Date.now();
@@ -203,11 +205,11 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
       stopMediaStream();
       setRecordingError(
         error instanceof DOMException && error.name === "NotAllowedError"
-          ? "Microphone access was denied. Allow microphone access, then try again."
-          : "Could not start recording. Check your microphone and try again."
+          ? t("reading.recorder.denied")
+          : t("reading.recorder.failed")
       );
     }
-  }, [cleanupAudio, recordingState, stopMediaStream, stopTimer]);
+  }, [cleanupAudio, recordingState, stopMediaStream, stopTimer, t]);
 
   const stopRecording = React.useCallback(() => {
     if (recordingState !== "recording") return;
@@ -229,7 +231,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
 
   const isUploading = fetcher.state === "submitting";
   const submitError = fetcher.data?.error;
-  const submitButtonLabel = isUploading ? "Submitting..." : submitLabel;
+  const submitButtonLabel = isUploading ? t("reading.recorder.submitting") : submitLabel;
   const recorder = (
     <div className="esl-compose-footer">
       {recordingState === "recording" ? (
@@ -244,7 +246,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
             controls
             src={recordedAudioUrl}
             className="esl-audio-player"
-            aria-label="Recording preview"
+            aria-label={t("reading.recorder.preview")}
           />
           <div className="esl-preview-side">
             <div className="esl-preview-meta">{formatDuration(durationMsRef.current)}</div>
@@ -255,7 +257,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
                 onClick={discardRecording}
                 disabled={isUploading}
               >
-                Re-record
+                {t("reading.recorder.reRecord")}
               </button>
               <Button type="submit" disabled={isUploading || !canSubmit}>
                 {submitButtonLabel}
@@ -267,10 +269,10 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
         <div className={`esl-record-panel ${recordingState === "recording" ? "is-recording" : ""}`}>
           <div className="esl-record-copy">
             <div className="esl-record-label">
-              {recordingState === "recording" ? "Recording" : "Ready to record"}
+              {recordingState === "recording" ? t("reading.recorder.recording") : t("reading.recorder.ready")}
             </div>
             <div className="esl-record-hint">
-              {recordingState === "recording" ? "Tap again to stop" : "Tap to start recording"}
+              {recordingState === "recording" ? t("reading.recorder.tapStop") : t("reading.recorder.tapStart")}
             </div>
           </div>
 
@@ -278,7 +280,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
             <button
               type="button"
               className="esl-record-btn"
-              aria-label="Start recording"
+              aria-label={t("reading.recorder.start")}
               onClick={() => void startRecording()}
             >
               <span className="esl-record-btn-inner" aria-hidden="true" />
@@ -287,7 +289,7 @@ export function EslAttemptComposer(props: EslAttemptComposerProps) {
             <button
               type="button"
               className="esl-record-btn is-recording"
-              aria-label="Stop recording"
+              aria-label={t("reading.recorder.stop")}
               onClick={stopRecording}
             >
               <span className="esl-record-btn-stop" aria-hidden="true" />
@@ -336,6 +338,7 @@ export function EslModeToggle(props: {
   mode: EslReadingMode;
   onModeChange: (mode: EslReadingMode) => void;
 }) {
+  const t = useT();
   return (
     <div className="esl-mode-toggle">
       <button
@@ -343,14 +346,14 @@ export function EslModeToggle(props: {
         className={`esl-mode-btn ${props.mode === "reading" ? "is-active" : ""}`}
         onClick={() => props.onModeChange("reading")}
       >
-        Read
+        {t("reading.mode.read")}
       </button>
       <button
         type="button"
         className={`esl-mode-btn ${props.mode === "recitation" ? "is-active" : ""}`}
         onClick={() => props.onModeChange("recitation")}
       >
-        Recite
+        {t("reading.mode.recite")}
       </button>
     </div>
   );

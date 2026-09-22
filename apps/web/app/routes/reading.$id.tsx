@@ -30,6 +30,7 @@ import { requireUser } from "~/utils/auth.server";
 import {
   createAndScheduleEslReadingAttempt,
   EslAttemptSubmissionError,
+  eslSubmissionErrorText,
   parseEslAttemptSubmission,
   retryEslReadingAttemptEvaluation
 } from "~/utils/esl-reading-attempt.server";
@@ -48,17 +49,25 @@ import {
 import { parseReadingOutputLanguage } from "~/utils/reading-settings";
 import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
 import * as React from "react";
+import { RichMessage, useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 
 type ActionData = { error?: string; redirectTo?: string; ok?: boolean };
 const HISTORY_RAIL_COLLAPSED_KEY = "reading-history-rail-collapsed";
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  {
-    title: data?.passage
-      ? `${getDisplayEslPassageTitle(data.passage.title, data.passage.content_text)} · Reading · English Studio · bcailab`
-      : "Reading · English Studio · bcailab"
-  }
-];
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    {
+      title: data?.passage
+        ? t("meta.readingPassage.title", {
+            title: getDisplayEslPassageTitle(data.passage.title, data.passage.content_text)
+          })
+        : t("meta.readingStudio.title")
+    }
+  ];
+};
 
 const deleteAttemptArtifacts = async (
   context: ActionFunctionArgs["context"],
@@ -200,14 +209,16 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "submitAttempt");
   const transport = String(formData.get("_transport") ?? "document");
+  // Errors below are shown to the learner as written, in the interface language.
+  const t = getRequestTranslator(request);
 
   if (intent === "deleteAttempt") {
     const attemptId = String(formData.get("attemptId") ?? "");
-    if (!attemptId) return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
+    if (!attemptId) return json<ActionData>({ error: t("reading.error.missingAttempt") }, { status: 400 });
 
     const attempt = await getEslReadingAttemptById(context.env.DB, attemptId, { includeDeleted: true });
     if (!attempt || attempt.user_id !== user.id || attempt.passage_id !== passage.id || attempt.deleted_at) {
-      return json<ActionData>({ error: "Attempt not found." }, { status: 404 });
+      return json<ActionData>({ error: t("reading.error.attemptNotFound") }, { status: 404 });
     }
 
     try {
@@ -215,7 +226,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       await softDeleteEslReadingAttempt(context.env.DB, { id: attempt.id, userId: user.id });
       return redirect(`/reading/${passage.id}`);
     } catch {
-      return json<ActionData>({ error: "Failed to delete. Please try again." }, { status: 500 });
+      return json<ActionData>({ error: t("reading.error.deleteFailed") }, { status: 500 });
     }
   }
 
@@ -242,7 +253,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       return redirect("/reading");
     } catch {
       return json<ActionData>(
-        { error: "Failed to delete passage. Please try again." },
+        { error: t("reading.error.deletePassageFailed") },
         { status: 500 }
       );
     }
@@ -252,7 +263,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     const attemptId = String(formData.get("attemptId") ?? "");
     const outputLanguage = parseReadingOutputLanguage(formData.get("outputLanguage"));
     const retryTransport = String(formData.get("_transport") ?? "document");
-    if (!attemptId) return json<ActionData>({ error: "Missing attempt id." }, { status: 400 });
+    if (!attemptId) return json<ActionData>({ error: t("reading.error.missingAttempt") }, { status: 400 });
 
     try {
       await retryEslReadingAttemptEvaluation(context, {
@@ -266,9 +277,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         : redirect(`/reading/${passage.id}?attempt=${attemptId}`);
     } catch (error) {
       if (error instanceof EslAttemptSubmissionError) {
-        return json<ActionData>({ error: error.message }, { status: error.status });
+        return json<ActionData>({ error: eslSubmissionErrorText(error, t) }, { status: error.status });
       }
-      return json<ActionData>({ error: "Failed to request feedback. Please retry." }, { status: 500 });
+      return json<ActionData>({ error: t("reading.error.retryFailed") }, { status: 500 });
     }
   }
 
@@ -282,7 +293,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       });
       if (!scheduled) {
         return json<ActionData>(
-          { error: "Reference audio generation is unavailable right now." },
+          { error: t("reading.error.referenceUnavailable") },
           { status: 503 }
         );
       }
@@ -291,14 +302,14 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
         : redirect(`/reading/${passage.id}`);
     } catch {
       return json<ActionData>(
-        { error: "Failed to start reference audio. Please retry." },
+        { error: t("reading.error.referenceFailed") },
         { status: 500 }
       );
     }
   }
 
   if (intent !== "submitAttempt") {
-    return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
+    return json<ActionData>({ error: t("reading.error.unsupported") }, { status: 400 });
   }
 
   try {
@@ -314,9 +325,9 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       : redirect(redirectTo);
   } catch (error) {
     if (error instanceof EslAttemptSubmissionError) {
-      return json<ActionData>({ error: error.message }, { status: error.status });
+      return json<ActionData>({ error: eslSubmissionErrorText(error, t) }, { status: error.status });
     }
-    return json<ActionData>({ error: "Failed to submit. Please retry." }, { status: 500 });
+    return json<ActionData>({ error: t("reading.error.submitFailed") }, { status: 500 });
   }
 };
 
@@ -324,6 +335,7 @@ export default function EslReadingPracticePage() {
   const { passage, canDictate, composeView, attempts, referenceAudio, selected } =
     useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>();
+  const t = useT();
   const displayTitle = getDisplayEslPassageTitle(passage.title, passage.content_text);
   const actionError = actionData && "error" in actionData ? actionData.error : undefined;
   const [liveAttempts, setLiveAttempts] = React.useState(attempts);
@@ -352,8 +364,8 @@ export default function EslReadingPracticePage() {
   const latestAttempt = sortedAttempts[0] ?? null;
   const headingSubtitle = composeView
     ? liveAttempts.length === 0
-      ? "Record the first attempt for this passage."
-      : "Start a fresh attempt. Your latest scored attempt stays in history."
+      ? t("reading.detail.firstAttempt")
+      : t("reading.detail.freshAttempt")
     : null;
   const isViewingHistory = Boolean(
     !composeView && liveSelected && latestAttempt && liveSelected.id !== latestAttempt.id
@@ -439,7 +451,7 @@ export default function EslReadingPracticePage() {
               </Link>
               <div className="esl-passage-heading-row">
                 <div className="esl-passage-heading-copy">
-                  <h1>{displayTitle}</h1>
+                  <h1 lang="en">{displayTitle}</h1>
                   {headingSubtitle ? (
                     <p className="esl-passage-heading-subtitle">{headingSubtitle}</p>
                   ) : null}
@@ -451,7 +463,7 @@ export default function EslReadingPracticePage() {
                       to={`/dictation/${passage.id}`}
                       className="studio-link-secondary mode-handoff-inline"
                     >
-                      Also available as dictation
+                      {t("reading.detail.alsoDictation")}
                     </Link>
                   ) : null}
                 </div>
@@ -459,7 +471,7 @@ export default function EslReadingPracticePage() {
                   <div className="esl-passage-heading-actions">
                     {showComposeBackLink ? (
                       <Link to={`/reading/${passage.id}`} className="btn btn-ghost btn-sm">
-                        Back to latest
+                        {t("reading.detail.backToLatest")}
                       </Link>
                     ) : null}
                     <EslModeToggle mode={mode} onModeChange={setMode} />
@@ -471,22 +483,25 @@ export default function EslReadingPracticePage() {
             {isViewingHistory && liveSelected ? (
               <div className="esl-state-banner">
                 <div className="esl-state-banner-copy">
-                  <div className="esl-state-banner-label">Viewing History</div>
+                  <div className="esl-state-banner-label">{t("reading.detail.viewingHistory")}</div>
                   <div className="esl-state-banner-text">
-                    Reviewing an earlier attempt from <LocalDateTime value={liveSelected.createdAt} />.
+                    <RichMessage
+                      id="reading.detail.reviewing"
+                      values={{ date: <LocalDateTime value={liveSelected.createdAt} /> }}
+                    />
                   </div>
                 </div>
                 <Link to={`/reading/${passage.id}`} className="btn btn-ghost btn-sm esl-state-banner-action">
-                  Back to latest
+                  {t("reading.detail.backToLatest")}
                 </Link>
               </div>
             ) : null}
 
             {!composeView ? (
               <Card className="tool-card-stack esl-passage-context-card">
-                <div className="esl-detail-section-label">Passage</div>
+                <div className="esl-detail-section-label">{t("reading.detail.passage")}</div>
                 <div className="esl-passage-context-body">
-                  <div className="esl-passage-body">{passage.content_text}</div>
+                  <div className="esl-passage-body" lang="en">{passage.content_text}</div>
                 </div>
               </Card>
             ) : null}
@@ -495,15 +510,15 @@ export default function EslReadingPracticePage() {
 
             {composeView ? (
               <EslAttemptComposer
-                submitLabel="Submit"
+                submitLabel={t("reading.submit")}
                 mode={mode}
                 onModeChange={setMode}
               >
                 {({ hideText, recorder }) => {
-                  const sessionTitle = hideText ? "Recite from memory" : "Read the passage aloud";
+                  const sessionTitle = hideText ? t("reading.detail.reciteTitle") : t("reading.detail.readTitle");
                   const sessionDescription = hideText
-                    ? "Hide the passage and recite in one take. You can listen back, re-record, and then submit for AI feedback."
-                    : "Keep the passage in view while you record, then review the audio and submit for feedback.";
+                    ? t("reading.detail.reciteDescription")
+                    : t("reading.detail.readDescription");
 
                   return (
                     <Card className="tool-card-stack esl-compose-card esl-compose-brief-card">
@@ -513,19 +528,19 @@ export default function EslReadingPracticePage() {
                           <p className="esl-compose-session-desc">{sessionDescription}</p>
                         </div>
                         <Badge className="esl-compose-mode-badge">
-                          {hideText ? "Text hidden" : "Passage visible"}
+                          {hideText ? t("reading.detail.textHidden") : t("reading.detail.passageVisible")}
                         </Badge>
                       </div>
 
                       <div className="esl-compose-passage-block">
-                        <div className="esl-detail-section-label">Passage</div>
+                        <div className="esl-detail-section-label">{t("reading.detail.passage")}</div>
                         {hideText ? (
                           <div className="esl-passage-hidden esl-passage-context-hidden esl-compose-hidden-panel">
-                            Passage text is hidden in recitation mode. Switch back to Read any time for a quick refresh before you record.
+                            {t("reading.detail.hiddenPanel")}
                           </div>
                         ) : (
                           <div className="esl-passage-context-body esl-compose-passage-body">
-                            <div className="esl-passage-body">{passage.content_text}</div>
+                            <div className="esl-passage-body" lang="en">{passage.content_text}</div>
                           </div>
                         )}
                       </div>
@@ -554,7 +569,7 @@ export default function EslReadingPracticePage() {
               />
             ) : (
               <Card className="tool-card-stack">
-                No attempt selected. Choose a history item or start a new attempt.
+                {t("reading.detail.noAttempt")}
               </Card>
             )}
           </div>
@@ -604,6 +619,7 @@ function AttemptDetail(props: {
     score: number | null;
   }) => void;
 }) {
+  const t = useT();
   const retryFetcher = useFetcher<ActionData>();
   const referenceFetcher = useFetcher<ActionData>();
   const [outputLanguage] = useReadingOutputLanguage();
@@ -795,20 +811,24 @@ function AttemptDetail(props: {
           <div className="esl-detail-head-main">
             {props.evaluationStatus !== "completed" ? (
               <Badge className={`esl-status-badge is-${props.evaluationStatus}`}>
-                {props.isStalePending ? "Needs Retry" : props.evaluationStatus === "pending" ? "Evaluating" : "AI Failed"}
+                {props.isStalePending
+                  ? t("reading.detail.needsRetry")
+                  : props.evaluationStatus === "pending"
+                    ? t("reading.detail.evaluatingBadge")
+                    : t("reading.detail.aiFailed")}
               </Badge>
             ) : null}
           </div>
           <div className="esl-audio-pair">
             <CompactAudioPlayer
-              label="Reference"
+              label={t("reading.detail.reference")}
               src={props.referenceAudio.audioUrl}
               status={referenceStatus}
               onRequestSource={requestReferenceAudio}
               autoPlayToken={referenceAutoPlayToken}
             />
             <CompactAudioPlayer
-              label="Your attempt"
+              label={t("reading.detail.yourAttempt")}
               src={props.audioUrl}
               status="ready"
             />
@@ -819,44 +839,32 @@ function AttemptDetail(props: {
 
         {isRetrySubmitting || isRetryEvaluating ? (
           <div className="esl-attempt-state">
-            <div className="esl-attempt-state-title">Evaluating</div>
+            <div className="esl-attempt-state-title">{t("reading.detail.evaluatingTitle")}</div>
             <p className="esl-attempt-state-desc">
-              {isRetrySubmitting
-                ? "The feedback request is being sent now."
-                : "Feedback request sent. AI evaluation is running again for this attempt."}
+              {isRetrySubmitting ? t("reading.detail.requestSending") : t("reading.detail.requestSent")}
             </p>
           </div>
         ) : props.evaluationStatus === "pending" && !props.isStalePending ? (
           <div className="esl-attempt-state">
-            <div className="esl-attempt-state-title">Evaluating</div>
-            <p className="esl-attempt-state-desc">
-              Your recording is saved. AI feedback is still running, so you can wait here while it
-              appears automatically.
-            </p>
+            <div className="esl-attempt-state-title">{t("reading.detail.evaluatingTitle")}</div>
+            <p className="esl-attempt-state-desc">{t("reading.detail.pendingBody")}</p>
           </div>
         ) : props.isStalePending ? (
           <div className="esl-attempt-state">
-            <div className="esl-attempt-state-title">Evaluation interrupted</div>
-            <p className="esl-attempt-state-desc">
-              The recording appears to be saved, but the feedback job did not finish. You can retry
-              the AI evaluation without re-recording.
-            </p>
+            <div className="esl-attempt-state-title">{t("reading.detail.interruptedTitle")}</div>
+            <p className="esl-attempt-state-desc">{t("reading.detail.interruptedBody")}</p>
           </div>
         ) : props.evaluationStatus === "failed" ? (
           <div className="esl-attempt-state">
-            <div className="esl-attempt-state-title">Evaluation unavailable</div>
-            <p className="esl-attempt-state-desc">
-              The recording is saved, but AI feedback did not finish for this attempt.
-            </p>
+            <div className="esl-attempt-state-title">{t("reading.detail.unavailableTitle")}</div>
+            <p className="esl-attempt-state-desc">{t("reading.detail.failedBody")}</p>
           </div>
         ) : props.evaluation ? (
           <EslEvaluation evaluation={props.evaluation} passageText={props.passageText} />
         ) : (
           <div className="esl-attempt-state">
-            <div className="esl-attempt-state-title">Evaluation unavailable</div>
-            <p className="esl-attempt-state-desc">
-              This attempt does not have feedback available to display.
-            </p>
+            <div className="esl-attempt-state-title">{t("reading.detail.unavailableTitle")}</div>
+            <p className="esl-attempt-state-desc">{t("reading.detail.noFeedbackBody")}</p>
           </div>
         )}
 
@@ -869,13 +877,17 @@ function AttemptDetail(props: {
             <input type="hidden" name="_transport" value="fetcher" />
             <input type="hidden" name="outputLanguage" value={outputLanguage} />
             <button type="submit" className="btn btn-ghost btn-sm" disabled={isRetrySubmitting}>
-              {isRetrySubmitting ? "Requesting..." : isRetryEvaluating ? "Evaluating..." : "Retry feedback"}
+              {isRetrySubmitting
+                ? t("reading.detail.requesting")
+                : isRetryEvaluating
+                  ? t("reading.detail.evaluatingRetry")
+                  : t("reading.detail.retryFeedback")}
             </button>
           </retryFetcher.Form>
         ) : null}
 
         <div className="esl-eval-meta esl-eval-meta-bottom">
-          <span>{props.mode === "recitation" ? "Recitation" : "Reading"}</span>
+          <span>{props.mode === "recitation" ? t("reading.mode.recitation") : t("reading.mode.reading")}</span>
           <LocalDateTime value={props.createdAt} />
           {props.durationMs ? <span>{formatDuration(props.durationMs)}</span> : null}
         </div>

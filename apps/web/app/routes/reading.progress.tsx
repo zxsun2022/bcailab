@@ -11,13 +11,16 @@ import {
   StudioPageHeader,
   StudioPageTabs
 } from "~/components/StudioPage";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import type { MessageKey, Translate } from "~/i18n/translate";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/reading/progress" }
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Reading progress · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.readingProgress.title") }
 ];
 
 type ScorePoint = {
@@ -28,7 +31,7 @@ type ScorePoint = {
 };
 
 type ScoreAverage = {
-  label: string;
+  labelKey: MessageKey;
   value: number;
 };
 
@@ -80,19 +83,19 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
   const averages: ScoreAverage[] = [
     {
-      label: "Pronunciation",
+      labelKey: "reading.eval.pronunciation" as const,
       value: average(parsedAttempts.map((attempt) => attempt.evaluation.scores.pronunciation))
     },
     {
-      label: "Fluency",
+      labelKey: "reading.eval.fluency" as const,
       value: average(parsedAttempts.map((attempt) => attempt.evaluation.scores.fluency))
     },
     {
-      label: "Stress / Rhythm",
+      labelKey: "reading.eval.stressRhythm" as const,
       value: average(parsedAttempts.map((attempt) => attempt.evaluation.scores.stress_rhythm))
     },
     {
-      label: "Clarity",
+      labelKey: "reading.eval.clarity" as const,
       value: average(parsedAttempts.map((attempt) => attempt.evaluation.scores.clarity))
     }
   ].filter((item) => item.value > 0);
@@ -139,16 +142,16 @@ function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function formatDurationSummary(ms: number): string {
+function formatDurationSummary(ms: number, t: Translate): string {
   const totalSeconds = Math.round(ms / 1000);
-  if (totalSeconds <= 0) return "0m";
+  if (totalSeconds <= 0) return t("duration.m", { m: 0 });
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
 
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return `${seconds}s`;
+  if (hours > 0) return t("duration.hm", { h: hours, m: minutes });
+  if (minutes > 0) return t("duration.m", { m: minutes });
+  return t("duration.s", { s: seconds });
 }
 
 function formatScore(value: number): string {
@@ -157,6 +160,7 @@ function formatScore(value: number): string {
 }
 
 function ScoreTrendChart({ points }: { points: ScorePoint[] }) {
+  const t = useT();
   if (points.length === 0) return null;
 
   return (
@@ -182,7 +186,7 @@ function ScoreTrendChart({ points }: { points: ScorePoint[] }) {
               to={`/reading/${point.passageId}?attempt=${point.attemptId}`}
               className="dash-band-chart-dot"
               style={{ left: `${leftPct}%`, bottom: `${point.overallScore}%` }}
-              title={`${point.passageTitle} · Score ${point.overallScore}`}
+              title={t("readingProgress.dotTitle", { title: point.passageTitle, score: point.overallScore })}
             />
           );
         })}
@@ -215,11 +219,12 @@ function ScoreTrendChart({ points }: { points: ScorePoint[] }) {
 }
 
 function ScoreAverageList({ items }: { items: ScoreAverage[] }) {
+  const t = useT();
   return (
     <div className="dash-score-list">
       {items.map((item) => (
-        <div key={item.label} className="dash-score-row">
-          <div className="dash-score-label">{item.label}</div>
+        <div key={item.labelKey} className="dash-score-row">
+          <div className="dash-score-label">{t(item.labelKey)}</div>
           <div className="dash-score-track">
             <div className="dash-score-fill" style={{ width: `${item.value}%` }} />
           </div>
@@ -233,6 +238,7 @@ function ScoreAverageList({ items }: { items: ScoreAverage[] }) {
 export default function ReadingProgressPage() {
   const { totalPassages, totalAttempts, totalPracticeMs, bestScore, scorePoints, averages, progressNotes, recentPassages } =
     useLoaderData<typeof loader>();
+  const t = useT();
 
   const isEmpty = totalAttempts === 0;
 
@@ -240,8 +246,8 @@ export default function ReadingProgressPage() {
     <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Reading progress"
-          description="Your reading and recitation history at a glance."
+          title={t("readingProgress.title")}
+          description={t("readingProgress.description")}
         />
         <StudioPageTabs>
           <ProgressWorkspaceTabs />
@@ -251,12 +257,10 @@ export default function ReadingProgressPage() {
         {isEmpty ? (
           <div className="studio-empty">
             <div className="studio-empty-mark" aria-hidden="true" />
-            <div className="studio-empty-title">No data yet</div>
-            <p className="studio-empty-desc">
-              Submit your first recording and get feedback to start tracking progress.
-            </p>
+            <div className="studio-empty-title">{t("readingProgress.noData")}</div>
+            <p className="studio-empty-desc">{t("readingProgress.noDataBody")}</p>
             <Link to="/reading" className="btn btn-primary btn-sm">
-              Start practice
+              {t("readingProgress.start")}
             </Link>
           </div>
         ) : (
@@ -264,39 +268,39 @@ export default function ReadingProgressPage() {
             <div className="dash-stats">
               <div className="dash-stat-card">
                 <div className="dash-stat-value">{totalPassages}</div>
-                <div className="dash-stat-label">Passages</div>
+                <div className="dash-stat-label">{t("readingProgress.passages")}</div>
               </div>
               <div className="dash-stat-card">
                 <div className="dash-stat-value">{totalAttempts}</div>
-                <div className="dash-stat-label">Evaluated</div>
+                <div className="dash-stat-label">{t("readingProgress.evaluated")}</div>
               </div>
               <div className="dash-stat-card">
-                <div className="dash-stat-value">{formatDurationSummary(totalPracticeMs)}</div>
-                <div className="dash-stat-label">Practice time</div>
+                <div className="dash-stat-value">{formatDurationSummary(totalPracticeMs, t)}</div>
+                <div className="dash-stat-label">{t("readingProgress.practiceTime")}</div>
               </div>
               <div className="dash-stat-card">
                 <div className="dash-stat-value">{bestScore}</div>
-                <div className="dash-stat-label">Best score</div>
+                <div className="dash-stat-label">{t("readingProgress.bestScore")}</div>
               </div>
             </div>
 
             <div className="dash-section">
-              <h3 className="dash-section-title">Score trend</h3>
-              <p className="dash-section-hint">Each dot is one evaluated attempt. Click to open it.</p>
+              <h3 className="dash-section-title">{t("readingProgress.trend")}</h3>
+              <p className="dash-section-hint">{t("readingProgress.trendHint")}</p>
               <ScoreTrendChart points={scorePoints} />
             </div>
 
             {averages.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Skill averages</h3>
-                <p className="dash-section-hint">Average score across all completed attempts.</p>
+                <h3 className="dash-section-title">{t("readingProgress.averages")}</h3>
+                <p className="dash-section-hint">{t("readingProgress.averagesHint")}</p>
                 <ScoreAverageList items={averages} />
               </div>
             ) : null}
 
             {progressNotes.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Recent progress notes</h3>
+                <h3 className="dash-section-title">{t("readingProgress.notes")}</h3>
                 <div className="dash-note-list">
                   {progressNotes.map((note, index) => (
                     <Link
@@ -305,7 +309,7 @@ export default function ReadingProgressPage() {
                       className="dash-note-item"
                     >
                       <div className="dash-note-text">{note.text}</div>
-                      <div className="dash-note-meta">{note.passageTitle}</div>
+                      <div className="dash-note-meta" lang="en">{note.passageTitle}</div>
                     </Link>
                   ))}
                 </div>
@@ -313,7 +317,7 @@ export default function ReadingProgressPage() {
             ) : null}
 
             <div className="dash-section">
-              <h3 className="dash-section-title">Recent passages</h3>
+              <h3 className="dash-section-title">{t("readingProgress.recentPassages")}</h3>
               <div className="dash-recent-list">
                 {recentPassages.map((passage) => {
                   const href = passage.latestAttemptId
@@ -321,13 +325,15 @@ export default function ReadingProgressPage() {
                     : `/reading/${passage.id}`;
                   return (
                     <Link key={passage.id} to={href} className="dash-recent-item">
-                      <div className="dash-recent-title">{passage.title}</div>
+                      <div className="dash-recent-title" lang="en">{passage.title}</div>
                       <div className="dash-recent-meta">
                         <span className="nav-rail-agent-badge">
-                          Evaluated {passage.attemptsCount}
+                          {t("readingProgress.evaluatedCount", { count: passage.attemptsCount })}
                         </span>
                         {passage.latestScore != null ? (
-                          <span className="dash-recent-band">Score {passage.latestScore}</span>
+                          <span className="dash-recent-band">
+                            {t("readingProgress.score", { score: passage.latestScore })}
+                          </span>
                         ) : null}
                       </div>
                     </Link>

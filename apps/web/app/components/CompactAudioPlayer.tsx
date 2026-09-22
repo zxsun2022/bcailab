@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useT } from "~/i18n/context";
 
 type CompactAudioPlayerProps = {
   label: string;
@@ -11,6 +12,7 @@ type CompactAudioPlayerProps = {
 const AUDIO_PLAY_EVENT = "bcailab-compact-audio-play";
 
 export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
+  const t = useT();
   const {
     label,
     src = null,
@@ -44,10 +46,10 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
       await audio.play();
       setPlayError(null);
     } catch {
-      setPlayError("Unavailable");
+      setPlayError(t("audio.unavailable"));
       setPlayState("idle");
     }
-  }, [playerId, src, status]);
+  }, [playerId, src, status, t]);
 
   React.useEffect(() => {
     return () => {
@@ -82,7 +84,7 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
       setPlayState("idle");
     };
     const handleError = () => {
-      setPlayError("Unavailable");
+      setPlayError(t("audio.unavailable"));
       setPlayState("idle");
     };
 
@@ -97,7 +99,8 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
     };
-  }, []);
+    // `t` only changes with the interface language, which reloads the page anyway.
+  }, [t]);
 
   React.useEffect(() => {
     const handleOtherPlayer = (event: Event) => {
@@ -154,11 +157,11 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
   const primaryLabel =
     status === "ready"
       ? playState === "playing"
-        ? "Pause"
-        : "Play"
+        ? t("audio.pause")
+        : t("audio.play")
       : status === "pending"
-        ? "Preparing..."
-        : "Play";
+        ? t("audio.preparing")
+        : t("audio.play");
   const canRequestSource = Boolean(onRequestSource) && (status === "missing" || status === "failed");
   const primaryDisabled =
     status === "pending" || (status !== "ready" && !canRequestSource);
@@ -187,7 +190,7 @@ export function CompactAudioPlayer(props: CompactAudioPlayerProps) {
           onClick={stopPlayback}
           disabled={!src || playState === "idle" || status !== "ready"}
         >
-          Stop
+          {t("audio.stop")}
         </button>
       </div>
     </div>

@@ -3,29 +3,32 @@ import { useRouteLoaderData } from "@remix-run/react";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import type { loader as speechLoader } from "~/routes/speech";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 export const handle = {
   breadcrumb: { label: "settings", href: "/speech/settings" }
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Speech settings · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.speechSettings.title") }
 ];
 
 export default function SpeechSettingsPage() {
   const data = useRouteLoaderData<typeof speechLoader>("routes/speech");
   const user = data?.user;
 
+  const t = useT();
   const [themePreference, setThemePreference] = useThemePreference();
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
-  const displayName = user?.name ?? user?.email ?? "Account";
+  const displayName = user?.name ?? user?.email ?? t("common.account");
 
   return (
     <StudioPage width="standard">
       <StudioPageHeader
-        title="Speech settings"
-        description="Manage your account and appearance preferences."
+        title={t("settings.speechTitle")}
+        description={t("settings.accountDescription")}
       />
       <StudioPageBody className="tool-settings-page">
         <div className="tool-settings-card">
@@ -40,15 +43,15 @@ export default function SpeechSettingsPage() {
             </div>
           </div>
           <form method="post" action="/logout">
-            <button type="submit" className="settings-signout-btn">Sign out</button>
+            <button type="submit" className="settings-signout-btn">{t("settings.signOut")}</button>
           </form>
         </section>
 
         {/* General: theme */}
         <section className="tool-settings-section">
-          <div className="menu-label">Appearance</div>
+          <div className="menu-label">{t("settings.appearance")}</div>
           <div className="menu-setting-row">
-            <div className="menu-setting-title">Color mode</div>
+            <div className="menu-setting-title">{t("settings.colorMode")}</div>
           </div>
           <div className="menu-option-grid menu-option-grid-three">
             {(["system", "light", "dark"] as const).map((value) => (
@@ -59,7 +62,7 @@ export default function SpeechSettingsPage() {
                 aria-pressed={themePreference === value}
                 onClick={() => setThemePreference(value)}
               >
-                {value === "system" ? "Auto" : value.charAt(0).toUpperCase() + value.slice(1)}
+                {t(value === "system" ? "theme.auto" : value === "light" ? "theme.light" : "theme.dark")}
               </button>
             ))}
           </div>

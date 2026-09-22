@@ -1,5 +1,7 @@
 import type { EslReadingEvaluationOutput } from "~/utils/esl-reading";
 import { clipText } from "~/utils/esl-reading";
+import { useT } from "~/i18n/context";
+import type { MessageKey } from "~/i18n/translate";
 
 /**
  * Renders a reading/recitation evaluation: score summary, commentary, actions, and
@@ -11,11 +13,11 @@ import { clipText } from "~/utils/esl-reading";
  * where either came from.
  */
 
-const HIGHLIGHT_KIND_LABELS: Record<EslReadingEvaluationOutput["highlights"][number]["kind"], string> = {
-  mispronunciation: "Mispronunciation",
-  stress: "Stress",
-  pause: "Pause",
-  intonation: "Intonation"
+const HIGHLIGHT_KIND_LABELS: Record<EslReadingEvaluationOutput["highlights"][number]["kind"], MessageKey> = {
+  mispronunciation: "reading.eval.kind.mispronunciation",
+  stress: "reading.eval.kind.stress",
+  pause: "reading.eval.kind.pause",
+  intonation: "reading.eval.kind.intonation"
 };
 
 const HIGHLIGHT_QUOTE_REGEX = /['"“”‘’]([^'"“”‘’]{2,80})['"“”‘’]/g;
@@ -77,21 +79,24 @@ const getHighlightTargetText = (
 
 export function EslEvaluation(props: { evaluation: EslReadingEvaluationOutput; passageText: string }) {
   const { evaluation, passageText } = props;
+  const t = useT();
   const dimensions = [
-    { label: "Pronunciation", score: evaluation.scores.pronunciation },
-    { label: "Fluency", score: evaluation.scores.fluency },
-    { label: "Stress / Rhythm", score: evaluation.scores.stress_rhythm },
-    { label: "Clarity", score: evaluation.scores.clarity }
+    { label: t("reading.eval.pronunciation"), score: evaluation.scores.pronunciation },
+    { label: t("reading.eval.fluency"), score: evaluation.scores.fluency },
+    { label: t("reading.eval.stressRhythm"), score: evaluation.scores.stress_rhythm },
+    { label: t("reading.eval.clarity"), score: evaluation.scores.clarity }
   ];
 
   return (
     <div className="esl-eval-content">
       <div className="esl-score-summary">
         <div className="esl-score-overview">
-          <div className="esl-score-overview-label">Overall</div>
+          <div className="esl-score-overview-label">{t("reading.eval.overall")}</div>
           <div className="esl-score-overview-value">{evaluation.scores.overall}</div>
           <div className="esl-score-overview-meta">
-            {evaluation.cefr_guess ? `CEFR ${evaluation.cefr_guess}` : "Speaking score"}
+            {evaluation.cefr_guess
+              ? t("reading.eval.cefr", { level: evaluation.cefr_guess })
+              : t("reading.eval.speakingScore")}
           </div>
         </div>
 
@@ -129,7 +134,7 @@ export function EslEvaluation(props: { evaluation: EslReadingEvaluationOutput; p
 
       {evaluation.top_actions_zh.length > 0 && (
         <>
-          <div className="esl-eval-subtitle">Actions</div>
+          <div className="esl-eval-subtitle">{t("reading.eval.actions")}</div>
           <ul className="esl-eval-list">
             {evaluation.top_actions_zh.map((item) => (
               <li key={item}>{item}</li>
@@ -140,16 +145,16 @@ export function EslEvaluation(props: { evaluation: EslReadingEvaluationOutput; p
 
       {evaluation.highlights.length > 0 && (
         <>
-          <div className="esl-eval-subtitle">Highlights</div>
+          <div className="esl-eval-subtitle">{t("reading.eval.highlights")}</div>
           <div className="esl-highlights">
             {evaluation.highlights.map((highlight, index) => {
               const targetText = getHighlightTargetText(passageText, highlight);
               return (
                 <div key={index} className={`esl-highlight sev-${highlight.severity}`}>
                   <div className="esl-highlight-head">
-                    <span className="esl-highlight-kind">{HIGHLIGHT_KIND_LABELS[highlight.kind]}</span>
+                    <span className="esl-highlight-kind">{t(HIGHLIGHT_KIND_LABELS[highlight.kind])}</span>
                     {targetText ? (
-                      <span className="esl-highlight-target" title={targetText}>
+                      <span className="esl-highlight-target" title={targetText} lang="en">
                         {targetText}
                       </span>
                     ) : null}

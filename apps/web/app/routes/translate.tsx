@@ -14,9 +14,12 @@ import {
 import {
   TRANSLATE_LANGUAGES,
   isTranslateLanguageCode,
-  translateLanguageLabel as languageLabel,
+  translateLanguageName,
   type TranslateLanguageCode
 } from "~/utils/translate-languages";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 import { openLoginPopup } from "~/utils/login-popup";
 import { StudioShell } from "~/components/StudioShell";
 import {
@@ -38,10 +41,13 @@ export const handle = {
   hideHeaderUserMenu: true
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Translate · bcailab" },
-  { name: "description", content: "LLM-powered translation between English, Chinese, and more. Free to try — no account needed." }
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    { title: t("meta.translate.title") },
+    { name: "description", content: t("meta.translate.description") }
+  ];
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await getOptionalUser(request, context);
@@ -137,7 +143,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
     // Cloudflare can replace a 502 response body with its HTML error page,
     // which Remix cannot deserialize and promotes to the route error boundary.
     return json<ActionData>(
-      { ok: false, error: "Translation failed. Please try again in a moment." },
+      { ok: false, error: getRequestTranslator(request)("translate.error.failed") },
       extraHeaders ? { headers: extraHeaders } : undefined
     );
   }
@@ -189,6 +195,8 @@ const IDLE_STREAM: StreamState = {
 
 export default function TranslatePage() {
   const { authed, quota, user } = useLoaderData<typeof loader>();
+  const t = useT();
+  const languageLabel = (code: TranslateLanguageCode) => translateLanguageName(t, code);
   // Only reachable without JavaScript, where the form posts to this route's action.
   const fallbackData = useActionData<typeof action>() as ActionData | undefined;
   const revalidator = useRevalidator();
@@ -362,7 +370,7 @@ export default function TranslatePage() {
       // A stream that ends without `done` or `error` was cut off mid-flight.
       setStream((prev) =>
         prev.status === "streaming"
-          ? { ...prev, status: "error", error: "Translation was interrupted. Please try again." }
+          ? { ...prev, status: "error", error: t("translate.error.interrupted") }
           : prev
       );
     } catch (error) {
@@ -373,10 +381,10 @@ export default function TranslatePage() {
       setStream((prev) => ({
         ...prev,
         status: "error",
-        error: "Translation failed. Please try again in a moment."
+        error: t("translate.error.failed")
       }));
     }
-  }, [text, source, target, busy]);
+  }, [text, source, target, busy, t]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -410,8 +418,8 @@ export default function TranslatePage() {
     <StudioShell user={user} canvasClassName="translate-shell-canvas">
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Translate"
-          description="Translate text with natural phrasing and preserved formatting."
+          title={t("translate.title")}
+          description={t("translate.description")}
         />
         <StudioPageTabs>
           <TranslateWorkspaceTabs active="translate" />
@@ -420,11 +428,14 @@ export default function TranslatePage() {
       {!authed ? (
         <div className="translate-quota-banner">
           <span>
-            Free to try: {remainingToday} of {quota.dailyRequests} translations left today ·
-            up to {quota.maxChars.toLocaleString()} characters each.
+            {t("translate.quotaBanner", {
+              remaining: remainingToday,
+              daily: quota.dailyRequests,
+              max: quota.maxChars.toLocaleString()
+            })}
           </span>
           <button type="button" className="translate-quota-cta" onClick={() => openLoginPopup()}>
-            Sign in for more
+            {t("translate.signInForMore")}
           </button>
         </div>
       ) : null}
@@ -442,22 +453,22 @@ export default function TranslatePage() {
       >
         <div className="translate-toolbar">
           <label className="translate-lang-group">
-            <span className="translate-lang-caption">From</span>
+            <span className="translate-lang-caption">{t("translate.from")}</span>
             <select
               className="studio-select"
               name="source"
               value={source}
               onChange={(e) => setSource(e.target.value)}
-              aria-label="Source language"
+              aria-label={t("translate.sourceLanguage")}
             >
               <option value="auto">
                 {source === "auto" && detected
-                  ? `Detected: ${languageLabel(detected)}`
-                  : "Detect language"}
+                  ? t("translate.detectedOption", { language: languageLabel(detected) })
+                  : t("translate.detectLanguage")}
               </option>
               {TRANSLATE_LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code}>
-                  {lang.label}
+                  {languageLabel(lang.code)}
                 </option>
               ))}
             </select>
@@ -468,14 +479,14 @@ export default function TranslatePage() {
             className="translate-swap"
             onClick={handleSwap}
             disabled={(source === "auto" && !detected) || busy}
-            aria-label="Swap languages"
-            title="Swap languages"
+            aria-label={t("translate.swap")}
+            title={t("translate.swap")}
           >
             &#8646;
           </button>
 
           <label className="translate-lang-group">
-            <span className="translate-lang-caption">To</span>
+            <span className="translate-lang-caption">{t("translate.to")}</span>
             <select
               className="studio-select"
               name="target"
@@ -484,11 +495,11 @@ export default function TranslatePage() {
                 const value = e.target.value;
                 if (isTranslateLanguageCode(value)) setTarget(value);
               }}
-              aria-label="Target language"
+              aria-label={t("translate.targetLanguage")}
             >
               {TRANSLATE_LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code}>
-                  {lang.label}
+                  {languageLabel(lang.code)}
                 </option>
               ))}
             </select>
@@ -503,8 +514,8 @@ export default function TranslatePage() {
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type or paste text here…"
-              aria-label="Text to translate"
+              placeholder={t("translate.placeholder")}
+              aria-label={t("translate.inputLabel")}
               rows={12}
             />
             <div className="translate-pane-foot">
@@ -519,7 +530,7 @@ export default function TranslatePage() {
                     setText("");
                   }}
                 >
-                  Clear
+                  {t("translate.clear")}
                 </button>
               ) : null}
             </div>
@@ -531,7 +542,7 @@ export default function TranslatePage() {
           >
             <div
               className="translate-output"
-              aria-label="Translation result"
+              aria-label={t("translate.resultLabel")}
               aria-busy={busy}
             >
               {translation ? (
@@ -540,21 +551,23 @@ export default function TranslatePage() {
                   {busy ? <span className="translate-caret" aria-hidden="true" /> : null}
                 </>
               ) : busy ? (
-                <span className="translate-pending">Translating…</span>
+                <span className="translate-pending">{t("translate.translating")}</span>
               ) : (
-                <span className="translate-placeholder">Translation appears here.</span>
+                <span className="translate-placeholder">{t("translate.appearsHere")}</span>
               )}
             </div>
             <div className="translate-pane-foot">
               {detected && source === "auto" ? (
-                <span className="translate-detected">Detected {languageLabel(detected)}</span>
+                <span className="translate-detected">
+                  {t("translate.detected", { language: languageLabel(detected) })}
+                </span>
               ) : (
                 <span />
               )}
               <div className="translate-pane-actions">
                 {translation && !busy ? (
                   <button type="button" className="translate-pane-action" onClick={handleCopy}>
-                    {copied ? "Copied" : "Copy"}
+                    {copied ? t("common.copied") : t("common.copy")}
                   </button>
                 ) : null}
                 {translation && !busy && completionProof && completedSnapshot ? (
@@ -573,10 +586,10 @@ export default function TranslatePage() {
                       }}
                     >
                       {saveFetcher.state !== "idle"
-                        ? "Saving…"
+                        ? t("common.saving")
                         : saveOutcome?.proof === completionProof && saveOutcome.savedId
-                          ? "Saved"
-                          : "Save"}
+                          ? t("common.saved")
+                          : t("common.save")}
                     </button>
                   ) : (
                     <button
@@ -584,7 +597,7 @@ export default function TranslatePage() {
                       className="translate-pane-action"
                       onClick={() => openLoginPopup()}
                     >
-                      Sign in to save
+                      {t("translate.signInToSave")}
                     </button>
                   )
                 ) : null}
@@ -596,20 +609,20 @@ export default function TranslatePage() {
         <div className="translate-actions">
           <span className="sr-only" role="status" aria-live="polite">
             {busy
-              ? "Translation started."
+              ? t("translate.statusStarted")
               : stream.status === "done"
-                ? "Translation complete."
+                ? t("translate.statusDone")
                 : stream.status === "error"
-                  ? "Translation failed."
+                  ? t("translate.statusFailed")
                   : ""}
           </span>
           {saveOutcome?.proof === completionProof && saveOutcome.error ? (
             <span className="translate-error" role="alert">{saveOutcome.error}</span>
           ) : sourceChanged ? (
-            <span className="translate-hint">Last translation — source changed. Save keeps the displayed result.</span>
+            <span className="translate-hint">{t("translate.sourceChanged")}</span>
           ) : saveOutcome?.proof === completionProof && saveOutcome.savedId ? (
             <Link className="translate-saved-link" to={`/translate/saved/${saveOutcome.savedId}`}>
-              View saved translation
+              {t("translate.viewSaved")}
             </Link>
           ) : errorMessage ? (
             <span className="translate-error">
@@ -620,7 +633,7 @@ export default function TranslatePage() {
                   className="translate-quota-cta"
                   onClick={() => openLoginPopup()}
                 >
-                  Sign in
+                  {t("common.signIn")}
                 </button>
               ) : null}
             </span>
@@ -632,7 +645,7 @@ export default function TranslatePage() {
             className="translate-submit"
             disabled={!text.trim() || overLimit || busy}
           >
-            {busy ? "Translating…" : "Translate"}
+            {busy ? t("translate.translating") : t("translate.submit")}
           </button>
         </div>
       </form>

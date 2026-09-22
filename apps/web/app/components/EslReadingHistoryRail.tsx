@@ -3,6 +3,8 @@ import { Link } from "@remix-run/react";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { formatDuration } from "~/utils/esl-reading";
 import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
+import { useT } from "~/i18n/context";
+import type { Translate } from "~/i18n/translate";
 
 type HistoryAttempt = {
   id: string;
@@ -29,10 +31,10 @@ const getHistoryScoreLabel = (attempt: HistoryAttempt) => {
   return attempt.score ?? "–";
 };
 
-const getHistoryMetaLabel = (attempt: HistoryAttempt) => {
-  if (attempt.evaluationStatus === "pending") return "Pending";
-  if (attempt.evaluationStatus === "failed") return "Failed";
-  if (attempt.mode === "recitation") return "Recite";
+const getHistoryMetaLabel = (attempt: HistoryAttempt, t: Translate) => {
+  if (attempt.evaluationStatus === "pending") return t("reading.history.pending");
+  if (attempt.evaluationStatus === "failed") return t("reading.history.failed");
+  if (attempt.mode === "recitation") return t("reading.history.recite");
   return null;
 };
 
@@ -46,6 +48,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
     collapsed,
     onToggle,
   } = props;
+  const t = useT();
   const [openMenuId, setOpenMenuId] = React.useState<string | null>(null);
   const [isDesktop, setIsDesktop] = React.useState(false);
   const sortedAttempts = React.useMemo(
@@ -92,7 +95,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
         <button
           type="button"
           className="esl-history-toggle-btn"
-          aria-label={effectiveCollapsed ? "Expand history panel" : "Collapse history panel"}
+          aria-label={effectiveCollapsed ? t("reading.history.expand") : t("reading.history.collapse")}
           onClick={onToggle}
         >
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" width="16" height="16">
@@ -108,7 +111,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
           <Link
             to={newAttemptHref}
             className={`esl-history-icon-btn${disableNewAttempt ? " is-disabled" : ""}${isComposeView ? " is-active" : ""}`}
-            aria-label="New Attempt"
+            aria-label={t("reading.history.newAttempt")}
             aria-disabled={disableNewAttempt}
             onClick={(event) => {
               if (disableNewAttempt) event.preventDefault();
@@ -135,16 +138,16 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
                 if (disableNewAttempt) event.preventDefault();
               }}
             >
-              New Attempt
+              {t("reading.history.newAttempt")}
             </Link>
           ) : (
             <button type="button" className="btn btn-ghost btn-sm esl-history-new is-disabled" disabled>
-              New Attempt
+              {t("reading.history.newAttempt")}
             </button>
           )}
         </div>
 
-        <div className="esl-eval-subtitle">History ({attempts.length})</div>
+        <div className="esl-eval-subtitle">{t("reading.history.title", { count: attempts.length })}</div>
 
         {isEmpty ? (
           <div className="esl-history-empty">
@@ -152,12 +155,12 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
               <path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13Z" stroke="currentColor" strokeWidth="1.4" />
               <path d="M12 9v4l2.5 1.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span>Record your first attempt to start tracking progress.</span>
+            <span>{t("reading.history.empty")}</span>
           </div>
         ) : (
           <div className="esl-history-list">
             {sortedAttempts.map((attempt) => {
-              const metaLabel = getHistoryMetaLabel(attempt);
+              const metaLabel = getHistoryMetaLabel(attempt, t);
               return (
                 <div
                   key={attempt.id}
@@ -187,7 +190,7 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
                     <button
                       type="button"
                       className="esl-history-item-menu-btn"
-                      aria-label="Open attempt menu"
+                      aria-label={t("reading.history.openMenu")}
                       aria-expanded={openMenuId === attempt.id}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -206,10 +209,10 @@ export function EslReadingHistoryRail(props: EslReadingHistoryRailProps) {
                           <input type="hidden" name="attemptId" value={attempt.id} />
                           <ConfirmSubmitButton
                             className="esl-history-item-menu-option is-danger"
-                            dialogTitle="Delete this attempt?"
-                            dialogDescription="This removes the recording and its AI feedback. This cannot be undone."
+                            dialogTitle={t("reading.history.deleteTitle")}
+                            dialogDescription={t("reading.history.deleteDescription")}
                           >
-                            Delete attempt
+                            {t("reading.history.deleteAttempt")}
                           </ConfirmSubmitButton>
                         </form>
                       </div>

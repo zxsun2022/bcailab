@@ -5,30 +5,33 @@ import { useThemePreference } from "~/utils/use-theme-preference";
 import { READING_OUTPUT_LANGUAGE_OPTIONS } from "~/utils/reading-settings";
 import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
 import type { loader as readingLoader } from "~/routes/reading";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 export const handle = {
   breadcrumb: { label: "settings", href: "/reading/settings" }
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Reading settings · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.readingSettings.title") }
 ];
 
 export default function ReadingSettingsPage() {
   const data = useRouteLoaderData<typeof readingLoader>("routes/reading");
   const user = data?.user;
 
+  const t = useT();
   const [themePreference, setThemePreference] = useThemePreference();
   const [outputLanguage, setOutputLanguage] = useReadingOutputLanguage();
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
-  const displayName = user?.name ?? user?.email ?? "Account";
+  const displayName = user?.name ?? user?.email ?? t("common.account");
 
   return (
     <StudioPage width="standard">
       <StudioPageHeader
-        title="Reading settings"
-        description="Manage your account, appearance, and shared feedback language."
+        title={t("settings.readingTitle")}
+        description={t("settings.feedbackDescription")}
       />
       <StudioPageBody className="tool-settings-page">
         <div className="tool-settings-card">
@@ -43,15 +46,15 @@ export default function ReadingSettingsPage() {
             </div>
           </div>
           <form method="post" action="/logout">
-            <button type="submit" className="settings-signout-btn">Sign out</button>
+            <button type="submit" className="settings-signout-btn">{t("settings.signOut")}</button>
           </form>
         </section>
 
         {/* General: theme */}
         <section className="tool-settings-section">
-          <div className="menu-label">Appearance</div>
+          <div className="menu-label">{t("settings.appearance")}</div>
           <div className="menu-setting-row">
-            <div className="menu-setting-title">Color mode</div>
+            <div className="menu-setting-title">{t("settings.colorMode")}</div>
           </div>
           <div className="menu-option-grid menu-option-grid-three">
             {(["system", "light", "dark"] as const).map((value) => (
@@ -62,7 +65,7 @@ export default function ReadingSettingsPage() {
                 aria-pressed={themePreference === value}
                 onClick={() => setThemePreference(value)}
               >
-                {value === "system" ? "Auto" : value.charAt(0).toUpperCase() + value.slice(1)}
+                {t(value === "system" ? "theme.auto" : value === "light" ? "theme.light" : "theme.dark")}
               </button>
             ))}
           </div>
@@ -70,11 +73,11 @@ export default function ReadingSettingsPage() {
 
         {/* Reading-specific: output language */}
         <section className="tool-settings-section">
-          <div className="menu-label">Reading feedback</div>
+          <div className="menu-label">{t("settings.readingFeedback")}</div>
           <div className="menu-setting-row">
-            <div className="menu-setting-title">Output Language</div>
+            <div className="menu-setting-title">{t("settings.outputLanguage")}</div>
             <div className="menu-setting-hint">
-              New Reading and Writing feedback uses this language.
+              {t("settings.readingLanguageHint")}
             </div>
           </div>
           <div className="menu-option-grid menu-option-grid-two">
@@ -86,7 +89,7 @@ export default function ReadingSettingsPage() {
                 aria-pressed={outputLanguage === option.value}
                 onClick={() => setOutputLanguage(option.value)}
               >
-                {option.label}
+                {t(option.value === "zh" ? "feedbackLang.zh" : "feedbackLang.en")}
               </button>
             ))}
           </div>

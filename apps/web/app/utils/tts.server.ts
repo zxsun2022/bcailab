@@ -3,6 +3,7 @@ import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import type { SpeechAlignment, SpeechTimepoint } from "~/utils/tts";
 import { MAX_TTS_SSML_BYTES } from "~/utils/tts";
+import type { MessageKey, MessageVars } from "~/i18n/translate";
 
 type MdNode = {
   type: string;
@@ -38,8 +39,16 @@ const BLOCK_NODE_TYPES = new Set([
 const WORD_LEVEL_LANGUAGE_PREFIXES = ["en-", "fr-", "es-"];
 const CHAR_LEVEL_LANGUAGE_PREFIXES = ["ja-"];
 
+/**
+ * A problem with the learner's input. `key` and `vars` let the route word it in the interface
+ * language; `message` keeps the English for logs and older callers.
+ */
 export class TtsValidationError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    readonly key?: MessageKey,
+    readonly vars?: MessageVars
+  ) {
     super(message);
     this.name = "TtsValidationError";
   }
@@ -190,12 +199,18 @@ export const buildSpeechPlan = (input: {
     .trim();
 
   if (!processedText) {
-    throw new TtsValidationError("Text cannot be empty after preprocessing.");
+    throw new TtsValidationError(
+      "Text cannot be empty after preprocessing.",
+      "speech.error.emptyAfterPreprocess"
+    );
   }
 
   const tokens = tokenizeSpeechText(processedText, input.languageCode);
   if (tokens.length === 0) {
-    throw new TtsValidationError("No readable tokens were found in the input.");
+    throw new TtsValidationError(
+      "No readable tokens were found in the input.",
+      "speech.error.noTokens"
+    );
   }
 
   const ssml = buildSsml(processedText, tokens);
@@ -204,7 +219,9 @@ export const buildSpeechPlan = (input: {
     : utf8ByteLength(processedText);
   if (payloadBytes > MAX_TTS_SSML_BYTES) {
     throw new TtsValidationError(
-      `Input is too long. Google TTS allows at most ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes per request (${payloadBytes.toLocaleString()} bytes provided after preprocessing).`
+      `Input is too long. Google TTS allows at most ${MAX_TTS_SSML_BYTES.toLocaleString()} bytes per request (${payloadBytes.toLocaleString()} bytes provided after preprocessing).`,
+      "speech.error.tooLong",
+      { max: MAX_TTS_SSML_BYTES.toLocaleString(), bytes: payloadBytes.toLocaleString() }
     );
   }
 

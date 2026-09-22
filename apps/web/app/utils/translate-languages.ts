@@ -1,3 +1,9 @@
+import type { MessageKey, Translate } from "~/i18n/translate";
+
+/**
+ * `label` is the English name the translation *prompt* uses — it must stay English whatever
+ * the interface language. What a learner reads comes from `translateLanguageName`.
+ */
 export const TRANSLATE_LANGUAGES = [
   { code: "en", label: "English" },
   { code: "zh-Hans", label: "Chinese (Simplified)" },
@@ -19,3 +25,13 @@ export const isTranslateLanguageCode = (value: string): value is TranslateLangua
 
 export const translateLanguageLabel = (code: TranslateLanguageCode): string =>
   TRANSLATE_LANGUAGES.find((lang) => lang.code === code)?.label ?? code;
+
+/** A language's name in the interface language, for anything the learner reads. */
+export const translateLanguageName = (t: Translate, code: TranslateLanguageCode): string =>
+  t(`translateLang.${code}` satisfies MessageKey);
+
+/** As above for a stored code that may be missing or no longer supported. */
+export const storedLanguageName = (t: Translate, code: string | null): string => {
+  if (!code) return t("common.unknown");
+  return isTranslateLanguageCode(code) ? translateLanguageName(t, code) : code;
+};

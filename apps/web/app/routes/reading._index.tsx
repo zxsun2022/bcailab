@@ -14,6 +14,8 @@ import { resolveCefr } from "~/utils/learner-model";
 import { LocalDateTime } from "~/components/LocalDateTime";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 /**
  * Reading catalogue. Design: `docs/english-studio-ia-v2-design.md` §3.7.
@@ -29,7 +31,9 @@ import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
  * dictated, and feed no mastery, so they are not merged into the library's space.
  */
 
-export const meta: MetaFunction = () => [{ title: "Reading · bcailab" }];
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.reading.title") }
+];
 
 const BAND_ORDER = ["A2", "B1", "B2", "C1"] as const;
 
@@ -37,13 +41,6 @@ const BAND_ORDER = ["A2", "B1", "B2", "C1"] as const;
 const RECENT_ROWS = 4;
 /** Attempts to scan for those rows: they fold to one row per passage, so fetch more. */
 const RECENT_ATTEMPT_SCAN = 24;
-
-const BAND_BLURB: Record<string, string> = {
-  A2: "Short everyday sentences, simple tenses.",
-  B1: "Everyday narrative with common connectors.",
-  B2: "Varied tenses, opinion and contrast.",
-  C1: "Complex sentences and nuanced vocabulary."
-};
 
 type CardState =
   | { kind: "new" }
@@ -79,9 +76,9 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     return { kind: "scored", best: Math.round(stat.best_score), attempts: stat.attempts };
   };
 
+  // Structured data only: the page words it in the visitor's interface language.
   const bands = BAND_ORDER.map((band) => ({
     band,
-    blurb: BAND_BLURB[band] ?? "",
     passages: library
       .filter((passage) => passage.band === band)
       .map<PassageCard>((passage) => ({
@@ -131,7 +128,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
           title: attempt.passage_title ?? "Passage",
           attempts: stat?.attempts ?? 1,
           best: stat?.best_score != null ? Math.round(stat.best_score) : null,
-          latest: attempt.overall_score != null ? `${attempt.overall_score}` : "Evaluating…",
+          latestScore: attempt.overall_score,
           at: attempt.created_at
         };
       })
@@ -139,19 +136,22 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 };
 
 function StateLabel({ state }: { state: CardState }) {
-  if (state.kind === "new") return <span className="studio-row-state">Not started</span>;
+  const t = useT();
+  if (state.kind === "new") return <span className="studio-row-state">{t("reading.notStarted")}</span>;
   if (state.kind === "pending") {
-    return <span className="studio-row-state is-pending">Evaluating…</span>;
+    return <span className="studio-row-state is-pending">{t("reading.evaluating")}</span>;
   }
   return (
     <span className="studio-row-state is-scored">
-      Best {state.best}
-      {state.attempts > 1 ? ` · ${state.attempts} attempts` : ""}
+      {state.attempts > 1
+        ? t("reading.bestAttempts", { best: state.best, count: state.attempts })
+        : t("reading.best", { best: state.best })}
     </span>
   );
 }
 
 function PassageGrid({ passages }: { passages: PassageCard[] }) {
+  const t = useT();
   return (
     // Rows, not cards: the band header already carries the level, so each entry
     // only has to be scannable against its siblings.
@@ -159,10 +159,10 @@ function PassageGrid({ passages }: { passages: PassageCard[] }) {
       {passages.map((passage) => (
         <Link key={passage.id} to={`/reading/${passage.id}`} className="studio-row">
           <span className="studio-row-meta">
-            <span>{passage.topic}</span>
-            {passage.wordCount > 0 ? <span>{passage.wordCount} words</span> : null}
+            <span lang="en">{passage.topic}</span>
+            {passage.wordCount > 0 ? <span>{t("reading.words", { count: passage.wordCount })}</span> : null}
           </span>
-          <strong>{passage.title}</strong>
+          <strong lang="en">{passage.title}</strong>
           <StateLabel state={passage.state} />
           <span className="studio-row-arrow" aria-hidden="true">→</span>
         </Link>
@@ -173,6 +173,7 @@ function PassageGrid({ passages }: { passages: PassageCard[] }) {
 
 export default function ReadingCatalogue() {
   const { bands, yourBand, own, recent } = useLoaderData<typeof loader>();
+  const t = useT();
 
   // Your band opens; the rest are folded. Folded, never locked.
   const [openBands, setOpenBands] = React.useState<Record<string, boolean>>(() => {
@@ -189,11 +190,11 @@ export default function ReadingCatalogue() {
   return (
     <StudioPage width="wide">
       <StudioPageHeader
-        title="Reading"
-        description="Read a passage aloud and get feedback on pronunciation, fluency, rhythm, and clarity. Any level is open — practising a step above or below is useful, and it sharpens your level estimate."
+        title={t("reading.title")}
+        description={t("reading.description")}
         action={
           <Link to="/reading/new" className="btn btn-primary btn-sm">
-            Add text
+            {t("reading.addText")}
           </Link>
         }
       />
@@ -203,13 +204,13 @@ export default function ReadingCatalogue() {
           <section className="passage-recent" aria-labelledby="reading-recent-heading">
             <div className="studio-section-head">
               <div>
-                <p className="studio-section-eyebrow">Your workspace</p>
+                <p className="studio-section-eyebrow">{t("reading.workspace")}</p>
                 <h2 id="reading-recent-heading" className="studio-section-title">
-                  Recent practice
+                  {t("reading.recent")}
                 </h2>
               </div>
               <Link to="/reading/progress" className="studio-section-more">
-                All reading progress &rarr;
+                {t("reading.allProgress")}
               </Link>
             </div>
             <div className="studio-row-list">
@@ -221,12 +222,16 @@ export default function ReadingCatalogue() {
                       options={{ month: "short", day: "numeric" }}
                     />
                   </span>
-                  <strong>{item.title}</strong>
+                  <strong lang="en">{item.title}</strong>
                   <span className="studio-row-state">
                     {/* Repeated work is the story here; a single run has none to tell. */}
                     {item.attempts > 1
-                      ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
-                      : item.latest}
+                      ? item.best != null
+                        ? t("reading.attemptsBest", { count: item.attempts, best: item.best })
+                        : t("reading.attempts", { count: item.attempts })
+                      : item.latestScore != null
+                        ? `${item.latestScore}`
+                        : t("reading.evaluating")}
                   </span>
                   <span className="studio-row-arrow" aria-hidden="true">→</span>
                 </Link>
@@ -247,10 +252,13 @@ export default function ReadingCatalogue() {
               onClick={() => toggle(group.band)}
             >
               <span className="passage-band-title">{group.band}</span>
-              <span className="passage-band-blurb">{group.blurb}</span>
-              {isYours ? <span className="passage-band-yours">Your level</span> : null}
+              {/* Same band descriptions as Dictation: one library, one wording. */}
+              <span className="passage-band-blurb">{t(`dictation.band.${group.band}`)}</span>
+              {isYours ? <span className="passage-band-yours">{t("reading.yourLevel")}</span> : null}
               <span className="passage-band-count">
-                {group.passages.length} {group.passages.length === 1 ? "passage" : "passages"}
+                {t(group.passages.length === 1 ? "reading.passageOne" : "reading.passageMany", {
+                  count: group.passages.length
+                })}
               </span>
               <span className="passage-band-caret" aria-hidden="true">
                 {isOpen ? "−" : "+"}
@@ -268,23 +276,20 @@ export default function ReadingCatalogue() {
         <section className="passage-own">
         <div className="passage-own-header">
           <div>
-            <h2 className="passage-own-title">Your texts</h2>
-            <p className="passage-own-blurb">
-              Anything you paste in. These are not graded and cannot be used for dictation,
-              so they do not feed your ability profile.
-            </p>
+            <h2 className="passage-own-title">{t("reading.yourTexts")}</h2>
+            <p className="passage-own-blurb">{t("reading.yourTextsBlurb")}</p>
           </div>
         </div>
         {own.length === 0 ? (
-          <p className="passage-own-empty">No texts of your own yet.</p>
+          <p className="passage-own-empty">{t("reading.noOwnTexts")}</p>
         ) : (
           <div className="studio-row-list">
             {own.map((passage) => (
               <div key={passage.id} className="passage-own-item">
                 <Link to={`/reading/${passage.id}`} className="studio-row">
                   <span className="studio-row-meta">
-                    <span>Your text</span>
-                    {passage.wordCount > 0 ? <span>{passage.wordCount} words</span> : null}
+                    <span>{t("reading.yourText")}</span>
+                    {passage.wordCount > 0 ? <span>{t("reading.words", { count: passage.wordCount })}</span> : null}
                   </span>
                   <strong>{passage.title}</strong>
                   <StateLabel state={passage.state} />
@@ -296,10 +301,10 @@ export default function ReadingCatalogue() {
                   <input type="hidden" name="_intent" value="deletePassage" />
                   <ConfirmSubmitButton
                     className="passage-own-delete"
-                    dialogTitle="Delete this text and its practice history?"
-                    dialogDescription="This removes the text, reference audio, recordings, and AI feedback. This cannot be undone."
+                    dialogTitle={t("reading.deleteTextTitle")}
+                    dialogDescription={t("reading.deleteTextDescription")}
                   >
-                    Delete
+                    {t("common.delete")}
                   </ConfirmSubmitButton>
                 </form>
               </div>
