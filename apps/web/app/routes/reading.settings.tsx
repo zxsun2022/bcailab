@@ -3,7 +3,7 @@ import { useRouteLoaderData } from "@remix-run/react";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { READING_OUTPUT_LANGUAGE_OPTIONS } from "~/utils/reading-settings";
-import { useReadingOutputLanguage } from "~/utils/use-reading-output-language";
+import { useFeedbackLanguagePreference } from "~/utils/use-feedback-language";
 import type { loader as readingLoader } from "~/routes/reading";
 import { useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
@@ -22,7 +22,8 @@ export default function ReadingSettingsPage() {
 
   const t = useT();
   const [themePreference, setThemePreference] = useThemePreference();
-  const [outputLanguage, setOutputLanguage] = useReadingOutputLanguage();
+  // The preference, not the resolved language: "follow interface" is a choice of its own.
+  const [outputLanguage, setOutputLanguage] = useFeedbackLanguagePreference();
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? t("common.account");
@@ -77,19 +78,19 @@ export default function ReadingSettingsPage() {
           <div className="menu-setting-row">
             <div className="menu-setting-title">{t("settings.outputLanguage")}</div>
             <div className="menu-setting-hint">
-              {t("settings.readingLanguageHint")}
+              {t("settings.readingLanguageHint")} {t("settings.feedbackFollowHint")}
             </div>
           </div>
-          <div className="menu-option-grid menu-option-grid-two">
+          <div className="menu-option-grid menu-option-grid-three">
             {READING_OUTPUT_LANGUAGE_OPTIONS.map((option) => (
               <button
-                key={option.value}
+                key={option}
                 type="button"
-                className={`menu-option-button${outputLanguage === option.value ? " is-active" : ""}`}
-                aria-pressed={outputLanguage === option.value}
-                onClick={() => setOutputLanguage(option.value)}
+                className={`menu-option-button${outputLanguage === option ? " is-active" : ""}`}
+                aria-pressed={outputLanguage === option}
+                onClick={() => setOutputLanguage(option)}
               >
-                {t(option.value === "zh" ? "feedbackLang.zh" : "feedbackLang.en")}
+                {t(`feedbackLang.${option}`)}
               </button>
             ))}
           </div>

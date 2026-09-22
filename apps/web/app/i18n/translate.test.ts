@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { en } from "./messages/en";
 import { zh } from "./messages/zh";
 import { createTranslator, interpolate, placeholdersOf, splitTemplate } from "./translate";
+import { TAG_DESCRIPTIONS } from "~/utils/learner-model";
 
 describe("catalogue parity", () => {
   // The type system already rejects a missing or extra key; this pins it at runtime too, in
@@ -50,5 +51,17 @@ describe("splitTemplate", () => {
       { kind: "text", value: " from here" }
     ]);
     expect(splitTemplate("{name}")).toEqual([{ kind: "slot", name: "name" }]);
+  });
+});
+
+describe("learner feature labels", () => {
+  // `TAG_DESCRIPTIONS` stays English because grading prompts are built from it; the catalogue
+  // carries the display copy. Every tag needs both, and the English must not drift.
+  it("has catalogue copy for every tag, identical to the prompt's English", () => {
+    for (const [tag, description] of Object.entries(TAG_DESCRIPTIONS)) {
+      const key = `learnerTag.${tag}` as keyof typeof en;
+      expect(en[key], tag).toBe(description);
+      expect(zh[key], tag).toBeTruthy();
+    }
   });
 });

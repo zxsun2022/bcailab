@@ -18,7 +18,7 @@ import { getClientIp } from "~/utils/translate-quota.server";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
-import { getRequestTranslator } from "~/i18n/locale.server";
+import { getRequestLocale, getRequestTranslator } from "~/i18n/locale.server";
 import type { MessageKey } from "~/i18n/translate";
 
 const AUTH_MESSAGE_TYPE = "bcailab-auth";
@@ -128,7 +128,8 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
       db: context.env.DB,
       env: context.env,
       email,
-      ip: getClientIp(request)
+      ip: getClientIp(request),
+      locale: getRequestLocale(request)
     });
     if (!result.ok) {
       return json<ActionData>(

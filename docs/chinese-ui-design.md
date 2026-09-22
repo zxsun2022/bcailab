@@ -165,6 +165,14 @@ to English and reachable only from inside those two tools' settings pages. After
 - An existing explicit `en` or `zh` value migrates to an explicit override, not to "follow".
   Someone who has already chosen must not have that choice silently changed — the existing
   migration helper in `feedback-language.ts` establishes the pattern.
+  **As built (stage 3):** a stored `zh` stays explicit, but a stored `en` becomes "follow". The
+  earlier code wrote `en` on first read whenever nothing was stored, so an `en` is as likely a
+  default as a choice, and keeping it explicit would pin every earlier visitor to English feedback
+  in the Chinese interface. The only person this misreads chose English feedback *and* uses the
+  Chinese interface, which did not exist when those values were written; the setting shows the
+  new state and one click restores English. The preference moved to a new key so that every value
+  under it is known to be a choice. This departs from the letter of acceptance criterion (g) and
+  is reported to the owner.
 - **Dictation feedback gains the same language directive** as the other two graders, passed with
   the completing request and used by `dictation-feedback.server.ts`. The learner brief that
   `learner-context.ts` renders into the prompt stays English and stays untouched: it is context
@@ -288,4 +296,24 @@ setting (Reading and Writing settings still show the two-value control, now in C
 Dictation's Chinese feedback; the sign-in email; the fallback title "Passage" shown only when a
 practised passage has since been removed; `WritingRevisionRail`, which nothing renders and so was
 not translated.
+
+### Stage 3 — signed-in surfaces and feedback language (2026-09-22)
+
+Checked on the isolated fixture as three synthetic learners — one with a recommendation, one with
+history and a resumable dictation, one cold — with the same in-page detector.
+
+| Surface | Status |
+| --- | --- |
+| Home: header, greeting, cold start, level picker, Continue (dictation and writing), coach recommendation with its reason and swaps, basis line, recent practice | Checked in all three states; the only flagged text is the synthetic users' names |
+| Progress overview: level, attempts, basis note, coverage, empty state, keep-going links | Checked with and without data; the accuracy trend and feature-mastery lists are translated but were not populated in the fixture |
+| Feedback language setting on Reading and Writing settings | Checked: three options, the pressed state follows the choice |
+| Migration of earlier preferences | Checked in the browser: an earlier `en` becomes Follow interface and the old key is removed; an earlier Writing `zh` stays Chinese |
+| What forms post | Checked: Reading posts `zh` under Follow in the Chinese interface; Writing posts `en` after choosing English; Dictation's completing request posts `zh` |
+| Dictation feedback in Chinese | Prompt proven by fixtures (English byte-identical to the pre-change prompt; Chinese adds only the directive). The fixture's fake model returns no patterns, so a Chinese feedback panel was not seen |
+
+| Sign-in email: subject and body | Written in the language of the page that requested the code; English pinned unchanged by test. No email provider runs locally, so no email was sent |
+
+**Known gaps after all three stages:** the "Passage" fallback title; Writing
+feedback text and Reading evaluation text written before this change stay in the language they
+were written in; a learner's typed Writing text is never translated.
 

@@ -3,6 +3,7 @@ import { setDictationAttemptFeedback } from "@bcailab/db";
 import { callGemini, parseJsonFromText } from "~/utils/llm.server";
 import type { DiffOp } from "~/utils/dictation-diff";
 import { assembleDictationFeedbackContext } from "~/utils/learner-context.server";
+import type { FeedbackLanguage } from "~/utils/feedback-language";
 
 /**
  * LLM error-pattern feedback for a completed dictation attempt (design §8).
@@ -56,6 +57,14 @@ const describeOps = (results: SentenceResultInput[]): string =>
     .join("\n");
 
 /**
+ * Asked for only when the learner reads Chinese feedback. English feedback adds nothing, so its
+ * prompt stays byte-identical to what it was before a feedback language existed. Evidence stays
+ * English because it quotes what the learner typed.
+ */
+export const DICTATION_CHINESE_FEEDBACK_DIRECTIVE =
+  'Write "pattern" and "tip" in Simplified Chinese. Keep "evidence" as the learner\'s English words exactly as listed above.';
+
+/**
  * The band belongs to the passage. The learner's own level arrives in the learner context and
  * is never inferred from the material they happened to pick. Exported for prompt fixtures.
  */
@@ -63,11 +72,14 @@ export const buildDictationFeedbackPrompt = (input: {
   passageBand: string | null;
   opsSummary: string;
   learnerContext: string;
+  feedbackLanguage?: FeedbackLanguage;
 }): string => {
   const exercise = input.passageBand
     ? `A learner completed an English listening dictation exercise on a passage graded CEFR ${input.passageBand}.`
     : "A learner completed an English listening dictation exercise.";
   const learnerContext = input.learnerContext ? `\n${input.learnerContext}\n` : "";
+  const languageDirective =
+    input.feedbackLanguage === "zh" ? `\n${DICTATION_CHINESE_FEEDBACK_DIRECTIVE}\n` : "";
   return `${exercise}
 ${learnerContext}
 Below are their transcription errors on this attempt, derived by comparing what they typed
@@ -83,7 +95,7 @@ For each pattern give:
 - "pattern": the name of the pattern, a short phrase
 - "evidence": the specific words from the errors above that show it
 - "tip": one concrete, actionable listening tip, at most two sentences
-
+${languageDirective}
 Respond with JSON only, no markdown fences:
 {"patterns": [{"pattern": "...", "evidence": "...", "tip": "..."}]}`;
 };
@@ -106,10 +118,16 @@ const coerceFeedback = (value: unknown): DictationFeedback | null => {
   return patterns.length > 0 ? { patterns } : null;
 };
 
-const runFeedback = async (
-  context: AppLoadContext,
-  input: { attemptId: string; userId: string; band: string | null; results: SentenceResultInput[] }
-): Promise<void> => {
+type FeedbackRequest = {
+  attemptId: string;
+  userId: string;
+  band: string | null;
+  results: SentenceResultInput[];
+  /** The resolved language — the learner's choice, or the interface language. */
+  feedbackLanguage: FeedbackLanguage;
+};
+
+const runFeedback = async (context: AppLoadContext, input: FeedbackRequest): Promise<void> => {
   try {
     const opsSummary = describeOps(input.results);
     // A flawless attempt has no patterns to find — skip the call entirely.
@@ -129,7 +147,8 @@ const runFeedback = async (
           text: buildDictationFeedbackPrompt({
             passageBand: input.band,
             opsSummary,
-            learnerContext
+            learnerContext,
+            feedbackLanguage: input.feedbackLanguage
           })
         }
       ],
@@ -154,7 +173,7 @@ const runFeedback = async (
 /** Fire-and-forget; resolves immediately when the platform supports `waitUntil`. */
 export const scheduleDictationFeedback = async (
   context: AppLoadContext,
-  input: { attemptId: string; userId: string; band: string | null; results: SentenceResultInput[] }
+  input: FeedbackRequest
 ): Promise<void> => {
   const task = runFeedback(context, input);
   if (context.ctx?.waitUntil) {

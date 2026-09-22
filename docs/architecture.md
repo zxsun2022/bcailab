@@ -96,7 +96,9 @@ and passes it down through a `LocaleProvider` (not the `{ user }` Outlet context
 `POST /locale` sets the cookie and returns the visitor to the page they were on. Copy lives in two
 typed catalogues under `apps/web/app/i18n/messages/`, the Chinese one typed against the English
 one; the module registry keeps routing and access and no longer carries copy. Learning material
-is never translated. Rollout and coverage: [the design](chinese-ui-design.md).
+is never translated. AI feedback follows the interface language unless the learner chose one in
+Reading or Writing settings; graders receive only the resolved `en`/`zh`. Rollout and coverage:
+[the design](chinese-ui-design.md).
 
 For the actual route/module inventory, run `pnpm context -p arch` as described in
 [external consultation](external-consultation.md). Route filenames and exports are derived at

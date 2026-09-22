@@ -2,7 +2,7 @@ import type { MetaFunction } from "@remix-run/cloudflare";
 import { useRouteLoaderData } from "@remix-run/react";
 import { StudioPage, StudioPageBody, StudioPageHeader } from "~/components/StudioPage";
 import { useThemePreference } from "~/utils/use-theme-preference";
-import { useWritingFeedbackLanguage } from "~/utils/use-writing-feedback-language";
+import { useFeedbackLanguagePreference } from "~/utils/use-feedback-language";
 import { WRITING_FEEDBACK_LANGUAGE_OPTIONS } from "~/utils/writing-settings";
 import type { loader as writingLoader } from "~/routes/writing";
 import { useT } from "~/i18n/context";
@@ -22,7 +22,8 @@ export default function WritingSettingsPage() {
 
   const t = useT();
   const [themePreference, setThemePreference] = useThemePreference();
-  const [feedbackLanguage, setFeedbackLanguage] = useWritingFeedbackLanguage();
+  // The preference, not the resolved language: "follow interface" is a choice of its own.
+  const [feedbackLanguage, setFeedbackLanguage] = useFeedbackLanguagePreference();
 
   const avatarSrc = user?.avatar_url ?? "https://www.gravatar.com/avatar/?d=mp";
   const displayName = user?.name ?? user?.email ?? t("common.account");
@@ -78,19 +79,19 @@ export default function WritingSettingsPage() {
             <div className="menu-setting-row">
               <div className="menu-setting-title">{t("settings.language")}</div>
               <div className="menu-setting-hint">
-                {t("settings.writingLanguageHint")}
+                {t("settings.writingLanguageHint")} {t("settings.feedbackFollowHint")}
               </div>
             </div>
-            <div className="menu-option-grid menu-option-grid-two">
+            <div className="menu-option-grid menu-option-grid-three">
               {WRITING_FEEDBACK_LANGUAGE_OPTIONS.map((option) => (
                 <button
-                  key={option.value}
+                  key={option}
                   type="button"
-                  className={`menu-option-button${feedbackLanguage === option.value ? " is-active" : ""}`}
-                  aria-pressed={feedbackLanguage === option.value}
-                  onClick={() => setFeedbackLanguage(option.value)}
+                  className={`menu-option-button${feedbackLanguage === option ? " is-active" : ""}`}
+                  aria-pressed={feedbackLanguage === option}
+                  onClick={() => setFeedbackLanguage(option)}
                 >
-                  {t(option.value === "zh" ? "feedbackLang.zh" : "feedbackLang.en")}
+                  {t(`feedbackLang.${option}`)}
                 </button>
               ))}
             </div>

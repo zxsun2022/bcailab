@@ -1,38 +1,39 @@
 import * as React from "react";
+import { useLocale } from "~/i18n/context";
 import {
   FEEDBACK_LANGUAGE_EVENT,
-  FEEDBACK_LANGUAGE_STORAGE_KEY,
-  getStoredFeedbackLanguage,
-  LEGACY_READING_OUTPUT_LANGUAGE_STORAGE_KEY,
-  LEGACY_WRITING_FEEDBACK_LANGUAGE_STORAGE_KEY,
-  parseFeedbackLanguage,
-  setStoredFeedbackLanguage,
-  type FeedbackLanguage
+  FEEDBACK_LANGUAGE_PREFERENCE_KEY,
+  getStoredFeedbackLanguagePreference,
+  isFeedbackLanguagePreference,
+  resolveFeedbackLanguage,
+  setStoredFeedbackLanguagePreference,
+  type FeedbackLanguage,
+  type FeedbackLanguagePreference
 } from "~/utils/feedback-language";
 
-const PREFERENCE_KEYS = new Set([
-  FEEDBACK_LANGUAGE_STORAGE_KEY,
-  LEGACY_WRITING_FEEDBACK_LANGUAGE_STORAGE_KEY,
-  LEGACY_READING_OUTPUT_LANGUAGE_STORAGE_KEY
-]);
-
-export const useFeedbackLanguage = (): [
-  FeedbackLanguage,
-  (value: FeedbackLanguage) => void
+/**
+ * The learner's feedback-language preference, kept in sync across tabs and settings pages.
+ *
+ * Starts at `auto` on the server and on first render — the server cannot read localStorage —
+ * so a page renders the interface language's feedback choice until the stored preference loads.
+ */
+export const useFeedbackLanguagePreference = (): [
+  FeedbackLanguagePreference,
+  (value: FeedbackLanguagePreference) => void
 ] => {
-  const [language, setLanguage] = React.useState<FeedbackLanguage>("en");
+  const [preference, setPreference] = React.useState<FeedbackLanguagePreference>("auto");
 
   React.useEffect(() => {
-    setLanguage(getStoredFeedbackLanguage());
+    setPreference(getStoredFeedbackLanguagePreference());
 
     const handleStorage = (event: StorageEvent) => {
-      if (event.key && !PREFERENCE_KEYS.has(event.key)) return;
-      setLanguage(getStoredFeedbackLanguage());
+      if (event.key && event.key !== FEEDBACK_LANGUAGE_PREFERENCE_KEY) return;
+      setPreference(getStoredFeedbackLanguagePreference());
     };
 
     const handleSettingsChange = (event: Event) => {
-      const detail = (event as CustomEvent<{ language?: FeedbackLanguage }>).detail;
-      setLanguage(parseFeedbackLanguage(detail?.language));
+      const detail = (event as CustomEvent<{ preference?: unknown }>).detail;
+      if (isFeedbackLanguagePreference(detail?.preference)) setPreference(detail.preference);
     };
 
     window.addEventListener("storage", handleStorage);
@@ -43,10 +44,23 @@ export const useFeedbackLanguage = (): [
     };
   }, []);
 
-  const updateLanguage = React.useCallback((value: FeedbackLanguage) => {
-    setStoredFeedbackLanguage(value);
-    setLanguage(value);
+  const updatePreference = React.useCallback((value: FeedbackLanguagePreference) => {
+    setStoredFeedbackLanguagePreference(value);
+    setPreference(value);
   }, []);
 
-  return [language, updateLanguage];
+  return [preference, updatePreference];
+};
+
+/**
+ * The language new feedback should be written in: the explicit preference, or the interface
+ * language when the learner has not chosen. This is what forms post to the graders.
+ */
+export const useFeedbackLanguage = (): [
+  FeedbackLanguage,
+  (value: FeedbackLanguagePreference) => void
+] => {
+  const locale = useLocale();
+  const [preference, setPreference] = useFeedbackLanguagePreference();
+  return [resolveFeedbackLanguage(preference, locale), setPreference];
 };

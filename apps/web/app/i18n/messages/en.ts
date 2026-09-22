@@ -887,7 +887,127 @@ export const en = {
   "common.breadcrumb": "Breadcrumb",
 
   // --- reading detail ---
-  "reading.detail.backToReading": "Back to Reading"
+  "reading.detail.backToReading": "Back to Reading",
+
+  // --- feedback language ---
+  "feedbackLang.auto": "Follow interface",
+  "settings.feedbackFollowHint":
+    "“Follow interface” writes new feedback in the language this page is shown in. Feedback you already have stays in the language it was written in.",
+
+  // --- home and progress ---
+  "meta.home.title": "English Studio · bcailab",
+  "meta.progress.title": "Progress · English Studio · bcailab",
+  "practice.reason.stepUp":
+    "A step up from {band}. Practising more than one level sharpens the level estimate.",
+  "practice.reason.stepDown":
+    "A step down from {band}. Practising more than one level sharpens the level estimate.",
+  "practice.reason.levelFit": "Fits your current level.",
+  "practice.reason.startingPoint":
+    "A useful starting point — this also helps us estimate your level.",
+  "practice.reason.crossMode":
+    "You have already taken this as dictation — read it aloud to close the loop.",
+  "practice.reason.nothingNew": "Nothing new left at {band}, so here is a {adjacent} passage.",
+  "practice.reason.revisit": "Your lowest score so far ({pct}%). A second run usually moves it.",
+  "practice.alt.easier": "Something easier",
+  "practice.alt.harder": "Challenge me",
+  "practice.alt.other_topic": "Different topic",
+  "homePage.title": "Today",
+  "homePage.coldDescription": "Let's find your level — it takes about three minutes.",
+  "homePage.greeting": "Good to see you, {name}. Pick up one useful piece of practice.",
+  "homePage.description": "Pick up one useful piece of practice.",
+  "homePage.attemptOne": "{count} recorded attempt",
+  "homePage.attemptMany": "{count} recorded attempts",
+  "homePage.basisUnavailable": "Your level and total practice count are temporarily unavailable.",
+  "homePage.basisNoLevel": "{volume} so far — not enough yet to estimate your level.",
+  "homePage.basisMeasured":
+    "Level {level}, measured from your dictation accuracy at {confidence}% confidence · {volume}",
+  "homePage.basisDeclared":
+    "Level {level} — the level you picked; it adjusts as you practise · {volume}",
+  "homePage.degraded":
+    "We couldn’t load your practice data just now. Everything below still works.",
+  "homePage.startHere": "Start here",
+  "homePage.coldTitle": "Take one dictation passage",
+  "homePage.coldBody":
+    "About three minutes. It is normal practice — and it doubles as a level check, so the studio can suggest the right material next.",
+  "homePage.startDictation": "Start dictation",
+  "homePage.pickLevel": "Pick your level",
+  "homePage.orPickLevel": "Or pick your level:",
+  "homePage.whatToDo": "What to do now",
+  "homePage.continue": "Continue",
+  "homePage.continueDictation": "Dictation · {done} of {total} sentences",
+  "homePage.continueWriting": "Writing · edited {date}",
+  "homePage.recommendation": "Coach recommendation",
+  "homePage.readAloud": "Read aloud",
+  "homePage.start": "Start",
+  "homePage.adjust": "Adjust recommendation",
+  "homePage.practice": "Practice",
+  "homePage.chooseTitle": "Choose what to work on",
+  "homePage.chooseBody": "Pick a module from the left to keep going.",
+  "homePage.basisLabel": "What this is based on",
+  "homePage.fullProgress": "Full progress →",
+  "homePage.recent": "Recent",
+  "homePage.recentLabel": "Recent practice",
+  "homePage.attemptsBest": "{count} attempts · best {best}",
+  "homePage.attempts": "{count} attempts",
+  "homePage.inProgress": "In progress · {done}/{total}",
+  "homePage.evaluating": "Evaluating…",
+  "homePage.untitledDraft": "Untitled draft",
+  "learnerTag.contraction": "contractions (don't, we'll, they're)",
+  "learnerTag.weak_form": "weak forms of function words in connected speech",
+  "learnerTag.article": "articles (a, an, the)",
+  "learnerTag.final_s": "word-final -s endings (plurals, third-person verbs)",
+  "learnerTag.past_ed": "past-tense -ed endings",
+  "learnerTag.homophone": "homophones (their/there, your/you're)",
+  "learnerTag.number_words": "numbers written as words",
+  "learnerTag.th_sound": "the 'th' sound",
+  "learnerTag.consonant_cluster": "consonant clusters (strengths, twelfths)",
+  "learnerTag.linking": "linking between words",
+  "learnerTag.long_sentence": "long sentences",
+  "learnerTag.question": "question intonation",
+  "progressPage.title": "Progress",
+  "progressPage.description":
+    "One view of your English across every module. Dictation is the most precise signal; reading contributes a lighter one.",
+  "progressPage.emptyBody":
+    "Practise a dictation passage to start building your profile — it doubles as a level check.",
+  "progressPage.startDictation": "Start dictation",
+  "progressPage.level": "Level",
+  "progressPage.cefrEstimate": "CEFR estimate",
+  "progressPage.attempts": "Attempts",
+  "progressPage.practiceTime": "Practice time",
+  "progressPage.basisMeasured":
+    "Based on your dictation accuracy, we've set your level to {level}.",
+  "progressPage.basisDeclared":
+    "This is the level you picked. It will adjust automatically as you practise dictation.",
+  "progressPage.basisDefault":
+    "Practise a few dictation passages and we'll estimate your level from your accuracy.",
+  "progressPage.dictationAccuracy": "Dictation accuracy",
+  "progressPage.lastPassages": "Your last {count} completed passages, oldest first.",
+  "progressPage.trendLabel":
+    "Accuracy across the last {count} completed passages, from {from} to {to} percent.",
+  "progressPage.coverage": "Coverage",
+  "progressPage.coverageHint":
+    "Which levels you have practised. A wider spread makes the level estimate more confident, so working a band above or below is useful.",
+  "progressPage.coverageCount": "{count} of {total} levels practised",
+  "progressPage.seeing": "What we're seeing",
+  "progressPage.workingOn": "Working on",
+  "progressPage.strength": "Strength",
+  "progressPage.workingOnHint":
+    "Accuracy on each feature, lowest first. An arrow shows a recent shift.",
+  "progressPage.strengths": "Strengths",
+  "progressPage.keepGoing": "Keep going",
+  "progressPage.dictation": "Dictation",
+  "progressPage.sharpens": "Sharpens the estimate",
+  "progressPage.reading": "Reading & Recitation",
+  "progressPage.lighter": "Adds a lighter signal",
+
+  // --- home errors ---
+  "homePage.error.unknownLevel": "Unknown level.",
+
+  // --- sign-in email ---
+  "email.loginCode.subject": "{code} is your bcailab sign-in code",
+  "email.loginCode.body": "Your bcailab sign-in code is: {code}",
+  "email.loginCode.expiry":
+    "It expires in 10 minutes. If you didn't request this, you can ignore this email."
 } satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;

@@ -25,6 +25,9 @@ import {
   type StarterPractice,
   type WritingDraft
 } from "~/utils/starter-practice";
+import { RichMessage, useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 
 /**
  * English Studio Home — the signed-in top surface.
@@ -50,7 +53,9 @@ export const handle = {
   hideHeaderUserMenu: true
 };
 
-export const meta: MetaFunction = () => [{ title: "English Studio · bcailab" }];
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.home.title") }
+];
 
 /** Bounded inputs. The Home is a summary; depth belongs on the progress page. */
 const DICTATION_HISTORY_LIMIT = 40;
@@ -65,9 +70,12 @@ const RECENT_ROWS = 3;
 type RecentItem = {
   id: string;
   title: string;
-  mode: "Dictation" | "Reading";
-  /** State of the most recent attempt: a score, or its in-progress position. */
-  latest: string;
+  mode: "dictation" | "reading";
+  /** State of the most recent attempt, as data; the page words it in the interface language. */
+  latest:
+    | { kind: "score"; value: number }
+    | { kind: "in_progress"; done: number; total: number | null }
+    | { kind: "evaluating" };
   href: string;
   at: string;
   attempts: number;
@@ -77,12 +85,13 @@ type RecentItem = {
 export const action = async ({ request, context }: ActionFunctionArgs) => {
   const user = await requireUser(request, context);
   const formData = await request.formData();
+  const t = getRequestTranslator(request);
   if (String(formData.get("_intent")) !== "declareLevel") {
-    return json({ ok: false, error: "Unsupported action." }, { status: 400 });
+    return json({ ok: false, error: t("common.unknownAction") }, { status: 400 });
   }
   const level = String(formData.get("level") ?? "");
   if (!CEFR_LEVELS.includes(level as (typeof CEFR_LEVELS)[number])) {
-    return json({ ok: false, error: "Unknown level." }, { status: 400 });
+    return json({ ok: false, error: t("homePage.error.unknownLevel") }, { status: 400 });
   }
   // Declared only. A measured estimate still overrides it later once confident (design §8
   // of the learner model), which is why this writes `cefr_declared` and only fills
@@ -224,11 +233,15 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         {
           id: `dictation:${a.passage_id}`,
           title: titleById.get(a.passage_id) ?? "Passage",
-          mode: "Dictation",
+          mode: "dictation",
           latest:
             a.status === "in_progress"
-              ? `In progress · ${a.sentences_done}/${sentenceCountById.get(a.passage_id) ?? "?"}`
-              : `${Math.round(a.accuracy * 100)}%`,
+              ? {
+                  kind: "in_progress",
+                  done: a.sentences_done,
+                  total: sentenceCountById.get(a.passage_id) ?? null
+                }
+              : { kind: "score", value: Math.round(a.accuracy * 100) },
           href: `/dictation/${a.passage_id}`,
           at: a.created_at,
           attempts: 0,
@@ -244,8 +257,11 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
         {
           id: `reading:${a.passage_id}`,
           title: a.passage_title ?? "Passage",
-          mode: "Reading",
-          latest: a.overall_score != null ? `${a.overall_score}` : "Evaluating…",
+          mode: "reading",
+          latest:
+            a.overall_score != null
+              ? { kind: "score", value: a.overall_score }
+              : { kind: "evaluating" },
           href: `/reading/${a.passage_id}`,
           at: a.created_at,
           attempts: 0,
@@ -280,6 +296,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
 
 
 function LevelPicker({ compact = false }: { compact?: boolean }) {
+  const t = useT();
   const fetcher = useFetcher<{ ok?: boolean }>();
   const saving = fetcher.state !== "idle";
   return (
@@ -288,7 +305,7 @@ function LevelPicker({ compact = false }: { compact?: boolean }) {
       className={`home-level-picker${compact ? " is-compact" : ""}`}
     >
       <span className="home-level-picker-label">
-        {compact ? "Pick your level" : "Or pick your level:"}
+        {compact ? t("homePage.pickLevel") : t("homePage.orPickLevel")}
       </span>
       {CEFR_LEVELS.map((level) => (
         <button
@@ -321,6 +338,7 @@ export default function EnglishHome() {
     degraded,
     profileUnavailable
   } = useLoaderData<typeof loader>();
+  const t = useT();
 
   const { continueAction, recommendations, alternatives } = practice;
   const primary = recommendations[0];
@@ -337,28 +355,41 @@ export default function EnglishHome() {
   // Attempt count only. Duration used to sit here too, when `total_practice_seconds` counted
   // reading alone and silently omitted dictation. Dictation is timed now, but the count
   // still carries this line's whole job; the duration detail belongs on Progress.
-  const volumeText =
-    totalAttempts === 1 ? "1 recorded attempt" : `${totalAttempts} recorded attempts`;
+  const volumeText = t(totalAttempts === 1 ? "homePage.attemptOne" : "homePage.attemptMany", {
+    count: totalAttempts
+  });
   const basisSentence =
     profileUnavailable
-      ? "Your level and total practice count are temporarily unavailable."
+      ? t("homePage.basisUnavailable")
       : level == null
-      ? `${volumeText} so far — not enough yet to estimate your level.`
+      ? t("homePage.basisNoLevel", { volume: volumeText })
       : levelBasis === "measured"
-        ? `Level ${level}, measured from your dictation accuracy at ${Math.round(levelConfidence * 100)}% confidence · ${volumeText}`
-        : `Level ${level} — the level you picked; it adjusts as you practise · ${volumeText}`;
+        ? t("homePage.basisMeasured", {
+            level,
+            confidence: Math.round(levelConfidence * 100),
+            volume: volumeText
+          })
+        : t("homePage.basisDeclared", { level, volume: volumeText });
+  const recentState = (item: RecentItem) =>
+    item.latest.kind === "score"
+      ? item.mode === "dictation"
+        ? `${item.latest.value}%`
+        : `${item.latest.value}`
+      : item.latest.kind === "in_progress"
+        ? t("homePage.inProgress", { done: item.latest.done, total: item.latest.total ?? "?" })
+        : t("homePage.evaluating");
 
   return (
     <StudioShell user={user}>
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Today"
+          title={t("homePage.title")}
           description={
             isCold
-              ? "Let's find your level — it takes about three minutes."
+              ? t("homePage.coldDescription")
               : firstName
-                ? `Good to see you, ${firstName}. Pick up one useful piece of practice.`
-                : "Pick up one useful piece of practice."
+                ? t("homePage.greeting", { name: firstName })
+                : t("homePage.description")
           }
           className="home-page-header"
         />
@@ -366,22 +397,19 @@ export default function EnglishHome() {
 
       {degraded ? (
         <p className="home-degraded">
-          We couldn&rsquo;t load your practice data just now. Everything below still works.
+          {t("homePage.degraded")}
         </p>
       ) : null}
 
       {isCold ? (
         <section className="home-cold">
           <div className="home-focus-primary">
-            <p className="home-card-kicker">Start here</p>
-            <h2 className="home-card-title">Take one dictation passage</h2>
-            <p className="home-card-meta">
-              About three minutes. It is normal practice — and it doubles as a level check,
-              so the studio can suggest the right material next.
-            </p>
+            <p className="home-card-kicker">{t("homePage.startHere")}</p>
+            <h2 className="home-card-title">{t("homePage.coldTitle")}</h2>
+            <p className="home-card-meta">{t("homePage.coldBody")}</p>
             <div className="home-card-actions">
               <Link to="/dictation" className="btn btn-primary">
-                Start dictation
+                {t("homePage.startDictation")}
               </Link>
             </div>
           </div>
@@ -391,24 +419,33 @@ export default function EnglishHome() {
         <>
           <section
             className={`home-actions${continueAction && primary ? "" : " is-single"}`}
-            aria-label="What to do now"
+            aria-label={t("homePage.whatToDo")}
           >
             {continueAction ? (
               <article className="home-focus-primary">
-                <p className="home-card-kicker">Continue</p>
-                <h2 className="home-card-title">{continueAction.title}</h2>
+                <p className="home-card-kicker">{t("homePage.continue")}</p>
+                {/* A passage title is English material; a draft title is the learner's own. */}
+                <h2 className="home-card-title" lang={continueAction.kind === "dictation" ? "en" : undefined}>
+                  {continueAction.kind === "writing" && continueAction.untitled
+                    ? t("homePage.untitledDraft")
+                    : continueAction.title}
+                </h2>
                 <p className="home-card-meta">
                   {continueAction.kind === "dictation"
-                    ? `Dictation · ${continueAction.done} of ${continueAction.total} sentences`
+                    ? t("homePage.continueDictation", {
+                        done: continueAction.done,
+                        total: continueAction.total
+                      })
                     : (
-                      <>
-                        Writing · edited <LocalDateTime value={continueAction.updatedAt} />
-                      </>
+                      <RichMessage
+                        id="homePage.continueWriting"
+                        values={{ date: <LocalDateTime value={continueAction.updatedAt} /> }}
+                      />
                     )}
                 </p>
                 <div className="home-card-actions">
                   <Link to={continueAction.href} className="btn btn-primary">
-                    Continue
+                    {t("homePage.continue")}
                   </Link>
                 </div>
               </article>
@@ -416,30 +453,26 @@ export default function EnglishHome() {
 
             {primary ? (
               <article className={continueAction ? "home-focus-secondary" : "home-focus-primary"}>
-                <p className="home-card-kicker">Coach recommendation</p>
-                <h2 className="home-card-title">{primary.title}</h2>
+                <p className="home-card-kicker">{t("homePage.recommendation")}</p>
+                <h2 className="home-card-title" lang="en">{primary.title}</h2>
                 <p className="home-card-meta">
-                  {[
-                    primary.band,
-                    primary.topic,
-                    primary.mode === "dictation" ? "Dictation" : "Read aloud"
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  {primary.band ? <>{primary.band} · </> : null}
+                  {primary.topic ? <><span lang="en">{primary.topic}</span> · </> : null}
+                  {primary.mode === "dictation" ? t("module.dictation.label") : t("homePage.readAloud")}
                 </p>
-                <p className="home-card-why">{primary.reason}</p>
+                <p className="home-card-why">{t(primary.reasonKey, primary.reasonVars)}</p>
                 <div className="home-card-actions">
                   <Link to={primary.href} className={`btn ${continueAction ? "btn-ghost" : "btn-primary"}`}>
-                    Start
+                    {t("homePage.start")}
                   </Link>
                 </div>
                 {alternatives.length > 0 ? (
-                  <div className="home-card-alternatives" aria-label="Adjust recommendation">
+                  <div className="home-card-alternatives" aria-label={t("homePage.adjust")}>
                     {/* Directional, never a reshuffle: each swap is a choice the learner can
                         reason about, and is only rendered when such material exists. */}
                     {alternatives.map((alt) => (
                       <Link key={alt.direction} to={alt.href} className="studio-link-secondary">
-                        {alt.label}
+                        {t(`practice.alt.${alt.direction}`)}
                       </Link>
                     ))}
                   </div>
@@ -449,17 +482,15 @@ export default function EnglishHome() {
 
             {!continueAction && !primary ? (
               <article className="home-focus-primary">
-                <p className="home-card-kicker">Practice</p>
-                <h2 className="home-card-title">Choose what to work on</h2>
-                <p className="home-card-meta">
-                  Pick a module from the left to keep going.
-                </p>
+                <p className="home-card-kicker">{t("homePage.practice")}</p>
+                <h2 className="home-card-title">{t("homePage.chooseTitle")}</h2>
+                <p className="home-card-meta">{t("homePage.chooseBody")}</p>
                 <div className="home-card-actions">
                   <Link to="/dictation" className="btn btn-primary">
-                    Dictation
+                    {t("module.dictation.label")}
                   </Link>
                   <Link to="/reading" className="btn btn-ghost btn-sm">
-                    Reading
+                    {t("module.reading.label")}
                   </Link>
                 </div>
               </article>
@@ -475,31 +506,33 @@ export default function EnglishHome() {
             outweighed the recommendation while saying almost nothing, because the model
             needs several attempts before panels mean anything (ia-v2 §5.1).
           */}
-          <section className="home-basis" aria-label="What this is based on">
+          <section className="home-basis" aria-label={t("homePage.basisLabel")}>
             <p className="home-basis-line">{basisSentence}</p>
             <Link to="/english/progress" className="home-basis-more">
-              Full progress &rarr;
+              {t("homePage.fullProgress")}
             </Link>
           </section>
 
           {level == null && !profileUnavailable ? <LevelPicker compact /> : null}
 
           {recent.length > 0 ? (
-            <section className="home-recent-section" aria-label="Recent practice">
+            <section className="home-recent-section" aria-label={t("homePage.recentLabel")}>
               <div className="home-panel-head">
-                <span className="home-panel-title">Recent</span>
+                <span className="home-panel-title">{t("homePage.recent")}</span>
               </div>
               <div className="home-recent">
                 {recent.map((item) => (
                   <Link key={item.id} to={item.href} className="home-recent-row">
-                    <span className="home-recent-title">{item.title}</span>
+                    <span className="home-recent-title" lang="en">{item.title}</span>
                     <span className="home-recent-meta">
                       {[
-                        item.mode,
+                        item.mode === "dictation" ? t("module.dictation.label") : t("module.reading.label"),
                         // Repeated work is the story here; a single run has none to tell.
                         item.attempts > 1
-                          ? `${item.attempts} attempts${item.best != null ? ` · best ${item.best}` : ""}`
-                          : item.latest
+                          ? item.best != null
+                            ? t("homePage.attemptsBest", { count: item.attempts, best: item.best })
+                            : t("homePage.attempts", { count: item.attempts })
+                          : recentState(item)
                       ].join(" · ")}
                     </span>
                   </Link>

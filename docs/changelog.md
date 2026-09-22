@@ -9,6 +9,50 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-22 — **in_review: Chinese interface, stage 3 — signed-in surfaces and feedback
+  language.** Last of three stages. Home and the Progress overview render in the interface
+  language, the shared feedback setting follows it by default, and Dictation feedback can be
+  Chinese.
+  - **Feedback language.** Reading's and Writing's shared setting now offers Follow interface
+    (default), English and Chinese, stored as `auto`/`en`/`zh` under a new key,
+    `bcailab-feedback-language-v2`. Pages post the resolved `en`/`zh`, so the server contract is
+    unchanged. Earlier values migrate once: a stored `zh` stays an explicit choice, and a stored
+    `en` becomes Follow interface, because the earlier code persisted `en` as a default on first
+    read. That second rule departs from the letter of criterion (g) and is flagged for the owner
+    in `docs/roadmap.md` and design §5.
+  - **Dictation in Chinese.** The completing request posts the resolved language. For Chinese the
+    prompt gains one line — `pattern` and `tip` in Simplified Chinese, `evidence` kept as the
+    learner's English words. English feedback adds nothing: hash fixtures pin its prompt to the
+    pre-change prompt byte-for-byte. The panel's `lang` is read from the stored text, because
+    stored feedback records no language.
+  - **Home and Progress.** Recommendation reasons carry a message key and values beside the
+    English `reason`, which is now built from the same catalogue entry, so the 23 recommender tests
+    pin unchanged English. The swaps ("Something easier" and so on) render from their direction.
+    Recent-practice states are returned as data and worded on the page. Feature names on Progress
+    come from new `learnerTag.*` copy; `TAG_DESCRIPTIONS` stays English because the learner brief
+    in grading prompts is built from it, and a test pins the English copy to it. Names produced by
+    the profile pass are English model output and are marked `lang="en"`.
+  - **Sign-in email.** The code email is written in the language of the page that asked for it:
+    the login route passes the request's locale to `requestLoginCode`, and a pure
+    `buildLoginCodeEmail` renders the subject and body. A test pins the English email to its
+    previous wording. No email provider runs locally, so this is proven by the test, not by a
+    received email. Feedback written before this change stays in its original language (owner
+    decision, 2026-09-22).
+
+  Evidence: 848 tests (new: sign-in email in both languages, migration and resolution of the preference, English byte-identity and
+  Chinese-only-adds-the-directive prompt fixtures, feature-label parity); all typechecks; lint 0
+  errors (the 9 existing warnings); both production builds. On the isolated fixture: Home in three
+  learner states and Progress with and without data showed no untranslated interface text; the
+  setting's three options and pressed state work; an earlier `en` became Follow interface and an
+  earlier `zh` stayed Chinese, with old keys removed; Reading posted `zh` under Follow in the
+  Chinese interface, Writing posted `en` after choosing English, and Dictation's completing request
+  posted `zh`.
+
+  Not seen: a Chinese Dictation feedback panel (the fixture's fake model returns no patterns) and a
+  populated accuracy trend or feature list on Progress. Unchanged by design: `learner-context.ts`
+  and the brief's English rendering, `learner_tag_observations`, `SOURCE_WEIGHT`, CEFR resolution,
+  stored feedback, and no migration.
+
 - 2026-09-22 — **in_review: Chinese interface, stage 2 — the remaining tools.** Second of three
   stages. Translate, Speech, Reading and Writing — with their trials, settings and progress pages
   — and the profile page now render in the interface language. About 550 catalogue keys, all
