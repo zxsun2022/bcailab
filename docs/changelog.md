@@ -9,6 +9,40 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-21 — **in_review: motion defects — the mobile nav drawer, and reduced motion on Web.**
+  Three defects from an external animation audit, each re-checked against the code first.
+  - **The mobile nav drawer never animated.** `.tool-nav-rail` switched from `display: none` to
+    `flex` in the same frame as its `transform`, so the element had no previous box and the browser
+    created no transition in either direction. The drawer now stays mounted and hides with
+    `visibility` and `pointer-events`. Visibility flips at once when the drawer opens, because
+    the open effect focuses the close button immediately, and only after the 220 ms slide when it
+    closes.
+  - **Reduced motion did not reach the Reading/Writing side panels**: the content slide, and the
+    grid, width and padding transitions.
+  - **Reduced motion did not reach four looping indicators**: recording, audio pending/playing, and
+    the Writing round pill. Each now has a static equivalent. The recording button gets a fixed
+    ring, and the pending round pill gets a warning outline, since the pulse was its only pending
+    cue.
+  - **Reduced motion never applied to the desktop nav collapse.** The old override sat before the
+    desktop media query that re-set `transition: width`, so it lost on source order.
+  All reduced-motion rules now sit in one block at the end of `global.css`. The accepted English
+  Studio iteration already required reduced-motion safety for drawers and wait states
+  (`docs/english-studio-major-iteration-proposal.md`), so these were gaps against an accepted
+  rule, not new scope. The audit's remaining items are recorded in `docs/exploration.md`.
+  Evidence, from the isolated fixture using the Web Animations API (the pane was hidden, so the
+  clock was frozen):
+  - Opening created a `transform` transition from `translateX(-100%)` to `0` over 220 ms, with the
+    drawer visible and the close button focused at once.
+  - Closing created a slide-out plus a `visibility` change delayed by 220 ms, then returned focus to
+    the toggle and cleared `inert`.
+  - The previous CSS, reproduced with a forced style flush, created **no** transition either way.
+  - With the reduced-motion rules applied: no drawer transitions; the static states computed as
+    intended; the side panels transition only opacity and visibility; the desktop rail, grid and
+    width transitions compute as `none`. A control run without the rules showed the pulses and
+    transforms still active.
+  - At 1280 px the rail stays visible, clickable and 224 px wide.
+  Screen-reader speech, and motion on a real device, were not checked.
+
 - 2026-09-20 — **in_review: dictation resume no longer discards earlier sentences.** Resuming an
   unfinished dictation attempt and checking one more sentence overwrote the attempt's stored
   results with just that sentence: `sentences_done` fell back to 1, a second resume dropped the

@@ -7846,9 +7846,13 @@ select.input:focus {
   display: none;
 }
 
-/* Rail itself — mobile: drawer overlay */
+/* Rail itself — mobile: drawer overlay.
+   The drawer stays mounted and is hidden with visibility, not display: switching display in the
+   same frame as the transform gives the element no previous box, so the slide never played in
+   either direction. Visibility flips at once when opening (the open effect focuses the close
+   button immediately) and only after the slide when closing. Reduced motion: end of file. */
 .tool-nav-rail {
-  display: none;
+  display: flex;
   flex-direction: column;
   position: fixed;
   inset: 0 auto 0 0;
@@ -7858,20 +7862,18 @@ select.input:focus {
   border-right: 1px solid var(--border);
   overflow: hidden;
   overscroll-behavior: none;
-  transition: transform 0.22s ease;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 0.22s ease, visibility 0s linear 0.22s;
   transform: translateX(-100%);
 }
 
 .tool-nav-rail.is-mobile-open {
-  display: flex;
+  visibility: visible;
+  pointer-events: auto;
   transform: translateX(0);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tool-nav-rail {
-    transition: none;
-  }
+  transition: transform 0.22s ease, visibility 0s linear 0s;
 }
 
 .nav-rail-backdrop {
@@ -7903,6 +7905,8 @@ select.input:focus {
     height: var(--site-shell-height);
     inset: unset;
     transform: none;
+    visibility: visible;
+    pointer-events: auto;
     width: 224px;
     flex-shrink: 0;
     transition: width 0.2s ease;
@@ -10523,5 +10527,62 @@ select.input:focus {
 @media (forced-colors: active) {
   .studio-app-shell :is(a, button, input, textarea, select, summary):focus-visible {
     outline-color: Highlight;
+  }
+}
+
+/* Reduced motion — spatial and continuous motion.
+   Kept last so it outranks every earlier rule, including the desktop media queries that re-set
+   these transitions. Opacity and colour feedback stay; anything that slides, resizes the layout
+   or loops stops, and a looping state indicator gets a static equivalent so the state is still
+   visible. */
+@media (prefers-reduced-motion: reduce) {
+  .tool-nav-rail,
+  .tool-nav-rail.is-mobile-open {
+    transition: none;
+  }
+
+  .nav-rail-label {
+    transition: opacity 0.15s ease;
+  }
+
+  .esl-history-rail-content,
+  .esl-history-rail-content.is-hidden,
+  .writing-aside-content,
+  .writing-aside-content.is-hidden {
+    transform: none;
+  }
+
+  .esl-history-rail-content,
+  .writing-aside-content {
+    transition: opacity 0.18s ease, visibility 0s linear;
+  }
+
+  .esl-history-rail-content.is-hidden,
+  .writing-aside-content.is-hidden {
+    transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+  }
+
+  .esl-practice-layout.reading-workspace,
+  .reading-content-column,
+  .reading-detail-rail,
+  .writing-detail-layout,
+  .writing-center-panel,
+  .writing-detail-rail {
+    transition: none;
+  }
+
+  .esl-record-btn.is-recording {
+    animation: none;
+    box-shadow: 0 0 0 4px rgba(181, 42, 28, 0.18);
+  }
+
+  .compact-audio-indicator.is-pending,
+  .compact-audio-indicator.is-playing {
+    animation: none;
+  }
+
+  .writing-aside-pill.is-pending {
+    animation: none;
+    box-shadow: inset 0 0 0 1px var(--color-warning);
   }
 }

@@ -54,6 +54,28 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   continuous zoom steps. Deliberately left unmeasured — if motion turns out to be the cause, the
   other two are optimisations for a problem nobody has. Measure before committing to any of it.
 
+- **Motion polish from the 2026-09-20 animation audit** (external agent, using the
+  `emil-design-eng` / `improve-animations` skills; *not committed*). The audit's real defects —
+  the mobile nav drawer that never animated, and Web's reduced-motion gaps on the Reading/Writing
+  side panels and the looping state indicators — were fixed as bugs (see `docs/changelog.md`).
+  What remains is taste and performance, with severities re-checked against the code:
+  - Web layout animations (`grid-template-columns`, `width`, `padding` on the Reading/Writing
+    side panels) re-lay out every frame; transform/opacity would not. Medium, performance only.
+  - The looping pulses animate `box-shadow`, which repaints; a pseudo-element with
+    `transform`/`opacity` would not. Low.
+  - Every Web `.btn` lifts on hover but has no press feedback; the audit suggests dropping the lift
+    and adding a short `scale(0.97)` press. Taste.
+  - Mapdown's toolbar popovers play a 120 ms entry keyframe, including when opened by keyboard.
+    The audit rated this HIGH; re-checked as **low** — input is not blocked, and reduced motion
+    already removes it.
+  - Mapdown's reduced-motion rule flattens every transition, colour included. It satisfies the
+    accepted canvas-first criterion (d); keeping non-spatial feedback would be a refinement.
+  - Mapdown buttons jump `translateY(1px)` on press with no easing. Taste.
+  - Web and Mapdown each hand-roll durations and easings; shared duration/easing tokens would span
+    both products and count as a broad refactor under `AGENTS.md`.
+  - Opportunities rather than defects: a scale/fade origin for the avatar menu, and a fade plus
+    `scale(0.97)` for the delete confirmation dialog.
+
 - **Mapdown — document library, account save, and publish** (owner-raised 2026-08-18). Three
   independently shippable stages: a local, no-account document library (`spec/phases.md` §7);
   explicit per-document cloud save behind a Mapdown-owned backend on `map.bcailab.com`; and
