@@ -447,7 +447,7 @@ export default function EslReadingPracticePage() {
           <div className="esl-center-panel">
             <div className="esl-passage-header">
               <Link to="/reading" className="session-project-return">
-                Back to Reading
+                {t("reading.detail.backToReading")}
               </Link>
               <div className="esl-passage-heading-row">
                 <div className="esl-passage-heading-copy">

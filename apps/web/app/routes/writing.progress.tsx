@@ -3,7 +3,12 @@ import { json } from "@remix-run/cloudflare";
 import { useLoaderData, Link } from "@remix-run/react";
 import { listWritingArticlesByUser, listCompletedWritingRevisionsByUser } from "@bcailab/db";
 import { requireUser } from "~/utils/auth.server";
-import { getWritingAgentOrDefault, formatWritingAssessment } from "~/utils/writing-agents";
+import { getWritingAgentOrDefault } from "~/utils/writing-agents";
+import {
+  writingAgentCopy,
+  writingAssessmentLabel,
+  writingDimensionLabel
+} from "~/utils/writing-agent-copy";
 import type { WritingFeedback, WritingAnnotation } from "~/utils/writing-eval.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
 import { ProgressWorkspaceTabs } from "~/components/ProgressWorkspaceTabs";
@@ -13,13 +18,15 @@ import {
   StudioPageHeader,
   StudioPageTabs
 } from "~/components/StudioPage";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
 export const handle = {
   breadcrumb: { label: "progress", href: "/writing/progress" }
 };
 
-export const meta: MetaFunction = () => [
-  { title: "Writing progress · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.writingProgress.title") }
 ];
 
 type BandPoint = {
@@ -102,7 +109,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       return {
         id: a.id,
         title: a.title,
-        agentLabel: agent.label,
+        agentId: agent.id,
         assessmentPrefix: agent.assessmentPrefix ?? null,
         bandEstimate: latestRevWithBand?.feedback?.round_summary?.band_estimate ?? null,
         updatedAt: a.updated_at
@@ -142,6 +149,7 @@ function formatNumber(n: number): string {
 }
 
 function BandBar({ points }: { points: BandPoint[] }) {
+  const t = useT();
   if (points.length === 0) return null;
 
   const ieltsPoints = points.filter((p) => {
@@ -154,7 +162,7 @@ function BandBar({ points }: { points: BandPoint[] }) {
       <div className="dash-band-pills">
         {points.map((p, i) => (
           <Link key={i} to={`/writing/${p.articleId}?round=${p.roundNumber}`} className="dash-band-pill">
-            {formatWritingAssessment(p.bandEstimate, getWritingAgentOrDefault(p.agentType).assessmentPrefix)}
+            {writingAssessmentLabel(t, p.bandEstimate, getWritingAgentOrDefault(p.agentType).assessmentPrefix)}
           </Link>
         ))}
       </div>
@@ -190,7 +198,11 @@ function BandBar({ points }: { points: BandPoint[] }) {
               to={`/writing/${p.articleId}?round=${p.roundNumber}`}
               className="dash-band-chart-dot"
               style={{ left: `${leftPct}%`, bottom: `${bottomPct}%` }}
-              title={`${p.articleTitle || "Untitled"} · R${p.roundNumber} · Band ${p.bandEstimate}`}
+              title={t("writingProgress.dotTitle", {
+                title: p.articleTitle || t("writingDetail.untitled"),
+                round: p.roundNumber,
+                band: p.bandEstimate
+              })}
             />
           );
         })}
@@ -224,6 +236,7 @@ function BandBar({ points }: { points: BandPoint[] }) {
 }
 
 function DimensionBreakdown({ dimensions }: { dimensions: DimensionCount[] }) {
+  const t = useT();
   const maxTotal = Math.max(...dimensions.map((d) => d.critical + d.improvement + d.strength), 1);
 
   return (
@@ -235,16 +248,16 @@ function DimensionBreakdown({ dimensions }: { dimensions: DimensionCount[] }) {
         const strW = (d.strength / maxTotal) * 100;
         return (
           <div key={d.dimension} className="dash-dimension-row">
-            <div className="dash-dimension-label">{d.dimension}</div>
+            <div className="dash-dimension-label">{writingDimensionLabel(t, d.dimension)}</div>
             <div className="dash-dimension-bar-track">
               {d.critical > 0 ? (
-                <div className="dash-dimension-bar is-critical" style={{ width: `${critW}%` }} title={`${d.critical} critical`} />
+                <div className="dash-dimension-bar is-critical" style={{ width: `${critW}%` }} title={t("writingFeedback.criticalCount", { count: d.critical })} />
               ) : null}
               {d.improvement > 0 ? (
-                <div className="dash-dimension-bar is-improvement" style={{ width: `${impW}%` }} title={`${d.improvement} improvements`} />
+                <div className="dash-dimension-bar is-improvement" style={{ width: `${impW}%` }} title={t("writingFeedback.improvementCount", { count: d.improvement })} />
               ) : null}
               {d.strength > 0 ? (
-                <div className="dash-dimension-bar is-strength" style={{ width: `${strW}%` }} title={`${d.strength} strengths`} />
+                <div className="dash-dimension-bar is-strength" style={{ width: `${strW}%` }} title={t("writingFeedback.strengthCount", { count: d.strength })} />
               ) : null}
             </div>
             <div className="dash-dimension-count">{total}</div>
@@ -257,14 +270,15 @@ function DimensionBreakdown({ dimensions }: { dimensions: DimensionCount[] }) {
 
 export default function WritingProgressPage() {
   const data = useLoaderData<typeof loader>();
+  const t = useT();
 
   if (!data.schemaReady) {
     return (
       <div className="studio-main-scroll">
         <StudioPage width="wide">
-          <StudioPageHeader title="Writing progress" />
+          <StudioPageHeader title={t("writingProgress.title")} />
           <StudioPageBody className="studio-dashboard">
-            <p className="writing-status-desc">Writing tool is temporarily unavailable.</p>
+            <p className="writing-status-desc">{t("writingProgress.unavailable")}</p>
           </StudioPageBody>
         </StudioPage>
       </div>
@@ -278,8 +292,8 @@ export default function WritingProgressPage() {
     <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Writing progress"
-          description="Your writing history at a glance."
+          title={t("writingProgress.title")}
+          description={t("writingProgress.description")}
         />
         <StudioPageTabs>
           <ProgressWorkspaceTabs />
@@ -289,12 +303,10 @@ export default function WritingProgressPage() {
         {isEmpty ? (
           <div className="studio-empty">
             <div className="studio-empty-mark" aria-hidden="true" />
-            <div className="studio-empty-title">No data yet</div>
-            <p className="studio-empty-desc">
-              Submit your first essay and get feedback to start tracking your progress.
-            </p>
+            <div className="studio-empty-title">{t("readingProgress.noData")}</div>
+            <p className="studio-empty-desc">{t("writingProgress.noDataBody")}</p>
             <Link to="/writing" className="btn btn-primary btn-sm">
-              Start writing
+              {t("writingProgress.start")}
             </Link>
           </div>
         ) : (
@@ -302,50 +314,52 @@ export default function WritingProgressPage() {
             <div className="dash-stats">
               <div className="dash-stat-card">
                 <div className="dash-stat-value">{totalArticles}</div>
-                <div className="dash-stat-label">Articles</div>
+                <div className="dash-stat-label">{t("writingProgress.articles")}</div>
               </div>
               <div className="dash-stat-card">
                 <div className="dash-stat-value">{totalRevisions}</div>
-                <div className="dash-stat-label">Revisions</div>
+                <div className="dash-stat-label">{t("writingProgress.revisions")}</div>
               </div>
               <div className="dash-stat-card">
                 <div className="dash-stat-value">{formatNumber(totalWords)}</div>
-                <div className="dash-stat-label">Words written</div>
+                <div className="dash-stat-label">{t("writingProgress.words")}</div>
               </div>
             </div>
 
             {bandPoints.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Score trend</h3>
-                <p className="dash-section-hint">Each dot is one submitted revision. Click to view.</p>
+                <h3 className="dash-section-title">{t("writingProgress.trend")}</h3>
+                <p className="dash-section-hint">{t("writingProgress.trendHint")}</p>
                 <BandBar points={bandPoints} />
               </div>
             ) : null}
 
             {dimensions.length > 0 ? (
               <div className="dash-section">
-                <h3 className="dash-section-title">Dimension breakdown</h3>
-                <p className="dash-section-hint">Annotation counts across all revisions.</p>
+                <h3 className="dash-section-title">{t("writingProgress.breakdown")}</h3>
+                <p className="dash-section-hint">{t("writingProgress.breakdownHint")}</p>
                 <div className="dash-dimension-legend">
-                  <span className="dash-legend-item is-critical">Critical</span>
-                  <span className="dash-legend-item is-improvement">Improvement</span>
-                  <span className="dash-legend-item is-strength">Strength</span>
+                  <span className="dash-legend-item is-critical">{t("writingFeedback.critical")}</span>
+                  <span className="dash-legend-item is-improvement">{t("writingFeedback.improvement")}</span>
+                  <span className="dash-legend-item is-strength">{t("writingFeedback.strength")}</span>
                 </div>
                 <DimensionBreakdown dimensions={dimensions} />
               </div>
             ) : null}
 
             <div className="dash-section">
-              <h3 className="dash-section-title">Recent articles</h3>
+              <h3 className="dash-section-title">{t("writingProgress.recent")}</h3>
               <div className="dash-recent-list">
                 {recentArticles.map((a) => (
                   <Link key={a.id} to={`/writing/${a.id}`} className="dash-recent-item">
-                    <div className="dash-recent-title">{a.title || "Untitled"}</div>
+                    <div className="dash-recent-title">{a.title || t("writingDetail.untitled")}</div>
                     <div className="dash-recent-meta">
-                      <span className="nav-rail-agent-badge">{a.agentLabel}</span>
+                      <span className="nav-rail-agent-badge">
+                        {writingAgentCopy(t, getWritingAgentOrDefault(a.agentId)).label}
+                      </span>
                       {a.bandEstimate ? (
                         <span className="dash-recent-band">
-                          {formatWritingAssessment(a.bandEstimate, a.assessmentPrefix)}
+                          {writingAssessmentLabel(t, a.bandEstimate, a.assessmentPrefix)}
                         </span>
                       ) : null}
                     </div>

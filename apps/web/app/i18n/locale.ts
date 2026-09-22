@@ -27,6 +27,14 @@ export const isLocale = (value: unknown): value is Locale =>
 
 export const parseLocale = (value: unknown): Locale => (isLocale(value) ? value : DEFAULT_LOCALE);
 
+/**
+ * The `Intl` locale for dates and numbers. The English interface keeps the browser's own
+ * conventions (unchanged from before there was a Chinese interface); the Chinese interface
+ * formats as Chinese, whatever the browser says.
+ */
+export const intlLocale = (locale: Locale): string | undefined =>
+  locale === "zh" ? "zh-CN" : undefined;
+
 /** The other locale. With two locales a switcher always offers exactly one. */
 export const otherLocale = (locale: Locale): Locale => (locale === "zh" ? "en" : "zh");
 

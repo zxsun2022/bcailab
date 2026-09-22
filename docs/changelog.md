@@ -9,6 +9,38 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-22 — **in_review: Chinese interface, stage 2 — the remaining tools.** Second of three
+  stages. Translate, Speech, Reading and Writing — with their trials, settings and progress pages
+  — and the profile page now render in the interface language. About 550 catalogue keys, all
+  typed and placeholder-checked like stage 1's.
+  - **What the model is told is untouched.** Writing coaches keep their English roster because
+    the grading prompt is built from it; learners read the catalogue copy through
+    `writing-agent-copy.ts`, and a test pins the English catalogue to the roster so they cannot
+    drift. Translate keeps the English language names its prompt uses; learners see catalogue
+    names. Model output — evaluations, feedback text, the assessment value — is shown as stored.
+  - **Server errors are worded per request.** `TtsValidationError` and
+    `EslAttemptSubmissionError` gain an optional message key beside their English message; every
+    route in these tools builds its errors with the request's translator. The English
+    `WRITING_UNAVAILABLE_ERROR` constant, which no caller used any longer, was removed.
+  - **Dates follow the interface.** `LocalDateTime` formatted with the browser's language, so a
+    Chinese page showed "Sep 22, 2026"; it now formats with `zh-CN` in the Chinese interface and
+    is unchanged in the English one.
+  - **Copy correction.** The Reading trial promised "twenty passages from CEFR A2 to C1"; the
+    library holds eighty, so the count is dropped in both languages rather than translated.
+
+  Evidence: 837 tests (6 new: coach copy for every roster entry in both languages, dimension
+  coverage, assessment labels, `intlLocale`); all typechecks; lint 0 errors (the 9 existing
+  warnings); both production builds. On the isolated fixture, signed in as a synthetic user, an
+  in-page detector found no untranslated interface text on eighteen routes after the fixes listed
+  in design §9; the trials were checked signed out over HTTP; the English interface on the same
+  routes contains no Chinese beyond the switch and a pre-existing autonym, with every page title
+  unchanged. The Writing page and writing guide were checked at 375 px.
+
+  Not seen in the browser: an evaluated Reading attempt, a Writing round with annotations, and
+  Speech with a working voice list — the fixture has none of them; those strings are translated
+  and, for Writing, unit-tested. Not in this stage: Home, the Progress overview, the three-valued
+  feedback setting and Dictation's Chinese feedback (stage 3), and the sign-in email.
+
 - 2026-09-22 — **in_review: Chinese interface, stage 1 — mechanism and first contact.** First of
   the three stages in "Now — Chinese interface for Chinese-speaking learners". A Chinese visitor
   now meets the homepage, `/english`, the site header, the studio rail, the sign-in popup and

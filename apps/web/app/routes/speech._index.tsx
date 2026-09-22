@@ -38,7 +38,8 @@ import {
   StudioPageTabs
 } from "~/components/StudioPage";
 import { ConfirmSubmitButton } from "~/components/ConfirmDialog";
-import { useT } from "~/i18n/context";
+import { useLocale, useT } from "~/i18n/context";
+import { intlLocale } from "~/i18n/locale";
 import { metaTranslator } from "~/i18n/meta";
 import { getRequestTranslator } from "~/i18n/locale.server";
 import type { Translate } from "~/i18n/translate";
@@ -98,8 +99,8 @@ const buildR2Key = (userId: string, generationId: string): string => {
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const formatDate = (value: string) =>
-  new Date(value).toLocaleDateString(undefined, {
+const formatDate = (value: string, locale: string | undefined) =>
+  new Date(value).toLocaleDateString(locale, {
     year: "numeric",
     month: "short",
     day: "numeric"
@@ -509,6 +510,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
 export default function TtsIndexPage() {
   const { languages, voiceError, selected } = useLoaderData<typeof loader>();
   const t = useT();
+  const locale = useLocale();
   // Voice names are proper names; only the gender Google attaches is worded here.
   const voiceLabel = (voice: SpeechVoiceOption) => {
     const gender = voice.ssmlGender;
@@ -920,7 +922,7 @@ export default function TtsIndexPage() {
                 <div className="tts-history-meta" style={{ marginTop: "12px" }}>
                   <span>{selected.languageCode}</span>
                   <span>{selected.voiceName}</span>
-                  <span>{formatDate(selected.createdAt)}</span>
+                  <span>{formatDate(selected.createdAt, intlLocale(locale))}</span>
                 </div>
                 {activeAlignment
                   ? renderTranscript(activeAlignment.displayText)

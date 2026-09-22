@@ -30,6 +30,15 @@ Library passages carry a link into dictation for the same text — see
 `docs/tools/dictation.md` for why the handoff lives on the practice screens rather than in
 a browse surface.
 
+## Interface language
+
+The catalogue, passage page, recorder, evaluation card, history rail, progress page, settings
+and trial render in the visitor's interface language (English or Simplified Chinese — ADR 0011).
+Passage titles, topics and text stay English and carry `lang="en"`. Evaluation text is model
+output and appears in whatever feedback language produced it; its score labels (Pronunciation,
+Fluency, …) and highlight kinds are interface copy. Submission errors carry a message key
+(`EslAttemptSubmissionError`) so each route words them in the request's language.
+
 ## Material Library
 
 Reading reads from the shared material layer (`passages`), not from reading-specific

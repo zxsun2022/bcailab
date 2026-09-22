@@ -65,6 +65,13 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
   replace HTTP 502 bodies with an HTML gateway page, which would otherwise trigger Remix's
   page-level error boundary.
 
+### Interface language
+
+The page, saved list and saved detail render in the visitor's interface language (ADR 0011).
+Language names shown to the learner come from the catalogues (`translateLanguageName`); the
+English `label` in `TRANSLATE_LANGUAGES` is what the translation prompt uses and never changes
+with the interface. Validation, quota and stream errors are worded per request.
+
 ## Server
 - `apps/web/app/utils/translate.server.ts` builds the prompt and delegates the model call to
   the unified LLM layer (`llm.server.ts`) with a per-tier task (`translate` /

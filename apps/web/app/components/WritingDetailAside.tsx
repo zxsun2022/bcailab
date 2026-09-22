@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Link } from "@remix-run/react";
-import { formatWritingAssessment } from "~/utils/writing-agents";
+import { useT } from "~/i18n/context";
+import { writingAssessmentLabel } from "~/utils/writing-agent-copy";
 
 export type AsideRound = {
   id: string;
@@ -34,6 +35,7 @@ export function WritingDetailAside({
   assessmentPrefix,
   children,
 }: WritingDetailAsideProps) {
+  const t = useT();
   const sortedRounds = [...rounds].sort((a, b) => b.round_number - a.round_number);
   const latestEntry = rounds.find((round) => round.round_number === latestRound) ?? null;
   const newRevisionHref = disableNewRevision ? "#" : `/writing/${articleId}?compose=1`;
@@ -55,15 +57,17 @@ export function WritingDetailAside({
             aria-disabled={disableNewRevision}
             onClick={(e) => { if (disableNewRevision) e.preventDefault(); }}
           >
-            New Revision
+            {t("writingAside.newRevision")}
           </Link>
           {sortedRounds.map((round) => {
             const isActive = !isComposeView && activeRound === round.round_number;
             const isLatest = round.round_number === latestRound;
             const scoreText = round.band_estimate
-              ? formatWritingAssessment(round.band_estimate, assessmentPrefix)
+              ? writingAssessmentLabel(t, round.band_estimate, assessmentPrefix)
               : null;
-            const statusLabel = isLatest ? "Latest" : `Round ${round.round_number}`;
+            const statusLabel = isLatest
+              ? t("writingAside.latest")
+              : t("writingAside.round", { round: round.round_number });
             return (
               <Link
                 key={round.id}
@@ -78,7 +82,7 @@ export function WritingDetailAside({
         </div>
 
         {latestEntry?.feedback_status === "pending" ? (
-          <div className="writing-aside-note">Finish the latest round analysis before starting a new revision.</div>
+          <div className="writing-aside-note">{t("writingAside.finishFirst")}</div>
         ) : null}
 
         <div className="writing-aside-body">

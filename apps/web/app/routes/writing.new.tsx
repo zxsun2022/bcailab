@@ -19,14 +19,17 @@ import {
 } from "~/utils/writing-agents";
 import {
   isWritingSchemaMissingError,
-  logWritingSchemaMissing,
-  WRITING_UNAVAILABLE_ERROR
+  logWritingSchemaMissing
 } from "~/utils/writing-schema.server";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
+import { writingAgentCopy } from "~/utils/writing-agent-copy";
 
 type ActionData = { error?: string; redirectTo?: string };
 
-export const meta: MetaFunction = () => [
-  { title: "New freeform session · Writing · English Studio · bcailab" }
+export const meta: MetaFunction = ({ matches }) => [
+  { title: metaTranslator(matches)("meta.writingNew.title") }
 ];
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
@@ -39,16 +42,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "createArticle");
   const transport = String(formData.get("_transport") ?? "document");
+  const t = getRequestTranslator(request);
   if (intent !== "createArticle") {
-    return json<ActionData>({ error: "Unsupported action." }, { status: 400 });
+    return json<ActionData>({ error: t("writing.error.unsupported") }, { status: 400 });
   }
 
   const userText = String(formData.get("userText") ?? "").trim();
   if (!userText) {
-    return json<ActionData>({ error: "Please write something before submitting." }, { status: 400 });
+    return json<ActionData>({ error: t("writing.error.empty") }, { status: 400 });
   }
   if (countWords(userText) < 10) {
-    return json<ActionData>({ error: "Please write at least 10 words." }, { status: 400 });
+    return json<ActionData>({ error: t("writing.error.tooShort") }, { status: 400 });
   }
 
   const requestedAgent = String(formData.get("agentType") ?? DEFAULT_AGENT_ID);
@@ -57,7 +61,7 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   const topic = String(formData.get("topic") ?? "").trim() || undefined;
   const startKey = String(formData.get("startKey") ?? "");
   if (startKey.length < 16 || startKey.length > 200) {
-    return json<ActionData>({ error: "This draft has expired. Refresh and try again." }, { status: 400 });
+    return json<ActionData>({ error: t("writing.error.draftExpired") }, { status: 400 });
   }
 
   try {
@@ -76,9 +80,9 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   } catch (error) {
     if (isWritingSchemaMissingError(error)) {
       logWritingSchemaMissing("writing.new.action", error);
-      return json<ActionData>({ error: WRITING_UNAVAILABLE_ERROR }, { status: 503 });
+      return json<ActionData>({ error: t("writing.unavailableError") }, { status: 503 });
     }
-    return json<ActionData>({ error: "Unable to create this session. Please try again." }, { status: 500 });
+    return json<ActionData>({ error: t("writing.error.createFailed") }, { status: 500 });
   }
 };
 
@@ -93,6 +97,7 @@ function WritingNewReady({ userId, startKey }: { userId: string; startKey: strin
   const navigate = useNavigate();
   const [feedbackLanguage] = useWritingFeedbackLanguage();
   const agent = getWritingAgentOrDefault(agentType);
+  const t = useT();
   const agents = listWritingAgents().filter((entry) => entry.id !== "ielts_task1");
 
   const { completeSubmit } = local;
@@ -106,9 +111,9 @@ function WritingNewReady({ userId, startKey }: { userId: string; startKey: strin
     <div className="studio-main-scroll">
       <StudioPage width="standard">
         <StudioPageHeader
-          title="New freeform session"
-          description="Bring your own topic, choose a coach, and keep revising after the first feedback round."
-          action={<Link to="/writing" className="btn btn-secondary">Browse assignments</Link>}
+          title={t("writing.newFreeform")}
+          description={t("writing.newFreeformDescription")}
+          action={<Link to="/writing" className="btn btn-secondary">{t("writing.browseAssignmentsButton")}</Link>}
         />
         <StudioPageBody className="writing-index">
           <fetcher.Form method="post" className="writing-index-form" onSubmit={local.beginSubmit}>
@@ -120,7 +125,7 @@ function WritingNewReady({ userId, startKey }: { userId: string; startKey: strin
 
             <div className="writing-coach-row">
               <div className="writing-control-group">
-                <label className="writing-label" htmlFor="agentType">Coach</label>
+                <label className="writing-label" htmlFor="agentType">{t("writing.coach")}</label>
                 <select
                   id="agentType"
                   name="agentType"
@@ -129,11 +134,11 @@ function WritingNewReady({ userId, startKey }: { userId: string; startKey: strin
                   onChange={(event) => local.update({ coach: event.currentTarget.value })}
                 >
                   {agents.map((entry) => (
-                    <option key={entry.id} value={entry.id}>{entry.label}</option>
+                    <option key={entry.id} value={entry.id}>{writingAgentCopy(t, entry).label}</option>
                   ))}
                 </select>
               </div>
-              <p className="writing-coach-desc">{agent.description}</p>
+              <p className="writing-coach-desc">{writingAgentCopy(t, agent).description}</p>
             </div>
 
             <WritingEditor
@@ -146,7 +151,7 @@ function WritingNewReady({ userId, startKey }: { userId: string; startKey: strin
               onTopicChange={topic => local.update({ topic })}
             />
 
-            {local.storageError ? <p role="alert">Draft could not be saved on this device. Keep this page open or copy your text before leaving.</p> : null}
+            {local.storageError ? <p role="alert">{t("writing.draftNotSaved")}</p> : null}
             {fetcher.data?.error ? <div className="form-error">{fetcher.data.error}</div> : null}
             <div className="writing-index-actions">
               <button
@@ -154,7 +159,7 @@ function WritingNewReady({ userId, startKey }: { userId: string; startKey: strin
                 className="btn btn-primary"
                 disabled={!local.ready || !text.trim() || fetcher.state === "submitting"}
               >
-                {fetcher.state === "submitting" ? "Submitting..." : "Submit for feedback"}
+                {fetcher.state === "submitting" ? t("writing.submitting") : t("writing.submitForFeedback")}
               </button>
             </div>
           </fetcher.Form>

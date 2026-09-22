@@ -291,7 +291,7 @@ export default function ReadingCatalogue() {
                     <span>{t("reading.yourText")}</span>
                     {passage.wordCount > 0 ? <span>{t("reading.words", { count: passage.wordCount })}</span> : null}
                   </span>
-                  <strong>{passage.title}</strong>
+                  <strong lang="en">{passage.title}</strong>
                   <StateLabel state={passage.state} />
                   <span className="studio-row-arrow" aria-hidden="true">→</span>
                 </Link>

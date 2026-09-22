@@ -12,33 +12,26 @@ import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import type { MessageKey, Translate } from "~/i18n/translate";
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: `${data?.collection.title ?? "Writing library"} · English Studio · bcailab` }
-];
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    {
+      title: t("meta.writingLibrary.title", {
+        title: t(`writing.collection.${data?.category ?? "general"}.title`)
+      })
+    }
+  ];
+};
 
+// Copy for each category lives in the catalogues under `writing.collection.<key>.*`.
 const CATEGORIES = {
-  general: {
-    title: "Everyday writing",
-    eyebrow: "General English · A2 to C1",
-    description: "Practice useful writing for real situations. Levels guide discovery; every assignment remains open.",
-    family: "general" as const,
-    taskType: null
-  },
-  task1: {
-    title: "Visual reports",
-    eyebrow: "IELTS Academic · Task 1",
-    description: "Interpret reviewed charts, tables, processes, and maps, then write a precise academic report.",
-    family: null,
-    taskType: "academic_task_1" as const
-  },
-  task2: {
-    title: "Academic essays",
-    eyebrow: "IELTS Academic · Task 2",
-    description: "Build a clear position and support it across the common IELTS essay families.",
-    family: null,
-    taskType: "academic_task_2" as const
-  }
+  general: { family: "general" as const, taskType: null },
+  task1: { family: null, taskType: "academic_task_1" as const },
+  task2: { family: null, taskType: "academic_task_2" as const }
 };
 
 const GENERAL_LEVELS = ["A2", "B1", "B2", "C1"] as const;
@@ -96,55 +89,65 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   }
 };
 
-const humanizeKind = (value: string) =>
-  value.split("_").map((part) => part[0]!.toUpperCase() + part.slice(1)).join(" ");
+const kindLabel = (t: Translate, value: (typeof TASK_1_KINDS)[number] | (typeof TASK_2_KINDS)[number]) =>
+  t(`writing.kind.${value}` satisfies MessageKey);
 
-const PromptRow = ({ prompt }: { prompt: WritingPromptSummary }) => (
+const sessionState = (t: Translate, count: number) =>
+  count === 0
+    ? t("writing.notStarted")
+    : t(count === 1 ? "writing.sessionOne" : "writing.sessionMany", { count });
+
+// Assignment titles and topics are the material being written about, so they stay English.
+const PromptRow = ({ prompt }: { prompt: WritingPromptSummary }) => {
+  const t = useT();
+  return (
   <Link to={`/writing/prompt/${prompt.slug}`} className="studio-row">
     <span className="studio-row-meta">
       {prompt.cefr_band ? <span className="writing-level-badge">{prompt.cefr_band}</span> : null}
-      <span>{prompt.topic}</span>
-      <span>{prompt.target_minutes} min</span>
+      <span lang="en">{prompt.topic}</span>
+      <span>{t("writing.minutes", { count: prompt.target_minutes })}</span>
     </span>
-    <strong>{prompt.title}</strong>
+    <strong lang="en">{prompt.title}</strong>
     <span className="studio-row-state">
-      {prompt.target_words}+ words · {prompt.attempt_count === 0 ? "Not started" : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "session" : "sessions"}`}
+      {t("writing.wordsPlus", { count: prompt.target_words })} · {sessionState(t, prompt.attempt_count)}
     </span>
     <span className="studio-row-arrow" aria-hidden="true">→</span>
   </Link>
-);
+  );
+};
 
-const promptDescription = (prompt: WritingPromptSummary) =>
+const promptDescription = (t: Translate, prompt: WritingPromptSummary) =>
   prompt.task_type === "academic_task_1"
-    ? "Read the visual, identify key features, and write an accurate academic report."
+    ? t("writing.promptDesc.task1")
     : prompt.task_type === "academic_task_2"
-      ? "Develop a clear position and support it in an academic essay."
-      : "Practice a focused real-world writing task with guided feedback.";
+      ? t("writing.promptDesc.task2")
+      : t("writing.promptDesc.general");
 
-const FeaturedPromptCard = ({ prompt }: { prompt: WritingPromptSummary }) => (
+const FeaturedPromptCard = ({ prompt }: { prompt: WritingPromptSummary }) => {
+  const t = useT();
+  return (
   <Link to={`/writing/prompt/${prompt.slug}`} className="writing-prompt-card">
     <div className="writing-prompt-card-meta">
       {prompt.cefr_band ? <span className="writing-level-badge">{prompt.cefr_band}</span> : null}
-      <span>{prompt.topic}</span>
-      <span>{prompt.target_minutes} min</span>
+      <span lang="en">{prompt.topic}</span>
+      <span>{t("writing.minutes", { count: prompt.target_minutes })}</span>
     </div>
-    <h3>{prompt.title}</h3>
-    <p>{promptDescription(prompt)}</p>
+    <h3 lang="en">{prompt.title}</h3>
+    <p>{promptDescription(t, prompt)}</p>
     <div className="writing-prompt-card-foot">
-      <span>{prompt.target_words}+ words</span>
-      <span>
-        {prompt.attempt_count === 0
-          ? "Not started"
-          : `${prompt.attempt_count} ${prompt.attempt_count === 1 ? "session" : "sessions"}`}
-      </span>
+      <span>{t("writing.wordsPlus", { count: prompt.target_words })}</span>
+      <span>{sessionState(t, prompt.attempt_count)}</span>
     </div>
   </Link>
-);
+  );
+};
 
 export default function WritingLibraryPage() {
   const data = useLoaderData<typeof loader>();
+  const t = useT();
   if (!data.schemaReady) return <WritingUnavailableState />;
-  const { category, collection, level, kind, isFirstPage, page } = data;
+  const { category, level, kind, isFirstPage, page } = data;
+  const collectionTitle = t(`writing.collection.${category}.title`);
   const kinds = category === "task1" ? TASK_1_KINDS : category === "task2" ? TASK_2_KINDS : [];
   const featured = isFirstPage ? page.items.slice(0, 3) : [];
   const catalogueItems = isFirstPage ? page.items.slice(3) : page.items;
@@ -164,22 +167,22 @@ export default function WritingLibraryPage() {
     <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioBreadcrumbs items={[
-          { label: "Writing", to: "/writing" },
-          { label: collection.title }
+          { label: t("writing.title"), to: "/writing" },
+          { label: collectionTitle }
         ]} />
         <StudioPageHeader
-          title={collection.title}
-          description={collection.description}
+          title={collectionTitle}
+          description={t(`writing.collection.${category}.description`)}
           className="writing-library-header"
         />
         <StudioPageBody className="writing-library">
-          <p className="writing-section-eyebrow">{collection.eyebrow}</p>
+          <p className="writing-section-eyebrow">{t(`writing.collection.${category}.eyebrow`)}</p>
           <nav
             className="writing-library-filters"
-            aria-label={category === "general" ? "Filter assignments by level" : "Filter assignments by task family"}
+            aria-label={category === "general" ? t("writing.filterByLevel") : t("writing.filterByFamily")}
           >
             <span className="writing-library-filter-label">
-              {category === "general" ? "Level" : "Task family"}
+              {category === "general" ? t("writing.level") : t("writing.taskFamily")}
             </span>
             <div className="writing-library-filter-options">
               <Link
@@ -187,7 +190,7 @@ export default function WritingLibraryPage() {
                 className={`writing-library-filter${activeFilter === null ? " is-active" : ""}`}
                 aria-current={activeFilter === null ? "page" : undefined}
               >
-                All
+                {t("writing.all")}
               </Link>
               {filterOptions.map((value) => (
                 <Link
@@ -196,7 +199,7 @@ export default function WritingLibraryPage() {
                   className={`writing-library-filter${activeFilter === value ? " is-active" : ""}`}
                   aria-current={activeFilter === value ? "page" : undefined}
                 >
-                  {category === "general" ? value : humanizeKind(value)}
+                  {category === "general" ? value : kindLabel(t, value as (typeof TASK_1_KINDS)[number] | (typeof TASK_2_KINDS)[number])}
                 </Link>
               ))}
             </div>
@@ -206,10 +209,10 @@ export default function WritingLibraryPage() {
             <section className="writing-library-featured" aria-labelledby="writing-featured-heading">
               <div className="writing-section-heading">
                 <div>
-                  <p className="writing-section-eyebrow">Selected from this collection</p>
-                  <h2 id="writing-featured-heading">Start here</h2>
+                  <p className="writing-section-eyebrow">{t("writing.selectedFromCollection")}</p>
+                  <h2 id="writing-featured-heading">{t("writing.startHere")}</h2>
                 </div>
-                <p>Three good entry points for the current view.</p>
+                <p>{t("writing.threeEntryPoints")}</p>
               </div>
               <div className="writing-prompt-grid">
                 {featured.map((prompt) => <FeaturedPromptCard key={prompt.id} prompt={prompt} />)}
@@ -219,15 +222,15 @@ export default function WritingLibraryPage() {
 
           {page.items.length === 0 ? (
             <div className="writing-library-empty">
-              <h2>No assignments in this view</h2>
-              <p>Choose a broader filter to see the rest of the reviewed collection.</p>
+              <h2>{t("writing.noAssignmentsTitle")}</h2>
+              <p>{t("writing.noAssignmentsBody")}</p>
             </div>
           ) : catalogueItems.length > 0 ? (
             <section className="writing-library-catalogue" aria-labelledby="writing-catalogue-heading">
               <div className="writing-section-heading">
                 <div>
-                  <p className="writing-section-eyebrow">Full collection</p>
-                  <h2 id="writing-catalogue-heading">Browse assignments</h2>
+                  <p className="writing-section-eyebrow">{t("writing.fullCollection")}</p>
+                  <h2 id="writing-catalogue-heading">{t("writing.browseAssignments")}</h2>
                 </div>
               </div>
               <div className="studio-row-list">{catalogueItems.map((prompt) => <PromptRow key={prompt.id} prompt={prompt} />)}</div>
@@ -236,7 +239,7 @@ export default function WritingLibraryPage() {
 
           {page.next_cursor ? (
             <div className="writing-library-pagination">
-              <Link to={`/writing/library?${nextParams.toString()}`} className="btn btn-secondary">Next page →</Link>
+              <Link to={`/writing/library?${nextParams.toString()}`} className="btn btn-secondary">{t("writing.nextPage")}</Link>
             </div>
           ) : null}
         </StudioPageBody>

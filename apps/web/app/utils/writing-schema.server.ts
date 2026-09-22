@@ -25,6 +25,3 @@ export const logWritingSchemaMissing = (source: string, error: unknown) => {
     { errorClass: error instanceof Error ? error.name : "unknown", message: getErrorMessage(error) }
   );
 };
-
-export const WRITING_UNAVAILABLE_ERROR =
-  "Writing is unavailable on this environment until the latest D1 migrations are applied.";

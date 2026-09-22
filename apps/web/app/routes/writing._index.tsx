@@ -10,14 +10,16 @@ import { LocalDateTime } from "~/components/LocalDateTime";
 import { WritingUnavailableState } from "~/components/WritingUnavailableState";
 import { requireUser } from "~/utils/auth.server";
 import { isWritingSchemaMissingError, logWritingSchemaMissing } from "~/utils/writing-schema.server";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
 
-export const meta: MetaFunction = () => [
-  { title: "Writing · English Studio · bcailab" },
-  {
-    name: "description",
-    content: "Choose a General English or IELTS writing collection, or continue your own work."
-  }
-];
+export const meta: MetaFunction = ({ matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    { title: t("meta.writing.title") },
+    { name: "description", content: t("meta.writing.description") }
+  ];
+};
 
 export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   const user = await requireUser(request, context);
@@ -44,32 +46,16 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
   }
 };
 
+// Copy for each collection lives in the catalogues under `writing.collection.<key>.*`.
 const COLLECTIONS = [
-  {
-    key: "general",
-    eyebrow: "General English · A2 to C1",
-    title: "Everyday writing",
-    description: "Emails, stories, opinions, and descriptions for real situations.",
-    href: "/writing/library?category=general"
-  },
-  {
-    key: "task1",
-    eyebrow: "IELTS Academic · Task 1",
-    title: "Visual reports",
-    description: "Compare charts, tables, processes, and maps with reviewed source material.",
-    href: "/writing/library?category=task1"
-  },
-  {
-    key: "task2",
-    eyebrow: "IELTS Academic · Task 2",
-    title: "Academic essays",
-    description: "Develop positions across the four common IELTS essay families.",
-    href: "/writing/library?category=task2"
-  }
+  { key: "general", href: "/writing/library?category=general" },
+  { key: "task1", href: "/writing/library?category=task1" },
+  { key: "task2", href: "/writing/library?category=task2" }
 ] as const;
 
 export default function WritingHomePage() {
   const data = useLoaderData<typeof loader>();
+  const t = useT();
   if (!data.schemaReady) return <WritingUnavailableState />;
 
   const countFor = (key: (typeof COLLECTIONS)[number]["key"]) =>
@@ -86,34 +72,36 @@ export default function WritingHomePage() {
     <div className="studio-main-scroll">
       <StudioPage width="wide">
         <StudioPageHeader
-          title="Writing"
-          description="Choose a kind of writing first. Inside each collection, levels and task types help you narrow the material without locking anything away."
-          action={<Link to="/writing/new" className="btn btn-primary">New freeform session</Link>}
+          title={t("writing.title")}
+          description={t("writing.hubDescription")}
+          action={<Link to="/writing/new" className="btn btn-primary">{t("writing.newFreeform")}</Link>}
         />
         <StudioPageBody className="writing-home writing-hub">
           {latest ? (
             <section className="writing-continue" aria-labelledby="continue-writing-heading">
               <div>
-                <p className="writing-section-eyebrow">Continue writing</p>
-                <h2 id="continue-writing-heading">{latest.title ?? latest.essayPrompt ?? "Untitled session"}</h2>
-                <p>{latest.promptId ? "Assignment session" : "Freeform session"}</p>
+                <p className="writing-section-eyebrow">{t("writing.continueWriting")}</p>
+                <h2 id="continue-writing-heading">{latest.title ?? latest.essayPrompt ?? t("writing.untitledSession")}</h2>
+                <p>{latest.promptId ? t("writing.assignmentSession") : t("writing.freeformSession")}</p>
               </div>
-              <Link to={`/writing/${latest.id}`} className="writing-text-action">Continue <span aria-hidden="true">→</span></Link>
+              <Link to={`/writing/${latest.id}`} className="writing-text-action">
+                {t("writing.continue")} <span aria-hidden="true">→</span>
+              </Link>
             </section>
           ) : null}
 
           <section aria-labelledby="writing-collections-heading">
             <div className="writing-section-heading">
               <div>
-                <p className="writing-section-eyebrow">Assignment library</p>
-                <h2 id="writing-collections-heading">Choose a collection</h2>
+                <p className="writing-section-eyebrow">{t("writing.assignmentLibrary")}</p>
+                <h2 id="writing-collections-heading">{t("writing.chooseCollection")}</h2>
               </div>
-              <p>All reviewed assignments remain open.</p>
+              <p>{t("writing.allOpen")}</p>
             </div>
             {data.collections.length === 0 ? (
               <div className="writing-catalogue-empty">
-                <h2>Reviewed material is being prepared</h2>
-                <p>You can keep using the freeform coach while new collections are reviewed.</p>
+                <h2>{t("writing.preparingTitle")}</h2>
+                <p>{t("writing.preparingBody")}</p>
               </div>
             ) : (
               <div className="writing-collection-list">
@@ -121,11 +109,15 @@ export default function WritingHomePage() {
                   <Link key={collection.key} to={collection.href} className="writing-collection-row">
                     <span className="writing-collection-index" aria-hidden="true">0{index + 1}</span>
                     <span className="writing-collection-copy">
-                      <span className="writing-section-eyebrow">{collection.eyebrow}</span>
-                      <strong>{collection.title}</strong>
-                      <small>{collection.description}</small>
+                      <span className="writing-section-eyebrow">
+                        {t(`writing.collection.${collection.key}.eyebrow`)}
+                      </span>
+                      <strong>{t(`writing.collection.${collection.key}.title`)}</strong>
+                      <small>{t(`writing.collection.${collection.key}.hubDescription`)}</small>
                     </span>
-                    <span className="writing-collection-count">{countFor(collection.key)} assignments</span>
+                    <span className="writing-collection-count">
+                      {t("writing.assignmentsCount", { count: countFor(collection.key) })}
+                    </span>
                     <span className="writing-collection-arrow" aria-hidden="true">→</span>
                   </Link>
                 ))}
@@ -136,20 +128,20 @@ export default function WritingHomePage() {
           <section className="writing-sessions-section" aria-labelledby="recent-sessions-heading">
             <div className="writing-section-heading">
               <div>
-                <p className="writing-section-eyebrow">Your workspace</p>
-                <h2 id="recent-sessions-heading">Recent sessions</h2>
+                <p className="writing-section-eyebrow">{t("writing.workspace")}</p>
+                <h2 id="recent-sessions-heading">{t("writing.recentSessions")}</h2>
               </div>
-              <Link to="/writing/sessions">View all sessions</Link>
+              <Link to="/writing/sessions">{t("writing.viewAllSessions")}</Link>
             </div>
             {data.articles.length === 0 ? (
-              <p className="writing-sessions-empty">Your first session will appear here after you submit a draft.</p>
+              <p className="writing-sessions-empty">{t("writing.firstSessionHint")}</p>
             ) : (
               <div className="writing-sessions-list">
                 {data.articles.map((article) => (
                   <Link key={article.id} to={`/writing/${article.id}`} className="writing-session-row">
                     <span>
-                      <strong>{article.title ?? article.essayPrompt ?? "Untitled session"}</strong>
-                      <small>{article.promptId ? "Assignment session" : "Freeform session"}</small>
+                      <strong>{article.title ?? article.essayPrompt ?? t("writing.untitledSession")}</strong>
+                      <small>{article.promptId ? t("writing.assignmentSession") : t("writing.freeformSession")}</small>
                     </span>
                     <LocalDateTime value={article.updatedAt} options={{ year: "numeric", month: "short", day: "numeric" }} />
                   </Link>
