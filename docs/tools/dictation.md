@@ -22,6 +22,15 @@ The answer field has a persistent **Your answer** label, readable placeholder an
 boundary in both themes. Keyboard focus remains visible; checked answers keep the existing
 disabled state and the learner continues with the next-sentence action.
 
+## Interface language
+
+The library, session, summary and quota gate render in the visitor's interface language (English
+or Simplified Chinese — ADR 0011). What is being learned stays English in both: passage titles and
+topics, sentences, the learner's answer, the reference and the diff tokens, each marked
+`lang="en"`. Errors the action returns (quota, malformed submission) are worded in the request's
+language. **Coach feedback is still English only**; making it follow the interface is stage 3 of
+the Chinese interface item in `docs/roadmap.md`.
+
 ## Content Model
 
 Passages live in the shared material layer (`passages` / `passage_sentences`), not in

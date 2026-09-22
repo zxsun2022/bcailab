@@ -88,6 +88,16 @@ Writing's entry is an assignment catalogue; freeform creation and existing sessi
 surfaces. Article detail owns the editor, revision navigation and feedback aside. The shared
 Studio shell owns navigation and framing. See [Writing](tools/writing.md).
 
+**Interface language.** One URL renders in English or Simplified Chinese
+([ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md)). The root loader
+resolves the locale — an explicit `bcailab_locale` cookie, then `Accept-Language`, then English —
+and passes it down through a `LocaleProvider` (not the `{ user }` Outlet context) and, for route
+`meta`, through the matches. Document and root-data responses vary on `Cookie, Accept-Language`.
+`POST /locale` sets the cookie and returns the visitor to the page they were on. Copy lives in two
+typed catalogues under `apps/web/app/i18n/messages/`, the Chinese one typed against the English
+one; the module registry keeps routing and access and no longer carries copy. Learning material
+is never translated. Rollout and coverage: [the design](chinese-ui-design.md).
+
 For the actual route/module inventory, run `pnpm context -p arch` as described in
 [external consultation](external-consultation.md). Route filenames and exports are derived at
 pack generation time; this document deliberately does not duplicate that complete list.

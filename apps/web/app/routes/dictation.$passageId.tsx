@@ -29,6 +29,9 @@ import {
   type SentenceResult
 } from "~/utils/dictation-progress";
 import { openLoginPopup } from "~/utils/login-popup";
+import { useT } from "~/i18n/context";
+import { metaTranslator } from "~/i18n/meta";
+import { getRequestTranslator } from "~/i18n/locale.server";
 import {
   activeSeconds,
   clampAttemptPracticeSeconds,
@@ -37,9 +40,16 @@ import {
   suspendActiveClock
 } from "~/utils/practice-time";
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: data?.passage ? `${data.passage.title} · Dictation · bcailab` : "Dictation · bcailab" }
-];
+export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
+  const t = metaTranslator(matches);
+  return [
+    {
+      title: data?.passage
+        ? t("meta.dictationPassage.title", { title: data.passage.title })
+        : t("meta.dictation.title")
+    }
+  ];
+};
 
 export const loader = async ({ request, context, params }: LoaderFunctionArgs) => {
   const passageId = params.passageId;
@@ -129,6 +139,8 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
   const user = await getOptionalUser(request, context);
   const subject = resolveQuotaSubject(request, user?.id ?? null);
   const extraHeaders = subject.setCookie ? { "Set-Cookie": subject.setCookie } : undefined;
+  // Errors below reach the learner as written, so they are worded in the interface language.
+  const t = getRequestTranslator(request);
 
   const formData = await request.formData();
   const intent = String(formData.get("_intent") ?? "");
@@ -142,7 +154,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     const userText = String(formData.get("text") ?? "");
     const sentence = sentences.find((item) => item.idx === idx);
     if (!sentence) {
-      return json<ActionData>({ ok: false, error: "Unknown sentence." }, { status: 400, headers: extraHeaders });
+      return json<ActionData>({ ok: false, error: t("dictation.unknownSentence") }, { status: 400, headers: extraHeaders });
     }
 
     // Quota is charged once per session, on the first sentence.
@@ -153,9 +165,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
           {
             ok: false,
             code: "quota_exceeded",
-            error: user
-              ? "Daily dictation limit reached. Please come back tomorrow."
-              : "You've used today's free dictation practice. Sign in to keep going — it's free."
+            error: user ? t("dictation.quotaSignedIn") : t("dictation.quotaAnonymous")
           },
           { status: 429, headers: extraHeaders }
         );
@@ -227,7 +237,7 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
       answers = JSON.parse(String(formData.get("answers") ?? "[]")) as string[];
       replays = JSON.parse(String(formData.get("replays") ?? "[]")) as number[];
     } catch {
-      return json<ActionData>({ ok: false, error: "Malformed submission." }, { status: 400, headers: extraHeaders });
+      return json<ActionData>({ ok: false, error: t("dictation.malformed") }, { status: 400, headers: extraHeaders });
     }
 
     const entries = sentences.map((sentence) => ({
@@ -319,14 +329,14 @@ export const action = async ({ request, context, params }: ActionFunctionArgs) =
     );
   }
 
-  return json<ActionData>({ ok: false, error: "Unknown action." }, { status: 400, headers: extraHeaders });
+  return json<ActionData>({ ok: false, error: t("common.unknownAction") }, { status: 400, headers: extraHeaders });
 };
 
 /* ---------- diff rendering ---------- */
 
 function DiffTokens({ ops }: { ops: DiffOp[] }) {
   return (
-    <p className="dictation-diff">
+    <p className="dictation-diff" lang="en">
       {ops.map((op, index) => {
         if (op.op === "match") {
           return (
@@ -373,6 +383,7 @@ const FEEDBACK_POLL_LIMIT = 15; // ~30s, then stop and leave the panel out.
  * feedback call is not an error the learner needs to see (design §8).
  */
 function FeedbackPanel({ attemptId }: { attemptId: string }) {
+  const t = useT();
   const [feedback, setFeedback] = React.useState<DictationFeedback | null>(null);
   const [givenUp, setGivenUp] = React.useState(false);
 
@@ -413,15 +424,17 @@ function FeedbackPanel({ attemptId }: { attemptId: string }) {
   if (!feedback) {
     return (
       <div className="dictation-feedback-panel is-pending">
-        <p className="dictation-feedback-panel-title">Looking for patterns in your errors…</p>
+        <p className="dictation-feedback-panel-title">{t("dictation.feedbackPending")}</p>
       </div>
     );
   }
 
   return (
     <div className="dictation-feedback-panel">
-      <p className="dictation-feedback-panel-title">What to work on</p>
-      <ul className="dictation-pattern-list">
+      <p className="dictation-feedback-panel-title">{t("dictation.feedbackTitle")}</p>
+      {/* The patterns are model output in English until feedback follows the interface
+          language (Chinese UI stage 3); marking them keeps a zh page pronouncing them right. */}
+      <ul className="dictation-pattern-list" lang="en">
         {feedback.patterns.map((pattern, index) => (
           <li key={index} className="dictation-pattern">
             <p className="dictation-pattern-name">{pattern.pattern}</p>
@@ -441,6 +454,7 @@ function FeedbackPanel({ attemptId }: { attemptId: string }) {
 export default function DictationSession() {
   const { authed, resume, quota, passage, sentences } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<ActionData>();
+  const t = useT();
 
   // Resume drops the learner back where they stopped instead of at sentence one.
   const [current, setCurrent] = React.useState(() =>
@@ -466,8 +480,8 @@ export default function DictationSession() {
     quota.allowed
       ? null
       : authed
-        ? "Daily dictation limit reached. Please come back tomorrow."
-        : "You've used today's free dictation practice. Sign in to keep going — it's free."
+        ? t("dictation.quotaSignedIn")
+        : t("dictation.quotaAnonymous")
   );
 
   const [audioState, setAudioState] = React.useState<"idle" | "loading" | "playing">("idle");
@@ -610,15 +624,15 @@ export default function DictationSession() {
   if (gate) {
     return (
       <div className="dictation-gate">
-        <h1 className="dictation-gate-title">Come back tomorrow</h1>
+        <h1 className="dictation-gate-title">{t("dictation.gateTitle")}</h1>
         <p className="dictation-gate-body">{gate}</p>
         {!authed ? (
           <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
-            Sign in — it's free
+            {t("common.signInFree")}
           </button>
         ) : null}
         <Link to="/dictation" className="dictation-secondary">
-          Back to library
+          {t("dictation.backToLibrary")}
         </Link>
       </div>
     );
@@ -629,9 +643,9 @@ export default function DictationSession() {
       <div className="dictation-summary">
         <header className="dictation-summary-header">
           <span className="dictation-summary-band">{passage.band}</span>
-          <h1 className="dictation-summary-title">{passage.title}</h1>
+          <h1 className="dictation-summary-title" lang="en">{passage.title}</h1>
           <p className="dictation-summary-score">{Math.round(summary.accuracy * 100)}%</p>
-          <p className="dictation-summary-label">overall accuracy</p>
+          <p className="dictation-summary-label">{t("dictation.overallAccuracy")}</p>
         </header>
 
         <ol className="dictation-summary-list">
@@ -644,11 +658,19 @@ export default function DictationSession() {
                 </span>
                 {result.replays > 0 ? (
                   <span className="dictation-summary-item-replays">
-                    {result.replays} replay{result.replays === 1 ? "" : "s"}
+                    {t(result.replays === 1 ? "dictation.replayOne" : "dictation.replayMany", {
+                      count: result.replays
+                    })}
                   </span>
                 ) : null}
               </div>
-              <p className="dictation-summary-item-text">{result.userText || <em>(blank)</em>}</p>
+              {result.userText ? (
+                <p className="dictation-summary-item-text" lang="en">{result.userText}</p>
+              ) : (
+                <p className="dictation-summary-item-text">
+                  <em className="dictation-blank">{t("dictation.blank")}</em>
+                </p>
+              )}
               {result.ops.length > 0 ? <DiffTokens ops={result.ops} /> : null}
             </li>
           ))}
@@ -661,29 +683,24 @@ export default function DictationSession() {
             is exactly when reading it aloud is the natural next step. */}
         {authed ? (
           <div className="mode-handoff">
-            <p className="mode-handoff-text">
-              You know the words now. Read the same passage aloud and get feedback on your
-              pronunciation and rhythm.
-            </p>
+            <p className="mode-handoff-text">{t("dictation.handoff")}</p>
             <Link to={`/reading/${passage.id}`} className="btn btn-primary">
-              Read it aloud
+              {t("dictation.readAloud")}
             </Link>
           </div>
         ) : null}
 
         {!authed ? (
           <div className="dictation-cta">
-            <p className="dictation-cta-text">
-              Sign in to save your progress and get coach feedback on your error patterns.
-            </p>
+            <p className="dictation-cta-text">{t("dictation.signInCta")}</p>
             <button type="button" className="btn btn-primary" onClick={() => openLoginPopup()}>
-              Sign in — it's free
+              {t("common.signInFree")}
             </button>
           </div>
         ) : null}
 
         <Link to="/dictation" className="dictation-secondary">
-          Back to library
+          {t("dictation.backToLibrary")}
         </Link>
       </div>
     );
@@ -693,12 +710,12 @@ export default function DictationSession() {
     <div className="dictation-session">
       <header className="dictation-session-header">
         <Link to="/dictation" className="session-project-return">
-          Back to Dictation
+          {t("dictation.backToDictation")}
         </Link>
         <span className="dictation-session-band">{passage.band}</span>
-        <h1 className="dictation-session-title">{passage.title}</h1>
+        <h1 className="dictation-session-title" lang="en">{passage.title}</h1>
         <p className="dictation-progress">
-          Sentence {current + 1} of {total}
+          {t("dictation.sentenceOf", { current: current + 1, total })}
         </p>
       </header>
 
@@ -732,17 +749,17 @@ export default function DictationSession() {
           type="button"
           className={`btn btn-ghost dictation-play${audioState === "playing" ? " is-playing" : ""}`}
           onClick={play}
-          aria-label={currentPlays === 0 ? "Play sentence" : "Play sentence again"}
+          aria-label={currentPlays === 0 ? t("dictation.playSentence") : t("dictation.playAgain")}
         >
           <span className="dictation-play-icon" aria-hidden="true" />
           <span className="dictation-play-label">
             {audioState === "loading"
-              ? "Loading…"
+              ? t("dictation.loading")
               : audioState === "playing"
-                ? "Playing…"
+                ? t("dictation.playing")
                 : currentPlays === 0
-                  ? "Play"
-                  : "Replay"}
+                  ? t("dictation.play")
+                  : t("dictation.replay")}
           </span>
           <span
             className="dictation-play-progress"
@@ -750,7 +767,7 @@ export default function DictationSession() {
           />
         </button>
 
-        <div className="dictation-speed" role="group" aria-label="Playback speed">
+        <div className="dictation-speed" role="group" aria-label={t("dictation.playbackSpeed")}>
           {[0.75, 1].map((rate) => (
             <button
               key={rate}
@@ -765,12 +782,12 @@ export default function DictationSession() {
 
         {currentPlays > 1 ? (
           <span className="dictation-play-count">
-            {currentPlays} listens
+            {t("dictation.listens", { count: currentPlays })}
           </span>
         ) : null}
       </div>
 
-      <label className="writing-label" htmlFor="dictation-answer">Your answer</label>
+      <label className="writing-label" htmlFor="dictation-answer">{t("dictation.yourAnswer")}</label>
       <textarea
         id="dictation-answer"
         ref={inputRef}
@@ -791,7 +808,7 @@ export default function DictationSession() {
             else check();
           }
         }}
-        placeholder="Type what you hear…"
+        placeholder={t("dictation.placeholder")}
         rows={3}
         disabled={Boolean(currentChecked)}
       />
@@ -799,21 +816,21 @@ export default function DictationSession() {
       {currentChecked ? (
         <div className="dictation-feedback">
           <p className="dictation-feedback-score">
-            {Math.round(currentChecked.accuracy * 100)}% correct
+            {t("dictation.correct", { pct: Math.round(currentChecked.accuracy * 100) })}
           </p>
           <DiffTokens ops={currentChecked.ops} />
-          <p className="dictation-reference">{currentChecked.reference}</p>
+          <p className="dictation-reference" lang="en">{currentChecked.reference}</p>
         </div>
       ) : null}
 
       <div className="dictation-actions">
         {currentChecked ? (
           <button type="button" className="btn btn-primary" onClick={next} disabled={busy}>
-            {isLast ? (busy ? "Scoring…" : "Finish") : "Next sentence"}
+            {isLast ? (busy ? t("dictation.scoring") : t("dictation.finish")) : t("dictation.nextSentence")}
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={check} disabled={busy}>
-            {busy ? "Checking…" : "Check"}
+            {busy ? t("dictation.checking") : t("dictation.check")}
           </button>
         )}
       </div>

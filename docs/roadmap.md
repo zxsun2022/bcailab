@@ -299,6 +299,15 @@ stored feedback; product analytics; and giving signed-out visitors Dictation fee
 stays signed-in only, so the Chinese entry path still ends without an explanation of the learner's
 errors. That hole is real and is recorded in the design's §8, not fixed here.
 
+### Progress
+
+- **Stage 1 — mechanism and first contact: `in_review` (2026-09-22).** Negotiation, cookie,
+  no-JS switcher, provider, meta helper and Chinese typography rules; the homepage, `/english`,
+  site header, studio rail, sign-in popup, error boundary and Dictation library/session/summary
+  render in Chinese. Evidence and the surface-by-surface checklist: `docs/changelog.md` and
+  design §9. Stages 2 and 3 are not started; until they are, Reading, Writing, Translate, Speech,
+  Home and Progress show English content inside a Chinese rail.
+
 
 ## Next
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the

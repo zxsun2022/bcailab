@@ -9,6 +9,55 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-22 — **in_review: Chinese interface, stage 1 — mechanism and first contact.** First of
+  the three stages in "Now — Chinese interface for Chinese-speaking learners". A Chinese visitor
+  now meets the homepage, `/english`, the site header, the studio rail, the sign-in popup and
+  Dictation end to end in Chinese; everyone else sees the same English as before.
+  - **Negotiation.** `apps/web/app/i18n/locale.ts` is pure: an explicit `bcailab_locale` cookie
+    outranks `Accept-Language`, which outranks English; every `zh*` tag, Traditional included,
+    resolves to Simplified; weights decide mixed headers, `q=0` is refused, and malformed input
+    falls back instead of throwing.
+  - **Switching.** A plain form posting to `POST /locale` (new route) sets a host-only, `HttpOnly`,
+    one-year cookie and returns the visitor to the page they were on. It works without JavaScript;
+    `returnTo` accepts same-site paths only, so it is not an open redirect; and a post whose
+    `Origin` names another host is ignored. That last check compares against `Host` rather than
+    `request.url`, because Remix's Vite dev adapter builds the request URL from `Origin` — the
+    first version passed a foreign origin in the dev server, which is how this was found.
+  - **Rendering.** The root loader returns the locale; `<html lang>` follows it, a
+    `LocaleProvider` beside (not inside) the `{ user }` Outlet context provides `useT()`, route
+    `meta` reads it from the matches, and server-worded errors (Dictation quota and validation,
+    every sign-in error) use the request's language. Documents and root data send
+    `Vary: Cookie, Accept-Language`.
+  - **Catalogues.** `en.ts` and `zh.ts`, the Chinese one typed against the English one, so a
+    missing string fails the type check. The module registry keeps routes and access and no
+    longer carries copy; names, descriptions and tags moved to the catalogues. Sign-in code
+    failures gained a machine-readable `code` beside the existing English `error`, so the route
+    can word them. Both catalogues cost about 8 KB gzipped in one shared client chunk.
+  - **Typography.** Chinese elements are set solid (letter-spacing reset), never italic (whatever
+    the source of the italic), with more heading leading and `text-wrap: pretty`; `--font-mono`
+    gained a CJK fallback. English learning material carries `lang="en"`, so it keeps the Latin
+    rules and is pronounced as English by screen readers. Rules recorded in
+    `docs/design-system.md`.
+
+  Evidence: 831 tests (42 new: negotiation, cookie, return-path safety, catalogue key and
+  placeholder parity, meta locale, module copy in both languages); all typechecks; lint 0 errors
+  (the 9 existing warnings); Web and Mapdown production builds. On the dev server, over HTTP:
+  `Accept-Language: zh-CN` renders `<html lang="zh">` and Chinese copy, English headers render
+  English, a cookie outranks the header, `Vary` is present, `/locale` sets the cookie for
+  same-origin posts and posts without `Origin`, and refuses a foreign origin, an invalid locale and
+  an off-site `returnTo`. In the browser: switched to Chinese from the header and back to English
+  from the rail, landing on the same page each time; walked a full 11-sentence passage to the
+  summary signed out; checked the homepage at desktop and 375 px, the rail expanded, collapsed and
+  as the mobile drawer, and the sign-in popup in dark theme; no hydration warnings or server
+  errors. The coverage checklist is design §9.
+
+  Not verified: signed-in-only strings — the Dictation feedback panel, the Reading handoff, the
+  library's recent practice and the account menus — are translated and typechecked but were not
+  seen, because signing in on the dev server was not part of this check. Not in this stage: the
+  sign-in email is still English; Reading, Writing, Translate, Speech, Home and Progress show
+  English content inside the now-Chinese rail until stages 2 and 3; Dictation coach feedback
+  stays English until stage 3.
+
 - 2026-09-22 — **accepted: a Chinese UI on the same URLs, with feedback following the interface.**
   Recorded as [ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md), which
   supersedes [ADR 0003](decisions/0003-defer-chinese-ui.md). The owner named the first cohort —

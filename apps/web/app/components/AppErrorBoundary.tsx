@@ -1,4 +1,5 @@
 import { Link, isRouteErrorResponse, useRouteError } from "@remix-run/react";
+import { useT } from "~/i18n/context";
 
 /**
  * The last stop for anything thrown below the root.
@@ -10,24 +11,24 @@ import { Link, isRouteErrorResponse, useRouteError } from "@remix-run/react";
  */
 export function AppErrorBoundary() {
   const error = useRouteError();
+  const t = useT();
 
-  let status = "Error";
-  let title = "Something went wrong";
-  let detail =
-    "An unexpected error interrupted this page. Trying again often clears it.";
+  let status = t("error.status");
+  let title = t("error.title");
+  let detail = t("error.detail");
 
   if (isRouteErrorResponse(error)) {
     status = String(error.status);
     if (error.status === 404) {
-      title = "This page does not exist";
-      detail =
-        "The link may be out of date, or the item it pointed at has been removed.";
+      title = t("error.notFoundTitle");
+      detail = t("error.notFoundDetail");
     } else {
-      title = error.statusText || "Something went wrong";
+      // A server-supplied status text or message is shown as sent; it is not interface copy.
+      title = error.statusText || t("error.title");
       detail =
         typeof error.data === "string" && error.data
           ? error.data
-          : "The server could not complete this request.";
+          : t("error.serverDetail");
     }
   }
 
@@ -38,10 +39,10 @@ export function AppErrorBoundary() {
       <p className="app-error-detail">{detail}</p>
       <div className="app-error-actions">
         <Link to="/english/home" className="btn btn-primary">
-          Go to English Studio
+          {t("error.goStudio")}
         </Link>
         <Link to="/" className="btn btn-ghost">
-          Home
+          {t("common.home")}
         </Link>
       </div>
     </div>

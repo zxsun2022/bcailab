@@ -31,7 +31,39 @@ Fonts are self-hosted in `apps/web/public/fonts`.
 Fallbacks:
 
 - serif: Georgia, Noto Serif SC, Songti SC, serif
-- mono: Menlo, Consolas, monospace
+- mono: Menlo, Consolas, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Noto Sans SC, monospace
+  (DM Mono has no CJK glyphs; Chinese labels fall back to a Chinese sans, not to the platform's
+  arbitrary "monospace")
+
+No CJK webfont is shipped. A Chinese webfont is megabytes; the system fallbacks above are the
+Chinese type.
+
+### Chinese interface
+
+The interface renders in English or Simplified Chinese on the same URL
+([ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md)). The visual system
+is Latin-editorial, and three of its habits do not survive translation. The rules below live at
+the end of `global.css`, keyed on `:lang(zh)`, and bind every surface — new components inherit
+them rather than restating them:
+
+- **Chinese is set solid.** Letter-spacing is tuned for Latin type (tracked uppercase labels,
+  tightened display headlines); every element whose own language is Chinese resets it to
+  `normal`. Uppercasing is a no-op on Chinese and needs no rule.
+- **Chinese has no italic.** Every Chinese element renders `font-style: normal`, whether the
+  italic came from `<em>` or a class. Emphasis in the chrome must therefore carry colour or
+  weight, never slant alone.
+- **Headings get more leading** (`h1`–`h3` at 1.35) and short paragraphs use
+  `text-wrap: pretty`, which removes the one-character last line that is Chinese's widow.
+
+**Mark English material with `lang="en"`.** Passage titles and topics, sentences, a learner's
+typed answer, reference text and diff tokens stay English in the Chinese interface, because they
+are what is being learned. Marking them keeps the Latin rules above (their italics and tracking),
+and lets a screen reader pronounce them as English inside a Chinese page. Interface copy is never
+written inline: it comes from the catalogues in `apps/web/app/i18n/messages/`.
+
+The language switch names the other language in that language ("中文" / "English") so it is
+findable by someone who cannot read the current one. It sits beside Sign in on the site header
+and above the account row in the studio rail, where the collapsed rail shows `EN` / `中`.
 
 ## Color Tokens
 
@@ -158,7 +190,8 @@ Tool pages (Writing, Reading, Speech) use a full-viewport shell that hides the g
 Header stays behavior-compatible with current product logic:
 
 - Left: logo + breadcrumb
-- Right: Google login button (signed out) OR aligned 36px avatar/menu controls (signed in)
+- Right: the language switch, then Google login button (signed out) OR aligned 36px
+  avatar/menu controls (signed in)
 - No `about/x/tools` nav links in header
 
 ## Component Rules
@@ -201,3 +234,5 @@ Header stays behavior-compatible with current product logic:
 - Global styles: `apps/web/app/styles/global.css`
 - Header behavior/UI: `apps/web/app/components/Header.tsx`
 - Home page structure: `apps/web/app/routes/_index.tsx`
+- Interface copy and locale: `apps/web/app/i18n/` (catalogues in `messages/`)
+- Language switch: `apps/web/app/components/LanguageSwitcher.tsx`

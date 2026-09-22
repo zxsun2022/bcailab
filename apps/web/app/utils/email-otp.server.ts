@@ -77,9 +77,20 @@ const sendLoginCodeEmail = async (
   return { sent: true };
 };
 
+/**
+ * Why a code request or check failed. The route words it in the interface language; `error`
+ * keeps the English text for logs and any caller that predates the code.
+ */
+export type LoginCodeFailure =
+  | "rate_limited"
+  | "send_failed"
+  | "expired"
+  | "too_many_attempts"
+  | "incorrect";
+
 export type RequestCodeResult =
   | { ok: true; devCode?: string }
-  | { ok: false; error: string };
+  | { ok: false; code: LoginCodeFailure; error: string };
 
 export const requestLoginCode = async (input: {
   db: Db;
@@ -97,7 +108,7 @@ export const requestLoginCode = async (input: {
     countRecentLoginCodes(input.db, { ip: input.ip, sinceIso: oneHourAgoIso })
   ]);
   if (byEmail >= MAX_CODES_PER_EMAIL_PER_HOUR || byIp >= MAX_CODES_PER_IP_PER_HOUR) {
-    return { ok: false, error: "Too many codes requested. Please try again later." };
+    return { ok: false, code: "rate_limited", error: "Too many codes requested. Please try again later." };
   }
 
   const code = generateCode();
@@ -116,13 +127,13 @@ export const requestLoginCode = async (input: {
     return sent ? { ok: true } : { ok: true, devCode: code };
   } catch (error) {
     console.error("send login code failed", error);
-    return { ok: false, error: "Could not send the email. Please try again." };
+    return { ok: false, code: "send_failed", error: "Could not send the email. Please try again." };
   }
 };
 
 export type VerifyCodeResult =
   | { ok: true; user: User }
-  | { ok: false; error: string };
+  | { ok: false; code: LoginCodeFailure; error: string };
 
 export const verifyLoginCode = async (input: {
   db: Db;
@@ -132,23 +143,23 @@ export const verifyLoginCode = async (input: {
 }): Promise<VerifyCodeResult> => {
   const record = await getActiveLoginCode(input.db, input.email);
   if (!record || record.expires_at < Date.now()) {
-    return { ok: false, error: "Code expired or not found. Request a new one." };
+    return { ok: false, code: "expired", error: "Code expired or not found. Request a new one." };
   }
   if (record.attempts >= MAX_VERIFY_ATTEMPTS) {
-    return { ok: false, error: "Too many attempts. Request a new code." };
+    return { ok: false, code: "too_many_attempts", error: "Too many attempts. Request a new code." };
   }
 
   await incrementLoginCodeAttempts(input.db, record.id);
 
   const expectedHash = await hashCode(input.env, input.email, input.code.trim());
   if (expectedHash !== record.code_hash) {
-    return { ok: false, error: "Incorrect code. Please check and try again." };
+    return { ok: false, code: "incorrect", error: "Incorrect code. Please check and try again." };
   }
 
   const consumed = await consumeLoginCode(input.db, record.id);
   if (!consumed) {
     // Another concurrent request already consumed this exact code; refuse to honor it twice.
-    return { ok: false, error: "Code expired or not found. Request a new one." };
+    return { ok: false, code: "expired", error: "Code expired or not found. Request a new one." };
   }
 
   const existing = await getUserByEmail(input.db, input.email);

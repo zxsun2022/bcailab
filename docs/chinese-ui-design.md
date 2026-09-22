@@ -76,7 +76,10 @@ personal data and never gates access.
 The switcher is a form posting to a `POST /locale` resource route, which sets the cookie and
 redirects back to the submitted path. Consequences of that shape: it works without JavaScript,
 it cannot be set by third-party script, and switching is a normal navigation rather than a
-client-side re-render.
+client-side re-render. A post whose `Origin` names another host is ignored, so a foreign page
+cannot change a visitor's language. The comparison is against the `Host` header, not
+`request.url`: Remix's Vite dev adapter builds the request URL *from* `Origin`, which made any
+origin look like our own during implementation.
 
 **No automatic redirect.** The negotiated locale changes the rendered language of the same URL;
 it never moves the visitor to a different URL. A visitor who switches to English stays in
@@ -90,8 +93,12 @@ type error, not a runtime fallback to English**. There is no silent-fallback pat
 untranslated screen behind.
 
 Interpolation is `{name}` placeholders resolved by a small local helper. Counts use explicit
-keys (`attempts_one` / `attempts_other`) rather than an ICU dependency: English needs two forms,
-Chinese needs one, and two forms is the whole requirement.
+keys (`dictation.replayOne` / `dictation.replayMany`) rather than an ICU dependency: English
+needs two forms, Chinese needs one, and two forms is the whole requirement. A test asserts every
+Chinese message uses exactly the placeholders its English source does, because a translation
+that drops `{count}` renders a sentence with the number silently missing. Where word order puts
+an element (a `<strong>` name) in a different place, `RichMessage` substitutes React nodes for
+placeholders.
 
 Both catalogues are statically imported and selected at render time. At two locales and this
 volume the bundle cost is smaller than the complexity of splitting them, and it keeps client
@@ -102,9 +109,13 @@ navigation free of a catalogue fetch. Revisit if a third locale appears.
 - The root loader resolves the locale and returns it. `Document` renders `<html lang={locale}>`,
   falling back to `en` when loader data is unavailable (the error boundary renders the same
   component).
-- A `LocaleProvider` wraps `<Outlet />` and exposes `useT()`. It is deliberately **not** folded
-  into the existing `<Outlet context={{ user }} />`, because that type is consumed by many
-  routes and widening it would touch every one of them for no benefit.
+- A `LocaleProvider` wraps the document body — header, outlet and footer — and exposes `useT()`.
+  It is deliberately **not** folded into the existing `<Outlet context={{ user }} />`, because
+  that type is consumed by many routes and widening it would touch every one of them for no
+  benefit.
+- Loaders and actions that return learner-facing text (validation and quota errors) word it with
+  `getRequestTranslator(request)`. Loaders otherwise return structured data and let the page
+  word it, so nothing server-built is stuck in one language.
 - Route `meta` exports read the locale from the root match and pick a localized title and
   description through one helper, so page titles and search snippets are translated too.
 - Server-rendered in the negotiated language. There is no client-side language swap after
@@ -113,8 +124,10 @@ navigation free of a catalogue fetch. Revisit if a third locale appears.
 ### 3.5 Caching
 
 Because one URL serves two languages, any HTML caching must vary on the cookie. Remix documents
-on Pages Functions are not cached by default; the acceptance criteria verify the response
-headers rather than trusting that. Static assets are unaffected.
+on Pages Functions are not cached by default, and on top of that every document response
+(`entry.server.tsx`) and the root loader's data response send `Vary: Cookie, Accept-Language`,
+so a cache that does sit in between keys on what decides the language. Static assets are
+unaffected.
 
 ## 4. Coverage
 
@@ -209,3 +222,34 @@ visitor meets first, so the earliest stage is also the most useful one if work s
   than English, and worse than the truth.
 - **Two languages of copy to maintain.** Every future user-facing string is now two strings. The
   type-level guarantee in §3.3 makes that enforced rather than optional.
+
+## 9. Coverage checklist
+
+Criterion (d) requires the coverage to be checked surface by surface and recorded. Each stage
+appends its section; "checked" means the surface was read in Chinese on the dev server, not only
+typechecked.
+
+### Stage 1 — mechanism and first contact (2026-09-22)
+
+| Surface | Status |
+| --- | --- |
+| Document: `<html lang>`, root meta description, footer | Checked |
+| Site header: language switch, Sign in, avatar menu (profile, theme, log out), `/english` breadcrumb | Checked signed out; signed-in menu strings translated but not seen |
+| Error boundary (404 and generic) | Translated; not triggered in the browser |
+| Homepage `/`: hero, access line, module grid, other projects, lab | Checked, desktop and 375 px |
+| `/english`: hero, tagline, module list with detail and tags, account note | Checked |
+| Studio rail: module links, Home/Progress, group labels, collapse, mobile drawer, switch, sign-in row | Checked expanded, collapsed and as a 375 px drawer; signed-in account menu translated but not seen |
+| Dictation library: header, bands, rows, empty state | Checked; "Recent practice" is signed-in only — translated but not seen |
+| Dictation session: controls, answer label and placeholder, check result, progress | Checked through a full 11-sentence passage |
+| Dictation summary: score, per-sentence rows, blank answers, sign-in prompt | Checked signed out; the coach-feedback panel and the Reading handoff are signed-in only — translated but not seen |
+| Dictation quota gate and action errors | Translated, worded server-side per request; not triggered |
+| Sign-in popup `/login`: every mode, validation and code errors | Checked the default mode in dark theme; code/password/reset modes translated but not walked |
+
+**Deliberately English on a Chinese page:** passage titles, topics and sentences, the learner's
+answer, the reference and diff tokens (all `lang="en"`); coach feedback patterns (stage 3);
+product and brand names; a status text or message body a server sends with an error.
+
+**Known gaps left for later stages:** the sign-in *email* (subject and body) is still English;
+Reading, Writing, Translate, Speech, Home and Progress still render English inside the now
+Chinese rail — stage 2 and stage 3 translate them.
+
