@@ -1,0 +1,211 @@
+# Chinese UI — design
+
+**Document role:** design. The owner raised the requirement and confirmed D1–D3 on 2026-09-22;
+[ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md) records the
+decisions, and `docs/roadmap.md` carries the scope and acceptance criteria. This file holds the
+mechanism, the coverage list and the reasoning, so neither of those has to.
+
+## 1. Why now, and what already exists
+
+[ADR 0003](decisions/0003-defer-chinese-ui.md) deferred a Chinese UI on 2026-07-15 and recorded
+no reasoning. Two things changed:
+
+- **The first cohort is Chinese-speaking learners.** The product has never named a target
+  audience. Naming one makes an English-only interface a first-run barrier rather than a
+  deferred nicety: a learner who needs the product cannot read the page that explains it.
+- **There are no testers.** The owner cannot recruit users to observe. A Chinese interface makes
+  the owner the one available proxy for the target learner — able to walk the first-run path as
+  that learner would. This is a real benefit and a weak one: it produces judgement, not the
+  usage evidence that [ADR 0002](decisions/0002-translate-stays-inside-english-studio.md) and
+  [ADR 0009](decisions/0009-ielts-is-a-material-family-not-a-second-product.md) name as their
+  revisit triggers. Nothing in this item produces that evidence.
+
+Half of the Chinese capability already exists and is easy to miss:
+
+| Surface | Today |
+| --- | --- |
+| Reading evaluation | English or Chinese output, per a shared preference (`esl-reading-eval.server.ts`) |
+| Writing feedback | English or Chinese output, same preference (`writing-eval.server.ts`) |
+| Dictation feedback | **English only. No language option at all.** |
+| The preference itself | `bcailab-feedback-language` in `localStorage`, default `en`, set inside Reading's and Writing's own settings pages |
+| Interface chrome | English only. `<html lang="en">` is hard-coded; there is no catalogue, no switcher, no locale in the URL |
+| Fonts | `--font-display` and `--font-body` already fall back to `Noto Serif SC` / `Songti SC`; `--font-mono` does not |
+
+So the work is the interface, the discoverability and defaults of the existing feedback
+preference, and Dictation's missing half — not a from-scratch bilingual product.
+
+## 2. Decisions
+
+- **D1 — Scope is the whole of English Studio.** Every learner-facing surface of the studio,
+  including the homepage that leads with it. Mapdown, Posts and `/about` are out (§4).
+- **D2 — One URL per page; the locale comes from a cookie, negotiated from `Accept-Language` on
+  a first visit, with an explicit switcher.** No `/zh` route prefix, no redirect.
+- **D3 — Feedback language follows the interface by default, and Dictation gains Chinese.** The
+  existing per-learner setting survives as an explicit override.
+- **D4 — Simplified Chinese only.** `zh-TW` / `zh-HK` negotiate to the same catalogue. Traditional
+  Chinese is a later decision, not a silent omission (§8).
+- **D5 — Nothing stored is retranslated.** Feedback already in the database renders in the
+  language it was written in. No migration, no schema change.
+
+D4 and D5 are recommendations the owner has not separately confirmed; they are cheap to reverse
+before implementation and expensive after, so they are stated here rather than assumed silently.
+
+## 3. Mechanism
+
+### 3.1 Locale negotiation
+
+A pure module, `apps/web/app/i18n/locale.ts`:
+
+```
+resolveLocale({ cookie, acceptLanguage }) -> "en" | "zh"
+```
+
+Precedence is fixed: a valid cookie wins; otherwise the highest-weighted `Accept-Language` tag
+that matches `zh*` before any `en*` tag wins; otherwise `en`. `zh`, `zh-CN`, `zh-Hans`, `zh-SG`,
+`zh-TW`, `zh-HK` all resolve to `zh` (D4). Unknown or malformed headers resolve to `en` rather
+than throwing — a bad header must never fail a page.
+
+The negotiation is pure and unit-tested because it is the one piece whose failure is invisible:
+a wrong locale renders a perfectly valid page in the wrong language.
+
+### 3.2 Cookie and switcher
+
+`bcailab_locale`, `Path=/`, `Max-Age` one year, `SameSite=Lax`, `HttpOnly`. It carries no
+personal data and never gates access.
+
+The switcher is a form posting to a `POST /locale` resource route, which sets the cookie and
+redirects back to the submitted path. Consequences of that shape: it works without JavaScript,
+it cannot be set by third-party script, and switching is a normal navigation rather than a
+client-side re-render.
+
+**No automatic redirect.** The negotiated locale changes the rendered language of the same URL;
+it never moves the visitor to a different URL. A visitor who switches to English stays in
+English, because the cookie now outranks the header.
+
+### 3.3 Catalogues
+
+`apps/web/app/i18n/messages/en.ts` and `zh.ts`. `en.ts` is the source of truth for keys, and
+`zh.ts` is typed as `Record<keyof typeof en, string>`, so **a missing Chinese string is a
+type error, not a runtime fallback to English**. There is no silent-fallback path to hide an
+untranslated screen behind.
+
+Interpolation is `{name}` placeholders resolved by a small local helper. Counts use explicit
+keys (`attempts_one` / `attempts_other`) rather than an ICU dependency: English needs two forms,
+Chinese needs one, and two forms is the whole requirement.
+
+Both catalogues are statically imported and selected at render time. At two locales and this
+volume the bundle cost is smaller than the complexity of splitting them, and it keeps client
+navigation free of a catalogue fetch. Revisit if a third locale appears.
+
+### 3.4 Rendering
+
+- The root loader resolves the locale and returns it. `Document` renders `<html lang={locale}>`,
+  falling back to `en` when loader data is unavailable (the error boundary renders the same
+  component).
+- A `LocaleProvider` wraps `<Outlet />` and exposes `useT()`. It is deliberately **not** folded
+  into the existing `<Outlet context={{ user }} />`, because that type is consumed by many
+  routes and widening it would touch every one of them for no benefit.
+- Route `meta` exports read the locale from the root match and pick a localized title and
+  description through one helper, so page titles and search snippets are translated too.
+- Server-rendered in the negotiated language. There is no client-side language swap after
+  hydration and therefore no flash of English.
+
+### 3.5 Caching
+
+Because one URL serves two languages, any HTML caching must vary on the cookie. Remix documents
+on Pages Functions are not cached by default; the acceptance criteria verify the response
+headers rather than trusting that. Static assets are unaffected.
+
+## 4. Coverage
+
+**Translated** — the English Studio surface:
+
+- Homepage (`_index`), studio landing (`english`), Home (`english_.home`), Progress
+  (`english_.progress`).
+- Dictation: library, session, summary, feedback panel, quota gate.
+- Reading: library, passage, attempt and evaluation views, settings, progress, trial.
+- Writing: library, prompt pages, session, rounds, dashboard, sessions, settings, progress, trial.
+- Translate, including the saved-translation workspaces; Speech, including history and settings.
+- Shared chrome: `Header`, `StudioShell`, the nav rails, `StudioPage`, the error boundary, the
+  login popup's own copy, `login` / `logout` / `profile`.
+- Every page title and meta description on the routes above; form validation and error strings;
+  empty states; `aria-label`s and other assistive text.
+
+**Not translated, deliberately:**
+
+- **Learning material.** Passages, sentences, writing prompts, their titles and TTS audio stay
+  English. It is the thing being learned.
+- **Model output other than feedback.** Translate's translations are the product of the user's
+  own request.
+- **Mapdown** (a separate app with its own copy and build), **Posts** (internal), **`/about`**
+  (the lab's own page), and the OAuth bridge documents, which are machinery a visitor sees for
+  under a second.
+- **Legacy redirect routes** (`/esl/*`, `/text/*`, `/tts/*`) carry no copy — they are loaders
+  that redirect.
+
+## 5. Feedback language
+
+Today the preference is a two-value `localStorage` key read by Reading and Writing, defaulting
+to English and reachable only from inside those two tools' settings pages. After this work:
+
+- The setting becomes three-valued: **follow the interface** (new default), English, Chinese.
+- An existing explicit `en` or `zh` value migrates to an explicit override, not to "follow".
+  Someone who has already chosen must not have that choice silently changed — the existing
+  migration helper in `feedback-language.ts` establishes the pattern.
+- **Dictation feedback gains the same language directive** as the other two graders, passed with
+  the completing request and used by `dictation-feedback.server.ts`. The learner brief that
+  `learner-context.ts` renders into the prompt stays English and stays untouched: it is context
+  for the model, not learner-facing text, and it belongs to the open "Learner context for
+  graders" item.
+- Trial paths honour the same preference, as Reading's and Writing's trials already do.
+- Dictation feedback remains **signed-in only**. A signed-out Chinese visitor therefore still
+  finishes a dictation with no explanation of why anything was wrong. That is a known hole in the
+  entry path, recorded in §8 rather than fixed here.
+
+## 6. Chinese typography
+
+The visual system is Latin-editorial and parts of it do not survive translation:
+
+- **Mono labels.** Kickers, badges and section labels use `--font-mono` with
+  `text-transform: uppercase` and positive `letter-spacing`. Uppercasing is a no-op on Chinese,
+  the letter-spacing reads as broken spacing, and `--font-mono` has no CJK fallback at all. These
+  styles need a locale-aware variant.
+- **Italics.** The homepage hero sets a phrase in `<em>`. Synthesised oblique Chinese is a
+  typographic error, not an emphasis. Chinese emphasis needs a different device.
+- **Line height and length.** Chinese at the same size reads denser; headline and body
+  `line-height` and any width caps expressed in `ch` need checking.
+- **Fit.** Chinese labels are usually shorter than their English source and headlines longer
+  once wrapped. Buttons, cards, rails and the mobile drawer need a pass at both widths.
+- **Fonts stay as they are.** No CJK webfont is added — a Chinese webfont is megabytes, and the
+  existing serif fallbacks are adequate. `--font-mono` gains a CJK fallback.
+
+Whatever is settled here is written into `docs/design-system.md` in the same change, because it
+becomes a rule for every future surface, not a one-off fix.
+
+## 7. Phasing
+
+Three independently shippable, independently verifiable stages. The order follows what a Chinese
+visitor meets first, so the earliest stage is also the most useful one if work stops.
+
+1. **Mechanism and the first-contact path.** Negotiation, cookie, switcher, provider, meta
+   helper, typography rules; homepage, `/english`, the header, the login popup, and Dictation end
+   to end including the summary.
+2. **The remaining practice tools.** Reading, Writing, Translate, Speech, and their trials,
+   settings and progress surfaces.
+3. **Home, Progress and the feedback language.** The signed-in surfaces, the three-valued
+   preference, and Dictation's Chinese feedback.
+
+## 8. Known limitations
+
+- **Search engines will index English.** One URL per page means the crawler sees whatever its own
+  `Accept-Language` produces, which is English in practice. This buys simplicity at the cost of
+  Chinese organic discovery; moving to `/zh` later is a route restructure, not a setting.
+- **No usage evidence.** This item cannot tell anyone whether Chinese learners arrive, return, or
+  convert. The product still has no product analytics.
+- **The signed-out entry path still has no explanation.** Chinese feedback reaches signed-in
+  learners only, because Dictation feedback does. Whether an anonymous visitor's first attempt
+  should get one feedback call is a separate, unanswered product decision.
+- **Traditional Chinese readers get Simplified.** Negotiating `zh-TW` to Simplified is better
+  than English, and worse than the truth.
+- **Two languages of copy to maintain.** Every future user-facing string is now two strings. The
+  type-level guarantee in §3.3 makes that enforced rather than optional.

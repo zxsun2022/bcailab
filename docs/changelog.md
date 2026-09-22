@@ -9,6 +9,32 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-22 — **accepted: a Chinese UI on the same URLs, with feedback following the interface.**
+  Recorded as [ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md), which
+  supersedes [ADR 0003](decisions/0003-defer-chinese-ui.md). The owner named the first cohort —
+  Chinese-speaking learners — and, having no way to recruit testers, required the interface they
+  would actually meet. Checked in code first, because half the capability already existed and the
+  half that did not is the one that matters most: Reading and Writing already produce Chinese
+  feedback from a shared `localStorage` preference that defaults to English and is reachable only
+  from inside those two tools' settings, while **Dictation — the studio's first practice for a new
+  learner — has no language option at all**, and the interface is English with no catalogue,
+  switcher or locale routing anywhere.
+
+  The owner confirmed three decisions: scope is the whole of English Studio (Mapdown, Posts and
+  `/about` excluded; learning material stays English); one URL per page, with the locale in a
+  cookie negotiated from `Accept-Language` and an explicit switcher, accepting that search engines
+  will index the English rendering; and feedback language follows the interface by default, with
+  Dictation gaining the Chinese output the other graders already have. Simplified only, and no
+  stored feedback is retranslated, are recommendations recorded for confirmation.
+
+  Authorized as **"Now — Chinese interface for Chinese-speaking learners"** in `docs/roadmap.md`,
+  in three independently shippable stages, alongside the open Reading half of "Learner context for
+  graders", which this does not touch. Design: [`docs/chinese-ui-design.md`](chinese-ui-design.md).
+  Nothing is implemented yet; this entry records the decision and its authorization only. Two holes
+  are recorded rather than closed: this produces no usage evidence, so the revisit triggers in
+  ADR 0002 and ADR 0009 stay unfired, and Dictation feedback remains signed-in only, so a
+  signed-out Chinese visitor still finishes a dictation with no explanation of their errors.
+
 - 2026-09-21 — **accepted: owner sweep of every outstanding `in_review` entry.** The owner
   accepted the six entries still awaiting review:
   - Reading evaluation runs;

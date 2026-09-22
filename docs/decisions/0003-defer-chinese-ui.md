@@ -1,6 +1,6 @@
 # 0003 — Defer a Chinese UI
 
-**Status:** Accepted · **Date:** 2026-07-15 · **Origin:** `docs/roadmap.md` (Later)
+**Status:** Superseded by [0011](0011-chinese-ui-same-url-feedback-follows-interface.md) · **Date:** 2026-07-15 · **Origin:** `docs/roadmap.md` (Later)
 
 ## Context
 
@@ -28,3 +28,9 @@ pages) — decided to defer, 2026-07-15."*
 deferred, only that it was and on what date. This record deliberately does not invent one. If
 the reasoning matters to a future decision, it must be re-established with the owner rather
 than reconstructed from this file.
+
+## Superseded
+
+On 2026-09-22 the owner named Chinese-speaking learners as the first cohort and required a
+Chinese interface. See [0011](0011-chinese-ui-same-url-feedback-follows-interface.md). The
+deferral recorded here stands as history; its consequences above no longer describe the product.
