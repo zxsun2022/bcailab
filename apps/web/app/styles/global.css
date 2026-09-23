@@ -7749,6 +7749,7 @@ select.input:focus {
    either direction. Visibility flips at once when opening (the open effect focuses the close
    button immediately) and only after the slide when closing. Reduced motion: end of file. */
 .tool-nav-rail {
+  --rail-hover-fill: color-mix(in srgb, var(--text) 7%, transparent);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -7983,7 +7984,7 @@ select.input:focus {
 }
 
 .nav-rail-user-btn:hover {
-  background: var(--bg-alt);
+  background: var(--rail-hover-fill);
   color: var(--text);
 }
 
@@ -9609,22 +9610,31 @@ select.input:focus {
   color: var(--text-faint);
 }
 
+/* Studio rail rows lead with a line icon; alone in the collapsed rail. Hover fills the whole
+   row, so the row — not just the words — reads as the target. The fill is the text colour at
+   low strength, so it shows on both the light and the dark rail. */
 .nav-rail-studio-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   min-height: 42px;
   padding: 9px 12px;
   border-radius: 0;
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.875rem;
+  transition: background var(--transition-fast), color var(--transition-fast);
 }
 
 .nav-rail-studio-item:hover {
-  background: transparent;
+  background: var(--rail-hover-fill);
   color: var(--text);
+}
+
+.nav-rail-studio-item:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: -2px;
 }
 
 .nav-rail-studio-item.is-current {
@@ -9633,17 +9643,17 @@ select.input:focus {
   font-weight: 650;
 }
 
+.nav-rail-studio-item.is-current:hover {
+  background: var(--rail-hover-fill);
+  color: var(--color-action);
+}
+
 .nav-rail-studio-item.is-current::before {
   position: absolute;
   inset: 10px auto 10px 0;
   width: 2px;
   background: currentColor;
   content: "";
-}
-
-/* Studio rail rows lead with a line icon; alone in the collapsed rail. */
-.nav-rail-studio-item {
-  gap: 12px;
 }
 
 .tool-nav-rail.is-collapsed .nav-rail-studio-nav {
