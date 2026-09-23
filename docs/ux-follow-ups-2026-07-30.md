@@ -95,6 +95,9 @@ breakpoints.
 
 ### B. Step navigation
 
+> Authorized 2026-09-23 as *Now — Dictation sentence navigator* in `docs/roadmap.md`, with the
+> owner deciding review-only (no re-answering) and no forward skipping.
+
 **Problem:** a multi-sentence passage presents one sentence at a time, but the learner cannot
 directly revisit a previous step or see the session's shape beyond the current `n / total`
 counter.

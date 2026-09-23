@@ -200,7 +200,68 @@ acceptance is deliberately not claimed here.
   learner-context code). Two owner decisions precede recording: the pinned model, and whether the
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
+## Now — Dictation sentence navigator
+
+The owner authorized this on 2026-09-23. It covers the step-navigation requirement recorded in
+[`ux-follow-ups-2026-07-30.md`](ux-follow-ups-2026-07-30.md) §3B, which had never been scheduled.
+Today a session shows only "Sentence n of m". The learner cannot see the passage's shape or go
+back to a checked sentence.
+
+### Decisions (owner, 2026-09-23)
+
+- **D1 — Review only.** A checked sentence can be replayed and its result read, but not
+  re-answered or re-checked. The score stays a record of the first attempt.
+- **D2 — Later sentences are locked.** There is no forward skipping and no "leave unanswered"
+  action.
+
+### Acceptance criteria
+
+- (a) **Navigator.** A horizontal navigator shows one step per sentence, in three states that
+  are distinct by more than colour: checked (reachable), current, and locked (not reachable,
+  with a lock). It scrolls horizontally when it does not fit, and keeps the current step in
+  view.
+- (b) **Going back.** Selecting a checked step shows that sentence's answer, diff and reference,
+  and lets the learner replay its audio. The answer cannot be edited or checked again. A single
+  primary action returns to the first unchecked sentence. Typed-but-unchecked text there, the
+  checks already made, and session progress are all preserved.
+- (c) **After a resume.** Checked sentences are reviewable exactly as in (b). The loader
+  re-scores each stored answer server-side and returns the reference only for checked
+  sentences; unchecked sentences' text never reaches the client.
+- (d) **Honest counts.** Listens during review do not change a sentence's stored replay count.
+  A resumed attempt keeps the replay counts stored before the resume, rather than resetting them
+  to 0 at completion.
+- (e) **Accessibility.** The navigator is keyboard-operable: steps are buttons, and locked steps
+  are disabled with an accessible name that says so. It works at 390 px with touch targets of at
+  least 40 px.
+- (f) **Unchanged behaviour.** Scoring, completion, quota, anonymous sessions and the summary
+  view are unchanged. Existing tests pass, and the new state logic is covered by unit tests.
+
+### Explicitly excluded
+
+- Re-answering a checked sentence, and skipping ahead.
+- Per-sentence audio duration and the check-shortcut hint (§3C and §3D of the same follow-ups
+  document).
+
 ## Next
+
+- **Home v3.1 — fewer words** (owner-authorized 2026-09-23; starts after the Dictation sentence
+  navigator). It came from outside feedback (ChatGPT) that Home still explains too much. The
+  assessment agreed with the owner keeps Home v3's structure and removes repetition, testing each
+  line by whether it changes what the learner does next. Acceptance:
+  - (a) The dictation Continue hero drops "N sentences left" from the greeting and "your checked
+    sentences are kept" from beside the button. The button reads "Continue dictation". The meta
+    line drops the sentence count, because the progress bar carries it.
+  - (b) The greeting is the learner's name only, or nothing when there is no name. There is no
+    time-of-day greeting, because the server cannot know the learner's clock.
+  - (c) A `level_fit` reason ("Fits your current level") is not shown. Reasons that explain a
+    different choice (adjacent band, cross-mode, revisit) stay.
+  - (d) In S1 the recommendation strip is a whole-row link with no separate Start button, and its
+    directional alternatives move into a `···` disclosure. As the S2 hero, the alternatives stay
+    visible, because they are how a learner consents to exploring another band (ADR 0006).
+  - (e) The basis line becomes a compact level marker, with its explanation on hover or focus. The
+    attempt count leaves Home; it is on Progress.
+  - (f) Mode stays in the meta line, because Home mixes modes. No duration estimate is added
+    until per-passage practice time supports one.
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
   product direction “AI-generated structure → Mapdown visualization” without putting a model
   inside Mapdown. Add a **Create with AI** flow for people learning a new subject or researching
