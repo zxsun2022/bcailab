@@ -119,9 +119,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                       <div className="menu-name">{user.name ?? t("common.signedIn")}</div>
                       <div className="menu-muted">{user.email}</div>
                     </div>
-                    <Link to="/profile" className="menu-item" onClick={() => setMenuOpen(false)}>
-                      {t("common.profile")}
-                    </Link>
                     <Link to="/settings" className="menu-item" onClick={() => setMenuOpen(false)}>
                       {t("common.settings")}
                     </Link>

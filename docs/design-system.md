@@ -246,4 +246,21 @@ Header stays behavior-compatible with current product logic:
 - Home page structure: `apps/web/app/routes/_index.tsx`
 - Interface copy and locale: `apps/web/app/i18n/` (catalogues in `messages/`)
 - Language switch: `apps/web/app/components/LanguageSwitcher.tsx`
-- Settings (interface language, feedback language, theme): `apps/web/app/routes/settings.tsx`
+- Settings (account, interface language, feedback language, theme): `apps/web/app/routes/settings.tsx`
+
+## Settings Page
+
+`/settings` is the only account and preferences page; `/profile` and the per-tool settings
+URLs redirect to it. The account menu (rail and site header) is **Settings / Log out** —
+nothing it links to is repeated inside the menu, and the page does not repeat sign-out.
+
+- **One row pattern.** Every item is a row: label and one-line purpose on the left (15rem),
+  the control on the right, top-aligned with the label. Rows stack below 720px.
+- **Two groups, two save models.** *Account* (display name, password) is stored on the server,
+  so each change is an explicit save. The name's Save is enabled only when the value differs
+  from what is stored. The password form stays folded behind a button until asked for.
+  *Preferences* (interface language, feedback language, colour mode) apply the moment they are
+  picked, and the group heading says so.
+- **Preferences use one control:** a joined segmented row (`.settings-segmented`). The pressed
+  option carries the action colour and an underline. It is the same whether the choice posts
+  (interface language, `POST /locale`) or applies in place.

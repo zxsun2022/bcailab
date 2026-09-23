@@ -16,6 +16,15 @@ make the final transition; see `AGENTS.md`.
   and from the site header. It replaces the Reading, Writing and Speech settings pages, which
   only repeated those shared choices. Their URLs 301 to `/settings`. The public site header keeps
   its switch for signed-out visitors. Design: `docs/chinese-ui-design.md` §3.2.
+  - **Account merged into Settings.** Also at the owner's request: `/profile` and `/settings`
+    looked like two different products, and both carried the same identity block. They are
+    now one page, in two groups. *Account* holds the sign-in email, the display name (explicit
+    save) and the password (folded until asked for). *Preferences* holds interface language,
+    feedback language and colour mode, which apply at once. Every item uses one row pattern and
+    every preference uses one segmented control. `/profile` redirects to `/settings`, and the
+    account menu is Settings / Log out. The sign-out duplicated on the page is gone, along with
+    the old profile, tool-settings and menu-option CSS.
+    Rules: `docs/design-system.md`, *Settings Page*.
   - **No theme buttons in the account menus.** Also at the owner's request: colour mode is
     set on `/settings` only, so the rail's and the site header's account menus no longer repeat
     it. The live system-theme listener those menus mounted now runs once in the root `App`.
