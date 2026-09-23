@@ -200,52 +200,6 @@ acceptance is deliberately not claimed here.
   learner-context code). Two owner decisions precede recording: the pinned model, and whether the
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
-## Now — Home v3.1: fewer words
-
-The owner authorized this on 2026-09-23; it started once the Dictation sentence navigator was
-accepted. It came from outside feedback (ChatGPT) that Home still explains too much. The
-assessment agreed with the owner keeps Home v3's structure and removes repetition, testing each
-line by whether it changes what the learner does next.
-
-### Acceptance criteria
-
-- (a) The dictation Continue hero drops "N sentences left" from the greeting and "your checked
-  sentences are kept" from beside the button. The button reads "Continue dictation". The meta
-  line drops the sentence count, because the progress bar carries it.
-- (b) The greeting is the learner's name only, or nothing when there is no name. There is no
-  time-of-day greeting, because the server cannot know the learner's clock.
-- (c) A `level_fit` reason ("Fits your current level") is not shown. Reasons that explain a
-  different choice (adjacent band, cross-mode, revisit) stay.
-- (d) In S1 the recommendation strip is a whole-row link with no separate Start button, and its
-  directional alternatives move into a `···` disclosure. As the S2 hero, the alternatives stay
-  visible, because they are how a learner consents to exploring another band (ADR 0006).
-- (e) The basis line becomes a compact level marker, with its explanation on hover or focus. The
-  attempt count leaves Home; it is on Progress.
-- (f) Mode stays in the meta line, because Home mixes modes. No duration estimate is added
-  until per-passage practice time supports one.
-
-### Progress
-
-- **Implemented — in_review (2026-09-23).** Evidence by criterion:
-  - (a) The dictation hero's meta line is mode / band · topic, and its button reads "Continue
-    dictation". The "checked sentences are kept" note is gone.
-  - (b) The greeting is "{name}, welcome back." or nothing; cold start keeps its one-line brief.
-  - (c) `practice.reason.levelFit` is hidden wherever it would appear. Other reasons show,
-    including the no-level "starting point that helps estimate your level".
-  - (d) In S1 the strip is a single `<Link>` (title, meta, any reason, arrow). The alternatives
-    sit in a `<details>` disclosure beside it, not inside it. `homeLayout` now gives the S1
-    recommendation `link` emphasis, and the one-primary tests still pass. The S2 hero keeps the
-    alternatives visible.
-  - (e) The basis line is a level chip whose explanation shows on hover or focus
-    (`role="tooltip"`, `aria-describedby`). The attempt count is gone from Home. A no-level user
-    sees the level picker instead. A profile failure keeps its one-line notice.
-  - (f) Mode stays. No duration was added.
-  - The S2 mode-explanation line added in v3 was also removed, in the same spirit.
-  - 22 catalogue keys that no longer had a caller were removed.
-  - Automated checks: 881 tests pass, typecheck passes, lint has 0 errors.
-  - Browser fixture: users `b` (S1 dictation, chip tooltip, `···` menu), `recommend` (S2) and
-    `a` (S1 Writing, at 375 px: no horizontal scroll, one `.btn-primary`).
-
 ## Next
 
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
@@ -372,6 +326,10 @@ These entries are historical, not the active queue. Their original scope, eviden
 and recorded acceptance are preserved verbatim in [accepted roadmap history](roadmap-accepted-history.md).
 The 2026-09-18, 2026-09-21, 2026-09-22 and 2026-09-23 entries were accepted by the owner before being moved here; the older ones were
 not newly accepted by any documentation move.
+
+<a id="now--home-v31-fewer-words"></a>
+
+- **Home v3.1: fewer words — accepted (2026-09-23)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#now--home-v31-fewer-words--accepted-2026-09-23); [delivery record](changelog.md).
 
 <a id="now--dictation-sentence-navigator"></a>
 
