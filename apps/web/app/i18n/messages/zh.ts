@@ -924,5 +924,13 @@ export const zh: Record<MessageKey, string> = {
   "homePage.writingRoundBack": "第 {round} 轮反馈已返回",
   "homePage.writingRoundPending": "第 {round} 轮反馈生成中",
   "homePage.writingRoundFailed": "第 {round} 轮反馈生成失败，可在草稿页重试",
-  "homePage.editedAt": "编辑于 {date}"
+  "homePage.editedAt": "编辑于 {date}",
+
+  // --- dictation sentence navigator ---
+  "dictation.stepsLabel": "句子",
+  "dictation.stepChecked": "第 {n} 句，已完成，{pct}%",
+  "dictation.stepCurrent": "第 {n} 句，当前",
+  "dictation.stepLocked": "第 {n} 句，未解锁",
+  "dictation.backToCurrent": "回到第 {n} 句",
+  "dictation.reviewNote": "正在回看已批改的句子。可以反复重听，答案保持批改时的样子。"
 };

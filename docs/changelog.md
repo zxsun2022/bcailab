@@ -9,6 +9,16 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **in_review: Dictation sentence navigator.** Owner-authorized the same day, with
+  decisions D1 (review only) and D2 (later sentences locked). A session now shows one step per
+  sentence: checked steps (tick) open a read-only review with replay, diff and reference; the
+  current step is outlined; later steps are locked. Review returns to the current sentence with
+  one button, and keeps whatever was typed there. After a resume the loader re-scores stored
+  answers so earlier sentences stay reviewable, returning references only for checked sentences.
+  Two counting fixes came with it. Review listens no longer inflate a sentence's replays. A
+  resumed attempt no longer resets earlier replays to 0 at completion. Evidence: roadmap *Now —
+  Dictation sentence navigator*, Progress.
+
 - 2026-09-23 — **accepted: owner acceptance of English Studio Home v3.** The owner checked it in
   production after PR #74 merged and accepted it; the roadmap item moved to the accepted history.
 

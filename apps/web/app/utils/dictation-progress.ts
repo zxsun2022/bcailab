@@ -6,7 +6,7 @@
  * list would silently drop every sentence checked before the resume — and with it the answers the
  * summary is scored from.
  */
-import type { DiffOp } from "./dictation-diff";
+import { scoreSentence, type DiffOp } from "./dictation-diff";
 
 export type SentenceResult = {
   idx: number;
@@ -61,3 +61,35 @@ export const mergeSentenceResult = (
   [...parseSentenceResults(stored).filter((prior) => prior.idx !== entry.idx), entry].sort(
     (a, b) => a.idx - b.idx
   );
+
+/** A checked sentence as the page reviews it: the full diff and the reference it was scored against. */
+export type ReviewableResult = {
+  accuracy: number;
+  ops: DiffOp[];
+  reference: string;
+  /** Listens beyond the first, as stored when the sentence was checked. */
+  replays: number;
+};
+
+/**
+ * Rebuilds the review state of a resumed attempt's checked sentences.
+ *
+ * Storage keeps only non-matching ops, so the full diff is re-scored here from the stored answer
+ * and the reference — deterministic, so it reproduces what the learner saw at check time. Only
+ * sentences that were checked are returned: an unchecked sentence's reference never leaves the
+ * server. A stored entry for a sentence the passage no longer has is ignored.
+ */
+export const reviewableResults = (
+  sentences: Array<{ idx: number; text: string }>,
+  stored: SentenceResult[]
+): Record<number, ReviewableResult> => {
+  const textByIdx = new Map(sentences.map((sentence) => [sentence.idx, sentence.text]));
+  const out: Record<number, ReviewableResult> = {};
+  for (const entry of stored) {
+    const reference = textByIdx.get(entry.idx);
+    if (reference === undefined) continue;
+    const diff = scoreSentence(reference, entry.userText);
+    out[entry.idx] = { accuracy: diff.accuracy, ops: diff.ops, reference, replays: entry.replays };
+  }
+  return out;
+};

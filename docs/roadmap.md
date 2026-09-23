@@ -236,6 +236,29 @@ back to a checked sentence.
 - (f) **Unchanged behaviour.** Scoring, completion, quota, anonymous sessions and the summary
   view are unchanged. Existing tests pass, and the new state logic is covered by unit tests.
 
+### Progress
+
+- **Implemented — in_review (2026-09-23).** Evidence:
+  - **Rules.** `utils/dictation-steps.ts` holds the frontier, step states, which steps can
+    open, view mode and the return target. It has 13 tests.
+  - **Resume re-scoring.** `reviewableResults` has 3 tests: the full diff is rebuilt; an
+    unchecked sentence's reference never appears; a stale index is ignored.
+  - **Automated checks.** 881 tests pass, as do typecheck, lint (0 errors) and both builds.
+  - **Browser fixture, user `b`, 3-sentence passage:**
+    - checking unlocks the next step;
+    - text typed at the frontier survives reviewing an earlier sentence;
+    - review shows the note and "Back to sentence 3", and returns with focus in the answer;
+    - after a reload, earlier sentences are restored as checked, with their stored answers and
+      accuracies;
+    - a programmatic change to a checked answer was found and is now ignored;
+    - in the Chinese interface at 375 px: no horizontal scroll, and 40 × 44 px steps.
+  - **Not seen in the browser:** a long passage where the navigator has to scroll. The fixture
+    passages have 3 sentences; the strip uses `overflow-x: auto` and scrolls the step on screen
+    into view.
+  - **Found while testing.** The fixture's resumable attempt claims `sentences_done = 1` with no
+    stored results. Resume now starts from the stored results (see `docs/tools/dictation.md`,
+    *Sentence navigator*).
+
 ### Explicitly excluded
 
 - Re-answering a checked sentence, and skipping ahead.
