@@ -9,6 +9,12 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **Rail hover.** Owner request: rail rows had no hover state beyond a colour
+  change. They now fill the whole row on hover, and the account button uses the same fill.
+  The fill is `--rail-hover-fill`, the text colour at 7%, so it shows on both themes. It
+  replaces `--bg-alt`, which was barely distinguishable from the light rail. Rows also get a
+  keyboard focus ring.
+
 - 2026-09-23 — **Settings page layout reworked.** Owner feedback on the merged page: the
   layout still looked poor. Specifically:
   - wide two-column rows with three- or four-line hints;

@@ -184,6 +184,8 @@ Tool pages (Writing, Reading, Speech) use a full-viewport shell that hides the g
   family, 24-unit grid, 1.5 stroke, round caps, no fills, drawn in `currentColor` so it takes the
   row's muted, hover and current colours. The collapsed rail shows the icon alone. The icons are
   the same in both interface languages. A new rail destination needs an icon from the same family.
+- Rail rows and the account button fill on hover with `--rail-hover-fill` (the text colour at
+  7%, so it shows on the light and the dark rail) and show a focus ring for keyboard users.
 - Optional **aside panels** (e.g. revision timeline) sit inside the canvas alongside the main content, not at the shell level.
 - The canvas stays centered regardless of nav rail collapse state or screen width.
 
