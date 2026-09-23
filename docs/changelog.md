@@ -9,6 +9,23 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **Settings page layout reworked.** Owner feedback on the merged page: the
+  layout still looked poor. Specifically:
+  - wide two-column rows with three- or four-line hints;
+  - a full-width name field with an always-red Save;
+  - ragged controls;
+  - mono uppercase options beside Chinese labels.
+
+  Now:
+  - Each item is a compact row with a one-line hint and its value or choice right-aligned.
+  - Account rows show the stored value with a text Edit action, and edit in a panel beneath the
+    row.
+  - Preferences use a body-face segmented control.
+  - Hints were shortened, and the "changes apply right away" note moved into the page
+    description.
+
+  Rules: `docs/design-system.md`, *Settings Page*.
+
 - 2026-09-22 — **One settings page; the language switch leaves the studio rail.** Owner
   request after acceptance: the studio rail's language button was the wrong place for a choice
   made once. Interface language now lives on a new `/settings` page, together with the shared

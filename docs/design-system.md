@@ -254,13 +254,16 @@ Header stays behavior-compatible with current product logic:
 URLs redirect to it. The account menu (rail and site header) is **Settings / Log out** —
 nothing it links to is repeated inside the menu, and the page does not repeat sign-out.
 
-- **One row pattern.** Every item is a row: label and one-line purpose on the left (15rem),
-  the control on the right, top-aligned with the label. Rows stack below 720px.
-- **Two groups, two save models.** *Account* (display name, password) is stored on the server,
-  so each change is an explicit save. The name's Save is enabled only when the value differs
-  from what is stored. The password form stays folded behind a button until asked for.
-  *Preferences* (interface language, feedback language, colour mode) apply the moment they are
-  picked, and the group heading says so.
-- **Preferences use one control:** a joined segmented row (`.settings-segmented`). The pressed
-  option carries the action colour and an underline. It is the same whether the choice posts
-  (interface language, `POST /locale`) or applies in place.
+- **One compact row pattern.** Every item is a row in a ruled list: the label and a one-line
+  purpose on the left, the value or choice right-aligned, so every control shares one edge.
+  Hints stay to one line. Below 640px the control drops under the label.
+- **Two groups, two save models.** *Account* rows show what is stored (email, display name,
+  whether a password is set) with a text action ("Edit", "Set password"). Editing opens a
+  full-width panel beneath the row and ends in an explicit Cancel or Save, because it writes to
+  the server; after a save the row closes and notes it. *Preferences* (interface language,
+  feedback language, colour mode) apply the moment they are picked; the page description
+  says so.
+- **Preferences use one control:** a joined segmented row (`.settings-segmented`) in the body
+  face, so an autonym, a Chinese label and an English label read alike. The pressed option is
+  filled and outlined. It is the same whether the choice posts (interface language,
+  `POST /locale`) or applies in place.
