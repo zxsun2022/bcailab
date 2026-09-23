@@ -17,8 +17,8 @@ Users can choose between `System` (auto), `Light`, and `Dark` modes.
 
 - Preference is stored in `localStorage` under `"bcailab-theme-preference"`
 - On page load, a blocking `<script>` in `<head>` reads the stored preference, resolves it (system → media query), and sets `data-themePreference` / `data-resolvedTheme` on `<html>` to prevent FOUC
-- Tool pages (which hide the global header) apply the theme via `useThemePreference()` hook
-- Settings pages expose a three-button grid (Auto / Light / Dark) for selection
+- The root `App` mounts `useThemePreference()` once, so an `Auto` choice follows the system as it changes on every page
+- The choice is made only on `/settings`, as a three-button grid (Auto / Light / Dark); account menus link there and carry no theme control (owner decision, 2026-09-22)
 
 ## Typography
 

@@ -14,7 +14,6 @@ export const zh: Record<MessageKey, string> = {
   "common.signedIn": "已登录",
   "common.profile": "个人资料",
   "common.settings": "设置",
-  "common.theme": "主题",
   "common.logOut": "退出登录",
   "common.home": "首页",
   "common.account": "账号",

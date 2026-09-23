@@ -16,6 +16,9 @@ make the final transition; see `AGENTS.md`.
   and from the site header. It replaces the Reading, Writing and Speech settings pages, which
   only repeated those shared choices. Their URLs 301 to `/settings`. The public site header keeps
   its switch for signed-out visitors. Design: `docs/chinese-ui-design.md` §3.2.
+  - **No theme buttons in the account menus.** Also at the owner's request: colour mode is
+    set on `/settings` only, so the rail's and the site header's account menus no longer repeat
+    it. The live system-theme listener those menus mounted now runs once in the root `App`.
   - **Rail icons.** Also at the owner's request, each rail destination now leads with a line
     icon: house, chart, headphones, microphone, pen, translate and speaker. The collapsed rail
     shows the icon in place of the old initial-in-a-circle, which read poorly in Chinese (写 and

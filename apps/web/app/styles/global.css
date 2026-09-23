@@ -790,12 +790,6 @@ select.input:focus {
   text-transform: uppercase;
 }
 
-.menu-theme-options {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
-}
-
 .menu-option-grid {
   display: grid;
   gap: 6px;
@@ -809,7 +803,6 @@ select.input:focus {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.menu-theme-option,
 .menu-option-button {
   border: 1px solid var(--border);
   background: transparent;
@@ -823,14 +816,12 @@ select.input:focus {
   transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
 
-.menu-theme-option:hover,
 .menu-option-button:hover {
   border-color: var(--border-hover);
   background: var(--bg-card-hover);
   color: var(--text);
 }
 
-.menu-theme-option.is-active,
 .menu-option-button.is-active {
   border-color: rgba(196, 149, 106, 0.45);
   background: rgba(196, 149, 106, 0.08);
@@ -8172,12 +8163,6 @@ select.input:focus {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 2px;
-}
-
-.nav-rail-user-section {
-  padding: 6px 14px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 4px;
 }
 
 /* ==========================================================================

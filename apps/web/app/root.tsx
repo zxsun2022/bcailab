@@ -14,6 +14,7 @@ import {
 } from "@remix-run/react";
 import globalStyles from "~/styles/global.css?url";
 import { AppErrorBoundary } from "~/components/AppErrorBoundary";
+import { useThemePreference } from "~/utils/use-theme-preference";
 import { Header } from "~/components/Header";
 import { getOptionalUser } from "~/utils/auth.server";
 import { LocaleProvider, useT } from "~/i18n/context";
@@ -105,6 +106,9 @@ export default function App() {
     location.pathname === "/about" ||
     location.pathname === "/english";
   const hideHeader = matches.some((m) => (m.handle as RouteHandle)?.hideHeader);
+  // Keeps an `Auto` theme following the system as it changes. The inline script above sets the
+  // first paint; the choice itself is made on /settings.
+  useThemePreference();
 
   return (
     <Document bodyClassName={hideHeader ? "tool-body" : undefined} locale={locale}>

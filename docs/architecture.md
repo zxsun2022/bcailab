@@ -69,7 +69,7 @@ only). Both share the routing table, so a task streams or not without changing w
   code is logged to the server console and shown in the dev UI. The same OTP backs both
   code sign-in and password reset.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
-- Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or `/settings`; the preference is stored locally in the browser.
+- Signed-in users can switch `Auto` / `Light` / `Dark` theme on `/settings` (the account menu links to it); the preference is stored locally in the browser.
 
 ## Navigation and surface ownership
 
