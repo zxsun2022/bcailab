@@ -99,15 +99,17 @@ export const action = async ({ request, context }: ActionFunctionArgs) => {
   return json<ActionData>({ section: "name", ok: false, error: t("common.unknownAction") }, { status: 400 });
 };
 
+
 /**
  * Account and preferences, on one page (owner decision, 2026-09-22).
  *
- * It replaced `/profile` and the per-tool settings pages. Every item is one row — what it is
- * and what it does on the left, the control on the right — in two groups:
+ * It replaced `/profile` and the per-tool settings pages. Every item is one compact row —
+ * label and a one-line purpose on the left, the current value or choice right-aligned — so
+ * the page reads as a list and the controls line up on one edge.
  *
- * - **Account** is stored on the server, so each change is an explicit save.
- * - **Preferences** are one choice among a few; they apply the moment they are picked, and
- *   the group says so.
+ * - **Account** rows show what is stored and an Edit button. Editing opens beneath the row
+ *   and ends in an explicit Save or Cancel, because it writes to the server.
+ * - **Preferences** are a choice among a few and apply the moment they are picked.
  *
  * Signing out lives in the account menu, not here.
  */
@@ -125,17 +127,18 @@ export default function SettingsPage() {
               <h2 id="settings-account" className="settings-group-title">
                 {t("settings.accountGroup")}
               </h2>
-              <AccountRows user={user} hasPassword={hasPassword} />
+              <div className="settings-list">
+                <AccountRows user={user} hasPassword={hasPassword} />
+              </div>
             </section>
 
             <section className="settings-group" aria-labelledby="settings-preferences">
-              <div className="settings-group-head">
-                <h2 id="settings-preferences" className="settings-group-title">
-                  {t("settings.preferencesGroup")}
-                </h2>
-                <p className="settings-group-note">{t("settings.preferencesNote")}</p>
+              <h2 id="settings-preferences" className="settings-group-title">
+                {t("settings.preferencesGroup")}
+              </h2>
+              <div className="settings-list">
+                <PreferenceRows />
               </div>
-              <PreferenceRows />
             </section>
           </StudioPageBody>
         </StudioPage>
@@ -148,15 +151,19 @@ function SettingRow({
   id,
   label,
   hint,
-  children
+  children,
+  editor
 }: {
   id: string;
   label: React.ReactNode;
   hint?: React.ReactNode;
+  /** The value or control, right-aligned on the row. */
   children: React.ReactNode;
+  /** An open editor, shown full width beneath the row. */
+  editor?: React.ReactNode;
 }) {
   return (
-    <div className="settings-row">
+    <div className={`settings-row${editor ? " is-editing" : ""}`}>
       <div className="settings-row-copy">
         <div id={id} className="settings-row-label">
           {label}
@@ -164,6 +171,7 @@ function SettingRow({
         {hint ? <p className="settings-row-hint">{hint}</p> : null}
       </div>
       <div className="settings-row-control">{children}</div>
+      {editor ? <div className="settings-row-editor">{editor}</div> : null}
     </div>
   );
 }
@@ -178,77 +186,34 @@ function AccountRows({ user, hasPassword }: { user: SettingsUser; hasPassword: b
     <>
       {user.email ? (
         <SettingRow id="settings-email" label={t("settings.email")} hint={t("settings.emailHint")}>
-          <div className="settings-identity">
+          <div className="settings-value">
             {/* Google avatars 503 when a foreign Referer is sent; see ToolNavRail. */}
-            <img className="settings-identity-avatar" src={avatarSrc} alt="" referrerPolicy="no-referrer" />
-            <span className="settings-identity-email">{user.email}</span>
+            <img className="settings-avatar" src={avatarSrc} alt="" referrerPolicy="no-referrer" />
+            <span className="settings-value-text">{user.email}</span>
           </div>
         </SettingRow>
       ) : null}
-
-      <SettingRow id="settings-name" label={t("profile.displayName")} hint={t("profile.nameHint")}>
-        <NameForm current={user.name ?? ""} />
-      </SettingRow>
-
-      <SettingRow
-        id="settings-password"
-        label={t("settings.password")}
-        hint={hasPassword ? t("profile.withPassword") : t("profile.withoutPassword")}
-      >
-        <PasswordControl hasPassword={hasPassword} />
-      </SettingRow>
+      <NameRow current={user.name ?? ""} />
+      <PasswordRow hasPassword={hasPassword} />
     </>
   );
 }
 
-/** Save appears as a real action only once the name differs from what is stored. */
-function NameForm({ current }: { current: string }) {
-  const t = useT();
-  const fetcher = useFetcher<ActionData>();
-  const [value, setValue] = React.useState(current);
-  const busy = fetcher.state !== "idle";
-  const dirty = value.trim() !== current;
-  const result = fetcher.data?.section === "name" ? fetcher.data : undefined;
-
-  return (
-    <fetcher.Form method="post" className="settings-inline-form">
-      <input type="hidden" name="intent" value="update-name" />
-      <div className="settings-inline-field">
-        <input
-          className="settings-input"
-          type="text"
-          name="name"
-          value={value}
-          onChange={(event) => setValue(event.currentTarget.value)}
-          maxLength={MAX_NAME_LENGTH}
-          placeholder={t("profile.namePlaceholder")}
-          aria-labelledby="settings-name"
-        />
-        <button type="submit" className="btn btn-primary" disabled={!dirty || busy}>
-          {busy ? t("common.saving") : t("common.save")}
-        </button>
-      </div>
-      {result?.ok && !dirty ? (
-        <p className="settings-status" role="status">{t("profile.saved")}</p>
-      ) : null}
-      {result && !result.ok ? (
-        <p className="settings-error" role="alert">{result.error}</p>
-      ) : null}
-    </fetcher.Form>
-  );
+function StatusLine({ result, saved }: { result?: ActionData; saved?: string }) {
+  if (result && !result.ok) {
+    return <p className="settings-error" role="alert">{result.error}</p>;
+  }
+  if (saved) {
+    return <p className="settings-status" role="status">{saved}</p>;
+  }
+  return null;
 }
 
-/**
- * The password form stays folded until asked for: most learners sign in with a code or Google
- * and never need it, so three empty fields should not be the loudest thing on the page.
- */
-function PasswordControl({ hasPassword }: { hasPassword: boolean }) {
-  const t = useT();
-  const fetcher = useFetcher<ActionData>();
+/** Tracks one fetcher's edit cycle: open, submit, and close with a note once it succeeds. */
+function useEditor(fetcher: ReturnType<typeof useFetcher<ActionData>>, section: ActionData["section"]) {
   const [open, setOpen] = React.useState(false);
   const [saved, setSaved] = React.useState(false);
-  const busy = fetcher.state !== "idle";
-  const result = fetcher.data?.section === "password" ? fetcher.data : undefined;
+  const result = fetcher.data?.section === section ? fetcher.data : undefined;
 
   React.useEffect(() => {
     if (fetcher.state === "idle" && result?.ok) {
@@ -257,86 +222,164 @@ function PasswordControl({ hasPassword }: { hasPassword: boolean }) {
     }
   }, [fetcher.state, result]);
 
-  if (!open) {
-    return (
-      <div className="settings-password-summary">
-        <span className="settings-password-state">
-          {hasPassword ? t("settings.passwordIsSet") : t("settings.passwordNotSet")}
-        </span>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          aria-expanded={false}
-          onClick={() => {
-            setSaved(false);
-            setOpen(true);
-          }}
-        >
-          {hasPassword ? t("profile.changePassword") : t("profile.setPassword")}
-        </button>
-        {saved ? (
-          <p className="settings-status" role="status">{t("profile.passwordSaved")}</p>
-        ) : null}
-      </div>
-    );
-  }
+  return {
+    open,
+    saved,
+    result: open ? result : undefined,
+    start: () => {
+      setSaved(false);
+      setOpen(true);
+    },
+    cancel: () => setOpen(false)
+  };
+}
+
+function NameRow({ current }: { current: string }) {
+  const t = useT();
+  const fetcher = useFetcher<ActionData>();
+  const editor = useEditor(fetcher, "name");
+  const busy = fetcher.state !== "idle";
 
   return (
-    <fetcher.Form method="post" className="settings-password-form">
-      <input type="hidden" name="intent" value="set-password" />
-      {hasPassword ? (
-        <label className="settings-field">
-          <span className="settings-field-label">{t("profile.currentPassword")}</span>
-          <input
-            className="settings-input"
-            type="password"
-            name="current_password"
-            autoComplete="current-password"
-            required
-            autoFocus
-          />
-        </label>
-      ) : null}
-      <label className="settings-field">
-        <span className="settings-field-label">{t("login.newPassword")}</span>
-        <input
-          className="settings-input"
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          minLength={MIN_PASSWORD_LENGTH}
-          placeholder={t("login.passwordMin", { min: MIN_PASSWORD_LENGTH })}
-          required
-          autoFocus={!hasPassword}
-        />
-      </label>
-      <label className="settings-field">
-        <span className="settings-field-label">{t("profile.confirmPassword")}</span>
-        <input
-          className="settings-input"
-          type="password"
-          name="confirm"
-          autoComplete="new-password"
-          minLength={MIN_PASSWORD_LENGTH}
-          required
-        />
-      </label>
-      {result && !result.ok ? (
-        <p className="settings-error" role="alert">{result.error}</p>
-      ) : null}
-      <div className="settings-form-actions">
-        <button type="submit" className="btn btn-primary" disabled={busy}>
-          {busy
-            ? t("common.saving")
-            : hasPassword
-              ? t("profile.updatePassword")
-              : t("profile.setPasswordButton")}
-        </button>
-        <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => setOpen(false)}>
-          {t("common.cancel")}
-        </button>
-      </div>
-    </fetcher.Form>
+    <SettingRow
+      id="settings-name"
+      label={t("profile.displayName")}
+      hint={t("profile.nameHint")}
+      editor={
+        editor.open ? (
+          <fetcher.Form method="post" className="settings-editor">
+            <input type="hidden" name="intent" value="update-name" />
+            <input
+              className="settings-input"
+              type="text"
+              name="name"
+              defaultValue={current}
+              maxLength={MAX_NAME_LENGTH}
+              placeholder={t("profile.namePlaceholder")}
+              aria-labelledby="settings-name"
+              autoFocus
+            />
+            <StatusLine result={editor.result} />
+            <EditorActions busy={busy} submitLabel={t("common.save")} onCancel={editor.cancel} />
+          </fetcher.Form>
+        ) : null
+      }
+    >
+      {editor.open ? null : (
+        <div className="settings-value">
+          <span className={current ? "settings-value-text" : "settings-value-text is-empty"}>
+            {current || t("profile.namePlaceholder")}
+          </span>
+          <button type="button" className="settings-edit" onClick={editor.start}>
+            {t("settings.edit")}
+          </button>
+          {editor.saved ? <StatusLine saved={t("profile.saved")} /> : null}
+        </div>
+      )}
+    </SettingRow>
+  );
+}
+
+/**
+ * The password form stays folded until asked for: most learners sign in with a code or Google
+ * and never need it, so three empty fields should not be on the page by default.
+ */
+function PasswordRow({ hasPassword }: { hasPassword: boolean }) {
+  const t = useT();
+  const fetcher = useFetcher<ActionData>();
+  const editor = useEditor(fetcher, "password");
+  const busy = fetcher.state !== "idle";
+
+  return (
+    <SettingRow
+      id="settings-password"
+      label={t("settings.password")}
+      hint={hasPassword ? t("profile.withPassword") : t("profile.withoutPassword")}
+      editor={
+        editor.open ? (
+          <fetcher.Form method="post" className="settings-editor">
+            <input type="hidden" name="intent" value="set-password" />
+            {hasPassword ? (
+              <label className="settings-field">
+                <span className="settings-field-label">{t("profile.currentPassword")}</span>
+                <input
+                  className="settings-input"
+                  type="password"
+                  name="current_password"
+                  autoComplete="current-password"
+                  required
+                  autoFocus
+                />
+              </label>
+            ) : null}
+            <label className="settings-field">
+              <span className="settings-field-label">{t("login.newPassword")}</span>
+              <input
+                className="settings-input"
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                placeholder={t("login.passwordMin", { min: MIN_PASSWORD_LENGTH })}
+                required
+                autoFocus={!hasPassword}
+              />
+            </label>
+            <label className="settings-field">
+              <span className="settings-field-label">{t("profile.confirmPassword")}</span>
+              <input
+                className="settings-input"
+                type="password"
+                name="confirm"
+                autoComplete="new-password"
+                minLength={MIN_PASSWORD_LENGTH}
+                required
+              />
+            </label>
+            <StatusLine result={editor.result} />
+            <EditorActions
+              busy={busy}
+              submitLabel={hasPassword ? t("profile.updatePassword") : t("profile.setPasswordButton")}
+              onCancel={editor.cancel}
+            />
+          </fetcher.Form>
+        ) : null
+      }
+    >
+      {editor.open ? null : (
+        <div className="settings-value">
+          <span className="settings-value-text is-quiet">
+            {hasPassword ? t("settings.passwordIsSet") : t("settings.passwordNotSet")}
+          </span>
+          <button type="button" className="settings-edit" onClick={editor.start}>
+            {hasPassword ? t("profile.changePassword") : t("profile.setPassword")}
+          </button>
+          {editor.saved ? <StatusLine saved={t("profile.passwordSaved")} /> : null}
+        </div>
+      )}
+    </SettingRow>
+  );
+}
+
+function EditorActions({
+  busy,
+  submitLabel,
+  onCancel
+}: {
+  busy: boolean;
+  submitLabel: string;
+  onCancel: () => void;
+}) {
+  const t = useT();
+  return (
+    <div className="settings-editor-actions">
+      <button type="button" className="btn btn-ghost" disabled={busy} onClick={onCancel}>
+        {t("common.cancel")}
+      </button>
+      <button type="submit" className="btn btn-primary" disabled={busy}>
+        {busy ? t("common.saving") : submitLabel}
+      </button>
+    </div>
   );
 }
 
@@ -383,7 +426,7 @@ function PreferenceRows() {
       <SettingRow
         id="settings-feedback-language"
         label={t("settings.feedbackLanguage")}
-        hint={`${t("settings.feedbackLanguageHint")} ${t("settings.feedbackFollowHint")}`}
+        hint={t("settings.feedbackLanguageHint")}
       >
         <Segmented<FeedbackLanguagePreference>
           labelledBy="settings-feedback-language"

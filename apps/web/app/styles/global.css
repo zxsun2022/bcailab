@@ -8071,24 +8071,16 @@ select.input:focus {
 /* ==========================================================================
    SETTINGS PAGE (/settings) — account and shared preferences
    ==========================================================================
-   One row pattern for every item: what it is and what it does on the left, the
-   control on the right. Rows stack below 720px. */
+   A list of compact rows: label and a one-line purpose on the left, the value or
+   choice right-aligned, so every control shares one edge. An account editor opens
+   full width beneath its row. Below 640px the control drops under the label. */
 
-.settings-group {
-  margin-bottom: var(--space-xl);
-}
-
-.settings-group-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-sm) var(--space-md);
+.settings-group + .settings-group {
+  margin-top: 40px;
 }
 
 .settings-group-title {
-  margin: 0;
-  padding-bottom: var(--space-sm);
+  margin: 0 0 var(--space-sm);
   color: var(--text-faint);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -8097,21 +8089,17 @@ select.input:focus {
   text-transform: uppercase;
 }
 
-.settings-group-note {
-  margin: 0;
-  color: var(--text-faint);
-  font-size: 13px;
+.settings-list {
+  border-top: 1px solid var(--border);
 }
 
 .settings-row {
   display: grid;
-  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
-  gap: var(--space-sm) var(--space-xl);
-  padding: 20px 0;
-  border-top: 1px solid var(--border);
-}
-
-.settings-group .settings-row:last-child {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-sm) var(--space-lg);
+  min-height: 72px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--border);
 }
 
@@ -8123,27 +8111,46 @@ select.input:focus {
 }
 
 .settings-row-hint {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--text-muted);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
-/* Controls align with the label, not the middle of a long hint. */
 .settings-row-control {
-  min-width: 0;
-}
-
-.settings-identity {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  justify-content: flex-end;
   min-width: 0;
 }
 
-.settings-identity-avatar {
-  width: 36px;
-  height: 36px;
+.settings-row-editor {
+  grid-column: 1 / -1;
+}
+
+.settings-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px 12px;
+  min-width: 0;
+}
+
+.settings-value-text {
+  min-width: 0;
+  color: var(--text);
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+
+.settings-value-text.is-quiet,
+.settings-value-text.is-empty {
+  color: var(--text-muted);
+}
+
+.settings-avatar {
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   border: 1px solid var(--border);
   border-radius: 50%;
@@ -8151,27 +8158,48 @@ select.input:focus {
   background: var(--bg-alt);
 }
 
-.settings-identity-email {
-  min-width: 0;
-  color: var(--text);
-  font-size: 15px;
-  overflow-wrap: anywhere;
+/* A text action, not a button shape: the row's value is what matters. */
+.settings-edit {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-action);
+  font-family: var(--font-body);
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--transition-fast);
 }
 
-.settings-inline-form,
-.settings-password-form {
+.settings-edit:hover {
+  text-decoration-color: currentColor;
+}
+
+.settings-edit:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+.settings-editor {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 4px;
+  padding: var(--space-md);
+  background: var(--bg-alt);
 }
 
-.settings-inline-field {
+.settings-field {
   display: flex;
-  gap: var(--space-sm);
+  flex-direction: column;
+  gap: 6px;
 }
 
-.settings-inline-field .settings-input {
-  flex: 1;
+.settings-field-label {
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 .settings-input {
@@ -8181,7 +8209,7 @@ select.input:focus {
   padding: 8px 12px;
   border: 1px solid var(--border-control);
   border-radius: 0;
-  background: var(--bg-card);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--font-body);
   font-size: 15px;
@@ -8199,37 +8227,21 @@ select.input:focus {
   border-color: var(--color-action);
 }
 
-.settings-field {
+.settings-editor-actions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.settings-field-label {
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.settings-form-actions,
-.settings-password-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-sm) var(--space-md);
-}
-
-.settings-password-state {
-  color: var(--text);
-  font-size: 15px;
+  justify-content: flex-end;
+  gap: var(--space-sm);
 }
 
 .settings-status,
 .settings-error {
-  flex-basis: 100%;
   margin: 0;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.4px;
+  font-size: 13px;
+}
+
+.settings-value .settings-status {
+  flex-basis: 100%;
+  text-align: right;
 }
 
 .settings-status {
@@ -8240,73 +8252,74 @@ select.input:focus {
   color: var(--color-danger);
 }
 
-/* A joined row of choices: one visibly pressed, the rest quiet. The same shape for
-   every preference, whether it posts (interface language) or applies in place. */
+/* A joined row of choices in the body face, so an autonym, a Chinese label and an
+   English label all read alike. The pressed option is filled; the rest stay quiet. */
 .settings-segmented {
   display: inline-flex;
-  max-width: 100%;
   margin: 0;
-  border: 1px solid var(--border-control);
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
 }
 
 .settings-segment {
-  min-height: 38px;
-  padding: 0 16px;
+  min-height: 32px;
+  padding: 0 14px;
   border: 0;
-  border-left: 1px solid var(--border-control);
   background: transparent;
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  font-size: 12px;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
+  font-family: var(--font-body);
+  font-size: 14px;
   white-space: nowrap;
   cursor: pointer;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.settings-segment:first-of-type {
-  border-left: 0;
-}
-
 .settings-segment:hover {
-  background: var(--bg-card-hover);
   color: var(--text);
 }
 
 .settings-segment[aria-pressed="true"] {
-  background: var(--color-action-surface);
-  color: var(--color-action);
-  box-shadow: inset 0 -2px 0 var(--color-action);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px var(--border-control);
 }
 
 .settings-segment:focus-visible {
   position: relative;
   outline: 2px solid var(--color-action);
-  outline-offset: -2px;
+  outline-offset: 1px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .settings-row {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .settings-row-control {
-    padding-top: var(--space-xs);
+  .settings-row-control,
+  .settings-value {
+    justify-content: flex-start;
+  }
+
+  .settings-value .settings-status {
+    text-align: left;
   }
 
   .settings-segmented {
     display: flex;
+    width: 100%;
   }
 
   .settings-segment {
     flex: 1;
-    min-height: 44px;
+    min-height: 40px;
     padding: 0 8px;
   }
 
-  .settings-inline-field .btn,
-  .settings-form-actions .btn {
+  .settings-editor-actions .btn {
+    flex: 1;
     min-height: 44px;
   }
 }

@@ -338,19 +338,19 @@ export const en = {
   "settings.colorMode": "Color mode",
   "settings.accountGroup": "Account",
   "settings.preferencesGroup": "Preferences",
-  "settings.preferencesNote": "Changes apply right away.",
   "settings.email": "Sign-in email",
-  "settings.emailHint": "Your account is this address. Sign-in codes are sent here.",
+  "settings.emailHint": "Used to sign in and to receive sign-in codes.",
   "settings.password": "Password",
+  "settings.edit": "Edit",
   "settings.passwordIsSet": "Set",
   "settings.passwordNotSet": "Not set",
   "meta.settings.title": "Settings · English Studio · bcailab",
   "settings.title": "Settings",
-  "settings.description": "Your account, and the preferences every tool shares.",
+  "settings.description": "Your account, and the preferences every tool shares. Preferences apply as soon as you pick them.",
   "settings.interfaceLanguage": "Interface language",
-  "settings.interfaceLanguageHint": "Menus, buttons, and instructions are shown in this language. Practice material stays in English.",
+  "settings.interfaceLanguageHint": "Practice material always stays in English.",
   "settings.feedbackLanguage": "AI feedback language",
-  "settings.feedbackLanguageHint": "New Reading, Writing, and Dictation feedback uses this language.",
+  "settings.feedbackLanguageHint": "For new feedback. Existing feedback keeps its language.",
   "feedbackLang.en": "English",
   "feedbackLang.zh": "Chinese",
   "meta.speech.title": "Speech · English Studio · bcailab",
@@ -859,13 +859,12 @@ export const en = {
   // --- profile ---
   "profile.displayName": "Display name",
   "profile.namePlaceholder": "Your name",
-  "profile.nameHint": "Leave blank to fall back to your email address.",
+  "profile.nameHint": "Shown in the studio. Leave blank to show your email.",
   "profile.saved": "Saved.",
   "profile.changePassword": "Change password",
   "profile.setPassword": "Set a password",
-  "profile.withPassword": "Your account can sign in with an email code, Google, or this password.",
-  "profile.withoutPassword":
-    "Optional. Your account already signs in with an email code or Google — a password simply adds another way in.",
+  "profile.withPassword": "Sign in with it, an email code, or Google.",
+  "profile.withoutPassword": "Optional: one more way to sign in.",
   "profile.currentPassword": "Current password",
   "profile.confirmPassword": "Confirm new password",
   "profile.updatePassword": "Update password",
@@ -883,8 +882,6 @@ export const en = {
 
   // --- feedback language ---
   "feedbackLang.auto": "Follow interface",
-  "settings.feedbackFollowHint":
-    "“Follow interface” writes new feedback in the language this page is shown in. Feedback you already have stays in the language it was written in.",
 
   // --- home and progress ---
   "meta.home.title": "English Studio · bcailab",
