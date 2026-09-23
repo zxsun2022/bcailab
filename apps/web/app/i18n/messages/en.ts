@@ -996,7 +996,31 @@ export const en = {
   "email.loginCode.subject": "{code} is your bcailab sign-in code",
   "email.loginCode.body": "Your bcailab sign-in code is: {code}",
   "email.loginCode.expiry":
-    "It expires in 10 minutes. If you didn't request this, you can ignore this email."
+    "It expires in 10 minutes. If you didn't request this, you can ignore this email.",
+
+  // --- home v3 ---
+  "homePage.welcomeLead": "Welcome back, {name}. {lead}",
+  "homePage.leadDictation": "{left} sentences left in your last dictation.",
+  "homePage.leadDictationOne": "One sentence left in your last dictation.",
+  "homePage.leadWriting": "Your last piece of writing is waiting.",
+  "homePage.leadRecommend": "Here is today's pick.",
+  "homePage.continueKicker": "Pick up where you stopped",
+  "homePage.continueFrom": "Continue from sentence {next}",
+  "homePage.keptSentences": "Your {done} checked sentences are kept",
+  "homePage.keptSentenceOne": "Your checked sentence is kept",
+  "homePage.continueWritingButton": "Continue writing",
+  "homePage.nextKicker": "Next · Coach pick",
+  "homePage.startReading": "Start reading aloud",
+  "homePage.askDictation":
+    "Listen one sentence at a time, write what you hear, and check each sentence against the text.",
+  "homePage.askReading": "Read the passage aloud and get a score with feedback.",
+  "homePage.sentenceCount": "{count} sentences",
+  "homePage.sentenceCountOne": "1 sentence",
+  "homePage.progressLabel": "{done} of {total} sentences done",
+  "homePage.writingRoundBack": "Round {round} feedback is back",
+  "homePage.writingRoundPending": "Round {round} feedback in progress",
+  "homePage.writingRoundFailed": "Round {round} feedback failed; retry from the draft",
+  "homePage.editedAt": "Edited {date}"
 } satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;

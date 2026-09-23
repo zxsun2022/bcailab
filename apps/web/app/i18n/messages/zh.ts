@@ -901,5 +901,28 @@ export const zh: Record<MessageKey, string> = {
   // --- sign-in email ---
   "email.loginCode.subject": "{code} 是你的 bcailab 登录验证码",
   "email.loginCode.body": "你的 bcailab 登录验证码是：{code}",
-  "email.loginCode.expiry": "验证码 10 分钟内有效。如果不是你本人申请的，忽略这封邮件即可。"
+  "email.loginCode.expiry": "验证码 10 分钟内有效。如果不是你本人申请的，忽略这封邮件即可。",
+
+  // --- home v3 ---
+  "homePage.welcomeLead": "{name}，欢迎回来。{lead}",
+  "homePage.leadDictation": "上次的听写还差 {left} 句。",
+  "homePage.leadDictationOne": "上次的听写还差 1 句。",
+  "homePage.leadWriting": "上次的写作还在等你。",
+  "homePage.leadRecommend": "今天推荐这一篇。",
+  "homePage.continueKicker": "继续上次的练习",
+  "homePage.continueFrom": "从第 {next} 句继续",
+  "homePage.keptSentences": "已完成的 {done} 句会保留",
+  "homePage.keptSentenceOne": "已完成的 1 句会保留",
+  "homePage.continueWritingButton": "继续写作",
+  "homePage.nextKicker": "接下来 · 教练推荐",
+  "homePage.startReading": "开始朗读",
+  "homePage.askDictation": "一句一句听，把听到的写下来，写完每句马上对照原文。",
+  "homePage.askReading": "把文章朗读出来，得到评分和反馈。",
+  "homePage.sentenceCount": "{count} 句",
+  "homePage.sentenceCountOne": "1 句",
+  "homePage.progressLabel": "已完成 {done} / {total} 句",
+  "homePage.writingRoundBack": "第 {round} 轮反馈已返回",
+  "homePage.writingRoundPending": "第 {round} 轮反馈生成中",
+  "homePage.writingRoundFailed": "第 {round} 轮反馈生成失败，可在草稿页重试",
+  "homePage.editedAt": "编辑于 {date}"
 };

@@ -204,9 +204,9 @@ bcailab                            ← all products
 
 ### 3.3 Home — action zone (top of viewport)
 
-> A presentation redesign of this action zone is proposed in
-> [`home-v3-design.md`](home-v3-design.md) (not yet authorized). Until it is, this section describes
-> current behaviour.
+> A presentation redesign of this action zone is specified in
+> [`home-v3-design.md`](home-v3-design.md), authorized 2026-09-23 as a roadmap Now item. Until it
+> ships, this section describes current behaviour.
 
 - **Continue** (when unfinished work exists): resumable dictation, recent writing draft.
   Highest priority — requires no intelligence and is unambiguously right.

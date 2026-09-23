@@ -1,11 +1,11 @@
 # English Studio Home v3 — one protagonist per state
 
-**Document role:** proposal.
+**Document role:** design (authorized).
 
-Status: **direction agreed by the owner 2026-09-23; not yet authorized for implementation.**
-The owner reviewed three outside Home mockups, agreed with the assessment in §2, and asked for
-this design. Implementation starts only when a roadmap entry with acceptance criteria is
-confirmed. §9 is the draft for that entry, and §8 lists the decisions still open.
+Status: **authorized 2026-09-23** as *Now — English Studio Home v3* in `docs/roadmap.md`, which
+carries the binding acceptance criteria; §9 is the draft they were refined from. The owner reviewed
+three outside Home mockups, agreed with the assessment in §2, asked for this design, and accepted
+all three recommendations in §8.
 
 Intended reader: the agent implementing Home v3, and anyone reopening its choices. It changes the
 **presentation** of `/english/home` (`apps/web/app/routes/english_.home.tsx`). It does not change
@@ -80,7 +80,7 @@ Top to bottom:
      - writing: "继续写作" / "Continue writing";
    - beside the button, one muted line:
      - dictation: "已完成的 {done} 句会保留" / "Your {done} checked sentences are kept";
-     - writing: "编辑于 {date}" / "Edited {date}", or the §6.2 state line if that decision is taken.
+     - writing: the §6.2 round-state line, followed by "编辑于 {date}" / "Edited {date}".
 3. **Recommendation strip** (only if a recommendation exists), ruled above and below:
    - left: kicker "接下来 · 教练推荐" / "Next · Coach pick", then the title (26 px) with the meta
      line inline, then the reason;
@@ -143,7 +143,7 @@ Mode, then level · topic, then sentence count, separated by ` / `. Example:
 
 - Topic is the passage's own `topic`. Leave the segment out when the topic is null.
 - Level is the passage's band, not the learner's level.
-- Writing shows `写作 / {prompt level if the article has an assignment}`, and no sentence count.
+- Writing shows `写作` only. Its state lives in the line beside the button (§6.2), not here.
 
 ### 5.3 Progress bar (dictation Continue only)
 
@@ -168,7 +168,7 @@ A three-column grid: title (with its mode line under it) · bar · value.
 
 ## 6. Behaviour changes (small, each testable)
 
-### 6.1 Stale Writing sessions stop being Continue (decision O1)
+### 6.1 Stale Writing sessions stop being Continue (decision O1: 14 days)
 
 Today the latest Writing session becomes Continue at any age. Proposed rule:
 
@@ -178,7 +178,7 @@ Today the latest Writing session becomes Continue at any age. Proposed rule:
 
 This is implemented in `pickContinue`, with tests for 13 and 15 days, and for both kinds present.
 
-### 6.2 Writing state line (decision O2)
+### 6.2 Writing state line (decision O2: yes)
 
 The writing hero could say more than "Edited {date}":
 
@@ -211,14 +211,16 @@ keeping three rows. This is a pure change in the loader's `recent` assembly.
 - Chinese copy follows the interface language (ADR 0011). Passage titles and topics stay English
   and carry `lang="en"`.
 
-## 8. Decisions for the owner
+## 8. Decisions (owner, 2026-09-23)
 
-- **O1 — Stale Writing cutoff (§6.1).** Recommended: 14 days. Alternatives: never (today's
-  behaviour), or 7 days.
-- **O2 — Writing state line (§6.2).** Recommended: yes, as specified, with no "unread" claim. It
-  costs one bounded query.
-- **O3 — Topic in the meta line.** Recommended: show the stored topic, upper-cased in the mono
-  line, and leave it out when absent. The alternative is to omit topic from Home.
+All three were taken as recommended:
+
+- **O1 — Stale Writing cutoff (§6.1): 14 days.** The alternatives were never (today's behaviour)
+  or 7 days.
+- **O2 — Writing state line (§6.2): yes**, as specified, with no "unread" claim. It costs one
+  bounded query.
+- **O3 — Topic in the meta line: shown**, taken from the passage's stored topic, upper-cased in
+  the mono line, and left out when absent.
 
 ## 9. Draft roadmap entry — "Now/Next — Home v3"
 
@@ -232,9 +234,9 @@ Acceptance criteria:
   text links, and only directions that exist are shown (unchanged seam behaviour).
 - (d) **No duration, streak, cross-mode average, tool grid or chart** appears on Home.
 - (e) **Recent** shows the §5.4 bars, and never repeats the Continue passage.
-- (f) **If O1 is taken**, a Writing session older than the cutoff is not Continue. Unit tests
+- (f) **O1:** a Writing session older than the cutoff is not Continue. Unit tests
   cover the boundary.
-- (g) **If O2 is taken**, the Writing hero shows the latest round state from one bounded query.
+- (g) **O2:** the Writing hero shows the latest round state from one bounded query.
   No copy claims the feedback is unread.
 - (h) **Layout checks.** At 390 px there is no horizontal scroll and the primary is 48 px. Dark
   mode passes contrast for bars and text.

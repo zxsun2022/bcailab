@@ -8,6 +8,7 @@ import {
   listHomeCandidates,
   listHomeRecordPassages,
   getHomeResumableDictation,
+  getLatestWritingRevision,
   type HomePassage,
   listRecentReadingAttempts,
   listRecentWritingArticlesByUser,
@@ -25,7 +26,13 @@ import {
   type StarterPractice,
   type WritingDraft
 } from "~/utils/starter-practice";
-import { RichMessage, useT } from "~/i18n/context";
+import {
+  emphasisOf,
+  homeLayout,
+  recentWithoutContinue,
+  type WritingRoundState
+} from "~/utils/home-view";
+import { RichMessage, useLocale, useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
 import { getRequestTranslator } from "~/i18n/locale.server";
 
@@ -188,7 +195,8 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       recordPassages,
       records,
       draft,
-      attemptCount: profile?.total_attempts ?? 0
+      attemptCount: profile?.total_attempts ?? 0,
+      now: new Date().toISOString()
     });
 
     // Partial history must not claim that a passage has never been practised.
@@ -271,13 +279,28 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
       );
     }
 
-    recent = [...byMaterial.values()]
-      .sort((x, y) => y.at.localeCompare(x.at))
-      .slice(0, RECENT_ROWS);
+    // The passage Continue already shows is not repeated below it (Home v3 §6.3).
+    recent = recentWithoutContinue(
+      [...byMaterial.values()].sort((x, y) => y.at.localeCompare(x.at)),
+      practice.continueAction,
+      RECENT_ROWS
+    );
 
   }
 
   const hasHistory = (profile?.total_attempts ?? 0) > 0 || recent.length > 0;
+
+  // One bounded read for one article: the Writing hero states where its latest round stands
+  // (Home v3 §6.2). Nothing records whether feedback was read, so the page never says "unread".
+  let writingRound: WritingRoundState | null = null;
+  if (practice.continueAction?.kind === "writing") {
+    const latest = await recover(
+      "writing-round",
+      getLatestWritingRevision(db, practice.continueAction.articleId),
+      null
+    );
+    if (latest) writingRound = { round: latest.round_number, feedback: latest.feedback_status };
+  }
 
   return json({
     user: { name: user.name, email: user.email, avatar_url: user.avatar_url },
@@ -287,6 +310,7 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     levelConfidence: profile?.cefr_measured_confidence ?? 0,
     totalAttempts: profile?.total_attempts ?? 0,
     practice,
+    writingRound,
     recent,
     hasHistory,
     degraded,
@@ -333,6 +357,7 @@ export default function EnglishHome() {
     levelConfidence,
     totalAttempts,
     practice,
+    writingRound,
     recent,
     hasHistory,
     degraded,
@@ -370,180 +395,299 @@ export default function EnglishHome() {
             volume: volumeText
           })
         : t("homePage.basisDeclared", { level, volume: volumeText });
+  const locale = useLocale();
+  const layout = homeLayout({ isCold, continueAction, recommendation: primary, alternatives });
+  const buttonClass = (id: Parameters<typeof emphasisOf>[1]) =>
+    emphasisOf(layout, id) === "primary" ? "btn btn-primary today-button" : "btn btn-ghost today-button";
+
+  const modeLabel = (mode: "dictation" | "reading") =>
+    mode === "dictation" ? t("module.dictation.label") : t("module.reading.label");
+  const sentenceText = (count: number) =>
+    count === 1 ? t("homePage.sentenceCountOne") : t("homePage.sentenceCount", { count });
+
+  // The greeting names the protagonist, so the page's first sentence says what the hero is.
+  const lead =
+    layout.state === "continue" && continueAction?.kind === "dictation"
+      ? continueAction.total - continueAction.done === 1
+        ? t("homePage.leadDictationOne")
+        : t("homePage.leadDictation", { left: continueAction.total - continueAction.done })
+      : layout.state === "continue"
+        ? t("homePage.leadWriting")
+        : layout.state === "recommend"
+          ? t("homePage.leadRecommend")
+          : null;
+  const description =
+    layout.state === "cold"
+      ? t("homePage.coldDescription")
+      : firstName && lead
+        ? t("homePage.welcomeLead", { name: firstName, lead })
+        : lead ??
+          (firstName ? t("homePage.greeting", { name: firstName }) : t("homePage.description"));
+
   const recentState = (item: RecentItem) =>
     item.latest.kind === "score"
       ? item.mode === "dictation"
         ? `${item.latest.value}%`
         : `${item.latest.value}`
       : item.latest.kind === "in_progress"
-        ? t("homePage.inProgress", { done: item.latest.done, total: item.latest.total ?? "?" })
+        ? `${item.latest.done}/${item.latest.total ?? "?"}`
         : t("homePage.evaluating");
+  // A bar only where there is a measure: a score, or progress through a known length.
+  const recentBar = (item: RecentItem): { width: number; progress: boolean } | null =>
+    item.latest.kind === "score"
+      ? { width: Math.max(0, Math.min(100, item.latest.value)), progress: false }
+      : item.latest.kind === "in_progress" && item.latest.total
+        ? { width: Math.round((item.latest.done / item.latest.total) * 100), progress: true }
+        : null;
 
   return (
     <StudioShell user={user}>
       <StudioPage width="wide">
         <StudioPageHeader
           title={t("homePage.title")}
-          description={
-            isCold
-              ? t("homePage.coldDescription")
-              : firstName
-                ? t("homePage.greeting", { name: firstName })
-                : t("homePage.description")
-          }
+          description={description}
           className="home-page-header"
         />
-        <StudioPageBody className="home-page">
+        <StudioPageBody className="home-page today">
 
-      {degraded ? (
-        <p className="home-degraded">
-          {t("homePage.degraded")}
-        </p>
-      ) : null}
+          {degraded ? <p className="home-degraded">{t("homePage.degraded")}</p> : null}
 
-      {isCold ? (
-        <section className="home-cold">
-          <div className="home-focus-primary">
-            <p className="home-card-kicker">{t("homePage.startHere")}</p>
-            <h2 className="home-card-title">{t("homePage.coldTitle")}</h2>
-            <p className="home-card-meta">{t("homePage.coldBody")}</p>
-            <div className="home-card-actions">
-              <Link to="/dictation" className="btn btn-primary">
-                {t("homePage.startDictation")}
-              </Link>
-            </div>
-          </div>
-          <LevelPicker />
-        </section>
-      ) : (
-        <>
-          <section
-            className={`home-actions${continueAction && primary ? "" : " is-single"}`}
-            aria-label={t("homePage.whatToDo")}
-          >
-            {continueAction ? (
-              <article className="home-focus-primary">
-                <p className="home-card-kicker">{t("homePage.continue")}</p>
-                {/* A passage title is English material; a draft title is the learner's own. */}
-                <h2 className="home-card-title" lang={continueAction.kind === "dictation" ? "en" : undefined}>
-                  {continueAction.kind === "writing" && continueAction.untitled
-                    ? t("homePage.untitledDraft")
-                    : continueAction.title}
-                </h2>
-                <p className="home-card-meta">
-                  {continueAction.kind === "dictation"
-                    ? t("homePage.continueDictation", {
-                        done: continueAction.done,
-                        total: continueAction.total
-                      })
-                    : (
+          {layout.state === "cold" ? (
+            <section className="today-hero" aria-labelledby="today-hero-title">
+              <p className="today-kicker">{t("homePage.startHere")}</p>
+              <h2 id="today-hero-title" className="today-title">{t("homePage.coldTitle")}</h2>
+              <p className="today-body">{t("homePage.coldBody")}</p>
+              <div className="today-actions">
+                <Link to="/dictation" className={buttonClass("coldDictation")}>
+                  {t("homePage.startDictation")}
+                </Link>
+              </div>
+            </section>
+          ) : null}
+          {layout.state === "cold" ? <LevelPicker /> : null}
+
+          {layout.state === "continue" && continueAction ? (
+            <section className="today-hero" aria-labelledby="today-hero-title">
+              <p className="today-kicker">{t("homePage.continueKicker")}</p>
+              {/* A passage title is English material; a draft title is the learner's own. */}
+              <h2
+                id="today-hero-title"
+                className="today-title"
+                lang={continueAction.kind === "dictation" ? "en" : undefined}
+              >
+                {continueAction.kind === "writing" && continueAction.untitled
+                  ? t("homePage.untitledDraft")
+                  : continueAction.title}
+              </h2>
+              {continueAction.kind === "dictation" ? (
+                <>
+                  <MetaLine
+                    parts={[
+                      t("module.dictation.label"),
+                      [continueAction.band, continueAction.topic],
+                      sentenceText(continueAction.total)
+                    ]}
+                  />
+                  <div
+                    className="today-progress"
+                    role="img"
+                    aria-label={t("homePage.progressLabel", {
+                      done: continueAction.done,
+                      total: continueAction.total
+                    })}
+                  >
+                    <span className="today-progress-track">
+                      <span
+                        className="today-progress-fill"
+                        style={{ width: `${Math.round((continueAction.done / Math.max(1, continueAction.total)) * 100)}%` }}
+                      />
+                    </span>
+                    <span className="today-progress-count" aria-hidden="true">
+                      {continueAction.done} / {continueAction.total}
+                    </span>
+                  </div>
+                  <div className="today-actions">
+                    <Link to={continueAction.href} className={buttonClass("continue")}>
+                      {t("homePage.continueFrom", { next: continueAction.done + 1 })}
+                    </Link>
+                    {continueAction.done > 0 ? (
+                      <span className="today-aside">
+                        {continueAction.done === 1
+                          ? t("homePage.keptSentenceOne")
+                          : t("homePage.keptSentences", { done: continueAction.done })}
+                      </span>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <MetaLine parts={[t("module.writing.label")]} />
+                  <div className="today-actions">
+                    <Link to={continueAction.href} className={buttonClass("continue")}>
+                      {t("homePage.continueWritingButton")}
+                    </Link>
+                    <span className="today-aside">
+                      {writingRound ? (
+                        <>
+                          {t(
+                            writingRound.feedback === "completed"
+                              ? "homePage.writingRoundBack"
+                              : writingRound.feedback === "pending"
+                                ? "homePage.writingRoundPending"
+                                : "homePage.writingRoundFailed",
+                            { round: writingRound.round }
+                          )}
+                          {" · "}
+                        </>
+                      ) : null}
                       <RichMessage
-                        id="homePage.continueWriting"
+                        id="homePage.editedAt"
                         values={{ date: <LocalDateTime value={continueAction.updatedAt} /> }}
                       />
-                    )}
-                </p>
-                <div className="home-card-actions">
-                  <Link to={continueAction.href} className="btn btn-primary">
-                    {t("homePage.continue")}
-                  </Link>
-                </div>
-              </article>
-            ) : null}
+                    </span>
+                  </div>
+                </>
+              )}
+            </section>
+          ) : null}
 
-            {primary ? (
-              <article className={continueAction ? "home-focus-secondary" : "home-focus-primary"}>
-                <p className="home-card-kicker">{t("homePage.recommendation")}</p>
-                <h2 className="home-card-title" lang="en">{primary.title}</h2>
-                <p className="home-card-meta">
-                  {primary.band ? <>{primary.band} · </> : null}
-                  {primary.topic ? <><span lang="en">{primary.topic}</span> · </> : null}
-                  {primary.mode === "dictation" ? t("module.dictation.label") : t("homePage.readAloud")}
+          {primary && (layout.state === "continue" || layout.state === "recommend") ? (
+            <section
+              className={layout.strip ? "today-strip" : "today-hero"}
+              aria-labelledby="today-recommendation-title"
+            >
+              <div className="today-strip-copy">
+                <p className={layout.strip ? "today-kicker is-quiet" : "today-kicker"}>
+                  {layout.strip ? t("homePage.nextKicker") : t("homePage.recommendation")}
                 </p>
-                <p className="home-card-why">{t(primary.reasonKey, primary.reasonVars)}</p>
-                <div className="home-card-actions">
-                  <Link to={primary.href} className={`btn ${continueAction ? "btn-ghost" : "btn-primary"}`}>
-                    {t("homePage.start")}
-                  </Link>
-                </div>
+                <h2
+                  id="today-recommendation-title"
+                  className={layout.strip ? "today-strip-title" : "today-title"}
+                  lang="en"
+                >
+                  {primary.title}
+                </h2>
+                <MetaLine
+                  parts={[modeLabel(primary.mode), [primary.band, primary.topic], sentenceText(primary.sentenceCount)]}
+                />
+                <p className={layout.strip ? "today-strip-why" : "today-body"}>
+                  {t(primary.reasonKey, primary.reasonVars)}
+                  {layout.strip ? null : (
+                    <>
+                      {/* Chinese sentences run on without a space; English needs one. */}
+                      {locale === "zh" ? "" : " "}
+                      {primary.mode === "dictation" ? t("homePage.askDictation") : t("homePage.askReading")}
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className={layout.strip ? "today-strip-actions" : "today-actions"}>
+                <Link to={primary.href} className={buttonClass("recommendation")}>
+                  {layout.strip
+                    ? t("homePage.start")
+                    : primary.mode === "dictation"
+                      ? t("homePage.startDictation")
+                      : t("homePage.startReading")}
+                </Link>
                 {alternatives.length > 0 ? (
-                  <div className="home-card-alternatives" aria-label={t("homePage.adjust")}>
+                  <div className="today-alternatives" aria-label={t("homePage.adjust")}>
                     {/* Directional, never a reshuffle: each swap is a choice the learner can
                         reason about, and is only rendered when such material exists. */}
                     {alternatives.map((alt) => (
-                      <Link key={alt.direction} to={alt.href} className="studio-link-secondary">
+                      <Link key={alt.direction} to={alt.href} className="today-alternative">
                         {t(`practice.alt.${alt.direction}`)}
                       </Link>
                     ))}
                   </div>
                 ) : null}
-              </article>
-            ) : null}
-
-            {!continueAction && !primary ? (
-              <article className="home-focus-primary">
-                <p className="home-card-kicker">{t("homePage.practice")}</p>
-                <h2 className="home-card-title">{t("homePage.chooseTitle")}</h2>
-                <p className="home-card-meta">{t("homePage.chooseBody")}</p>
-                <div className="home-card-actions">
-                  <Link to="/dictation" className="btn btn-primary">
-                    {t("module.dictation.label")}
-                  </Link>
-                  <Link to="/reading" className="btn btn-ghost btn-sm">
-                    {t("module.reading.label")}
-                  </Link>
-                </div>
-              </article>
-            ) : null}
-          </section>
-
-          {/*
-            The status grid used to live here. It now lives on /english/progress.
-
-            Home is where the loop restarts, so the only job this data has on this page is
-            to say what the recommendation above is worth — the IA calls the grid evidence
-            for the recommendation, not the front page (ia-v2 §3.3). Rendered as a grid it
-            outweighed the recommendation while saying almost nothing, because the model
-            needs several attempts before panels mean anything (ia-v2 §5.1).
-          */}
-          <section className="home-basis" aria-label={t("homePage.basisLabel")}>
-            <p className="home-basis-line">{basisSentence}</p>
-            <Link to="/english/progress" className="home-basis-more">
-              {t("homePage.fullProgress")}
-            </Link>
-          </section>
-
-          {level == null && !profileUnavailable ? <LevelPicker compact /> : null}
-
-          {recent.length > 0 ? (
-            <section className="home-recent-section" aria-label={t("homePage.recentLabel")}>
-              <div className="home-panel-head">
-                <span className="home-panel-title">{t("homePage.recent")}</span>
-              </div>
-              <div className="home-recent">
-                {recent.map((item) => (
-                  <Link key={item.id} to={item.href} className="home-recent-row">
-                    <span className="home-recent-title" lang="en">{item.title}</span>
-                    <span className="home-recent-meta">
-                      {[
-                        item.mode === "dictation" ? t("module.dictation.label") : t("module.reading.label"),
-                        // Repeated work is the story here; a single run has none to tell.
-                        item.attempts > 1
-                          ? item.best != null
-                            ? t("homePage.attemptsBest", { count: item.attempts, best: item.best })
-                            : t("homePage.attempts", { count: item.attempts })
-                          : recentState(item)
-                      ].join(" · ")}
-                    </span>
-                  </Link>
-                ))}
               </div>
             </section>
           ) : null}
-        </>
-      )}
+
+          {layout.state === "choose" ? (
+            <section className="today-hero" aria-labelledby="today-hero-title">
+              <p className="today-kicker">{t("homePage.practice")}</p>
+              <h2 id="today-hero-title" className="today-title">{t("homePage.chooseTitle")}</h2>
+              <p className="today-body">{t("homePage.chooseBody")}</p>
+              <div className="today-actions">
+                <Link to="/dictation" className={buttonClass("chooseDictation")}>
+                  {t("module.dictation.label")}
+                </Link>
+                <Link to="/reading" className={buttonClass("chooseReading")}>
+                  {t("module.reading.label")}
+                </Link>
+              </div>
+            </section>
+          ) : null}
+
+          {layout.state === "cold" ? null : (
+            <>
+              {/*
+                The status grid used to live here. It now lives on /english/progress: Home is
+                where the loop restarts, so its data only says what the recommendation above
+                is worth (ia-v2 §3.3).
+              */}
+              <section className="home-basis" aria-label={t("homePage.basisLabel")}>
+                <p className="home-basis-line">{basisSentence}</p>
+                <Link to="/english/progress" className="home-basis-more">
+                  {t("homePage.fullProgress")}
+                </Link>
+              </section>
+
+              {level == null && !profileUnavailable ? <LevelPicker compact /> : null}
+
+              {recent.length > 0 ? (
+                <section className="today-recent" aria-label={t("homePage.recentLabel")}>
+                  <p className="today-kicker is-quiet">{t("homePage.recent")}</p>
+                  <div className="today-recent-list">
+                    {recent.map((item) => {
+                      const bar = recentBar(item);
+                      return (
+                        <Link key={item.id} to={item.href} className="today-recent-row">
+                          <span className="today-recent-copy">
+                            <span className="today-recent-title" lang="en">{item.title}</span>
+                            <span className="today-recent-meta">
+                              {item.attempts > 1
+                                ? [
+                                    modeLabel(item.mode),
+                                    item.best != null
+                                      ? t("homePage.attemptsBest", { count: item.attempts, best: item.best })
+                                      : t("homePage.attempts", { count: item.attempts })
+                                  ].join(" · ")
+                                : modeLabel(item.mode)}
+                            </span>
+                          </span>
+                          <span className="today-recent-bar" aria-hidden="true">
+                            {bar ? (
+                              <span
+                                className={bar.progress ? "today-recent-fill is-progress" : "today-recent-fill"}
+                                style={{ width: `${bar.width}%` }}
+                              />
+                            ) : null}
+                          </span>
+                          <span className="today-recent-value">{recentState(item)}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </section>
+              ) : null}
+            </>
+          )}
         </StudioPageBody>
       </StudioPage>
     </StudioShell>
   );
+}
+
+/**
+ * The hero's meta line: mode / band · topic / length (design §5.2). A part that is an array is
+ * joined with " · " and dropped when all its values are missing, so an absent topic leaves no
+ * stray separator.
+ */
+function MetaLine({ parts }: { parts: Array<string | Array<string | null>> }) {
+  const segments = parts
+    .map((part) => (Array.isArray(part) ? part.filter(Boolean).join(" · ") : part))
+    .filter((segment) => segment.length > 0);
+  return <p className="today-meta">{segments.join(" / ")}</p>;
 }

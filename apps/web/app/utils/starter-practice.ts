@@ -64,6 +64,7 @@ export type ContinueAction =
       passageId: string;
       title: string;
       band: string | null;
+      topic: string | null;
       done: number;
       total: number;
       href: string;
@@ -128,6 +129,25 @@ export type StarterPracticeInput = {
   draft: WritingDraft | null;
   /** Completed attempts so far — drives the deterministic exploration cadence. */
   attemptCount: number;
+  /**
+   * The request time, as an ISO string. Passed in rather than read, so the function stays free
+   * of clocks. Only the Writing staleness cutoff uses it; when absent, no draft is too old.
+   */
+  now?: string;
+};
+
+/**
+ * A Writing session untouched for longer than this is not offered as Continue (Home v3, O1).
+ * Writing has no finished state, so without a cutoff the latest session stays on Home forever;
+ * it remains reachable from `/writing`. Dictation is exempt: its resume state is exact and cheap.
+ */
+export const WRITING_CONTINUE_MAX_AGE_DAYS = 14;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const isStaleDraft = (draft: WritingDraft, now: string | undefined): boolean => {
+  if (!now) return false;
+  const age = Date.parse(now) - Date.parse(draft.updatedAt);
+  return Number.isFinite(age) && age > WRITING_CONTINUE_MAX_AGE_DAYS * DAY_MS;
 };
 
 /**
@@ -168,7 +188,8 @@ const byTitle = (a: CandidatePassage, b: CandidatePassage) => a.title.localeComp
 const pickContinue = (
   records: PracticeRecord[],
   candidates: CandidatePassage[],
-  draft: WritingDraft | null
+  draft: WritingDraft | null,
+  now: string | undefined
 ): ContinueAction | null => {
   const byId = new Map(candidates.map((c) => [c.id, c]));
 
@@ -184,13 +205,14 @@ const pickContinue = (
         passageId: resumable.passageId,
         title: byId.get(resumable.passageId)!.title,
         band: byId.get(resumable.passageId)!.band,
+        topic: byId.get(resumable.passageId)!.topic,
         done: resumable.sentencesDone,
         total: byId.get(resumable.passageId)!.sentenceCount,
         href: passageHref("dictation", resumable.passageId)
       }
     : null;
 
-  const writingAction: ContinueAction | null = draft
+  const writingAction: ContinueAction | null = draft && !isStaleDraft(draft, now)
     ? {
         kind: "writing",
         articleId: draft.articleId,
@@ -211,11 +233,11 @@ const pickContinue = (
 };
 
 export const selectStarterPractice = (input: StarterPracticeInput): StarterPractice => {
-  const { candidates, records, level, draft, attemptCount } = input;
+  const { candidates, records, level, draft, attemptCount, now } = input;
 
   const recordPassages = input.recordPassages ?? candidates;
   const knownPassages = [...candidates, ...recordPassages];
-  const continueAction = pickContinue(records, recordPassages, draft);
+  const continueAction = pickContinue(records, recordPassages, draft, now);
 
   const practisedByMode = new Map<string, PracticeRecord[]>();
   for (const record of records) {
