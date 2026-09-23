@@ -16,6 +16,10 @@ make the final transition; see `AGENTS.md`.
   and from the site header. It replaces the Reading, Writing and Speech settings pages, which
   only repeated those shared choices. Their URLs 301 to `/settings`. The public site header keeps
   its switch for signed-out visitors. Design: `docs/chinese-ui-design.md` §3.2.
+  - **Rail icons.** Also at the owner's request, each rail destination now leads with a line
+    icon: house, chart, headphones, microphone, pen, translate and speaker. The collapsed rail
+    shows the icon in place of the old initial-in-a-circle, which read poorly in Chinese (写 and
+    朗 are hard to tell apart at 10 px). Rule: `docs/design-system.md`, layout section.
 
 - 2026-09-22 — **accepted: owner acceptance of the Chinese interface, stages 1–3.** The owner
   accepted all three stages of "Now — Chinese interface for Chinese-speaking learners" (merged as

@@ -9785,17 +9785,9 @@ select.input:focus {
   content: "";
 }
 
-.nav-rail-module-mark {
-  display: none;
-  width: 20px;
-  height: 20px;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border: 1px solid var(--border);
-  border-radius: 50%;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
+/* Studio rail rows lead with a line icon; alone in the collapsed rail. */
+.nav-rail-studio-item {
+  gap: 12px;
 }
 
 .tool-nav-rail.is-collapsed .nav-rail-studio-nav {
@@ -9816,9 +9808,6 @@ select.input:focus {
   gap: 0;
 }
 
-.tool-nav-rail.is-collapsed .nav-rail-module-mark {
-  display: flex;
-}
 
 .translate-studio-back {
   display: inline-block;

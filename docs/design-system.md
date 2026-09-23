@@ -180,6 +180,10 @@ Tool pages (Writing, Reading, Speech) use a full-viewport shell that hides the g
 **Key principles:**
 - The **canvas** constrains content width and centers it horizontally. Sub-pages may apply narrower inner max-widths (e.g. 720px for editors, 600px for settings).
 - The **nav rail** is collapsible (persisted in localStorage). On mobile (<1024px), it renders as a drawer overlay.
+- Every rail destination leads with a line icon (`apps/web/app/components/NavRailIcons.tsx`): one
+  family, 24-unit grid, 1.5 stroke, round caps, no fills, drawn in `currentColor` so it takes the
+  row's muted, hover and current colours. The collapsed rail shows the icon alone. The icons are
+  the same in both interface languages. A new rail destination needs an icon from the same family.
 - Optional **aside panels** (e.g. revision timeline) sit inside the canvas alongside the main content, not at the shell level.
 - The canvas stays centered regardless of nav rail collapse state or screen width.
 

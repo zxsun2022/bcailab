@@ -3,6 +3,7 @@ import { Link, useLocation } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
 import { useT } from "~/i18n/context";
+import { NavRailIcon } from "~/components/NavRailIcons";
 import {
   ENGLISH_MODULES,
   moduleCopy,
@@ -262,9 +263,7 @@ export function ToolNavRail({ user }: ToolNavRailProps) {
                 : ""
             }`}
           >
-            <span className="nav-rail-module-mark" aria-hidden="true">
-              {t("common.home").slice(0, 1)}
-            </span>
+            <NavRailIcon name="home" />
             <span className="nav-rail-label">{t("common.home")}</span>
           </Link>
           {user ? (
@@ -274,9 +273,7 @@ export function ToolNavRail({ user }: ToolNavRailProps) {
                 isProgressView ? " is-current" : ""
               }`}
             >
-              <span className="nav-rail-module-mark" aria-hidden="true">
-                {t("common.progress").slice(0, 1)}
-              </span>
+              <NavRailIcon name="progress" />
               <span className="nav-rail-label">{t("common.progress")}</span>
             </Link>
           ) : null}
@@ -417,9 +414,7 @@ function EnglishModuleGroupLinks({
             className={`nav-rail-studio-item${active ? " is-current" : ""}`}
             onClick={(event) => handleClick(event, module)}
           >
-            <span className="nav-rail-module-mark" aria-hidden="true">
-              {label.slice(0, 1)}
-            </span>
+            <NavRailIcon name={module.id} />
             <span className="nav-rail-label">{label}</span>
           </Link>
         );
