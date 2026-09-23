@@ -7,7 +7,6 @@ export type Env = {
   GOOGLE_CLIENT_SECRET: string;
   GOOGLE_TTS_SERVICE_ACCOUNT_JSON: string;
   GEMINI_API_KEY?: string;
-  GEMINI_MODEL?: string;
   GEMINI_BASE_URL?: string;
   RESEND_API_KEY?: string;
   RESEND_FROM?: string;

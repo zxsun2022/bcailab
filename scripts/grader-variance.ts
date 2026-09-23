@@ -39,7 +39,7 @@ import { attributeReadingErrors } from "../apps/web/app/utils/learner-model";
 /** Mirrors the `reading_eval` entry in `apps/web/app/utils/llm.server.ts` (EVAL_MODEL).
  *  Override with --model if you want to
  *  compare a different candidate model's variance. */
-const DEFAULT_MODEL = "gemini-3.6-flash";
+const DEFAULT_MODEL = "gemini-3.8-flash";
 const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
@@ -95,7 +95,7 @@ const parseArgs = (): Args => {
   const audioPath = read("--audio");
   const passagePath = read("--passage");
   if (!audioPath || !passagePath) {
-    throw new Error("Usage: --audio <file> --passage <text file> [--brief <file>] [--runs 5] [--label short] [--mode reading] [--model gemini-3.6-flash] [--lang zh]");
+    throw new Error("Usage: --audio <file> --passage <text file> [--brief <file>] [--runs 5] [--label short] [--mode reading] [--model gemini-3.8-flash] [--lang zh]");
   }
 
   const runs = Number(read("--runs") ?? "5");

@@ -19,8 +19,8 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
 
 | Tier | Identified by | Max chars/request | Requests/day | Model task |
 |------|---------------|-------------------|--------------|------------|
-| Anonymous | `bcailab_anon` cookie **and** client IP (both counted; the higher count wins) | 5,000 | 8 | `translate_anonymous` (flash-lite) |
-| Signed-in ("free") | user id | 20,000 | 200 (invisible abuse cap) | `translate` (flash / `GEMINI_MODEL`) |
+| Anonymous | `bcailab_anon` cookie **and** client IP (both counted; the higher count wins) | 5,000 | 8 | `translate_anonymous` |
+| Signed-in ("free") | user id | 20,000 | 200 (invisible abuse cap) | `translate` |
 
 - Quota is checked before the LLM call and recorded only after a successful translation.
 - Anonymous UI shows a banner with remaining translations and a sign-in CTA; hitting the
@@ -106,7 +106,7 @@ Cloudflare reason under "Provider failures" above.
 | `done` | `{"remainingToday": n, "proof": "…"\|null}` | Success terminator. A non-null proof binds an eligible completed snapshot without containing its text. |
 | `error` | `{"error": "…", "code"?: "quota_exceeded"\|"too_long"}` | Terminal; may arrive first. |
 
-- Uses the existing `GEMINI_API_KEY` / `GEMINI_MODEL` env vars — no new infrastructure.
+- Uses the existing `GEMINI_API_KEY`; both tasks' models are pinned in `llm.server.ts`.
 - Translation text is not persisted by translating. Daily usage counters are stored in
   `translate_usage`; full text enters `saved_translations` only after an authenticated,
   explicit, proof-verified Save.

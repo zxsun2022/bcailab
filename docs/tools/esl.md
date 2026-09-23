@@ -114,7 +114,7 @@ via the `reading_.trial.tsx` route-name prefix.
 - **Desktop scroll ownership**: The primary page scroll belongs to the center stage, while the history list inside the right rail scrolls independently when it overflows.
 
 ### Passage Management
-- Create passage with content text plus the first recording in a single submit; title auto-generated via `gemini-2.5-flash-lite` with `thinkingBudget=0`.
+- Create passage with content text plus the first recording in a single submit; title auto-generated via the `title_generation` task (Flash-Lite, see `llm.server.ts`) with `thinkingBudget=0`.
 - Passage content is normalized to LF line endings before storage.
 - Max passage length: `8,000` characters (`MAX_ESL_PASSAGE_CHARS`).
 - Passage deletion is available from the passage list item menu and removes the passage plus all stored attempts for that passage.
@@ -189,8 +189,8 @@ via the `reading_.trial.tsx` route-name prefix.
 - Completed feedback shows a compact score summary: desktop uses a left overall-score panel plus right-side dimension grid; mobile stacks them vertically.
 - Highlights render the explicit target word or phrase from `text_quote` when available, otherwise they fall back to a validated `text_span`. The UI suppresses obviously broken partial-word spans instead of showing misleading chips.
 - Progress dashboard aggregates current non-deleted passages plus evaluated attempts, showing total passages, evaluated attempts, practice time, best score, overall-score trend, average subscores, recent AI progress notes, and recent passages with their latest score.
-- Primary evaluator: Gemini. The `reading_eval` task uses `gemini-3.6-flash`
-  (`apps/web/app/utils/llm.server.ts`), and `GEMINI_MODEL` overrides it when set.
+- Primary evaluator: Gemini. The `reading_eval` task is pinned to `gemini-3.8-flash`
+  (`apps/web/app/utils/llm.server.ts`); no environment variable overrides it.
 - Hard fallback when Gemini fails: local heuristic evaluator (`model_name = local-heuristic-fallback`).
 - Prompt includes:
   - Passage text and current audio
@@ -274,7 +274,6 @@ reading-v2 vision that never shipped and were never wired up. The shared learner
 
 ## Configuration
 - `GEMINI_API_KEY` (required for Gemini path)
-- `GEMINI_MODEL` (optional, defaults to `gemini-flash-latest`)
 
 ## Planned (Not Yet Implemented)
 - Dictionary (`/esl/dictionary`)

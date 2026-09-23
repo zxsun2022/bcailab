@@ -173,7 +173,7 @@ Academic Writing, Business Writing, Fiction (Short Story), Diagnosis Mode.
 
 ## Article Title
 
-- Title is optional on creation. If the user leaves it blank, a title is auto-generated via `gemini-flash-lite-latest` (same pattern as passage title generation in Reading) after the first round submission.
+- Title is optional on creation. If the user leaves it blank, a title is auto-generated via the `title_generation` task (Flash-Lite, same pattern as passage title generation in Reading) after the first round submission.
 - Generated title: 2–8 words, max 60 characters, plain text.
 - Title is displayed as an inline-editable field in the article detail page header. The default state shows the title as plain text; clicking it (or clicking a small pencil icon beside it) switches to an input field. Pressing Enter or blurring the input saves via fetcher. Pressing Escape cancels the edit.
 - Title updates use a fetcher POST to the article detail route with `_intent=updateTitle`.
@@ -273,7 +273,7 @@ Follows the same async pattern as Reading:
 - Prompt-backed work includes the immutable assignment snapshot. Task 1 evaluation receives
   canonical values, units, labels, and key facts from that snapshot; it hard-fails if those
   facts are absent. Scores are presented as coach estimates, not official IELTS results.
-- Model: `gemini-flash-latest` (same env var `GEMINI_MODEL` as Reading).
+- Model: the `writing_feedback` task, pinned to `gemini-3.8-flash` in `llm.server.ts`, like Reading.
 - Generation config: `responseMimeType: "application/json"`, `temperature: 0.3`.
 
 ## Interaction Flows
@@ -405,7 +405,6 @@ resolution or feedback-generation/retry behavior changes.
 ## Configuration
 
 - `GEMINI_API_KEY` (required; shared with Reading tool)
-- `GEMINI_MODEL` (optional; shared with Reading tool, defaults to `gemini-flash-latest`)
 
 ## Homepage Entry
 

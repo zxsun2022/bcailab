@@ -396,7 +396,8 @@ export const generatePassageTitle = async (env: Env, contentText: string): Promi
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: 24,
-        thinkingConfig: { thinkingBudget: 0 }
+        // Gemini 3 models reject `thinkingBudget`; "minimal" is their no-thinking setting.
+        thinkingConfig: { thinkingLevel: "minimal" }
       }
     });
     const normalized = normalizeEslPassageTitle(text);

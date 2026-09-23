@@ -47,8 +47,10 @@ All model calls go through `apps/web/app/utils/llm.server.ts`, which owns the ta
 routing table (e.g. anonymous translation uses a cheaper model). The optional `GEMINI_BASE_URL`
 env var can point calls at Cloudflare AI Gateway without code changes.
 
-The task routing table in that module is the source of truth for current model IDs and
-`envModelOverride` behavior. Do not infer a live model choice from dated rollout notes.
+The task routing table in that module is the only source of model IDs. Every task is pinned to
+an exact version, never a floating `-latest` alias, and no environment variable overrides it: a
+model change is a reviewed code change (owner decision 2026-09-23). Do not infer a live model
+choice from dated rollout notes.
 
 `callGemini` returns the whole response; `streamGemini` is the incremental variant over
 `:streamGenerateContent?alt=sse`, used where the user watches output arrive (currently Translate

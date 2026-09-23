@@ -9,6 +9,35 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **Models pinned in code; `GEMINI_MODEL` override removed.** Owner decision after
+  a read-only production query showed every Reading evaluation had run on `gemini-flash-latest`.
+  Production's `GEMINI_MODEL` secret was set to that floating alias.
+  - **Why it mattered.** The secret overrode five tasks: translate, reading_eval,
+    writing_feedback, dictation_feedback and learner_profile_naming. The cost-sensitive ones
+    silently ran on whatever Flash the alias pointed at. The graders' model could also change
+    under stored scores with no record.
+  - **What changed.** `llm.server.ts` now pins `gemini-3.8-flash` for `reading_eval` and
+    `writing_feedback`, and `gemini-3.5-flash-lite` for every other task. Both names were
+    confirmed against the Gemini model list. The environment override is gone. A test asserts
+    every task is an exact version, never `-latest`.
+  - **Scripts and docs.** `scripts/grader-variance.ts` defaults to the new grader model. The
+    configuration docs no longer list `GEMINI_MODEL`.
+  - **Owner step.** Delete `GEMINI_MODEL` from the Pages environments. It is ignored after
+    deploy, so this is cleanup, not a switch.
+  - **Found while verifying.** `gemini-3.5-flash-lite` rejects `thinkingBudget: 0` with HTTP 400,
+    which would have silently stopped Reading and Writing auto-titles. Both title calls now send
+    `thinkingLevel: "minimal"`.
+  - **Checked with real calls:**
+    - title generation with the new setting;
+    - `translate` and `translate_anonymous` through `translateText`, with parsed output;
+    - `dictation_feedback` in English and Chinese through its production prompt: three patterns
+      each, coerced cleanly;
+    - `gemini-3.8-flash` JSON output.
+  - **Not re-run.** The grader-variance check has not been run on `gemini-3.8-flash`, and a real
+    Reading evaluation with audio has not been exercised; both need a real reading recording.
+    `learner_profile_naming` was not called; its JSON contract is the same shape as dictation
+    feedback's.
+
 - 2026-09-23 — **Home `···` menu dismisses like a menu.** Owner request after accepting Home
   v3.1, whose PR recorded that the native `<details>` disclosure stayed open on an outside click.
   It now closes on a click or tap outside, on Escape (focus returns to the toggle), and after a

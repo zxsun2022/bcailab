@@ -89,7 +89,6 @@ Set the following for the Pages project:
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_TTS_SERVICE_ACCOUNT_JSON`
 - `GEMINI_API_KEY`
-- `GEMINI_MODEL` (recommended: `gemini-flash-latest`)
 - `GEMINI_BASE_URL` (optional; point at Cloudflare AI Gateway instead of the Google API origin)
 - `OAUTH_REDIRECT_URL` (e.g. `https://bcailab.com/auth/callback`)
 - `SESSION_SECRET`
@@ -197,7 +196,7 @@ Recommended setup:
 - In Pages project settings, configure **Preview** bindings/env vars:
   - `DB` -> staging D1
   - `R2` -> staging R2 bucket
-  - `GEMINI_API_KEY`, `GEMINI_MODEL`, and all auth/session env vars
+  - `GEMINI_API_KEY` and all auth/session env vars (models are pinned in code, not set here)
   - for Mapdown handoff, the paired stable Preview origins and shared secret described under
     "Pages Environment Variables"; Web and Mapdown must bind the same staging D1 because the
     nonce is created by Web and consumed by Mapdown
