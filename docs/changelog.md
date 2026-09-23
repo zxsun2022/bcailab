@@ -9,7 +9,10 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-09-23 — **in_review: Dictation sentence navigator.** Owner-authorized the same day, with
+- 2026-09-23 — **accepted: owner acceptance of the Dictation sentence navigator.** The owner
+  accepted it after PR #75 merged; the roadmap item moved to the accepted history.
+
+- 2026-09-23 — **accepted: Dictation sentence navigator.** Owner-authorized the same day, with
   decisions D1 (review only) and D2 (later sentences locked). A session now shows one step per
   sentence: checked steps (tick) open a read-only review with replay, diff and reference; the
   current step is outlined; later steps are locked. Review returns to the current sentence with
