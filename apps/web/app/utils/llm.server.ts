@@ -40,9 +40,10 @@ export const TASK_MODELS: Record<LlmTask, string> = {
   writing_feedback: EVAL_MODEL,
   title_generation: LITE_MODEL,
   // Dictation v1 generates material offline (scripts/material-seed/), which cannot import app
-  // code and pins its own model. This entry is the control point for when generation moves
-  // into the runtime.
-  dictation_generate: LITE_MODEL,
+  // code and pins the same model itself. Material quality is the product, so it uses the
+  // newest Flash (owner decision 2026-09-23). This entry is the control point for when
+  // generation moves into the runtime.
+  dictation_generate: EVAL_MODEL,
   dictation_feedback: LITE_MODEL,
   // Names the deterministic tag-mastery aggregate for the learner; interpretation only,
   // never deciding whether a weakness exists (learner-model design §6.4).

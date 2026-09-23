@@ -31,8 +31,12 @@ export const DICTATION_TOPICS = [
   "weather"
 ] as const;
 
-/** Mirrors `dictation_generate` in the app's LLM routing table (design §8). */
-export const DICTATION_GENERATE_MODEL = "gemini-flash-latest";
+/**
+ * Mirrors `dictation_generate` in the app's LLM routing table (design §8). A pinned version,
+ * never a `-latest` alias: a batch's material should be reproducible from its recorded model.
+ * Owner decision 2026-09-23: the newest Flash, because material quality is the product.
+ */
+export const DICTATION_GENERATE_MODEL = "gemini-3.8-flash";
 
 export const DICTATION_SENTENCE_MIN = 8;
 export const DICTATION_SENTENCE_MAX = 12;

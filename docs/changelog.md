@@ -9,6 +9,12 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **Offline material generation pinned to `gemini-3.8-flash`.** Owner decision,
+  following the model pinning above. `scripts/material-seed/generate.ts` used the floating
+  `gemini-flash-latest`, so a batch's material could not be tied to the model that wrote it. It
+  now pins `gemini-3.8-flash`, and the app's `dictation_generate` routing entry says the same. A
+  test fails if the script and the routing entry disagree.
+
 - 2026-09-23 — **Models pinned in code; `GEMINI_MODEL` override removed.** Owner decision after
   a read-only production query showed every Reading evaluation had run on `gemini-flash-latest`.
   Production's `GEMINI_MODEL` secret was set to that floating alias.
