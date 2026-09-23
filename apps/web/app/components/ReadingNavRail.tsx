@@ -12,9 +12,6 @@ import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
  */
 export function ReadingNavRail({ user }: { user: NavUser }) {
   return (
-    <ToolNavRail
-      settingsTo="/reading/settings"
-      user={user}
-    />
+    <ToolNavRail user={user} />
   );
 }

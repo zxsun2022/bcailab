@@ -50,7 +50,7 @@ material stay English and carry `lang="en"`.
 | Assignment preview | `/writing/prompt/:slug` | Preview one published assignment and its accessible material without creating an article. The first draft submission creates the durable work. |
 | Writing progress | `/writing/progress` | Progress dashboard opened inside the center canvas. |
 | Legacy progress redirect | `/writing/dashboard` | Redirects to `/writing/progress` for backward compatibility. |
-| Writing settings | `/writing/settings` | Writing-specific settings page opened inside the center canvas. |
+| Writing settings (legacy) | `/writing/settings` | 301 redirect to the shared `/settings` page. |
 | Article detail | `/writing/:id` | Fixed article context + draft body + feedback aside with round navigation. |
 | Status resource | `/writing/:id/status` | Auth required. JSON endpoint for feedback status polling. |
 | Anonymous trial | `/writing/trial` | **Public.** One-shot feedback with nothing persisted — see below. |
@@ -91,8 +91,8 @@ navigation; article history and revision controls belong to Writing surfaces.
 
 ### Shell and columns
 
-- **Product rail:** `WritingNavRail` supplies the Writing settings destination and user to
-  `ToolNavRail`. It does not query/list articles or add “Writing home” / “New Article” actions.
+- **Product rail:** `WritingNavRail` supplies the user to `ToolNavRail`; the account menu's
+  `Settings` entry opens the shared `/settings` page. It does not query/list articles or add “Writing home” / “New Article” actions.
   The shared rail owns collapse, mobile drawer, focus restoration and account controls.
 - **Main workspace:** `StudioShell` hosts the route outlet. Catalogue, freeform, assignment,
   session list, progress and settings use `StudioPage` frames. Width values come from
@@ -238,7 +238,7 @@ When coaches requiring formatting (Business Writing, Academic) are added, migrat
 ### Feedback Language
 
 Same as Reading tool:
-- User selects the shared feedback language from either tool's settings: **Follow interface**
+- User selects the shared feedback language on `/settings`: **Follow interface**
   (the default), English, or Chinese. "Follow interface" requests feedback in the language the
   page is shown in (ADR 0011); an explicit choice outranks the interface.
 - The preference is stored under `bcailab-feedback-language-v2` as `auto`, `en` or `zh`
@@ -330,7 +330,7 @@ Follows the same async pattern as Reading:
 
 1. Left panel lists all articles sorted by `updated_at` DESC.
 2. Pinned actions at the top open `/writing`, `/writing/new`, and `/writing/progress`.
-3. Bottom of the rail includes a persistent `Settings` entry that opens `/writing/settings` in the center canvas.
+3. The account menu at the bottom of the rail includes a `Settings` entry that opens the shared `/settings` page.
 4. Hover reveals three-dot menu → "Delete article" using an accessible portal dialog.
 5. The owning article is soft-deleted; its learner-authored revisions remain recoverable.
 6. Clicking an article navigates to `/writing/:id`.
@@ -366,13 +366,13 @@ Follows the same async pattern as Reading:
 | `apps/web/app/routes/writing.prompt.$slug.tsx` | Route | Published assignment preview and atomic first submit |
 | `apps/web/app/routes/writing.progress.tsx` | Route | Progress dashboard in the center canvas |
 | `apps/web/app/routes/writing.dashboard.tsx` | Route | Legacy redirect from `/writing/dashboard` to `/writing/progress` |
-| `apps/web/app/routes/writing.settings.tsx` | Route | Writing settings page in the center canvas |
+| `apps/web/app/routes/writing.settings.tsx` | Route | Legacy redirect to the shared `/settings` page |
 | `apps/web/app/routes/writing.$id.tsx` | Route | Article detail: editor + feedback + actions |
 | `apps/web/app/routes/writing.$id_.status.ts` | Route | Feedback status polling endpoint |
 | `apps/web/app/utils/writing-eval.server.ts` | Server | Gemini prompt construction, response parsing, fallback |
 | `apps/web/app/utils/writing-prompt.server.ts` | Server | Materialize validated prompt rows into immutable snapshots |
 | `apps/web/app/utils/writing-agents.ts` | Shared | Coach definitions (rubric, tone, constraints) |
-| `apps/web/app/utils/writing-settings.ts` | Shared | Writing feedback-language storage and change events |
+| `apps/web/app/utils/writing-settings.ts` | Shared | Writing's names for the shared feedback-language type and parser |
 | `apps/web/app/utils/use-writing-feedback-language.ts` | Shared | Hook for reading and updating the writing feedback language |
 | `apps/web/app/utils/writing-article.server.ts` | Server | Article/revision CRUD, feedback scheduling |
 | `apps/web/app/components/WritingEditor.tsx` | Component | Textarea editor with word count |

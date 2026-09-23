@@ -26,7 +26,7 @@ working rule.)
 
 ## Workspace Structure
 - Desktop `/speech` follows the shared tool-shell pattern used by Writing and Reading:
-  - shared left rail shell for history and settings access
+  - shared left rail shell; its account menu opens the shared `/settings` page
   - a single `speech-center-stage` that owns the main page scroll
   - a constrained `speech-content-column` for the generator and selected-record views
 - In the desktop compose state, the input card intentionally fills the available workspace height so the textarea remains the dominant surface and the generate controls stay anchored near the bottom edge.
@@ -43,7 +43,7 @@ working rule.)
 
 ## Interface language
 
-Generate, history and settings render in the visitor's interface language (ADR 0011). Speech
+Generate and history render in the visitor's interface language (ADR 0011). Speech
 language names are autonyms (Français, 日本語) and stay as written; voice names are proper
 names, and only the gender Google attaches is translated. Input problems carry a message key
 (`TtsValidationError`); provider messages, such as a failed voice-list load, are shown as the

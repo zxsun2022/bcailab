@@ -8456,6 +8456,18 @@ select.input:focus {
   color: var(--text);
 }
 
+.settings-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.settings-account-actions .settings-signout-btn {
+  margin-top: 0;
+  text-decoration: none;
+}
+
 /* ==========================================================================
    WRITING DASHBOARD
    ========================================================================== */
@@ -10615,21 +10627,9 @@ select.input:focus {
   border-color: var(--border-hover);
 }
 
-.locale-switch:focus-visible,
-.locale-switch-rail:focus-visible {
+.locale-switch:focus-visible {
   outline: 2px solid var(--color-action);
   outline-offset: 2px;
-}
-
-/* Studio rail: the same row shape as the module links above it, so the collapsed rail
-   shows a mark (EN / 中) exactly where a module shows its initial. */
-.locale-switch-rail {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  font-family: var(--font-body);
-  text-align: left;
-  cursor: pointer;
 }
 
 /* ---------- Chinese interface typography (design §6, docs/design-system.md) ----------

@@ -66,8 +66,10 @@ and with the browser's own conventions in the English one, so a Chinese page nev
 "Sep 22, 2026".
 
 The language switch names the other language in that language ("中文" / "English") so it is
-findable by someone who cannot read the current one. It sits beside Sign in on the site header
-and above the account row in the studio rail, where the collapsed rail shows `EN` / `中`.
+findable by someone who cannot read the current one. It sits beside Sign in on the public site
+header only. Inside English Studio the interface language is set on `/settings`, reached from the
+account menu, and the rail carries no language control: the choice is made once, and
+`Accept-Language` has usually made it already (owner decision, 2026-09-22).
 
 ## Color Tokens
 
@@ -240,3 +242,4 @@ Header stays behavior-compatible with current product logic:
 - Home page structure: `apps/web/app/routes/_index.tsx`
 - Interface copy and locale: `apps/web/app/i18n/` (catalogues in `messages/`)
 - Language switch: `apps/web/app/components/LanguageSwitcher.tsx`
+- Settings (interface language, feedback language, theme): `apps/web/app/routes/settings.tsx`

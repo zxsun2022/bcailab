@@ -12,7 +12,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 | Reading catalogue | `/reading` (index) | The graded library by band (your band open and marked, others folded, none locked), practice state on each card, then your own texts as a secondary section. |
 | New passage | `/reading/new` | Paste your own text and submit the first attempt in one page. |
 | Reading progress | `/reading/progress` | Progress dashboard inside the center canvas with score trends, averages, and recent notes. |
-| Reading settings | `/reading/settings` | Reading-specific settings page inside the center canvas. |
+| Reading settings (legacy) | `/reading/settings` | 301 redirect to the shared `/settings` page. |
 | Reading practice | `/reading/:id` | Desktop workspace shell: center stage switches between new-attempt composer and attempt detail; right rail is history/navigation only. |
 | Reading status resource | `/reading/:id/status` | Auth required. Lightweight JSON status endpoint used for non-crashing pending-state polling. |
 | Attempt audio stream/download | `/esl/audio/:attemptId` | Auth required. Owner-only playback/download endpoint. |
@@ -105,7 +105,7 @@ via the `reading_.trial.tsx` route-name prefix.
 
 ### Layout
 - **Left sidebar** (desktop 1024px+): Passage list with titles only. Pinned top actions: `New passage`, `Progress`. Passage deletion lives in the hover menu on each list item.
-- **Left sidebar footer**: A persistent `Settings` entry opens `/reading/settings` in the center canvas.
+- **Left sidebar footer**: The account menu's `Settings` entry opens the shared `/settings` page.
 - **Desktop workspace shell**: Reading now follows the shared tool-shell model used by Writing. The main area is split into `center stage + reading content column + right rail shell`.
 - **Index center column**: New passage composer with a single large editable text area, internal character count, and recorder controls anchored at the bottom of the same compose card.
 - **Passage center column**: Either a new-attempt composer or a selected attempt detail view, but both now share the same top skeleton.
@@ -128,7 +128,7 @@ via the `reading_.trial.tsx` route-name prefix.
 - Timer tracks elapsed time during recording.
 - Submit uses an in-page fetcher flow, so the browser does not enter a full-page loading state. The button switches to `Submitting...`, then the app navigates immediately into the saved attempt page.
 - While submit/evaluation handoff is in progress, `Re-record` is disabled to avoid changing the captured audio mid-submit.
-- Reading settings include the shared feedback language — Follow interface (default), English or
+- The shared `/settings` page holds the feedback language — Follow interface (default), English or
   Chinese — the same preference Writing uses (`bcailab-feedback-language-v2`; migration rules in
   `docs/tools/writing.md`, *Feedback Language*). The page posts the resolved `en`/`zh` as
   `outputLanguage`. Same-tab changes use a custom event and cross-tab changes use the browser

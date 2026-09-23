@@ -9,6 +9,14 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-22 — **One settings page; the language switch leaves the studio rail.** Owner
+  request after acceptance: the studio rail's language button was the wrong place for a choice
+  made once. Interface language now lives on a new `/settings` page, together with the shared
+  feedback language, colour mode and the account row. The account menu opens it from the rail
+  and from the site header. It replaces the Reading, Writing and Speech settings pages, which
+  only repeated those shared choices. Their URLs 301 to `/settings`. The public site header keeps
+  its switch for signed-out visitors. Design: `docs/chinese-ui-design.md` §3.2.
+
 - 2026-09-22 — **accepted: owner acceptance of the Chinese interface, stages 1–3.** The owner
   accepted all three stages of "Now — Chinese interface for Chinese-speaking learners" (merged as
   PRs #64, #65 and #66) and moved the item to the accepted history. The owner also accepted the one

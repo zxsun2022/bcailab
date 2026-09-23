@@ -91,7 +91,7 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
         </div>
         {!hideUserMenu ? (
           <div className="nav-actions" ref={menuRef}>
-            <LanguageSwitcher variant="header" />
+            <LanguageSwitcher />
             {!user ? (
               <Button type="button" onClick={handleLogin}>
                 {t("common.signIn")}
@@ -123,6 +123,9 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                     </div>
                     <Link to="/profile" className="menu-item" onClick={() => setMenuOpen(false)}>
                       {t("common.profile")}
+                    </Link>
+                    <Link to="/settings" className="menu-item" onClick={() => setMenuOpen(false)}>
+                      {t("common.settings")}
                     </Link>
                     <div className="menu-section">
                       <div className="menu-label">{t("common.theme")}</div>

@@ -81,6 +81,14 @@ cannot change a visitor's language. The comparison is against the `Host` header,
 `request.url`: Remix's Vite dev adapter builds the request URL *from* `Origin`, which made any
 origin look like our own during implementation.
 
+**Where the switch lives (revised 2026-09-22, owner decision).** Stage 1 put a switch in the
+studio rail as well as the site header. The owner moved it out of the rail: interface language is
+chosen once, not while practising, so it belongs on the settings page (`/settings`, reached from
+the account menu in both the rail and the site header), not beside the module links. The public
+site header keeps its switch, so a signed-out visitor whose browser language guessed wrong can
+still get out of it. `/settings` also replaced the separate Reading, Writing and Speech settings
+pages, which only repeated the shared theme and feedback-language choices; their URLs redirect.
+
 **No automatic redirect.** The negotiated locale changes the rendered language of the same URL;
 it never moves the visitor to a different URL. A visitor who switches to English stays in
 English, because the cookie now outranks the header.
@@ -246,7 +254,7 @@ typechecked.
 | Error boundary (404 and generic) | Translated; not triggered in the browser |
 | Homepage `/`: hero, access line, module grid, other projects, lab | Checked, desktop and 375 px |
 | `/english`: hero, tagline, module list with detail and tags, account note | Checked |
-| Studio rail: module links, Home/Progress, group labels, collapse, mobile drawer, switch, sign-in row | Checked expanded, collapsed and as a 375 px drawer; signed-in account menu translated but not seen |
+| Studio rail: module links, Home/Progress, group labels, collapse, mobile drawer, sign-in row (the switch has since moved to `/settings`, §3.2) | Checked expanded, collapsed and as a 375 px drawer; signed-in account menu translated but not seen |
 | Dictation library: header, bands, rows, empty state | Checked; "Recent practice" is signed-in only — translated but not seen |
 | Dictation session: controls, answer label and placeholder, check result, progress | Checked through a full 11-sentence passage |
 | Dictation summary: score, per-sentence rows, blank answers, sign-in prompt | Checked signed out; the coach-feedback panel and the Reading handoff are signed-in only — translated but not seen |

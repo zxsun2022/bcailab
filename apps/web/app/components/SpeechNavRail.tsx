@@ -6,9 +6,6 @@ import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
  */
 export function SpeechNavRail({ user }: { user: NavUser }) {
   return (
-    <ToolNavRail
-      settingsTo="/speech/settings"
-      user={user}
-    />
+    <ToolNavRail user={user} />
   );
 }
