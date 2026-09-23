@@ -1226,6 +1226,71 @@ protagonist and one primary button. It does not change what is recommended.
 - Any change to what `selectStarterPractice()` recommends.
 - A Today plan, streaks, duration estimates, and Home panels that duplicate `/english/progress`.
 
+## Now — Dictation sentence navigator — accepted (2026-09-23)
+
+The owner authorized this on 2026-09-23. It covers the step-navigation requirement recorded in
+[`ux-follow-ups-2026-07-30.md`](ux-follow-ups-2026-07-30.md) §3B, which had never been scheduled.
+Today a session shows only "Sentence n of m". The learner cannot see the passage's shape or go
+back to a checked sentence.
+
+### Decisions (owner, 2026-09-23)
+
+- **D1 — Review only.** A checked sentence can be replayed and its result read, but not
+  re-answered or re-checked. The score stays a record of the first attempt.
+- **D2 — Later sentences are locked.** There is no forward skipping and no "leave unanswered"
+  action.
+
+### Acceptance criteria
+
+- (a) **Navigator.** A horizontal navigator shows one step per sentence, in three states that
+  are distinct by more than colour: checked (reachable), current, and locked (not reachable,
+  with a lock). It scrolls horizontally when it does not fit, and keeps the current step in
+  view.
+- (b) **Going back.** Selecting a checked step shows that sentence's answer, diff and reference,
+  and lets the learner replay its audio. The answer cannot be edited or checked again. A single
+  primary action returns to the first unchecked sentence. Typed-but-unchecked text there, the
+  checks already made, and session progress are all preserved.
+- (c) **After a resume.** Checked sentences are reviewable exactly as in (b). The loader
+  re-scores each stored answer server-side and returns the reference only for checked
+  sentences; unchecked sentences' text never reaches the client.
+- (d) **Honest counts.** Listens during review do not change a sentence's stored replay count.
+  A resumed attempt keeps the replay counts stored before the resume, rather than resetting them
+  to 0 at completion.
+- (e) **Accessibility.** The navigator is keyboard-operable: steps are buttons, and locked steps
+  are disabled with an accessible name that says so. It works at 390 px with touch targets of at
+  least 40 px.
+- (f) **Unchanged behaviour.** Scoring, completion, quota, anonymous sessions and the summary
+  view are unchanged. Existing tests pass, and the new state logic is covered by unit tests.
+
+### Progress
+
+- **Implemented — accepted (2026-09-23)** by the owner after checking it in production (merged as PR #75). Evidence:
+  - **Rules.** `utils/dictation-steps.ts` holds the frontier, step states, which steps can
+    open, view mode and the return target. It has 13 tests.
+  - **Resume re-scoring.** `reviewableResults` has 3 tests: the full diff is rebuilt; an
+    unchecked sentence's reference never appears; a stale index is ignored.
+  - **Automated checks.** 881 tests pass, as do typecheck, lint (0 errors) and both builds.
+  - **Browser fixture, user `b`, 3-sentence passage:**
+    - checking unlocks the next step;
+    - text typed at the frontier survives reviewing an earlier sentence;
+    - review shows the note and "Back to sentence 3", and returns with focus in the answer;
+    - after a reload, earlier sentences are restored as checked, with their stored answers and
+      accuracies;
+    - a programmatic change to a checked answer was found and is now ignored;
+    - in the Chinese interface at 375 px: no horizontal scroll, and 40 × 44 px steps.
+  - **Not seen in the browser:** a long passage where the navigator has to scroll. The fixture
+    passages have 3 sentences; the strip uses `overflow-x: auto` and scrolls the step on screen
+    into view.
+  - **Found while testing.** The fixture's resumable attempt claims `sentences_done = 1` with no
+    stored results. Resume now starts from the stored results (see `docs/tools/dictation.md`,
+    *Sentence navigator*).
+
+### Explicitly excluded
+
+- Re-answering a checked sentence, and skipping ahead.
+- Per-sentence audio duration and the check-shortcut hint (§3C and §3D of the same follow-ups
+  document).
+
 ## Former Next summary
 
 - **Mapdown — production MVP (accepted 2026-08-15).** A static, local-first, keyboard-first

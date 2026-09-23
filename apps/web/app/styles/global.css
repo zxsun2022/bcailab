@@ -10289,44 +10289,168 @@ select.input:focus {
 }
 
 .today-strip {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px 32px;
-  padding: 24px 0;
+  gap: 16px;
   border-top: 1px solid var(--border);
 }
 
-.today-strip-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+/* The whole row is the target: title, meta and (when it says something) the reason, with an
+   arrow on the trailing edge. */
+.today-strip-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 24px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 20px 0;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.today-strip-link > :not(.today-strip-arrow) {
+  grid-column: 1;
 }
 
 .today-strip-title {
-  margin: 0;
   font-family: var(--font-display);
-  font-size: 1.625rem;
+  font-size: 1.5rem;
   font-weight: 600;
   line-height: 1.2;
+  transition: color var(--transition-fast);
 }
 
 .today-strip-why {
-  margin: 0;
   color: var(--text-muted);
   font-size: 0.9375rem;
 }
 
-.today-strip-actions {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
+.today-strip-arrow {
+  grid-column: 2;
+  grid-row: 1 / span 4;
+  color: var(--text-muted);
+  font-size: 1.25rem;
+  transition: transform var(--transition-fast), color var(--transition-fast);
 }
 
-.today-strip-actions .today-alternatives {
-  justify-content: flex-end;
+.today-strip-link:hover .today-strip-title,
+.today-strip-link:hover .today-strip-arrow {
+  color: var(--color-action);
+}
+
+.today-strip-link:hover .today-strip-arrow {
+  transform: translateX(3px);
+}
+
+/* Directional alternatives, one step away rather than always on screen. */
+.today-more {
+  position: relative;
+}
+
+.today-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  letter-spacing: 1px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.today-more-toggle::-webkit-details-marker {
+  display: none;
+}
+
+.today-more-toggle:hover,
+.today-more[open] .today-more-toggle {
+  background: var(--bg-alt);
+  color: var(--text);
+}
+
+.today-more-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 4px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  padding: 6px 0;
+  border: 1px solid var(--border-control);
+  background: var(--bg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.today-more-item {
+  display: block;
+  padding: 10px 16px;
+  color: var(--text);
+  font-size: 0.9375rem;
+  text-decoration: none;
+}
+
+.today-more-item:hover {
+  background: var(--bg-alt);
+  color: var(--color-action);
+}
+
+/* Level marker: the level alone, its basis on hover or focus. */
+.today-basis {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.today-level {
+  position: relative;
+  display: inline-flex;
+}
+
+.today-level-chip {
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-control);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  cursor: help;
+}
+
+.today-level-tip {
+  position: absolute;
+  z-index: 5;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: max-content;
+  max-width: min(320px, 80vw);
+  padding: 10px 12px;
+  border: 1px solid var(--border-control);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--transition-fast);
+}
+
+.today-level:hover .today-level-tip,
+.today-level-chip:focus-visible + .today-level-tip,
+.today-level-chip:focus + .today-level-tip {
+  opacity: 1;
+  visibility: visible;
 }
 
 .today-recent {
@@ -10391,11 +10515,6 @@ select.input:focus {
   text-align: right;
 }
 
-.today .home-basis {
-  margin-top: 0;
-  border-top: 1px solid var(--border);
-}
-
 .today .home-level-picker {
   padding: 8px 0 24px;
 }
@@ -10412,20 +10531,6 @@ select.input:focus {
   .today-hero .today-aside {
     width: 100%;
     text-align: center;
-  }
-
-  .today-strip {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .today-strip-actions {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-
-  .today-strip-actions .today-button {
-    min-height: 44px;
   }
 
   .today-recent-row {

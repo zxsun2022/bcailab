@@ -23,7 +23,7 @@ export type HomeEmphasis = "primary" | "ghost" | "link";
 
 export type HomeLayout = {
   state: HomeState;
-  /** The recommendation sits under Continue as a quieter strip (S1 only). */
+  /** The recommendation sits under Continue as a quiet whole-row link (S1 only). */
   strip: boolean;
   /** Every action on the page, with the weight it is drawn at. */
   actions: Array<{ id: HomeActionId; emphasis: HomeEmphasis }>;
@@ -56,8 +56,10 @@ export const homeLayout = (input: {
       strip: Boolean(recommendation),
       actions: [
         { id: "continue", emphasis: "primary" },
+        // Under a Continue the recommendation is a whole-row link, its alternatives tucked
+        // into a disclosure (Home v3.1 d).
         ...(recommendation
-          ? [{ id: "recommendation" as const, emphasis: "ghost" as const }, ...alternativeLinks]
+          ? [{ id: "recommendation" as const, emphasis: "link" as const }, ...alternativeLinks]
           : [])
       ]
     };

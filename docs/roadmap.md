@@ -200,91 +200,54 @@ acceptance is deliberately not claimed here.
   learner-context code). Two owner decisions precede recording: the pinned model, and whether the
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
-## Now — Dictation sentence navigator
+## Now — Home v3.1: fewer words
 
-The owner authorized this on 2026-09-23. It covers the step-navigation requirement recorded in
-[`ux-follow-ups-2026-07-30.md`](ux-follow-ups-2026-07-30.md) §3B, which had never been scheduled.
-Today a session shows only "Sentence n of m". The learner cannot see the passage's shape or go
-back to a checked sentence.
-
-### Decisions (owner, 2026-09-23)
-
-- **D1 — Review only.** A checked sentence can be replayed and its result read, but not
-  re-answered or re-checked. The score stays a record of the first attempt.
-- **D2 — Later sentences are locked.** There is no forward skipping and no "leave unanswered"
-  action.
+The owner authorized this on 2026-09-23; it started once the Dictation sentence navigator was
+accepted. It came from outside feedback (ChatGPT) that Home still explains too much. The
+assessment agreed with the owner keeps Home v3's structure and removes repetition, testing each
+line by whether it changes what the learner does next.
 
 ### Acceptance criteria
 
-- (a) **Navigator.** A horizontal navigator shows one step per sentence, in three states that
-  are distinct by more than colour: checked (reachable), current, and locked (not reachable,
-  with a lock). It scrolls horizontally when it does not fit, and keeps the current step in
-  view.
-- (b) **Going back.** Selecting a checked step shows that sentence's answer, diff and reference,
-  and lets the learner replay its audio. The answer cannot be edited or checked again. A single
-  primary action returns to the first unchecked sentence. Typed-but-unchecked text there, the
-  checks already made, and session progress are all preserved.
-- (c) **After a resume.** Checked sentences are reviewable exactly as in (b). The loader
-  re-scores each stored answer server-side and returns the reference only for checked
-  sentences; unchecked sentences' text never reaches the client.
-- (d) **Honest counts.** Listens during review do not change a sentence's stored replay count.
-  A resumed attempt keeps the replay counts stored before the resume, rather than resetting them
-  to 0 at completion.
-- (e) **Accessibility.** The navigator is keyboard-operable: steps are buttons, and locked steps
-  are disabled with an accessible name that says so. It works at 390 px with touch targets of at
-  least 40 px.
-- (f) **Unchanged behaviour.** Scoring, completion, quota, anonymous sessions and the summary
-  view are unchanged. Existing tests pass, and the new state logic is covered by unit tests.
+- (a) The dictation Continue hero drops "N sentences left" from the greeting and "your checked
+  sentences are kept" from beside the button. The button reads "Continue dictation". The meta
+  line drops the sentence count, because the progress bar carries it.
+- (b) The greeting is the learner's name only, or nothing when there is no name. There is no
+  time-of-day greeting, because the server cannot know the learner's clock.
+- (c) A `level_fit` reason ("Fits your current level") is not shown. Reasons that explain a
+  different choice (adjacent band, cross-mode, revisit) stay.
+- (d) In S1 the recommendation strip is a whole-row link with no separate Start button, and its
+  directional alternatives move into a `···` disclosure. As the S2 hero, the alternatives stay
+  visible, because they are how a learner consents to exploring another band (ADR 0006).
+- (e) The basis line becomes a compact level marker, with its explanation on hover or focus. The
+  attempt count leaves Home; it is on Progress.
+- (f) Mode stays in the meta line, because Home mixes modes. No duration estimate is added
+  until per-passage practice time supports one.
 
 ### Progress
 
-- **Implemented — in_review (2026-09-23).** Evidence:
-  - **Rules.** `utils/dictation-steps.ts` holds the frontier, step states, which steps can
-    open, view mode and the return target. It has 13 tests.
-  - **Resume re-scoring.** `reviewableResults` has 3 tests: the full diff is rebuilt; an
-    unchecked sentence's reference never appears; a stale index is ignored.
-  - **Automated checks.** 881 tests pass, as do typecheck, lint (0 errors) and both builds.
-  - **Browser fixture, user `b`, 3-sentence passage:**
-    - checking unlocks the next step;
-    - text typed at the frontier survives reviewing an earlier sentence;
-    - review shows the note and "Back to sentence 3", and returns with focus in the answer;
-    - after a reload, earlier sentences are restored as checked, with their stored answers and
-      accuracies;
-    - a programmatic change to a checked answer was found and is now ignored;
-    - in the Chinese interface at 375 px: no horizontal scroll, and 40 × 44 px steps.
-  - **Not seen in the browser:** a long passage where the navigator has to scroll. The fixture
-    passages have 3 sentences; the strip uses `overflow-x: auto` and scrolls the step on screen
-    into view.
-  - **Found while testing.** The fixture's resumable attempt claims `sentences_done = 1` with no
-    stored results. Resume now starts from the stored results (see `docs/tools/dictation.md`,
-    *Sentence navigator*).
-
-### Explicitly excluded
-
-- Re-answering a checked sentence, and skipping ahead.
-- Per-sentence audio duration and the check-shortcut hint (§3C and §3D of the same follow-ups
-  document).
+- **Implemented — in_review (2026-09-23).** Evidence by criterion:
+  - (a) The dictation hero's meta line is mode / band · topic, and its button reads "Continue
+    dictation". The "checked sentences are kept" note is gone.
+  - (b) The greeting is "{name}, welcome back." or nothing; cold start keeps its one-line brief.
+  - (c) `practice.reason.levelFit` is hidden wherever it would appear. Other reasons show,
+    including the no-level "starting point that helps estimate your level".
+  - (d) In S1 the strip is a single `<Link>` (title, meta, any reason, arrow). The alternatives
+    sit in a `<details>` disclosure beside it, not inside it. `homeLayout` now gives the S1
+    recommendation `link` emphasis, and the one-primary tests still pass. The S2 hero keeps the
+    alternatives visible.
+  - (e) The basis line is a level chip whose explanation shows on hover or focus
+    (`role="tooltip"`, `aria-describedby`). The attempt count is gone from Home. A no-level user
+    sees the level picker instead. A profile failure keeps its one-line notice.
+  - (f) Mode stays. No duration was added.
+  - The S2 mode-explanation line added in v3 was also removed, in the same spirit.
+  - 22 catalogue keys that no longer had a caller were removed.
+  - Automated checks: 881 tests pass, typecheck passes, lint has 0 errors.
+  - Browser fixture: users `b` (S1 dictation, chip tooltip, `···` menu), `recommend` (S2) and
+    `a` (S1 Writing, at 375 px: no horizontal scroll, one `.btn-primary`).
 
 ## Next
 
-- **Home v3.1 — fewer words** (owner-authorized 2026-09-23; starts after the Dictation sentence
-  navigator). It came from outside feedback (ChatGPT) that Home still explains too much. The
-  assessment agreed with the owner keeps Home v3's structure and removes repetition, testing each
-  line by whether it changes what the learner does next. Acceptance:
-  - (a) The dictation Continue hero drops "N sentences left" from the greeting and "your checked
-    sentences are kept" from beside the button. The button reads "Continue dictation". The meta
-    line drops the sentence count, because the progress bar carries it.
-  - (b) The greeting is the learner's name only, or nothing when there is no name. There is no
-    time-of-day greeting, because the server cannot know the learner's clock.
-  - (c) A `level_fit` reason ("Fits your current level") is not shown. Reasons that explain a
-    different choice (adjacent band, cross-mode, revisit) stay.
-  - (d) In S1 the recommendation strip is a whole-row link with no separate Start button, and its
-    directional alternatives move into a `···` disclosure. As the S2 hero, the alternatives stay
-    visible, because they are how a learner consents to exploring another band (ADR 0006).
-  - (e) The basis line becomes a compact level marker, with its explanation on hover or focus. The
-    attempt count leaves Home; it is on Progress.
-  - (f) Mode stays in the meta line, because Home mixes modes. No duration estimate is added
-    until per-passage practice time supports one.
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
   product direction “AI-generated structure → Mapdown visualization” without putting a model
   inside Mapdown. Add a **Create with AI** flow for people learning a new subject or researching
@@ -409,6 +372,10 @@ These entries are historical, not the active queue. Their original scope, eviden
 and recorded acceptance are preserved verbatim in [accepted roadmap history](roadmap-accepted-history.md).
 The 2026-09-18, 2026-09-21, 2026-09-22 and 2026-09-23 entries were accepted by the owner before being moved here; the older ones were
 not newly accepted by any documentation move.
+
+<a id="now--dictation-sentence-navigator"></a>
+
+- **Dictation sentence navigator — accepted (2026-09-23)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#now--dictation-sentence-navigator--accepted-2026-09-23); [delivery record](changelog.md); behaviour in [the Dictation doc](tools/dictation.md#sentence-navigator).
 
 <a id="now--english-studio-home-v3"></a>
 

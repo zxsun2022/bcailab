@@ -61,12 +61,12 @@ describe("homeLayout — one protagonist per state", () => {
     });
   }
 
-  it("makes Continue the hero and turns the recommendation into a ghost strip", () => {
+  it("makes Continue the hero and turns the recommendation into a row link", () => {
     const layout = homeLayout({ isCold: false, continueAction: dictationContinue, recommendation, alternatives: [harder] });
     expect(layout.state).toBe("continue");
     expect(layout.strip).toBe(true);
     expect(primaries(layout)[0]!.id).toBe("continue");
-    expect(layout.actions).toContainEqual({ id: "recommendation", emphasis: "ghost" });
+    expect(layout.actions).toContainEqual({ id: "recommendation", emphasis: "link" });
     expect(layout.actions).toContainEqual({ id: "alternatives", emphasis: "link" });
   });
 

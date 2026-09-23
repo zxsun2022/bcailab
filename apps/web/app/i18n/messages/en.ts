@@ -902,16 +902,7 @@ export const en = {
   "practice.alt.other_topic": "Different topic",
   "homePage.title": "Today",
   "homePage.coldDescription": "Let's find your level — it takes about three minutes.",
-  "homePage.greeting": "Good to see you, {name}. Pick up one useful piece of practice.",
-  "homePage.description": "Pick up one useful piece of practice.",
-  "homePage.attemptOne": "{count} recorded attempt",
-  "homePage.attemptMany": "{count} recorded attempts",
   "homePage.basisUnavailable": "Your level and total practice count are temporarily unavailable.",
-  "homePage.basisNoLevel": "{volume} so far — not enough yet to estimate your level.",
-  "homePage.basisMeasured":
-    "Level {level}, measured from your dictation accuracy at {confidence}% confidence · {volume}",
-  "homePage.basisDeclared":
-    "Level {level} — the level you picked; it adjusts as you practise · {volume}",
   "homePage.degraded":
     "We couldn’t load your practice data just now. Everything below still works.",
   "homePage.startHere": "Start here",
@@ -922,12 +913,7 @@ export const en = {
   "homePage.pickLevel": "Pick your level",
   "homePage.orPickLevel": "Or pick your level:",
   "homePage.whatToDo": "What to do now",
-  "homePage.continue": "Continue",
-  "homePage.continueDictation": "Dictation · {done} of {total} sentences",
-  "homePage.continueWriting": "Writing · edited {date}",
   "homePage.recommendation": "Coach recommendation",
-  "homePage.readAloud": "Read aloud",
-  "homePage.start": "Start",
   "homePage.adjust": "Adjust recommendation",
   "homePage.practice": "Practice",
   "homePage.chooseTitle": "Choose what to work on",
@@ -999,21 +985,10 @@ export const en = {
     "It expires in 10 minutes. If you didn't request this, you can ignore this email.",
 
   // --- home v3 ---
-  "homePage.welcomeLead": "Welcome back, {name}. {lead}",
-  "homePage.leadDictation": "{left} sentences left in your last dictation.",
-  "homePage.leadDictationOne": "One sentence left in your last dictation.",
-  "homePage.leadWriting": "Your last piece of writing is waiting.",
-  "homePage.leadRecommend": "Here is today's pick.",
   "homePage.continueKicker": "Pick up where you stopped",
-  "homePage.continueFrom": "Continue from sentence {next}",
-  "homePage.keptSentences": "Your {done} checked sentences are kept",
-  "homePage.keptSentenceOne": "Your checked sentence is kept",
   "homePage.continueWritingButton": "Continue writing",
   "homePage.nextKicker": "Next · Coach pick",
   "homePage.startReading": "Start reading aloud",
-  "homePage.askDictation":
-    "Listen one sentence at a time, write what you hear, and check each sentence against the text.",
-  "homePage.askReading": "Read the passage aloud and get a score with feedback.",
   "homePage.sentenceCount": "{count} sentences",
   "homePage.sentenceCountOne": "1 sentence",
   "homePage.progressLabel": "{done} of {total} sentences done",
@@ -1029,7 +1004,14 @@ export const en = {
   "dictation.stepLocked": "Sentence {n}, locked",
   "dictation.backToCurrent": "Back to sentence {n}",
   "dictation.reviewNote":
-    "Reviewing a checked sentence. Listen again as often as you like; the answer stays as checked."
+    "Reviewing a checked sentence. Listen again as often as you like; the answer stays as checked.",
+
+  // --- home v3.1 ---
+  "homePage.welcomeName": "Welcome back, {name}.",
+  "homePage.continueDictationButton": "Continue dictation",
+  "homePage.levelMeasured":
+    "Level {level}, measured from your dictation accuracy ({confidence}% confidence). It keeps adjusting as you practise.",
+  "homePage.levelDeclared": "Level {level}, which you picked. It adjusts as you practise."
 } satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;
