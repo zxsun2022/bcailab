@@ -15,7 +15,6 @@ export const en = {
   "common.signedIn": "Signed in",
   "common.profile": "Profile",
   "common.settings": "Settings",
-  "common.theme": "Theme",
   "common.logOut": "Log out",
   "common.home": "Home",
   "common.account": "Account",

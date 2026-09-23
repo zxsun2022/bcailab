@@ -2,7 +2,6 @@ import * as React from "react";
 import { Button } from "@bcailab/ui";
 import type { User } from "@bcailab/db";
 import { Link, useMatches } from "@remix-run/react";
-import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
 import { useT } from "~/i18n/context";
 import type { MessageKey } from "~/i18n/translate";
@@ -26,7 +25,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
     (match) => (match.handle as BreadcrumbHandle)?.hideHeaderUserMenu
   );
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const [themePreference, setThemePreference] = useThemePreference();
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -127,28 +125,6 @@ export const Header: React.FC<{ user: User | null }> = ({ user }) => {
                     <Link to="/settings" className="menu-item" onClick={() => setMenuOpen(false)}>
                       {t("common.settings")}
                     </Link>
-                    <div className="menu-section">
-                      <div className="menu-label">{t("common.theme")}</div>
-                      <div className="menu-theme-options">
-                        {([
-                          { value: "system", label: t("theme.auto") },
-                          { value: "light", label: t("theme.light") },
-                          { value: "dark", label: t("theme.dark") }
-                        ] as const).map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`menu-theme-option ${
-                              themePreference === option.value ? "is-active" : ""
-                            }`}
-                            aria-pressed={themePreference === option.value}
-                            onClick={() => setThemePreference(option.value)}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
                     <form method="post" action="/logout">
                       <button type="submit" className="menu-item">
                         {t("common.logOut")}

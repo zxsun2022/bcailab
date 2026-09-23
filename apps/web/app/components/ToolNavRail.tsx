@@ -1,6 +1,5 @@
 import * as React from "react";
 import { Link, useLocation } from "@remix-run/react";
-import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
 import { useT } from "~/i18n/context";
 import { NavRailIcon } from "~/components/NavRailIcons";
@@ -72,8 +71,6 @@ export function ToolNavRail({ user }: ToolNavRailProps) {
   const userMenuRef = React.useRef<HTMLDivElement | null>(null);
   const mobileToggleRef = React.useRef<HTMLButtonElement | null>(null);
   const drawerRef = React.useRef<HTMLElement | null>(null);
-  // Apply stored theme preference on tool pages (no site header rendered here)
-  const [themePreference, setThemePreference] = useThemePreference();
 
   React.useEffect(() => {
     try {
@@ -320,28 +317,6 @@ export function ToolNavRail({ user }: ToolNavRailProps) {
                   <Link to="/profile" className="menu-item" role="menuitem">
                     {t("common.profile")}
                   </Link>
-                  <div className="nav-rail-user-section">
-                    <div className="menu-label">{t("common.theme")}</div>
-                    <div className="menu-theme-options">
-                      {([
-                        { value: "system", label: t("theme.auto") },
-                        { value: "light", label: t("theme.light") },
-                        { value: "dark", label: t("theme.dark") }
-                      ] as const).map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`menu-theme-option${
-                            themePreference === option.value ? " is-active" : ""
-                          }`}
-                          aria-pressed={themePreference === option.value}
-                          onClick={() => setThemePreference(option.value)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                   <Link to="/settings" className="menu-item" role="menuitem">
                     {t("common.settings")}
                   </Link>
