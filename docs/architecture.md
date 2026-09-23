@@ -60,7 +60,7 @@ only). Both share the routing table, so a task streams or not without changing w
   email + password sign-in. Email is the primary identity; a Google login with a matching
   email attaches to the same account.
 - Accounts are **passwordless by default**. A password is optional: a signed-in user can set
-  one from `/profile`, after which they may also sign in with it. "Forgot or never set a
+  one on `/settings` (`/profile` redirects there), after which they may also sign in with it. "Forgot or never set a
   password?" on `/login` reuses the same email OTP to verify ownership and set a new password,
   signing the user in. Passwords are stored as PBKDF2-HMAC-SHA256 hashes (WebCrypto, per-user
   salt) in `users.password_hash`; the hash never reaches the client (`User` omits it).

@@ -314,9 +314,6 @@ export function ToolNavRail({ user }: ToolNavRailProps) {
                       <div className="nav-rail-user-email">{user.email}</div>
                     ) : null}
                   </div>
-                  <Link to="/profile" className="menu-item" role="menuitem">
-                    {t("common.profile")}
-                  </Link>
                   <Link to="/settings" className="menu-item" role="menuitem">
                     {t("common.settings")}
                   </Link>
