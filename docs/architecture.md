@@ -69,7 +69,7 @@ only). Both share the routing table, so a task streams or not without changing w
   code is logged to the server console and shown in the dev UI. The same OTP backs both
   code sign-in and password reset.
 - Tools are protected behind login; public pages are selectively accessible (e.g. published post pages).
-- Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or tool settings pages; the preference is stored locally in the browser.
+- Signed-in users can switch `Auto` / `Light` / `Dark` theme from the avatar menu or `/settings`; the preference is stored locally in the browser.
 
 ## Navigation and surface ownership
 
@@ -93,11 +93,12 @@ Studio shell owns navigation and framing. See [Writing](tools/writing.md).
 resolves the locale — an explicit `bcailab_locale` cookie, then `Accept-Language`, then English —
 and passes it down through a `LocaleProvider` (not the `{ user }` Outlet context) and, for route
 `meta`, through the matches. Document and root-data responses vary on `Cookie, Accept-Language`.
-`POST /locale` sets the cookie and returns the visitor to the page they were on. Copy lives in two
+`POST /locale` sets the cookie and returns the visitor to the page they were on; the forms that
+post to it are the public site header's switch and `/settings`. Copy lives in two
 typed catalogues under `apps/web/app/i18n/messages/`, the Chinese one typed against the English
 one; the module registry keeps routing and access and no longer carries copy. Learning material
-is never translated. AI feedback follows the interface language unless the learner chose one in
-Reading or Writing settings; graders receive only the resolved `en`/`zh`. Rollout and coverage:
+is never translated. AI feedback follows the interface language unless the learner chose one on
+`/settings`; graders receive only the resolved `en`/`zh`. Rollout and coverage:
 [the design](chinese-ui-design.md).
 
 For the actual route/module inventory, run `pnpm context -p arch` as described in

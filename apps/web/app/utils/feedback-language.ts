@@ -25,7 +25,7 @@ export const LEGACY_READING_OUTPUT_LANGUAGE_STORAGE_KEY =
   "bcailab-reading-output-language";
 export const FEEDBACK_LANGUAGE_EVENT = "bcailab-feedback-language-changed";
 
-/** Offered in settings, in this order. Labels come from the catalogues (`feedbackLang.*`). */
+/** Offered on the settings page, in this order. Labels come from the catalogues (`feedbackLang.*`). */
 export const FEEDBACK_LANGUAGE_PREFERENCES = ["auto", "en", "zh"] as const;
 
 type PreferenceStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;

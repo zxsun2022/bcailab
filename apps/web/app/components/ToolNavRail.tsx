@@ -3,7 +3,7 @@ import { Link, useLocation } from "@remix-run/react";
 import { useThemePreference } from "~/utils/use-theme-preference";
 import { openLoginPopup } from "~/utils/login-popup";
 import { useT } from "~/i18n/context";
-import { LanguageSwitcher } from "~/components/LanguageSwitcher";
+import { NavRailIcon } from "~/components/NavRailIcons";
 import {
   ENGLISH_MODULES,
   moduleCopy,
@@ -19,8 +19,6 @@ export type NavUser = {
 };
 
 type ToolNavRailProps = {
-  /** Omit for anonymous-friendly tools that have no settings page for signed-out users. */
-  settingsTo?: string;
   /** `null` for anonymous visitors: the bottom slot becomes a sign-in button. */
   user: NavUser | null;
 };
@@ -56,10 +54,7 @@ function IconChevronRight() {
 
 /* ---------- component ---------- */
 
-export function ToolNavRail({
-  settingsTo,
-  user,
-}: ToolNavRailProps) {
+export function ToolNavRail({ user }: ToolNavRailProps) {
   const t = useT();
   const location = useLocation();
   const collapsedKey = "english-studio-nav-rail-collapsed";
@@ -268,9 +263,7 @@ export function ToolNavRail({
                 : ""
             }`}
           >
-            <span className="nav-rail-module-mark" aria-hidden="true">
-              {t("common.home").slice(0, 1)}
-            </span>
+            <NavRailIcon name="home" />
             <span className="nav-rail-label">{t("common.home")}</span>
           </Link>
           {user ? (
@@ -280,9 +273,7 @@ export function ToolNavRail({
                 isProgressView ? " is-current" : ""
               }`}
             >
-              <span className="nav-rail-module-mark" aria-hidden="true">
-                {t("common.progress").slice(0, 1)}
-              </span>
+              <NavRailIcon name="progress" />
               <span className="nav-rail-label">{t("common.progress")}</span>
             </Link>
           ) : null}
@@ -297,11 +288,9 @@ export function ToolNavRail({
           ))}
         </nav>
 
-        {/* Pinned bottom: the language switch, then the universal account menu when signed
-            in or a sign-in prompt when not. The switch sits outside the account menu so a
-            signed-out visitor who cannot read the interface can still find it. */}
+        {/* Pinned bottom: the universal account menu when signed in, a sign-in prompt when
+            not. Interface language is on the settings page it links to, not in the rail. */}
         <div className="nav-rail-pinned-bottom">
-          <LanguageSwitcher variant="rail" />
           {user ? (
             <div className="nav-rail-user-shell" ref={userMenuRef}>
               <button
@@ -353,11 +342,9 @@ export function ToolNavRail({
                       ))}
                     </div>
                   </div>
-                  {settingsTo ? (
-                    <Link to={settingsTo} className="menu-item" role="menuitem">
-                      {t("common.settings")}
-                    </Link>
-                  ) : null}
+                  <Link to="/settings" className="menu-item" role="menuitem">
+                    {t("common.settings")}
+                  </Link>
                   <form method="post" action="/logout">
                     <button type="submit" className="menu-item" role="menuitem">
                       {t("common.logOut")}
@@ -427,9 +414,7 @@ function EnglishModuleGroupLinks({
             className={`nav-rail-studio-item${active ? " is-current" : ""}`}
             onClick={(event) => handleClick(event, module)}
           >
-            <span className="nav-rail-module-mark" aria-hidden="true">
-              {label.slice(0, 1)}
-            </span>
+            <NavRailIcon name={module.id} />
             <span className="nav-rail-label">{label}</span>
           </Link>
         );

@@ -5,9 +5,6 @@ import { ToolNavRail, type NavUser } from "~/components/ToolNavRail";
  */
 export function WritingNavRail({ user }: { user: NavUser }) {
   return (
-    <ToolNavRail
-      settingsTo="/writing/settings"
-      user={user}
-    />
+    <ToolNavRail user={user} />
   );
 }

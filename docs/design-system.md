@@ -66,8 +66,10 @@ and with the browser's own conventions in the English one, so a Chinese page nev
 "Sep 22, 2026".
 
 The language switch names the other language in that language ("中文" / "English") so it is
-findable by someone who cannot read the current one. It sits beside Sign in on the site header
-and above the account row in the studio rail, where the collapsed rail shows `EN` / `中`.
+findable by someone who cannot read the current one. It sits beside Sign in on the public site
+header only. Inside English Studio the interface language is set on `/settings`, reached from the
+account menu, and the rail carries no language control: the choice is made once, and
+`Accept-Language` has usually made it already (owner decision, 2026-09-22).
 
 ## Color Tokens
 
@@ -178,6 +180,10 @@ Tool pages (Writing, Reading, Speech) use a full-viewport shell that hides the g
 **Key principles:**
 - The **canvas** constrains content width and centers it horizontally. Sub-pages may apply narrower inner max-widths (e.g. 720px for editors, 600px for settings).
 - The **nav rail** is collapsible (persisted in localStorage). On mobile (<1024px), it renders as a drawer overlay.
+- Every rail destination leads with a line icon (`apps/web/app/components/NavRailIcons.tsx`): one
+  family, 24-unit grid, 1.5 stroke, round caps, no fills, drawn in `currentColor` so it takes the
+  row's muted, hover and current colours. The collapsed rail shows the icon alone. The icons are
+  the same in both interface languages. A new rail destination needs an icon from the same family.
 - Optional **aside panels** (e.g. revision timeline) sit inside the canvas alongside the main content, not at the shell level.
 - The canvas stays centered regardless of nav rail collapse state or screen width.
 
@@ -240,3 +246,4 @@ Header stays behavior-compatible with current product logic:
 - Home page structure: `apps/web/app/routes/_index.tsx`
 - Interface copy and locale: `apps/web/app/i18n/` (catalogues in `messages/`)
 - Language switch: `apps/web/app/components/LanguageSwitcher.tsx`
+- Settings (interface language, feedback language, theme): `apps/web/app/routes/settings.tsx`
