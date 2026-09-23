@@ -9,7 +9,10 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-09-23 — **in_review: Home v3.1 — fewer words.** Owner-authorized the same day, after
+- 2026-09-23 — **accepted: owner acceptance of Home v3.1.** The owner accepted it after PR #76
+  merged; the roadmap item moved to the accepted history.
+
+- 2026-09-23 — **accepted: Home v3.1 — fewer words.** Owner-authorized the same day, after
   outside feedback that Home still explained too much. Every line was tested by whether it
   changes what the learner does next.
   - **Greeting:** the name only.
