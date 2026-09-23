@@ -9,7 +9,10 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-09-23 — **in_review: English Studio Home v3 — one protagonist per state.** The owner
+- 2026-09-23 — **accepted: owner acceptance of English Studio Home v3.** The owner checked it in
+  production after PR #74 merged and accepted it; the roadmap item moved to the accepted history.
+
+- 2026-09-23 — **accepted: English Studio Home v3 — one protagonist per state.** The owner
   authorized it the same day, with decisions O1–O3 as recommended (design:
   `docs/home-v3-design.md`; criteria: roadmap *Now — English Studio Home v3*).
   - **One hero per state, one primary button.** A pure `homeLayout()` decides which state
