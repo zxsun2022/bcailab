@@ -531,18 +531,13 @@ export default function EnglishHome() {
                 <span className="today-strip-arrow" aria-hidden="true">→</span>
               </Link>
               {alternatives.length > 0 ? (
-                <details className="today-more">
-                  <summary className="today-more-toggle" aria-label={t("homePage.adjust")}>
-                    <span aria-hidden="true">···</span>
-                  </summary>
-                  <div className="today-more-menu">
-                    {alternatives.map((alt) => (
-                      <Link key={alt.direction} to={alt.href} className="today-more-item">
-                        {t(`practice.alt.${alt.direction}`)}
-                      </Link>
-                    ))}
-                  </div>
-                </details>
+                <MoreMenu label={t("homePage.adjust")}>
+                  {alternatives.map((alt) => (
+                    <Link key={alt.direction} to={alt.href} className="today-more-item">
+                      {t(`practice.alt.${alt.direction}`)}
+                    </Link>
+                  ))}
+                </MoreMenu>
               ) : null}
             </section>
           ) : null}
@@ -668,6 +663,52 @@ export default function EnglishHome() {
         </StudioPageBody>
       </StudioPage>
     </StudioShell>
+  );
+}
+
+/**
+ * A `···` disclosure that behaves like a menu: it closes on a click or tap outside it, on
+ * Escape (returning focus to the toggle), and once a choice is made. Native `<details>` keeps it
+ * working without JavaScript; this only adds the dismissal a menu is expected to have.
+ */
+function MoreMenu({ label, children }: { label: string; children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDetailsElement | null>(null);
+
+  React.useEffect(() => {
+    const close = (event: Event) => {
+      const details = ref.current;
+      if (!details?.open) return;
+      if (event instanceof KeyboardEvent) {
+        if (event.key !== "Escape") return;
+        details.open = false;
+        details.querySelector("summary")?.focus();
+        return;
+      }
+      if (event.target instanceof Node && details.contains(event.target)) return;
+      details.open = false;
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
+
+  return (
+    <details ref={ref} className="today-more">
+      <summary className="today-more-toggle" aria-label={label}>
+        <span aria-hidden="true">···</span>
+      </summary>
+      <div
+        className="today-more-menu"
+        onClick={() => {
+          if (ref.current) ref.current.open = false;
+        }}
+      >
+        {children}
+      </div>
+    </details>
   );
 }
 

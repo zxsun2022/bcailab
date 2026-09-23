@@ -9,6 +9,12 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **Home `···` menu dismisses like a menu.** Owner request after accepting Home
+  v3.1, whose PR recorded that the native `<details>` disclosure stayed open on an outside click.
+  It now closes on a click or tap outside, on Escape (focus returns to the toggle), and after a
+  choice. Without JavaScript it still works as a plain disclosure. Checked on the browser fixture:
+  an outside click closes it, and Escape closes it with focus back on `···`.
+
 - 2026-09-23 — **accepted: owner acceptance of Home v3.1.** The owner accepted it after PR #76
   merged; the roadmap item moved to the accepted history.
 
