@@ -200,6 +200,41 @@ acceptance is deliberately not claimed here.
   learner-context code). Two owner decisions precede recording: the pinned model, and whether the
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
+## Now — English Studio Home v3
+
+The owner authorized this on 2026-09-23, after reviewing three outside Home mockups and agreeing
+[the design](home-v3-design.md). Decisions O1–O3 were taken as recommended (design §8). It changes
+how `/english/home` presents what `selectStarterPractice()` already returns. Each state gets one
+protagonist and one primary button. It does not change what is recommended.
+
+### Acceptance criteria
+
+- (a) **States.** S1–S4 and the degraded state render as design §4, in both interface languages.
+  A pure view-model function decides the state, the hero and the strip. Its tests assert exactly
+  one primary action per state.
+- (b) **S1 dictation hero.** It shows a progress bar and `done / total` from `sentences_done` and
+  the passage's sentence count. Its button names sentence `done + 1`.
+- (c) **Recommendation.** It renders as a strip under Continue in S1 and as the hero in S2. The
+  directional alternatives are text links, and only directions the seam returned are shown.
+- (d) **Excluded content.** No duration, streak, cross-mode average, tool grid or chart appears
+  on Home.
+- (e) **Recent.** It shows design §5.4's bars and never repeats the Continue passage. It still
+  shows up to three rows.
+- (f) **O1.** A Writing session last updated more than 14 days before the request is not offered
+  as Continue. Unit tests cover 13 and 15 days, and both kinds present.
+- (g) **O2.** The Writing hero states the latest round's feedback state, from one bounded query
+  on that single article. No copy claims the feedback is unread.
+- (h) **O3.** The meta line shows the passage's stored topic and leaves it out when absent.
+- (i) **Layout.** At 390 px there is no horizontal scroll and the primary button is at least
+  48 px tall. Dark mode keeps bars and text at the design system's contrast.
+- (j) **Existing tests still pass,** including the ADR 0006 invariants and the Home data-bounds
+  behaviour.
+
+### Explicitly excluded
+
+- Any change to what `selectStarterPractice()` recommends.
+- A Today plan, streaks, duration estimates, and Home panels that duplicate `/english/progress`.
+
 ## Next
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
   product direction “AI-generated structure → Mapdown visualization” without putting a model

@@ -1,12 +1,11 @@
 # English Studio Home v3 — one protagonist per state
 
-**Document role:** proposal.
+**Document role:** design (authorized).
 
-Status: **direction agreed and decisions O1–O3 settled by the owner 2026-09-23; not yet
-authorized for implementation.** The owner reviewed three outside Home mockups, agreed with the
-assessment in §2, asked for this design, and accepted all three recommendations in §8.
-Implementation starts only when a roadmap entry with acceptance criteria is confirmed. §9 is the
-draft for that entry.
+Status: **authorized 2026-09-23** as *Now — English Studio Home v3* in `docs/roadmap.md`, which
+carries the binding acceptance criteria; §9 is the draft they were refined from. The owner reviewed
+three outside Home mockups, agreed with the assessment in §2, asked for this design, and accepted
+all three recommendations in §8.
 
 Intended reader: the agent implementing Home v3, and anyone reopening its choices. It changes the
 **presentation** of `/english/home` (`apps/web/app/routes/english_.home.tsx`). It does not change
