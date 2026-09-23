@@ -24,6 +24,12 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   The page was rebuilt around that (see `docs/changelog.md`). What remains open here is the
   visual redesign itself, not the hierarchy.
 - Overall visual language pass across the studio.
+- **English Studio Home v3 — one protagonist per state** (owner-raised 2026-09-23 after reviewing
+  three outside Home mockups; *direction agreed, not authorized*). Keeps today's IA and
+  recommendation seam but gives each state a single hero and one primary button. The dictation
+  Continue gets a real progress bar, the recommendation becomes a strip under Continue, and
+  Recent gets score bars. Streaks, tool grids, durations and a Today plan are rejected. Design,
+  open decisions O1–O3 and a draft roadmap entry: [`home-v3-design.md`](home-v3-design.md).
 - An admin/back-office system for **content** (material-library management currently happens
   through `scripts/material-seed/` and raw SQL). Deferred while there are no real users and no
   non-engineer operator — a back-office UI is pure liability until then. Note this is a
