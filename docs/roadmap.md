@@ -200,65 +200,91 @@ acceptance is deliberately not claimed here.
   learner-context code). Two owner decisions precede recording: the pinned model, and whether the
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
 
-## Now — English Studio Home v3
+## Now — Dictation sentence navigator
 
-The owner authorized this on 2026-09-23, after reviewing three outside Home mockups and agreeing
-[the design](home-v3-design.md). Decisions O1–O3 were taken as recommended (design §8). It changes
-how `/english/home` presents what `selectStarterPractice()` already returns. Each state gets one
-protagonist and one primary button. It does not change what is recommended.
+The owner authorized this on 2026-09-23. It covers the step-navigation requirement recorded in
+[`ux-follow-ups-2026-07-30.md`](ux-follow-ups-2026-07-30.md) §3B, which had never been scheduled.
+Today a session shows only "Sentence n of m". The learner cannot see the passage's shape or go
+back to a checked sentence.
+
+### Decisions (owner, 2026-09-23)
+
+- **D1 — Review only.** A checked sentence can be replayed and its result read, but not
+  re-answered or re-checked. The score stays a record of the first attempt.
+- **D2 — Later sentences are locked.** There is no forward skipping and no "leave unanswered"
+  action.
 
 ### Acceptance criteria
 
-- (a) **States.** S1–S4 and the degraded state render as design §4, in both interface languages.
-  A pure view-model function decides the state, the hero and the strip. Its tests assert exactly
-  one primary action per state.
-- (b) **S1 dictation hero.** It shows a progress bar and `done / total` from `sentences_done` and
-  the passage's sentence count. Its button names sentence `done + 1`.
-- (c) **Recommendation.** It renders as a strip under Continue in S1 and as the hero in S2. The
-  directional alternatives are text links, and only directions the seam returned are shown.
-- (d) **Excluded content.** No duration, streak, cross-mode average, tool grid or chart appears
-  on Home.
-- (e) **Recent.** It shows design §5.4's bars and never repeats the Continue passage. It still
-  shows up to three rows.
-- (f) **O1.** A Writing session last updated more than 14 days before the request is not offered
-  as Continue. Unit tests cover 13 and 15 days, and both kinds present.
-- (g) **O2.** The Writing hero states the latest round's feedback state, from one bounded query
-  on that single article. No copy claims the feedback is unread.
-- (h) **O3.** The meta line shows the passage's stored topic and leaves it out when absent.
-- (i) **Layout.** At 390 px there is no horizontal scroll and the primary button is at least
-  48 px tall. Dark mode keeps bars and text at the design system's contrast.
-- (j) **Existing tests still pass,** including the ADR 0006 invariants and the Home data-bounds
-  behaviour.
+- (a) **Navigator.** A horizontal navigator shows one step per sentence, in three states that
+  are distinct by more than colour: checked (reachable), current, and locked (not reachable,
+  with a lock). It scrolls horizontally when it does not fit, and keeps the current step in
+  view.
+- (b) **Going back.** Selecting a checked step shows that sentence's answer, diff and reference,
+  and lets the learner replay its audio. The answer cannot be edited or checked again. A single
+  primary action returns to the first unchecked sentence. Typed-but-unchecked text there, the
+  checks already made, and session progress are all preserved.
+- (c) **After a resume.** Checked sentences are reviewable exactly as in (b). The loader
+  re-scores each stored answer server-side and returns the reference only for checked
+  sentences; unchecked sentences' text never reaches the client.
+- (d) **Honest counts.** Listens during review do not change a sentence's stored replay count.
+  A resumed attempt keeps the replay counts stored before the resume, rather than resetting them
+  to 0 at completion.
+- (e) **Accessibility.** The navigator is keyboard-operable: steps are buttons, and locked steps
+  are disabled with an accessible name that says so. It works at 390 px with touch targets of at
+  least 40 px.
+- (f) **Unchanged behaviour.** Scoring, completion, quota, anonymous sessions and the summary
+  view are unchanged. Existing tests pass, and the new state logic is covered by unit tests.
 
 ### Progress
 
 - **Implemented — in_review (2026-09-23).** Evidence:
-  - (a): `utils/home-view.ts` decides the state, hero and strip. 11 tests, including exactly one
-    primary action in each of five input shapes.
-  - (f): `WRITING_CONTINUE_MAX_AGE_DAYS = 14` in `selectStarterPractice()`, with the request time
-    passed in. Five tests cover 13 days, 15 days, a stale draft falling back to an older
-    dictation, a dictation never ageing out, and no cutoff without a time.
-  - (e): `recentWithoutContinue` has three tests.
-  - (g): `getLatestWritingRevision`, one query on the Continue article only.
-  - Automated checks: 865 tests pass, as do typecheck, lint (0 errors) and both builds.
-  - Browser fixture:
-    - User `a`: S1 with Writing Continue, the round-state line and the recommendation strip.
-    - User `b`: S1 with dictation Continue and its progress bar; Recent without the Continue
-      passage.
-    - User `recommend`: S2.
-    - User `cold`: S3.
-    - Chinese and English interfaces.
-    - At 375 px in dark mode: no horizontal scroll, a 48 px primary, and one `.btn-primary`.
-  - Not seen in the browser: S4 (neither Continue nor a recommendation) and the degraded
-    notice. Their markup follows the same hero component; S4's layout is covered by the
-    one-primary test.
+  - **Rules.** `utils/dictation-steps.ts` holds the frontier, step states, which steps can
+    open, view mode and the return target. It has 13 tests.
+  - **Resume re-scoring.** `reviewableResults` has 3 tests: the full diff is rebuilt; an
+    unchecked sentence's reference never appears; a stale index is ignored.
+  - **Automated checks.** 881 tests pass, as do typecheck, lint (0 errors) and both builds.
+  - **Browser fixture, user `b`, 3-sentence passage:**
+    - checking unlocks the next step;
+    - text typed at the frontier survives reviewing an earlier sentence;
+    - review shows the note and "Back to sentence 3", and returns with focus in the answer;
+    - after a reload, earlier sentences are restored as checked, with their stored answers and
+      accuracies;
+    - a programmatic change to a checked answer was found and is now ignored;
+    - in the Chinese interface at 375 px: no horizontal scroll, and 40 × 44 px steps.
+  - **Not seen in the browser:** a long passage where the navigator has to scroll. The fixture
+    passages have 3 sentences; the strip uses `overflow-x: auto` and scrolls the step on screen
+    into view.
+  - **Found while testing.** The fixture's resumable attempt claims `sentences_done = 1` with no
+    stored results. Resume now starts from the stored results (see `docs/tools/dictation.md`,
+    *Sentence navigator*).
 
 ### Explicitly excluded
 
-- Any change to what `selectStarterPractice()` recommends.
-- A Today plan, streaks, duration estimates, and Home panels that duplicate `/english/progress`.
+- Re-answering a checked sentence, and skipping ahead.
+- Per-sentence audio duration and the check-shortcut hint (§3C and §3D of the same follow-ups
+  document).
 
 ## Next
+
+- **Home v3.1 — fewer words** (owner-authorized 2026-09-23; starts after the Dictation sentence
+  navigator). It came from outside feedback (ChatGPT) that Home still explains too much. The
+  assessment agreed with the owner keeps Home v3's structure and removes repetition, testing each
+  line by whether it changes what the learner does next. Acceptance:
+  - (a) The dictation Continue hero drops "N sentences left" from the greeting and "your checked
+    sentences are kept" from beside the button. The button reads "Continue dictation". The meta
+    line drops the sentence count, because the progress bar carries it.
+  - (b) The greeting is the learner's name only, or nothing when there is no name. There is no
+    time-of-day greeting, because the server cannot know the learner's clock.
+  - (c) A `level_fit` reason ("Fits your current level") is not shown. Reasons that explain a
+    different choice (adjacent band, cross-mode, revisit) stay.
+  - (d) In S1 the recommendation strip is a whole-row link with no separate Start button, and its
+    directional alternatives move into a `···` disclosure. As the S2 hero, the alternatives stay
+    visible, because they are how a learner consents to exploring another band (ADR 0006).
+  - (e) The basis line becomes a compact level marker, with its explanation on hover or focus. The
+    attempt count leaves Home; it is on Progress.
+  - (f) Mode stays in the meta line, because Home mixes modes. No duration estimate is added
+    until per-passage practice time supports one.
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
   product direction “AI-generated structure → Mapdown visualization” without putting a model
   inside Mapdown. Add a **Create with AI** flow for people learning a new subject or researching
@@ -381,8 +407,12 @@ protagonist and one primary button. It does not change what is recommended.
 
 These entries are historical, not the active queue. Their original scope, evidence, caveats
 and recorded acceptance are preserved verbatim in [accepted roadmap history](roadmap-accepted-history.md).
-The 2026-09-18, 2026-09-21 and 2026-09-22 entries were accepted by the owner before being moved here; the older ones were
+The 2026-09-18, 2026-09-21, 2026-09-22 and 2026-09-23 entries were accepted by the owner before being moved here; the older ones were
 not newly accepted by any documentation move.
+
+<a id="now--english-studio-home-v3"></a>
+
+- **English Studio Home v3 — accepted (2026-09-23)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#now--english-studio-home-v3--accepted-2026-09-23); [delivery record](changelog.md); design in [home-v3-design.md](home-v3-design.md).
 
 <a id="now--chinese-interface-for-chinese-speaking-learners"></a>
 

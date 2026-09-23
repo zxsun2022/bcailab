@@ -9054,6 +9054,89 @@ select.input:focus {
 
 .dictation-audio { display: none; }
 
+/* Sentence navigator. Three states, told apart by more than colour: checked (tick,
+   reachable), current (action outline), locked (lock, dashed, disabled). */
+.dictation-steps {
+  margin: 4px 0 20px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.dictation-steps-list {
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 2px;
+  list-style: none;
+}
+
+.dictation-step {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  width: 40px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border-control);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.dictation-step-mark {
+  width: 10px;
+  height: 10px;
+}
+
+.dictation-step.is-checked {
+  background: var(--bg-alt);
+  color: var(--text-muted);
+}
+
+.dictation-step.is-checked:hover {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.dictation-step.is-current {
+  border: 2px solid var(--color-action);
+  color: var(--color-action);
+  font-weight: 600;
+}
+
+.dictation-step.is-locked {
+  border-style: dashed;
+  border-color: var(--border);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+/* The step on screen, when it is a reviewed one: an underline, so "where I am" and "where I
+   answer next" stay distinct. */
+.dictation-step.is-checked.is-viewing {
+  border-color: var(--text);
+  color: var(--text);
+  box-shadow: inset 0 -3px 0 var(--text);
+}
+
+.dictation-step:focus-visible {
+  outline: 2px solid var(--color-action);
+  outline-offset: 2px;
+}
+
+.dictation-review-note {
+  margin: 12px 0 0;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+
 .dictation-controls {
   display: flex;
   align-items: center;

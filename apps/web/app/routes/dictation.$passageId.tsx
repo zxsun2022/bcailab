@@ -26,8 +26,18 @@ import { recordDictationObservations } from "~/utils/learner-model.server";
 import {
   mergeSentenceResult,
   parseSentenceResults,
+  reviewableResults,
+  type ReviewableResult,
   type SentenceResult
 } from "~/utils/dictation-progress";
+import {
+  canOpen,
+  frontierOf,
+  returnTargetOf,
+  stepsFor,
+  viewModeOf,
+  type Step
+} from "~/utils/dictation-steps";
 import { openLoginPopup } from "~/utils/login-popup";
 import { useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
@@ -73,17 +83,21 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
   let resume: {
     attemptId: string;
     answers: Record<number, string>;
+    /** Checked sentences, re-scored so they can be reviewed; unchecked ones are absent. */
+    checked: Record<number, ReviewableResult>;
     sentencesDone: number;
     practiceSeconds: number;
   } | null = null;
   if (inProgress) {
     const answers: Record<number, string> = {};
-    for (const entry of parseSentenceResults(inProgress.sentence_results)) {
+    const stored = parseSentenceResults(inProgress.sentence_results);
+    for (const entry of stored) {
       answers[entry.idx] = entry.userText;
     }
     resume = {
       attemptId: inProgress.id,
       answers,
+      checked: reviewableResults(sentences, stored),
       sentencesDone: inProgress.sentences_done,
       // The client continues this total rather than restarting it, so a resumed attempt
       // reports stored time plus new time and nothing is counted twice.
@@ -461,6 +475,75 @@ function FeedbackPanel({ attemptId }: { attemptId: string }) {
   );
 }
 
+/* ---------- sentence navigator ---------- */
+
+/**
+ * One step per sentence. Checked steps open for review, the current one is where answering
+ * happens, and later ones are locked — disabled buttons with a lock, so the state is carried by
+ * more than colour. The strip scrolls sideways when it does not fit and keeps the step on screen
+ * in view.
+ */
+function SentenceSteps({
+  steps,
+  onOpen,
+  accuracyOf
+}: {
+  steps: Step[];
+  onOpen: (index: number) => void;
+  accuracyOf: (index: number) => number | undefined;
+}) {
+  const t = useT();
+  const listRef = React.useRef<HTMLOListElement | null>(null);
+  const viewing = steps.find((step) => step.viewing)?.index ?? 0;
+
+  React.useEffect(() => {
+    const item = listRef.current?.children[viewing] as HTMLElement | undefined;
+    item?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [viewing]);
+
+  return (
+    <nav className="dictation-steps" aria-label={t("dictation.stepsLabel")}>
+      <ol ref={listRef} className="dictation-steps-list">
+        {steps.map((step) => {
+          const n = step.index + 1;
+          const accuracy = accuracyOf(step.index);
+          const label =
+            step.state === "checked"
+              ? t("dictation.stepChecked", { n, pct: Math.round((accuracy ?? 0) * 100) })
+              : step.state === "current"
+                ? t("dictation.stepCurrent", { n })
+                : t("dictation.stepLocked", { n });
+          return (
+            <li key={step.index}>
+              <button
+                type="button"
+                className={`dictation-step is-${step.state}${step.viewing ? " is-viewing" : ""}`}
+                disabled={step.state === "locked"}
+                aria-label={label}
+                aria-current={step.viewing ? "step" : undefined}
+                title={label}
+                onClick={() => onOpen(step.index)}
+              >
+                <span className="dictation-step-number" aria-hidden="true">{n}</span>
+                {step.state === "checked" ? (
+                  <svg className="dictation-step-mark" viewBox="0 0 12 12" aria-hidden="true">
+                    <path d="M2.5 6.5 5 9l4.5-6" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                ) : step.state === "locked" ? (
+                  <svg className="dictation-step-mark" viewBox="0 0 12 12" aria-hidden="true">
+                    <rect x="2.5" y="5.5" width="7" height="5" rx="1" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                    <path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" strokeWidth="1.2" />
+                  </svg>
+                ) : null}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+
 /* ---------- page ---------- */
 
 export default function DictationSession() {
@@ -469,9 +552,16 @@ export default function DictationSession() {
   const t = useT();
   const [feedbackLanguage] = useFeedbackLanguage();
 
-  // Resume drops the learner back where they stopped instead of at sentence one.
+  // Resume drops the learner back where they stopped instead of at sentence one. "Where they
+  // stopped" is the first sentence with no stored result — the stored results, not the
+  // `sentences_done` counter, are what the navigator and the server's merge both go by.
   const [current, setCurrent] = React.useState(() =>
-    resume ? Math.min(resume.sentencesDone, Math.max(0, sentences.length - 1)) : 0
+    resume
+      ? Math.min(
+          frontierOf(sentences.length, (index) => Boolean(resume.checked[sentences[index]!.idx])),
+          Math.max(0, sentences.length - 1)
+        )
+      : 0
   );
   const [answers, setAnswers] = React.useState<string[]>(() =>
     sentences.map((sentence) => resume?.answers[sentence.idx] ?? "")
@@ -479,8 +569,17 @@ export default function DictationSession() {
   const [attemptId, setAttemptId] = React.useState<string | null>(resume?.attemptId ?? null);
   // Total listens per sentence. `replays` in the stored result is this minus the first
   // listen, so the field means what its name says regardless of how playback started.
-  const [playCounts, setPlayCounts] = React.useState<number[]>(() => sentences.map(() => 0));
-  const [checked, setChecked] = React.useState<Record<number, { accuracy: number; ops: DiffOp[]; reference: string }>>({});
+  // A resumed sentence starts from what was stored, so completing does not reset it to 0.
+  const [playCounts, setPlayCounts] = React.useState<number[]>(() =>
+    sentences.map((sentence) => {
+      const prior = resume?.checked[sentence.idx];
+      return prior ? prior.replays + 1 : 0;
+    })
+  );
+  // Checked sentences stay reviewable after a resume: the loader re-scores them.
+  const [checked, setChecked] = React.useState<Record<number, { accuracy: number; ops: DiffOp[]; reference: string }>>(
+    () => resume?.checked ?? {}
+  );
   const [summary, setSummary] = React.useState<{
     accuracy: number;
     results: SentenceResult[];
@@ -543,6 +642,14 @@ export default function DictationSession() {
   const currentSentence = sentences[current];
   const currentChecked = checked[current];
   const currentPlays = playCounts[current] ?? 0;
+  // The navigator: checked sentences are reviewable, the frontier is the one to answer, and
+  // everything after it is locked (owner decisions D1, D2).
+  const frontier = frontierOf(total, (index) => Boolean(checked[index]));
+  const mode = viewModeOf(current, frontier);
+  const steps = stepsFor(total, frontier, current);
+  const openStep = (index: number) => {
+    if (canOpen(index, total, frontier)) setCurrent(index);
+  };
 
   // Apply the speed toggle to whichever clip is loaded.
   React.useEffect(() => {
@@ -560,18 +667,23 @@ export default function DictationSession() {
       // Autoplay policy or a decode error: fall back to idle so the button stays usable.
       setAudioState("idle");
     });
+    // Listening again while reviewing a checked sentence is not a replay of that attempt:
+    // its count was fixed when it was checked.
+    if (checked[current]) return;
     setPlayCounts((prev) => {
       const nextCounts = [...prev];
       nextCounts[current] = (nextCounts[current] ?? 0) + 1;
       return nextCounts;
     });
-  }, [current, speed]);
+  }, [current, speed, checked]);
 
   // On advance: reset playback state, autoplay only if the session is already underway,
   // and put the cursor in the input either way.
   React.useEffect(() => {
     setAudioState("idle");
     setProgress(0);
+    // Only a sentence still to be answered plays by itself; a reviewed one waits to be asked.
+    if (checked[current]) return;
     if (startedRef.current) play();
     inputRef.current?.focus();
     // `play` is intentionally excluded — including it would re-fire on every speed change.
@@ -733,6 +845,12 @@ export default function DictationSession() {
         </p>
       </header>
 
+      <SentenceSteps
+        steps={steps}
+        onOpen={openStep}
+        accuracyOf={(index) => checked[index]?.accuracy}
+      />
+
       {currentSentence ? (
         <audio
           ref={audioRef}
@@ -808,6 +926,9 @@ export default function DictationSession() {
         className="dictation-input"
         value={answers[current] ?? ""}
         onChange={(event) => {
+          // A checked answer is final (D1). The field is disabled, but a disabled field can
+          // still be changed programmatically; the answer must stay what was checked.
+          if (currentChecked) return;
           const value = event.target.value;
           setAnswers((prev) => {
             const nextAnswers = [...prev];
@@ -837,8 +958,20 @@ export default function DictationSession() {
         </div>
       ) : null}
 
+      {mode === "review" ? (
+        <p className="dictation-review-note">{t("dictation.reviewNote")}</p>
+      ) : null}
+
       <div className="dictation-actions">
-        {currentChecked ? (
+        {mode === "review" ? (
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setCurrent(returnTargetOf(total, frontier))}
+          >
+            {t("dictation.backToCurrent", { n: returnTargetOf(total, frontier) + 1 })}
+          </button>
+        ) : currentChecked ? (
           <button type="button" className="btn btn-primary" onClick={next} disabled={busy}>
             {isLast ? (busy ? t("dictation.scoring") : t("dictation.finish")) : t("dictation.nextSentence")}
           </button>

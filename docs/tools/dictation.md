@@ -111,6 +111,36 @@ distort measured difficulty. For the same reason the rail shows an unfinished at
 
 Anonymous practice remains session-only.
 
+## Sentence navigator
+
+A session shows one step per sentence above the player (`utils/dictation-steps.ts`, owner
+decisions of 2026-09-23). The **frontier** is the first sentence with no check.
+
+| Step | Meaning | What selecting it does |
+| --- | --- | --- |
+| Before the frontier | Checked, marked with a tick | Opens it for **review**: replay the audio, read the answer, diff and reference. |
+| The frontier | Current, marked with an action outline | Opens it for answering. |
+| After the frontier | Locked, marked with a lock and a dashed outline | Nothing; the step is disabled. |
+
+Rules for review:
+
+- **Review is read-only.** A checked answer cannot be edited or checked again, and the change
+  handler ignores it even when the disabled field is changed programmatically.
+- **The way back.** A reviewed sentence earlier than the one just checked offers one primary
+  action, "Back to sentence n". It returns to the frontier, or to the last sentence once all are
+  checked.
+- **Typed text is kept.** Text typed at the frontier stays while the learner reviews.
+- **Autoplay and replay counts.** Only a sentence still to be answered autoplays on arrival.
+  Listens during review do not change a sentence's replay count, which was fixed at its check.
+
+After a resume, the loader re-scores each stored answer against its reference
+(`reviewableResults`), because storage keeps only non-matching ops. The rebuilt diff matches
+what the learner saw at check time. References are returned only for checked sentences. The
+resumed session starts at the first sentence without a stored result. It does not use the
+`sentences_done` counter, so the navigator and the server's merge agree on where the learner
+is. Stored replay counts seed the listen counter, so completing a resumed attempt no longer
+resets earlier sentences' replays to 0.
+
 ## Practice time
 
 A signed-in attempt records its **active** practice time in `dictation_attempts.practice_seconds`

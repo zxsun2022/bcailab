@@ -1020,7 +1020,16 @@ export const en = {
   "homePage.writingRoundBack": "Round {round} feedback is back",
   "homePage.writingRoundPending": "Round {round} feedback in progress",
   "homePage.writingRoundFailed": "Round {round} feedback failed; retry from the draft",
-  "homePage.editedAt": "Edited {date}"
+  "homePage.editedAt": "Edited {date}",
+
+  // --- dictation sentence navigator ---
+  "dictation.stepsLabel": "Sentences",
+  "dictation.stepChecked": "Sentence {n}, checked, {pct}%",
+  "dictation.stepCurrent": "Sentence {n}, current",
+  "dictation.stepLocked": "Sentence {n}, locked",
+  "dictation.backToCurrent": "Back to sentence {n}",
+  "dictation.reviewNote":
+    "Reviewing a checked sentence. Listen again as often as you like; the answer stays as checked."
 } satisfies Record<string, string>;
 
 export type MessageKey = keyof typeof en;

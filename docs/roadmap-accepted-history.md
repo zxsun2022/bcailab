@@ -1,4 +1,4 @@
-# Accepted roadmap evidence — archived 2026-09-17, extended 2026-09-18 and 2026-09-22
+# Accepted roadmap evidence — archived 2026-09-17, extended 2026-09-18, 2026-09-22 and 2026-09-23
 
 **Document role:** historical-evidence.
 
@@ -1167,6 +1167,64 @@ stored `en` to Follow interface — the departure from criterion (g) recorded be
   (g), for the owner's decision:** an earlier stored `en` migrates to Follow interface rather than
   to an explicit English choice, because the earlier code persisted `en` as a default and the two
   cannot be told apart (design §5, *As built*). A stored `zh` stays explicit as written.
+
+## Now — English Studio Home v3 — accepted (2026-09-23)
+
+The owner authorized this on 2026-09-23, after reviewing three outside Home mockups and agreeing
+[the design](home-v3-design.md). Decisions O1–O3 were taken as recommended (design §8). It changes
+how `/english/home` presents what `selectStarterPractice()` already returns. Each state gets one
+protagonist and one primary button. It does not change what is recommended.
+
+### Acceptance criteria
+
+- (a) **States.** S1–S4 and the degraded state render as design §4, in both interface languages.
+  A pure view-model function decides the state, the hero and the strip. Its tests assert exactly
+  one primary action per state.
+- (b) **S1 dictation hero.** It shows a progress bar and `done / total` from `sentences_done` and
+  the passage's sentence count. Its button names sentence `done + 1`.
+- (c) **Recommendation.** It renders as a strip under Continue in S1 and as the hero in S2. The
+  directional alternatives are text links, and only directions the seam returned are shown.
+- (d) **Excluded content.** No duration, streak, cross-mode average, tool grid or chart appears
+  on Home.
+- (e) **Recent.** It shows design §5.4's bars and never repeats the Continue passage. It still
+  shows up to three rows.
+- (f) **O1.** A Writing session last updated more than 14 days before the request is not offered
+  as Continue. Unit tests cover 13 and 15 days, and both kinds present.
+- (g) **O2.** The Writing hero states the latest round's feedback state, from one bounded query
+  on that single article. No copy claims the feedback is unread.
+- (h) **O3.** The meta line shows the passage's stored topic and leaves it out when absent.
+- (i) **Layout.** At 390 px there is no horizontal scroll and the primary button is at least
+  48 px tall. Dark mode keeps bars and text at the design system's contrast.
+- (j) **Existing tests still pass,** including the ADR 0006 invariants and the Home data-bounds
+  behaviour.
+
+### Progress
+
+- **Implemented — accepted (2026-09-23)** by the owner after checking it in production (merged as PR #74). Evidence:
+  - (a): `utils/home-view.ts` decides the state, hero and strip. 11 tests, including exactly one
+    primary action in each of five input shapes.
+  - (f): `WRITING_CONTINUE_MAX_AGE_DAYS = 14` in `selectStarterPractice()`, with the request time
+    passed in. Five tests cover 13 days, 15 days, a stale draft falling back to an older
+    dictation, a dictation never ageing out, and no cutoff without a time.
+  - (e): `recentWithoutContinue` has three tests.
+  - (g): `getLatestWritingRevision`, one query on the Continue article only.
+  - Automated checks: 865 tests pass, as do typecheck, lint (0 errors) and both builds.
+  - Browser fixture:
+    - User `a`: S1 with Writing Continue, the round-state line and the recommendation strip.
+    - User `b`: S1 with dictation Continue and its progress bar; Recent without the Continue
+      passage.
+    - User `recommend`: S2.
+    - User `cold`: S3.
+    - Chinese and English interfaces.
+    - At 375 px in dark mode: no horizontal scroll, a 48 px primary, and one `.btn-primary`.
+  - Not seen in the browser: S4 (neither Continue nor a recommendation) and the degraded
+    notice. Their markup follows the same hero component; S4's layout is covered by the
+    one-primary test.
+
+### Explicitly excluded
+
+- Any change to what `selectStarterPractice()` recommends.
+- A Today plan, streaks, duration estimates, and Home panels that duplicate `/english/progress`.
 
 ## Former Next summary
 

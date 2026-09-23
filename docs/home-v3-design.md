@@ -2,7 +2,7 @@
 
 **Document role:** design (authorized).
 
-Status: **authorized 2026-09-23** as *Now — English Studio Home v3* in `docs/roadmap.md`, which
+Status: **shipped and accepted 2026-09-23** (PR #74); authorized the same day as *Now — English Studio Home v3* in `docs/roadmap.md`, which
 carries the binding acceptance criteria; §9 is the draft they were refined from. The owner reviewed
 three outside Home mockups, agreed with the assessment in §2, asked for this design, and accepted
 all three recommendations in §8.
