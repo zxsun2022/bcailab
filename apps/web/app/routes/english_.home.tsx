@@ -32,7 +32,7 @@ import {
   recentWithoutContinue,
   type WritingRoundState
 } from "~/utils/home-view";
-import { RichMessage, useLocale, useT } from "~/i18n/context";
+import { RichMessage, useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
 import { getRequestTranslator } from "~/i18n/locale.server";
 
@@ -308,7 +308,6 @@ export const loader = async ({ request, context }: LoaderFunctionArgs) => {
     level: resolved.level,
     levelBasis: resolved.basis,
     levelConfidence: profile?.cefr_measured_confidence ?? 0,
-    totalAttempts: profile?.total_attempts ?? 0,
     practice,
     writingRound,
     recent,
@@ -355,7 +354,6 @@ export default function EnglishHome() {
     level,
     levelBasis,
     levelConfidence,
-    totalAttempts,
     practice,
     writingRound,
     recent,
@@ -371,31 +369,15 @@ export default function EnglishHome() {
   // wall of "no data yet", so the page becomes a single call to action instead (§3.5).
   const isCold = !level && !hasHistory && !profileUnavailable;
 
-  // One line, not a grid. It states what the system knows and how far to trust it; the
-  // level is never asserted before it has been established (§3.5).
-  //
-  // "Attempts", not "sessions": this counts `total_attempts`, and the studio has no session
-  // entity outside Writing's own workspace vocabulary (ADR 0007).
-  //
-  // Attempt count only. Duration used to sit here too, when `total_practice_seconds` counted
-  // reading alone and silently omitted dictation. Dictation is timed now, but the count
-  // still carries this line's whole job; the duration detail belongs on Progress.
-  const volumeText = t(totalAttempts === 1 ? "homePage.attemptOne" : "homePage.attemptMany", {
-    count: totalAttempts
-  });
-  const basisSentence =
-    profileUnavailable
-      ? t("homePage.basisUnavailable")
-      : level == null
-      ? t("homePage.basisNoLevel", { volume: volumeText })
+  // The level as a compact marker; how it was established is its explanation, shown on hover
+  // or focus (Home v3.1 e). Never asserted before it has been established (§3.5). The attempt
+  // count is on Progress: it does not change what the learner does next.
+  const levelExplanation =
+    level == null
+      ? null
       : levelBasis === "measured"
-        ? t("homePage.basisMeasured", {
-            level,
-            confidence: Math.round(levelConfidence * 100),
-            volume: volumeText
-          })
-        : t("homePage.basisDeclared", { level, volume: volumeText });
-  const locale = useLocale();
+        ? t("homePage.levelMeasured", { level, confidence: Math.round(levelConfidence * 100) })
+        : t("homePage.levelDeclared", { level });
   const layout = homeLayout({ isCold, continueAction, recommendation: primary, alternatives });
   const buttonClass = (id: Parameters<typeof emphasisOf>[1]) =>
     emphasisOf(layout, id) === "primary" ? "btn btn-primary today-button" : "btn btn-ghost today-button";
@@ -405,24 +387,16 @@ export default function EnglishHome() {
   const sentenceText = (count: number) =>
     count === 1 ? t("homePage.sentenceCountOne") : t("homePage.sentenceCount", { count });
 
-  // The greeting names the protagonist, so the page's first sentence says what the hero is.
-  const lead =
-    layout.state === "continue" && continueAction?.kind === "dictation"
-      ? continueAction.total - continueAction.done === 1
-        ? t("homePage.leadDictationOne")
-        : t("homePage.leadDictation", { left: continueAction.total - continueAction.done })
-      : layout.state === "continue"
-        ? t("homePage.leadWriting")
-        : layout.state === "recommend"
-          ? t("homePage.leadRecommend")
-          : null;
+  // Name only (Home v3.1 b): what is waiting is already the hero, so the greeting does not
+  // repeat it, and a time-of-day greeting would need the learner's clock.
   const description =
     layout.state === "cold"
       ? t("homePage.coldDescription")
-      : firstName && lead
-        ? t("homePage.welcomeLead", { name: firstName, lead })
-        : lead ??
-          (firstName ? t("homePage.greeting", { name: firstName }) : t("homePage.description"));
+      : firstName
+        ? t("homePage.welcomeName", { name: firstName })
+        : undefined;
+  // A reason earns its line only when it explains a choice the learner might not expect.
+  const showReason = primary ? primary.reasonKey !== "practice.reason.levelFit" : false;
 
   const recentState = (item: RecentItem) =>
     item.latest.kind === "score"
@@ -481,12 +455,9 @@ export default function EnglishHome() {
               </h2>
               {continueAction.kind === "dictation" ? (
                 <>
+                  {/* No sentence count: the progress bar carries it. */}
                   <MetaLine
-                    parts={[
-                      t("module.dictation.label"),
-                      [continueAction.band, continueAction.topic],
-                      sentenceText(continueAction.total)
-                    ]}
+                    parts={[t("module.dictation.label"), [continueAction.band, continueAction.topic]]}
                   />
                   <div
                     className="today-progress"
@@ -508,15 +479,8 @@ export default function EnglishHome() {
                   </div>
                   <div className="today-actions">
                     <Link to={continueAction.href} className={buttonClass("continue")}>
-                      {t("homePage.continueFrom", { next: continueAction.done + 1 })}
+                      {t("homePage.continueDictationButton")}
                     </Link>
-                    {continueAction.done > 0 ? (
-                      <span className="today-aside">
-                        {continueAction.done === 1
-                          ? t("homePage.keptSentenceOne")
-                          : t("homePage.keptSentences", { done: continueAction.done })}
-                      </span>
-                    ) : null}
                   </div>
                 </>
               ) : (
@@ -551,48 +515,58 @@ export default function EnglishHome() {
             </section>
           ) : null}
 
-          {primary && (layout.state === "continue" || layout.state === "recommend") ? (
-            <section
-              className={layout.strip ? "today-strip" : "today-hero"}
-              aria-labelledby="today-recommendation-title"
-            >
-              <div className="today-strip-copy">
-                <p className={layout.strip ? "today-kicker is-quiet" : "today-kicker"}>
-                  {layout.strip ? t("homePage.nextKicker") : t("homePage.recommendation")}
-                </p>
-                <h2
-                  id="today-recommendation-title"
-                  className={layout.strip ? "today-strip-title" : "today-title"}
-                  lang="en"
-                >
-                  {primary.title}
-                </h2>
+          {primary && layout.strip ? (
+            <section className="today-strip" aria-label={t("homePage.nextKicker")}>
+              {/* The whole row is the link (Home v3.1 d); the alternatives sit beside it in a
+                  disclosure, not inside it, so no interactive element nests in another. */}
+              <Link to={primary.href} className="today-strip-link">
+                <span className="today-kicker is-quiet">{t("homePage.nextKicker")}</span>
+                <span className="today-strip-title" lang="en">{primary.title}</span>
                 <MetaLine
                   parts={[modeLabel(primary.mode), [primary.band, primary.topic], sentenceText(primary.sentenceCount)]}
                 />
-                <p className={layout.strip ? "today-strip-why" : "today-body"}>
-                  {t(primary.reasonKey, primary.reasonVars)}
-                  {layout.strip ? null : (
-                    <>
-                      {/* Chinese sentences run on without a space; English needs one. */}
-                      {locale === "zh" ? "" : " "}
-                      {primary.mode === "dictation" ? t("homePage.askDictation") : t("homePage.askReading")}
-                    </>
-                  )}
-                </p>
-              </div>
-              <div className={layout.strip ? "today-strip-actions" : "today-actions"}>
+                {showReason ? (
+                  <span className="today-strip-why">{t(primary.reasonKey, primary.reasonVars)}</span>
+                ) : null}
+                <span className="today-strip-arrow" aria-hidden="true">→</span>
+              </Link>
+              {alternatives.length > 0 ? (
+                <details className="today-more">
+                  <summary className="today-more-toggle" aria-label={t("homePage.adjust")}>
+                    <span aria-hidden="true">···</span>
+                  </summary>
+                  <div className="today-more-menu">
+                    {alternatives.map((alt) => (
+                      <Link key={alt.direction} to={alt.href} className="today-more-item">
+                        {t(`practice.alt.${alt.direction}`)}
+                      </Link>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+            </section>
+          ) : null}
+
+          {primary && layout.state === "recommend" ? (
+            <section className="today-hero" aria-labelledby="today-recommendation-title">
+              <p className="today-kicker">{t("homePage.recommendation")}</p>
+              <h2 id="today-recommendation-title" className="today-title" lang="en">
+                {primary.title}
+              </h2>
+              <MetaLine
+                parts={[modeLabel(primary.mode), [primary.band, primary.topic], sentenceText(primary.sentenceCount)]}
+              />
+              {showReason ? (
+                <p className="today-body">{t(primary.reasonKey, primary.reasonVars)}</p>
+              ) : null}
+              <div className="today-actions">
                 <Link to={primary.href} className={buttonClass("recommendation")}>
-                  {layout.strip
-                    ? t("homePage.start")
-                    : primary.mode === "dictation"
-                      ? t("homePage.startDictation")
-                      : t("homePage.startReading")}
+                  {primary.mode === "dictation" ? t("homePage.startDictation") : t("homePage.startReading")}
                 </Link>
                 {alternatives.length > 0 ? (
                   <div className="today-alternatives" aria-label={t("homePage.adjust")}>
-                    {/* Directional, never a reshuffle: each swap is a choice the learner can
-                        reason about, and is only rendered when such material exists. */}
+                    {/* Visible here: as the hero, these are how a learner chooses to explore
+                        another band (ADR 0006), not an afterthought. */}
                     {alternatives.map((alt) => (
                       <Link key={alt.direction} to={alt.href} className="today-alternative">
                         {t(`practice.alt.${alt.direction}`)}
@@ -627,8 +601,25 @@ export default function EnglishHome() {
                 where the loop restarts, so its data only says what the recommendation above
                 is worth (ia-v2 §3.3).
               */}
-              <section className="home-basis" aria-label={t("homePage.basisLabel")}>
-                <p className="home-basis-line">{basisSentence}</p>
+              <section className="today-basis" aria-label={t("homePage.basisLabel")}>
+                {profileUnavailable ? (
+                  <p className="home-basis-line">{t("homePage.basisUnavailable")}</p>
+                ) : levelExplanation ? (
+                  <span className="today-level">
+                    <button
+                      type="button"
+                      className="today-level-chip"
+                      aria-describedby="today-level-explanation"
+                    >
+                      {level}
+                    </button>
+                    <span id="today-level-explanation" role="tooltip" className="today-level-tip">
+                      {levelExplanation}
+                    </span>
+                  </span>
+                ) : (
+                  <span />
+                )}
                 <Link to="/english/progress" className="home-basis-more">
                   {t("homePage.fullProgress")}
                 </Link>

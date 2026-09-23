@@ -224,6 +224,28 @@ line by whether it changes what the learner does next.
 - (f) Mode stays in the meta line, because Home mixes modes. No duration estimate is added
   until per-passage practice time supports one.
 
+### Progress
+
+- **Implemented — in_review (2026-09-23).** Evidence by criterion:
+  - (a) The dictation hero's meta line is mode / band · topic, and its button reads "Continue
+    dictation". The "checked sentences are kept" note is gone.
+  - (b) The greeting is "{name}, welcome back." or nothing; cold start keeps its one-line brief.
+  - (c) `practice.reason.levelFit` is hidden wherever it would appear. Other reasons show,
+    including the no-level "starting point that helps estimate your level".
+  - (d) In S1 the strip is a single `<Link>` (title, meta, any reason, arrow). The alternatives
+    sit in a `<details>` disclosure beside it, not inside it. `homeLayout` now gives the S1
+    recommendation `link` emphasis, and the one-primary tests still pass. The S2 hero keeps the
+    alternatives visible.
+  - (e) The basis line is a level chip whose explanation shows on hover or focus
+    (`role="tooltip"`, `aria-describedby`). The attempt count is gone from Home. A no-level user
+    sees the level picker instead. A profile failure keeps its one-line notice.
+  - (f) Mode stays. No duration was added.
+  - The S2 mode-explanation line added in v3 was also removed, in the same spirit.
+  - 22 catalogue keys that no longer had a caller were removed.
+  - Automated checks: 881 tests pass, typecheck passes, lint has 0 errors.
+  - Browser fixture: users `b` (S1 dictation, chip tooltip, `···` menu), `recommend` (S2) and
+    `a` (S1 Writing, at 375 px: no horizontal scroll, one `.btn-primary`).
+
 ## Next
 
 - **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the

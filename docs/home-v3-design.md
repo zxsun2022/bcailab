@@ -19,6 +19,15 @@ Mock: the private design canvas *English Studio 首页方案*
 states S1, S2 and S3 at 1440 px, and S1 at 390 px. Where the mock and this document disagree,
 this document wins.
 
+> **v3.1 (2026-09-23).** A follow-up removed repetition from this design. The changes:
+> - the greeting is the name only;
+> - the dictation hero has no sentence count, no "kept" note and a "Continue dictation" button;
+> - the `level_fit` reason is hidden;
+> - the S1 strip is a whole-row link with its alternatives behind `···`;
+> - the basis line is a level chip with a tooltip.
+>
+> Where this document says otherwise, the roadmap entry *Home v3.1* and the code are current.
+
 ## 1. Current Home, verified in code (2026-09-23)
 
 - **Page title and greeting.** The title is "Today" (今天), followed by a greeting.
