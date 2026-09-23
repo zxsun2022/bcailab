@@ -143,7 +143,7 @@ Mode, then level · topic, then sentence count, separated by ` / `. Example:
 
 - Topic is the passage's own `topic`. Leave the segment out when the topic is null.
 - Level is the passage's band, not the learner's level.
-- Writing shows `写作 / {prompt level if the article has an assignment}`, and no sentence count.
+- Writing shows `写作` only. Its state lives in the line beside the button (§6.2), not here.
 
 ### 5.3 Progress bar (dictation Continue only)
 

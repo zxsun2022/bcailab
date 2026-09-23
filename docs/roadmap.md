@@ -230,6 +230,29 @@ protagonist and one primary button. It does not change what is recommended.
 - (j) **Existing tests still pass,** including the ADR 0006 invariants and the Home data-bounds
   behaviour.
 
+### Progress
+
+- **Implemented — in_review (2026-09-23).** Evidence:
+  - (a): `utils/home-view.ts` decides the state, hero and strip. 11 tests, including exactly one
+    primary action in each of five input shapes.
+  - (f): `WRITING_CONTINUE_MAX_AGE_DAYS = 14` in `selectStarterPractice()`, with the request time
+    passed in. Five tests cover 13 days, 15 days, a stale draft falling back to an older
+    dictation, a dictation never ageing out, and no cutoff without a time.
+  - (e): `recentWithoutContinue` has three tests.
+  - (g): `getLatestWritingRevision`, one query on the Continue article only.
+  - Automated checks: 865 tests pass, as do typecheck, lint (0 errors) and both builds.
+  - Browser fixture:
+    - User `a`: S1 with Writing Continue, the round-state line and the recommendation strip.
+    - User `b`: S1 with dictation Continue and its progress bar; Recent without the Continue
+      passage.
+    - User `recommend`: S2.
+    - User `cold`: S3.
+    - Chinese and English interfaces.
+    - At 375 px in dark mode: no horizontal scroll, a 48 px primary, and one `.btn-primary`.
+  - Not seen in the browser: S4 (neither Continue nor a recommendation) and the degraded
+    notice. Their markup follows the same hero component; S4's layout is covered by the
+    one-primary test.
+
 ### Explicitly excluded
 
 - Any change to what `selectStarterPractice()` recommends.

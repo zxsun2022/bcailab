@@ -9,6 +9,24 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-23 — **in_review: English Studio Home v3 — one protagonist per state.** The owner
+  authorized it the same day, with decisions O1–O3 as recommended (design:
+  `docs/home-v3-design.md`; criteria: roadmap *Now — English Studio Home v3*).
+  - **One hero per state, one primary button.** A pure `homeLayout()` decides which state
+    applies and which action is primary, and the page draws what it returns.
+  - **Continue.** A dictation Continue shows its meta line (mode / band · topic / sentences), a
+    progress bar, and "Continue from sentence n". The recommendation under it becomes a ruled
+    strip with a ghost Start and text-link alternatives. Without a Continue, the recommendation
+    is the hero.
+  - **Writing Continue.** It states the latest round's feedback state (O2), from one bounded read
+    and without any "unread" claim. A Writing session untouched for more than 14 days is no
+    longer offered as Continue (O1), because Writing has no finished state and the latest
+    session otherwise stayed on Home indefinitely.
+  - **Recent.** Rows carry a score or progress bar, in a new `--score-bar` token at 3.2:1 on its
+    track, and no longer repeat the Continue passage.
+  - **Removed.** Obsolete v2 action-zone and status-grid CSS.
+  - **Evidence:** the roadmap entry's Progress section.
+
 - 2026-09-23 — **Rail hover.** Owner request: rail rows had no hover state beyond a colour
   change. They now fill the whole row on hover, and the account button uses the same fill.
   The fill is `--rail-hover-fill`, the text colour at 7%, so it shows on both themes. It

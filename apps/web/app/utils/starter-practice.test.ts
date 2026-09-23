@@ -258,6 +258,58 @@ describe("selectStarterPractice — continue", () => {
   it("returns null when there is nothing to resume", () => {
     expect(selectStarterPractice(base()).continueAction).toBeNull();
   });
+
+  it("carries the passage topic for the meta line", () => {
+    const out = selectStarterPractice(base({ records: [inProgress] }));
+    expect(out.continueAction).toMatchObject({ kind: "dictation", topic: "daily" });
+  });
+});
+
+describe("selectStarterPractice — stale Writing sessions (Home v3, O1)", () => {
+  const draftAt = (updatedAt: string) => ({ articleId: "w1", title: "Essay", updatedAt });
+  const now = "2026-09-23T12:00:00Z";
+
+  it("still offers a Writing session last touched 13 days ago", () => {
+    const out = selectStarterPractice(base({ draft: draftAt("2026-09-10T12:00:00Z"), now }));
+    expect(out.continueAction).toMatchObject({ kind: "writing", articleId: "w1" });
+  });
+
+  it("stops offering one last touched 15 days ago", () => {
+    const out = selectStarterPractice(base({ draft: draftAt("2026-09-08T12:00:00Z"), now }));
+    expect(out.continueAction).toBeNull();
+  });
+
+  it("falls back to an older in-progress dictation when the newer draft is stale", () => {
+    const out = selectStarterPractice(
+      base({
+        records: [{
+          passageId: "b1a", mode: "dictation", status: "in_progress",
+          accuracy: 0.5, sentencesDone: 3, createdAt: "2026-09-01T00:00:00Z"
+        }],
+        draft: draftAt("2026-09-05T00:00:00Z"),
+        now
+      })
+    );
+    expect(out.continueAction).toMatchObject({ kind: "dictation", passageId: "b1a" });
+  });
+
+  it("never ages out an in-progress dictation", () => {
+    const out = selectStarterPractice(
+      base({
+        records: [{
+          passageId: "b1a", mode: "dictation", status: "in_progress",
+          accuracy: 0.5, sentencesDone: 3, createdAt: "2026-01-01T00:00:00Z"
+        }],
+        now
+      })
+    );
+    expect(out.continueAction).toMatchObject({ kind: "dictation" });
+  });
+
+  it("applies no cutoff when the caller passes no time", () => {
+    const out = selectStarterPractice(base({ draft: draftAt("2020-01-01T00:00:00Z") }));
+    expect(out.continueAction).toMatchObject({ kind: "writing" });
+  });
 });
 
 it("resumes a published record outside the candidate window without changing the B2 recommendation", () => {

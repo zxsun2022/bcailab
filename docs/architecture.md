@@ -80,6 +80,9 @@ their respective main workspaces. See [the shell contract](studio-app-shell.md) 
 [access rules](access-model.md).
 
 Home is action-first: Continue and a recommendation, a compact basis line, and recent practice.
+Each state has one hero and one primary action (Continue first; otherwise the recommendation), and
+a Writing session untouched for more than 14 days is not offered as Continue
+([Home v3](home-v3-design.md)).
 Retrospective ability/coverage/trend information lives on Progress; Home has no status grid.
 Its bounded recommendation and record-publication inputs recover independently, with unavailable
 profile data labelled as such. See [Home behavior](english-studio-ia-v2-design.md#33-home--action-zone-top-of-viewport).
