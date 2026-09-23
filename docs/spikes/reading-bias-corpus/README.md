@@ -42,11 +42,11 @@ own machine, sends each recording straight to the model API, and writes its repo
 These two choices are fixed by the committed manifest. Changing either one afterwards means a new
 registered experiment.
 
-- **The model.** Production Reading evaluation uses `reading_eval`. Its code default is
-  `gemini-3.6-flash`, but that task honours the `GEMINI_MODEL` override. Check the Pages
-  **Production** environment. If `GEMINI_MODEL` is set, the manifest must name that exact model.
-  Do not use a floating alias such as `-latest`: the experiment would test a model that later
-  changes underneath it.
+- **The model.** Production Reading evaluation uses `reading_eval`, pinned in
+  `apps/web/app/utils/llm.server.ts` with no environment override (since 2026-09-23). The
+  manifest names that exact model. Do not use a floating alias such as `-latest`: the experiment
+  would test a model that later changes underneath it. A model change after the run needs a new
+  registered experiment.
 - **The shape of the brief.** `prepare.ts` renders the heading, the shared usage rules,
   `Level: not established`, and one tag line, for example: "the 'th' sound: 55% over 24
   occurrences — may include AI judgement (Reading)". The proposal's Reading share (§4.3) also

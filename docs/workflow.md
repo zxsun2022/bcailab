@@ -206,7 +206,6 @@ Migration 文件位于 `migrations/` 目录，按编号顺序执行。添加新 
 | `GOOGLE_CLIENT_SECRET` | ✓ | ✓ | ✓ |
 | `GOOGLE_TTS_SERVICE_ACCOUNT_JSON` | ✓ | ✓ | ✓ |
 | `GEMINI_API_KEY` | ✓ | ✓ | ✓ |
-| `GEMINI_MODEL` | ✓ | ✓ | ✓ |
 | `OAUTH_REDIRECT_URL` | `http://localhost:5173/auth/callback` | preview 域名对应的回调地址 | `https://bcailab.com/auth/callback` |
 | `SESSION_SECRET` | ✓ | ✓ | ✓ |
 

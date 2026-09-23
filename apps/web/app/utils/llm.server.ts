@@ -12,15 +12,16 @@ import type { Env } from "~/types/env";
  */
 
 const DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";
-// Pinned explicitly rather than the `gemini-flash-latest` floating alias: that alias tracks
-// the latest workhorse Flash, which is now the pricier 3.6 Flash ($1.50/$7.50 per 1M vs
-// 2.5 Flash's ~$0.30/$2.50). Pinning keeps the cost-sensitive tasks (translate funnel, etc.)
-// on the cheaper model instead of drifting up silently. `GEMINI_MODEL` still overrides.
-const DEFAULT_MODEL = "gemini-2.5-flash";
-const LITE_MODEL = "gemini-2.5-flash-lite";
-// The quality-critical evaluation tasks — where the model output *is* the product — opt into
-// the newer 3.6 Flash. Owner decision 2026-07-21: 3.6 only for evaluation, not blanket.
-const EVAL_MODEL = "gemini-3.6-flash";
+// Every model is a pinned version, and this table is the only place one is chosen (owner
+// decision 2026-09-23). There is no environment override: production ran on a `GEMINI_MODEL`
+// secret set to the floating `gemini-flash-latest` alias, which silently overrode five tasks —
+// the cost-sensitive ones included — and let the graders' model change under stored scores
+// without any record. A model change is now a reviewed code change.
+//
+// Evaluation, where the model output *is* the product, uses the newest Flash. Everything else
+// uses the newest Flash-Lite.
+const EVAL_MODEL = "gemini-3.8-flash";
+const LITE_MODEL = "gemini-3.5-flash-lite";
 
 export type LlmTask =
   | "translate"
@@ -32,36 +33,23 @@ export type LlmTask =
   | "dictation_feedback"
   | "learner_profile_naming";
 
-type TaskConfig = {
-  model: string;
-  /** When true, the GEMINI_MODEL env var overrides the default model. */
-  envModelOverride?: boolean;
-};
-
-const TASK_MODELS: Record<LlmTask, TaskConfig> = {
-  translate: { model: DEFAULT_MODEL, envModelOverride: true },
-  translate_anonymous: { model: LITE_MODEL },
-  reading_eval: { model: EVAL_MODEL, envModelOverride: true },
-  writing_feedback: { model: EVAL_MODEL, envModelOverride: true },
-  title_generation: { model: LITE_MODEL },
-  // Dictation v1 generates material offline (scripts/dictation-seed/), which cannot
-  // import app code. This entry documents the routing decision and is the control
-  // point for when v2 moves generation into the runtime.
-  dictation_generate: { model: DEFAULT_MODEL },
-  dictation_feedback: { model: DEFAULT_MODEL, envModelOverride: true },
+export const TASK_MODELS: Record<LlmTask, string> = {
+  translate: LITE_MODEL,
+  translate_anonymous: LITE_MODEL,
+  reading_eval: EVAL_MODEL,
+  writing_feedback: EVAL_MODEL,
+  title_generation: LITE_MODEL,
+  // Dictation v1 generates material offline (scripts/material-seed/), which cannot import app
+  // code and pins its own model. This entry is the control point for when generation moves
+  // into the runtime.
+  dictation_generate: LITE_MODEL,
+  dictation_feedback: LITE_MODEL,
   // Names the deterministic tag-mastery aggregate for the learner; interpretation only,
   // never deciding whether a weakness exists (learner-model design §6.4).
-  learner_profile_naming: { model: DEFAULT_MODEL, envModelOverride: true }
+  learner_profile_naming: LITE_MODEL
 };
 
-export const resolveModelForTask = (env: Env, task: LlmTask): string => {
-  const config = TASK_MODELS[task];
-  if (config.envModelOverride) {
-    const override = env.GEMINI_MODEL?.trim();
-    if (override) return override;
-  }
-  return config.model;
-};
+export const resolveModelForTask = (task: LlmTask): string => TASK_MODELS[task];
 
 export type GeminiPart =
   | { text: string }
@@ -86,7 +74,7 @@ export const callGemini = async (input: {
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
 
   const baseUrl = input.env.GEMINI_BASE_URL?.trim() || DEFAULT_BASE_URL;
-  const modelName = resolveModelForTask(input.env, input.task);
+  const modelName = resolveModelForTask(input.task);
 
   const response = await fetch(
     `${baseUrl}/models/${encodeURIComponent(modelName)}:generateContent?key=${encodeURIComponent(apiKey)}`,
@@ -135,7 +123,7 @@ export const streamGemini = async (input: {
   if (!apiKey) throw new Error("GEMINI_API_KEY is not configured.");
 
   const baseUrl = input.env.GEMINI_BASE_URL?.trim() || DEFAULT_BASE_URL;
-  const modelName = resolveModelForTask(input.env, input.task);
+  const modelName = resolveModelForTask(input.task);
 
   const response = await fetch(
     `${baseUrl}/models/${encodeURIComponent(modelName)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`,

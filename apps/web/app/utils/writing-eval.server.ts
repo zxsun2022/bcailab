@@ -291,7 +291,8 @@ export const generateArticleTitle = async (
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: 32,
-        thinkingConfig: { thinkingBudget: 0 }
+        // Gemini 3 models reject `thinkingBudget`; "minimal" is their no-thinking setting.
+        thinkingConfig: { thinkingLevel: "minimal" }
       }
     });
     const cleaned = text
