@@ -239,3 +239,83 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   *Now — Learner context for graders* and Stage 2 is a Next item in `docs/roadmap.md`; the split
   itself is [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md). This entry
   remains as the record of how the idea arrived, not as the plan.
+
+- **Close the practice loop — from "understood the correction" to "can use it days later"**
+  (owner discussion 2026-09-24, merging an in-repo review with an external AI review; *proposal
+  only, not authorized*).
+  中文摘要：English Studio 的专项练习基础不错，但缺"理解 → 自己表达 → 隔几天还能用出来"这条链。
+  建议顺序：① Writing 反馈后的当场针对练习；② 听/读后复述 + 一次追问（先打字，后录音）；
+  ③ 隔几天换题复查（依赖 Stage 2 分类）；④ Translate 里"练会这个表达"。验收看延迟后在新内容上的表现，
+  不看 AI 分数、轮数或打卡。
+
+  **Diagnosis.** Mapped against Nation's four strands (meaning-focused input, meaning-focused
+  output, language-focused learning, fluency development), the studio invests mostly in formal
+  accuracy: Dictation scores word-level perception, Reading scores read-aloud pronunciation, and
+  Writing corrects form across revisions. Three things are thin or missing:
+  1. **Comprehension.** "Reading" evaluates reading aloud; nothing checks whether a passage was
+     understood. Dictation checks that words were heard, not that a paragraph was followed.
+  2. **Spontaneous production.** Every spoken task is scripted (read aloud or recite). Nothing
+     asks the learner to organise their own sentences, clarify, or respond.
+  3. **Delayed retrieval.** Errors are recorded and — under the learner-context work — shown to
+     graders, but none returns to the learner as something to produce again. Reading-aloud
+     fluency is not spontaneous speech, and dictation accuracy is not comprehension.
+
+  **Candidates, in suggested order.** Each is independently useful.
+
+  1. **Targeted practice after Writing feedback — same-sitting part only.** After a feedback
+     round, the learner may pick one annotated issue and (a) fix the original sentence, then
+     (b) express the same point in one model-generated new context (e.g. *since three years* →
+     "she has worked at this company for six months"). The model generates the variant and judges
+     whether the answer is acceptable; many correct answers must pass. Every item stays bound to
+     its source sentence, is skippable, and offers "this correction was wrong". It waits on
+     nothing: it needs no category vocabulary, no scheduler and no measurement change. Writing
+     goes first because it has the richest error evidence and the most complete loop today;
+     dictation misses (deterministic, already in `sentence_results`) are a natural second source.
+  2. **Retell after listening or reading, plus one follow-up question.** Reuse existing passages
+     and audio: hear or read → text hidden → retell in one's own words (30–60 s) → the model asks
+     one follow-up grounded in the answer → retell again. Scored on *meaning*, not wording: were
+     the key points and relations understood, would a listener follow it, and the single most
+     useful fix. It needs its own meaning-based rubric; the read-aloud rubric does not transfer.
+     Two risks to design around:
+     - **ASR contaminates the judgement.** A non-native recording is transcribed before it is
+       judged, so a recognition error can read as a comprehension error. Ship a **typed retell
+       first**: it validates the meaning rubric without ASR, and also serves learners who cannot
+       use a microphone. Add recording once the typed rubric is shown to be stable.
+     - **Feedback, not measurement.** Under
+       [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md) the retell grader
+       writes no `learner_tag_observations` until variance evidence exists, the same bar Reading
+       had to clear.
+  3. **Delayed re-check on new content.** Days later, test the same point with different content.
+     This is the step that carries the learning value, and it has a hidden dependency: to know
+     two errors are "the same point", feedback needs a closed category list. That is exactly
+     roadmap Next's *Learner context Stage 2 — structured feedback categories*. Matching on the
+     model's free-text issue names would be unreliable, so this step waits for Stage 2. A simple
+     rule-based interval is enough at first; spaced practice has solid L2 evidence (Kim & Webb
+     2022 meta-analysis, 48 experiments), but that does not make any fixed interval optimal. One
+     AI judgement must never be promoted to "the learner cannot do X".
+  4. **Translate → "practise this expression".** After a translation, the learner may choose to
+     practise a phrase or pattern from it (e.g. *I'd like to confirm…*): see its use, produce it
+     with the result hidden, then reuse it in a new situation. Focus on transferable chunks and
+     patterns, not auto-extracted word lists. Only what the learner explicitly selects enters any
+     record, consistent with roadmap decision D2 that saved translations stay out of grader
+     context.
+
+  **Deliberately later.** Goal-oriented scenario dialogue (e.g. rescheduling a clinic
+  appointment, where the model plays the receptionist and adds one realistic constraint) fits
+  ESL needs well, and CEFR describes interaction as its own activity. But turn count, latency and
+  evaluation quality make it the most expensive item, and push-to-talk rounds of 4–6 turns would
+  be the only sensible first version. Tap-to-look-up in context is useful input support but
+  secondary to phrase practice. Streaks and XP remain excluded for the reasons in the enrolment
+  entry above.
+
+  **How to judge any of these.** The metric is **delayed performance on new content** — whether
+  the learner uses the point correctly days later, in a sentence they have not seen — not AI score
+  gains, turn counts, or streaks. The benefits above are hypotheses for product experiments: the
+  research supports the learning mechanisms, not the effectiveness of any particular AI feature.
+
+  Relationship to other entries: this is the learner-facing half of the
+  **encounter → understand → remember → produce** loop the "Today" and offline-compute entries
+  describe. Items 1, 2 and 4 need neither the job runner nor a Today queue; item 3 is the first
+  real tenant either would have.
+
+  Nothing here has acceptance criteria. Promotion is the owner's call.
