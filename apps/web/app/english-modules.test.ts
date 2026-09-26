@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ENGLISH_MODULES,
+  freeEntryPoints,
   moduleCopy,
   resolveEnglishModuleDestination,
   type EnglishModuleAccess
@@ -73,7 +74,28 @@ describe("English Studio module copy", () => {
     expect(moduleCopy(createTranslator("en"), dictation)).toMatchObject({
       label: "Dictation",
       description: "Listen sentence by sentence and type what you hear.",
-      tags: ["Listening", "Scoring", "Free to try"]
+      tags: ["Listening", "Scoring"]
     });
+  });
+});
+
+describe("free entry points", () => {
+  it("lists open and trial modules from the registry, in registry order", () => {
+    const { open, trial } = freeEntryPoints();
+    expect(open.map((module) => module.id)).toEqual(["dictation", "translate"]);
+    expect(trial.map((module) => module.id)).toEqual(["reading", "writing"]);
+  });
+
+  it("follows the access field and leaves out planned modules", () => {
+    const planned = { ...ENGLISH_MODULES[0]!, id: "dictionary" as const, status: "planned" as const };
+    const gated = { ...ENGLISH_MODULES[0]!, access: "auth" as const };
+    expect(freeEntryPoints([planned, gated])).toEqual({ open: [], trial: [] });
+  });
+
+  it("gives every free module a destination that needs no login", () => {
+    const { open, trial } = freeEntryPoints();
+    for (const module of [...open, ...trial]) {
+      expect(resolveEnglishModuleDestination(module, false).requiresLogin).toBe(false);
+    }
   });
 });

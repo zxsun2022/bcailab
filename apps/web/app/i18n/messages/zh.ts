@@ -83,7 +83,6 @@ export const zh: Record<MessageKey, string> = {
   "module.dictionary.detail": "规划中：结合语境讲解，并关联到你的朗读和写作练习。",
   "moduleTag.listening": "听力",
   "moduleTag.scoring": "评分",
-  "moduleTag.freeToTry": "免费试用",
   "moduleTag.speaking": "口语",
   "moduleTag.evaluation": "评估",
   "moduleTag.writing": "写作",
@@ -95,6 +94,9 @@ export const zh: Record<MessageKey, string> = {
   "moduleAccess.public": "无需账号",
   "moduleAccess.trial": "免费试用",
   "moduleAccess.auth": "需要账号",
+  "freeAccess.open": "免登录可用：",
+  "freeAccess.trial": "可先免费试用：",
+  "english.startDictation": "免登录开始听写",
 
   // --- homepage ---
   "home.eyebrow": "English Studio · bcailab 出品",
@@ -105,7 +107,6 @@ export const zh: Record<MessageKey, string> = {
   "home.openStudio": "进入 English Studio",
   "home.tryTranslate": "免登录试用翻译",
   "home.seeInside": "看看里面有什么",
-  "home.access": "翻译和听写对所有人开放。朗读和写作可以先免费试用，再决定是否登录。",
   "home.loginHint": "请先登录再使用这些工具。",
   "home.inside": "English Studio 里有什么",
   "home.planned": "规划中",
@@ -131,7 +132,6 @@ export const zh: Record<MessageKey, string> = {
   "english.tagline": "专注练英语的一站式工作台：读、写、听、说、译，每一步都有 AI 反馈。",
   "english.desc":
     "English Studio 把实验室的语言工具集中在一个地方，让你在真实的流程里练习：朗读一段文章，知道哪里需要改；跟 AI 教练一起修改作文；把文字转成音频，用来练听力和跟读；不离开工作台就能翻译。",
-  "english.signInToStart": "登录后开始",
   "english.modules": "模块",
   "english.soon": "即将推出",
   "english.noteTitle": "一个账号，进度共享",

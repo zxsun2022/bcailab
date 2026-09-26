@@ -2,10 +2,11 @@ import { Link, useOutletContext, useSearchParams } from "@remix-run/react";
 import type { User } from "@bcailab/db";
 import {
   ENGLISH_MODULES,
+  moduleAccessKey,
   moduleCopy,
-  resolveEnglishModuleDestination,
-  type EnglishModule
+  resolveEnglishModuleDestination
 } from "~/english-modules";
+import { FreeAccessChip } from "~/components/FreeAccessChip";
 import { openLoginPopup } from "~/utils/login-popup";
 import { RichMessage, useT } from "~/i18n/context";
 import type { MessageKey } from "~/i18n/translate";
@@ -62,13 +63,6 @@ const otherProjects: OtherProject[] = [
   }
 ];
 
-/** What a signed-out visitor may do with a module, in the words the cards use. */
-const ACCESS_NOTE: Record<EnglishModule["access"], MessageKey> = {
-  public: "moduleAccess.public",
-  trial: "moduleAccess.trial",
-  auth: "moduleAccess.auth"
-};
-
 export default function Index() {
   const { user } = useOutletContext<{ user: User | null }>();
   const t = useT();
@@ -120,9 +114,7 @@ export default function Index() {
             </>
           )}
         </div>
-        {signedIn ? null : (
-          <p className="home-hero-access">{t("home.access")}</p>
-        )}
+        {signedIn ? null : <FreeAccessChip className="home-hero-access" />}
         {loginHint ? (
           <div className="home-login-hint">{t("home.loginHint")}</div>
         ) : null}
@@ -152,7 +144,7 @@ export default function Index() {
                 {planned || !signedIn ? (
                   <div className="home-tool-tags">
                     <span className="home-tool-tag">
-                      {planned ? t("home.notBuilt") : t(ACCESS_NOTE[module.access])}
+                      {planned ? t("home.notBuilt") : t(moduleAccessKey(module.access))}
                     </span>
                   </div>
                 ) : null}
