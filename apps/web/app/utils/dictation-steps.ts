@@ -49,3 +49,13 @@ export const viewModeOf = (viewing: number, frontier: number): ViewMode =>
 /** Where "back to the current sentence" goes: the frontier, or the last sentence once all are checked. */
 export const returnTargetOf = (total: number, frontier: number): number =>
   Math.min(frontier, Math.max(0, total - 1));
+
+/**
+ * A sentence clip's length as m:ss, at the chosen playback speed, for the label beside Play.
+ * Null until the browser has read the clip's metadata: the page never guesses a duration.
+ */
+export const clipDurationLabel = (seconds: number | null, speed: number): string | null => {
+  if (seconds === null || !Number.isFinite(seconds) || seconds <= 0 || speed <= 0) return null;
+  const total = Math.max(1, Math.round(seconds / speed));
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+};

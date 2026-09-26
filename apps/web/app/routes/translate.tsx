@@ -219,6 +219,7 @@ export default function TranslatePage() {
   const saveTransportRef = React.useRef<HTMLInputElement | null>(null);
   const formRef = React.useRef<HTMLFormElement | null>(null);
   const outputPaneRef = React.useRef<HTMLDivElement | null>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
   const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => () => abortRef.current?.abort(), []);
@@ -251,6 +252,27 @@ export default function TranslatePage() {
       completedSnapshot.targetLanguage !== target
     )
   );
+
+  // The source grows with its content, so a long text and its translation are read by scrolling
+  // the page rather than a nested textarea (ux-follow-ups 2026-07-30 §2). On phones the box stays
+  // capped while composing, keeping Translate in the first viewport, and grows once a result exists.
+  const hasResult = Boolean(translation) && !busy;
+  const fitInput = React.useCallback(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    input.style.minHeight = "";
+    if (!hasResult && window.matchMedia("(max-width: 768px)").matches) return;
+    input.style.minHeight = `${input.scrollHeight}px`;
+  }, [hasResult]);
+
+  React.useEffect(() => {
+    fitInput();
+  }, [fitInput, text]);
+
+  React.useEffect(() => {
+    window.addEventListener("resize", fitInput);
+    return () => window.removeEventListener("resize", fitInput);
+  }, [fitInput]);
 
   React.useEffect(() => {
     const proof = pendingSaveProofRef.current;
@@ -444,7 +466,7 @@ export default function TranslatePage() {
         method="post"
         action="/translate"
         ref={formRef}
-        className="translate-board"
+        className={`translate-board${hasResult ? " has-result" : ""}`}
         onSubmit={(event) => {
           // JS path streams from /translate/stream; the native POST above is the fallback.
           event.preventDefault();
@@ -509,6 +531,7 @@ export default function TranslatePage() {
         <div className="translate-panes">
           <div className="translate-pane">
             <textarea
+              ref={inputRef}
               className="translate-input"
               name="text"
               value={text}

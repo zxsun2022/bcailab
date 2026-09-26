@@ -9,6 +9,28 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-25 — **in_review: English Studio UX batch** (roadmap Next item 2; ux-follow-ups §2,
+  §3C, §3D, §5).
+  - **Translate.** The source box is sized to its content on desktop, so a long source and its
+    translation are read by scrolling the page; it shrinks back when cleared and refits on
+    resize. On phones it stays capped while composing and grows once a result exists.
+  - **Dictation duration.** The clip length (`m:ss`, at the chosen speed) appears beside the
+    controls once metadata loads, never before. Pure formatter with tests.
+  - **Dictation keys.** A hint under the answer: Enter checks, Shift+Enter adds a line (hidden on
+    touch devices and in review). This surfaced a real bug: a checked answer is disabled, so
+    focus fell to the page and **Enter did nothing** after a check. Focus now moves to Next /
+    Finish, so Enter advances.
+  - **Reading.** "Add text" moved from the page header into the "Your texts" header, shown in
+    both empty and populated states.
+  - **Evidence.** In the browser: Translate at 1024px (366 → 1916px while typing, no inner
+    scroll, back to 366 when cleared; after one real translation both panes top-aligned) and at
+    375px (capped at 276px while composing, 1645px with no inner scroll after a result, no
+    horizontal overflow); Dictation duration `0:04` → `0:06` at 0.75× on a generated clip and
+    absent before metadata; real keystrokes Enter → check → focus on Next → Enter → sentence 2
+    with focus back in the answer, and Shift+Enter inserting a line; Reading's button in "Your
+    texts" for a user with texts and one without. Unit tests, typechecks, lint (0 errors), both
+    builds and `pnpm test:integration` pass.
+
 - 2026-09-25 — **in_review: Writing feedback no longer disappears behind a collapsed panel.**
   Owner report: "writing is never evaluated locally". The local D1 showed the round completed on
   `gemini-3.8-flash` in about six seconds; the owner's browser had `writing-aside-collapsed=true`

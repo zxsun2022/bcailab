@@ -210,6 +210,9 @@ export const en = {
   "dictation.nextSentence": "Next sentence",
   "dictation.checking": "Checking…",
   "dictation.check": "Check",
+  "dictation.duration": "Length",
+  "dictation.keysCheck": "Enter checks · Shift+Enter adds a line",
+  "dictation.keysNext": "Enter goes to the next step",
 
   // --- sign-in popup ---
   "login.title": "Sign in to bcailab",
