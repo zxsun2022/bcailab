@@ -13,6 +13,7 @@
     "db:migrate:local": "wrangler d1 migrations apply bcailab-db --local --persist-to apps/web/.wrangler/state",
     "writing-prompts": "tsx scripts/writing-prompt-seed/cli.ts",
     "benchmark:mapdown": "tsx scripts/mapdown-benchmark.ts",
+    "bias:wizard": "tsx scripts/grader-bias/wizard.ts",
     "context": "./scripts/context-pack.sh",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -7,6 +7,19 @@ what to record, how to annotate it, and how to turn it into the registered manif
 `scripts/grader-bias.ts` runs. The protocol and roadmap criterion (d) own the design and the
 thresholds; nothing here changes them or enables Reading's brief.
 
+## Easiest path: the guided page
+
+```bash
+pnpm bias:wizard
+```
+
+Then open <http://127.0.0.1:4321>. The page (Chinese) walks through everything below in order:
+the two decisions, recording each of the eight takes in the browser with its passage marked up,
+the listen-check that writes `groundTruth`, freezing, the pre-registration commit (you run git
+yourself), the preliminary screen and the full run. It uses the same `prepare.ts`,
+`grader-bias.ts` and `grader-variance.ts` as the manual steps, so their checks still apply. The
+rest of this README is the reference those steps come from.
+
 Files:
 
 - `draft.template.json`: the recording slate, the two passages, and the synthetic learner claims.

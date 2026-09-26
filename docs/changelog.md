@@ -9,6 +9,22 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-25 — **in_review: guided local page for the Reading bias gate.** Owner request: turn
+  the remaining half of *Now — Learner context for graders* into a page that walks the owner
+  through it. `pnpm bias:wizard` serves `scripts/grader-bias/wizard.ts` on `127.0.0.1:4321`: the
+  two owner decisions, all eight recordings with the passage marked up per script (in-browser
+  recording saved as 16 kHz mono WAV, or a phone upload), a listen-check checklist that writes
+  `groundTruth` in the corpus README's format, freezing through the existing `prepare.ts` and
+  validator, pre-registration status, and the preliminary and full runs through the existing
+  CLIs. It never commits or calls a model itself; it refuses model runs until the manifest is at
+  HEAD, refuses edits after that, clears a recording's ground truth when its audio is replaced, and
+  rejects posts without its own header. Evidence: grader-spike typecheck and lint pass; in the
+  browser pane, synthetic tone audio went through steps 1–4 to a validated eight-recording
+  manifest, identical audio was rejected by the validator, re-recording cleared ground truth, and
+  a temporary local commit showed the HEAD detection and edit lock (then undone). Steps 6–7 were
+  not run: they spend the owner's API quota and need real recordings. No experiment result is
+  claimed; the test files were deleted.
+
 - 2026-09-23 — **Offline material generation pinned to `gemini-3.8-flash`.** Owner decision,
   following the model pinning above. `scripts/material-seed/generate.ts` used the floating
   `gemini-flash-latest`, so a batch's material could not be tied to the model that wrote it. It

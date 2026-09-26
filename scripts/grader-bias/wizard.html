@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading 偏差实验向导</title>
+<style>
+  :root {
+    --bg: #f7f6f3; --card: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #e3e1dc;
+    --accent: #2f5bd3; --ok: #1f7a4d; --ok-bg: #e5f4ec; --warn: #9a5b00; --warn-bg: #fdf1dc;
+    --err: #b3261e; --err-bg: #fbe7e5; --code: #f0eee9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151514; --card: #1f1f1d; --ink: #ecebe7; --muted: #a09e98; --line: #35342f;
+      --accent: #8aa8ff; --ok: #6fd3a0; --ok-bg: #173327; --warn: #f0b85a; --warn-bg: #3a2b12;
+      --err: #ff8a80; --err-bg: #3b1d1a; --code: #2a2926;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif; }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 24px; margin: 0 0 4px; }
+  h2 { font-size: 18px; margin: 0; }
+  h3 { font-size: 15px; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  .lede { color: var(--muted); margin-bottom: 24px; }
+  .step { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin: 14px 0; }
+  .step.locked { opacity: .55; }
+  .step-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .num { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 600;
+    background: var(--code); font-size: 13px; flex: none; }
+  .done .num { background: var(--ok); color: var(--card); }
+  .badge { font-size: 12px; padding: 1px 8px; border-radius: 99px; background: var(--code); color: var(--muted); white-space: nowrap; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.err { background: var(--err-bg); color: var(--err); }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    padding: 6px 14px; border-radius: 7px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { background: var(--err); border-color: var(--err); color: #fff; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  input[type=text] { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--card); color: var(--ink); width: 100%; max-width: 320px; }
+  label.check { display: flex; gap: 8px; align-items: flex-start; margin: 4px 0; cursor: pointer; }
+  label.check input { margin-top: 5px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0; }
+  .note-box { border-left: 3px solid var(--warn); background: var(--warn-bg); padding: 8px 12px; border-radius: 4px; margin: 10px 0; }
+  .ok-box { border-left: 3px solid var(--ok); background: var(--ok-bg); padding: 8px 12px; border-radius: 4px; margin: 10px 0; }
+  .err-box { border-left: 3px solid var(--err); background: var(--err-bg); padding: 8px 12px; border-radius: 4px; margin: 10px 0; }
+  pre, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+  code { background: var(--code); padding: 1px 5px; border-radius: 4px; }
+  pre { background: var(--code); padding: 10px 12px; border-radius: 6px; overflow-x: auto; white-space: pre-wrap; word-break: break-word; margin: 8px 0; }
+  pre.log { max-height: 320px; overflow-y: auto; }
+  .cmd { display: flex; gap: 8px; align-items: flex-start; }
+  .cmd pre { flex: 1; margin: 4px 0; }
+  details.rec { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; }
+  details.rec > summary { padding: 10px 14px; cursor: pointer; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; list-style: none; }
+  details.rec > summary::-webkit-details-marker { display: none; }
+  details.rec[open] > summary { border-bottom: 1px solid var(--line); }
+  .rec-body { padding: 4px 16px 16px; }
+  .rec-id { font-family: ui-monospace, Menlo, monospace; font-weight: 600; }
+  .passage { font-size: 18px; line-height: 2.3; background: var(--code); padding: 12px 16px; border-radius: 8px; }
+  mark { background: none; color: inherit; border-radius: 3px; padding: 0 2px; position: relative; }
+  mark .n { font-size: 11px; font-weight: 600; margin-left: 3px; vertical-align: super; }
+  mark.err { background: var(--err-bg); color: var(--err); font-weight: 600; }
+  mark.ok { text-decoration: underline 2px var(--ok); text-underline-offset: 4px; }
+  mark.other { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+  .brk { color: var(--err); font-weight: 700; padding: 0 3px; }
+  .lnk { color: var(--ok); font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .grid2 { grid-template-columns: 1fr; } }
+  .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--err); display: inline-block; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  @media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { border-bottom: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  .progress { height: 8px; background: var(--code); border-radius: 99px; overflow: hidden; margin: 8px 0; }
+  .progress > div { height: 100%; background: var(--accent); }
+  #toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg);
+    padding: 8px 16px; border-radius: 8px; font-size: 14px; display: none; max-width: calc(100% - 32px); z-index: 9; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Reading 偏差实验向导</h1>
+  <p class="lede">
+    目的：在让 Reading 的 AI 评分员看到学习者历史之前，先验证"告诉它学习者弱点"不会让它乱判。
+    这一页按顺序带你完成 roadmap Now 剩下的那一半（标准 (d)）。所有东西都在你本机运行：
+    不部署、不碰线上数据库，只有第 6、7 步会调用 Gemini。
+  </p>
+  <div id="app"><p class="muted">加载中…</p></div>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ---------- the slate's fixed scripts, from docs/spikes/reading-bias-corpus/README.md §4 ---------- */
+const TH_SUBS = { thursday: "Tursday", three: "tree", brothers: "broders", their: "deir",
+  thought: "tought", weather: "wedder", thick: "tick", nothing: "nutting" };
+const LINKS = ["pick it up", "put it on", "in an office", "an apple", "or an orange",
+  "turn off all of", "at eight", "lock up", "ask a", "if an extra"];
+const OUTSIDE = {
+  warm: { hint: "故意读成 worm", gt: '"warm" as "worm"' },
+  enjoyed: { hint: "重音故意放错：EN-joyed", gt: 'stress on "enjoyed" as EN-joyed' },
+  shelf: { hint: "故意读成 self", gt: '"shelf" as "self"' },
+  extra: { hint: "重音故意放错：ex-TRA", gt: 'stress on "extra" as ex-TRA' }
+};
+
+let S = null;                      // server state
+const ui = { open: null, checks: {}, notes: {}, prelimId: "a-th-present", recording: null };
+try { ui.listener = localStorage.getItem("biasWizardListener") || ""; } catch { ui.listener = ""; }
+
+const $ = (sel) => document.querySelector(sel);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
+const hasTodo = (s) => typeof s !== "string" || !s.trim() || s.includes("TODO");
+const toast = (msg) => { const t = $("#toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(toast.t); toast.t = setTimeout(() => (t.style.display = "none"), 4000); };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { ...opts, headers: { "x-wizard": "1", ...(opts.headers || {}) } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `请求失败（${res.status}）`);
+  return body;
+}
+const postJson = (path, data) => api(path, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(data) });
+
+async function refresh() { S = await api("/api/state"); render(); if (S.job?.running) pollJob(); }
+
+/* ---------- derived status ---------- */
+const decisions = () => S.draft.ownerDecisions || {};
+const frozen = () => S.manifestCommitted;
+const recDone = (r) => S.audio[r.id] && !hasTodo(r.groundTruth);
+const status = () => {
+  const d = decisions();
+  const s1 = S.hasApiKey && d.speakerConsent === true;
+  const s2 = !hasTodo(S.draft.model) && S.draft.model === S.productionModel && d.briefShape === "tags-only";
+  const s3 = S.draft.recordings.every(recDone);
+  const s4 = S.manifestExists && S.manifestFresh;
+  const s5 = S.manifestCommitted && S.draftCommitted;
+  const s6 = S.reports.screens.length > 0;
+  const s7 = S.reports.runs.some((r) => r.comparisons);
+  return { s1, s2, s3, s4, s5, s6, s7 };
+};
+
+/* ---------- rendering ---------- */
+function step(n, title, done, badge, body, locked = false) {
+  return `<section class="step${done ? " done" : ""}${locked ? " locked" : ""}" aria-labelledby="h${n}">
+    <div class="step-head"><span class="num">${done ? "✓" : n}</span><h2 id="h${n}">${title}</h2>${badge || ""}</div>
+    ${body}</section>`;
+}
+const B = (text, kind = "") => `<span class="badge ${kind}">${text}</span>`;
+
+function render() {
+  const st = status();
+  const d = decisions();
+  const lock = frozen();
+  const html = [];
+
+  /* 1. 准备 */
+  html.push(step(1, "准备", st.s1, lock ? B("已冻结", "ok") : "", `
+    <p>需要：两位读者（任意两个人，用化名 A、B）、一个安静房间、一个麦克风，以及大约一小时录音和听检。
+      全部实验共 <b>135 次</b>短调用（预筛 15 次 + 正式 120 次），几分钟就能跑完。</p>
+    <table><tbody>
+      <tr><td>GEMINI_API_KEY</td><td>${S.hasApiKey ? B("已找到", "ok") : B("未找到", "err") + ` <span class="small">放进仓库根目录的 <code>.dev.vars</code> 或环境变量；前 5 步不需要它</span>`}</td></tr>
+      <tr><td>生产使用的模型</td><td><code>${esc(S.productionModel || "未识别")}</code></td></tr>
+      <tr><td>当前 git 分支</td><td><code>${esc(S.branch || "?")}</code></td></tr>
+      <tr><td>草稿文件</td><td>${S.draftExists ? `<code>${esc(S.paths.draft)}</code>` : `还没有，第一次保存时从模板复制`}</td></tr>
+    </tbody></table>
+    <label class="check"><input type="checkbox" id="consent" ${d.speakerConsent ? "checked" : ""} ${lock ? "disabled" : ""}>
+      <span>两位读者都同意：录音会发送给 Google Gemini 做评估。录音只存在你本机（已被 git 忽略），不会提交。</span></label>
+  `));
+
+  /* 2. 两项决定 */
+  const modelOk = S.draft.model === S.productionModel;
+  html.push(step(2, "两项决定（你来定）", st.s2, "", `
+    <p>这两项会写进预注册的 manifest，之后再改就得重做一次实验。</p>
+    <h3>① 模型</h3>
+    <p>草稿里现在是：<code>${esc(S.draft.model)}</code> ${modelOk ? B("与生产一致", "ok") : B("未确认", "warn")}</p>
+    <div class="row"><button id="use-model" ${lock || !S.productionModel || modelOk ? "disabled" : ""}>采用生产模型 ${esc(S.productionModel || "")}</button></div>
+    <h3>② 简报的形状</h3>
+    <label class="check"><input type="radio" name="shape" value="tags-only" ${d.briefShape === "tags-only" ? "checked" : ""} ${lock ? "disabled" : ""}>
+      <span><b>只含标签（推荐）</b>：简报只写"'th' 发音：24 次中 55%，可能含 AI 判断"这类标签行。
+      Reading 首次上线就用这个形状，"其他文章的朗读笔记"以后单独加、单独重测。</span></label>
+    <label class="check"><input type="radio" name="shape" value="with-notes" ${d.briefShape === "with-notes" ? "checked" : ""} ${lock ? "disabled" : ""}>
+      <span><b>先开发朗读笔记</b>：先实现笔记的渲染，再冻结草稿。</span></label>
+    ${d.briefShape === "with-notes" ? `<div class="note-box">这需要先写代码（Reading 的笔记渲染 + 扩展 <code>prepare.ts</code>），这个向导到这里就停下了。让 AI 先实现它，再回来。</div>` : ""}
+  `, lock));
+
+  /* 3. 录音与听检 */
+  const doneCount = S.draft.recordings.filter(recDone).length;
+  html.push(step(3, "录音与听检（8 条）", st.s3, B(`${doneCount}/8 完成`, doneCount === 8 ? "ok" : ""), `
+    <p>每条都要：<b>先录</b>，再由<b>听检人</b>（最好不是读者本人）逐项确认。任何一项没做到，就<b>重录</b>，不要争论。
+      重录会清掉那条的听检结果。</p>
+    <div class="note-box small">关键：<b>"无弱点"的录音最重要</b>。它们测的是"AI 会不会凭空判错"，混进一个读错的 th 或一处断开，就会污染整个结果。</div>
+    <div class="row"><label for="listener" class="small">听检人化名</label>
+      <input type="text" id="listener" value="${esc(ui.listener)}" placeholder="例如 listener-1" ${lock ? "disabled" : ""}></div>
+    ${S.draft.recordings.map((r) => recCard(r, lock)).join("")}
+  `, lock || !st.s2));
+
+  /* 4. 冻结 */
+  const ready4 = st.s1 && st.s2 && st.s3;
+  html.push(step(4, "冻结草稿，生成 manifest", st.s4, S.manifestExists && !S.manifestFresh ? B("manifest 已过期", "warn") : "", `
+    <p>把今天定为简报日期，运行 <code>prepare.ts</code>（计算音频哈希、错误位置、用生产代码渲染简报）并做一次不调用模型的校验。</p>
+    ${!ready4 ? `<p class="muted small">先完成第 1–3 步。</p>` : ""}
+    <div class="row"><button class="primary" id="freeze" ${!ready4 || lock || S.job?.running ? "disabled" : ""}>冻结并生成</button></div>
+    ${jobBox("prepare")}
+  `, lock));
+
+  /* 5. 预注册提交 */
+  const onMain = S.branch === "main";
+  html.push(step(5, "预注册：提交 draft 和 manifest", st.s5, st.s5 ? B("HEAD 已包含", "ok") : "", `
+    <p>这一次提交就是"预注册"：在任何 AI 听到录音之前，把标准答案固定下来。音频不提交，只提交它的哈希。
+      向导不会替你执行 git，请在终端里运行：</p>
+    ${onMain ? cmd("git switch -c reading-bias/preregister") : ""}
+    ${cmd(`git add ${S.paths.draft} ${S.paths.manifest}`)}
+    ${cmd('git commit -m "spike(reading-bias): pre-register the recording corpus"')}
+    <div class="row"><button id="recheck">我已提交，重新检查</button>
+      <span class="small">${S.draftCommitted ? B("draft ✓", "ok") : B("draft 未提交", "warn")} ${S.manifestCommitted ? B("manifest ✓", "ok") : B("manifest 未提交", "warn")}</span></div>
+  `, !st.s4 && !st.s5));
+
+  /* 6. 预筛 */
+  html.push(step(6, "预筛（建议，15 次调用）", st.s6, "", `
+    <p>用一条录音各跑 5 次：不给简报 / 给一条<b>错误</b>的简报（另一个标签）/ 给<b>正确</b>的简报。
+      它只能<b>提前叫停</b> Reading，不能单独让它通过。报告写到 <code>docs/spikes/grader-variance-prelim-*.md</code>。</p>
+    <div class="row"><label for="prelim-id" class="small">录音</label>
+      <select id="prelim-id">${S.draft.recordings.map((r) => `<option ${r.id === ui.prelimId ? "selected" : ""}>${r.id}</option>`).join("")}</select>
+      <button class="primary" id="prelim" ${!st.s5 || !S.hasApiKey || S.job?.running ? "disabled" : ""}>运行预筛</button></div>
+    ${jobBox("prelim")}
+    ${S.reports.screens.length ? `<details><summary>已有预筛报告（${S.reports.screens.length}）</summary>
+      ${S.reports.screens.map((s) => `<h3>${esc(s.name)}</h3><pre>${esc(s.report)}</pre>`).join("")}</details>` : ""}
+  `, !st.s5));
+
+  /* 7. 正式实验 */
+  html.push(step(7, "正式实验（120 次调用）", st.s7, "", `
+    <p>8 条录音 × 3 种条件（无简报 / 新简报 / 现有 persistent_issues）× 5 次。条件轮换，中途失败会保留不完整记录且不能算通过。
+      结果写到新目录 <code>docs/spikes/reading-bias-&lt;时间&gt;/</code>。</p>
+    <div class="row"><button class="danger" id="run" ${!st.s5 || !S.hasApiKey || S.job?.running ? "disabled" : ""}>开始正式实验</button></div>
+    ${jobBox("run")}
+    ${S.reports.runs.map(runCard).join("")}
+  `, !st.s5));
+
+  /* 8. 之后 */
+  html.push(step(8, "拿到结果之后", false, "", `
+    <table><thead><tr><th>结果</th><th>含义</th><th>下一步</th></tr></thead><tbody>
+      <tr><td>brief ${B("PASS", "ok")}</td><td>新简报没有明显带偏评分</td><td>可以授权"给 Reading 接入学习者上下文"作为下一个开发任务</td></tr>
+      <tr><td>brief ${B("FAIL", "err")}</td><td>简报会带偏 Reading</td><td><b>不要改阈值</b>。二选一（proposal §5）：Reading 只用不含标签判断的简报；或者受上下文影响的观察用新的 source 值和单独权重</td></tr>
+      <tr><td>legacy ${B("FAIL", "err")}</td><td>现在线上的 persistent_issues 注入本身就有偏差</td><td>同样要记录，决定是否移除它</td></tr>
+      <tr><td>未完成（退出码 1）</td><td>中途出错</td><td>不算通过；重跑会生成新目录，旧的保留，不要挑结果</td></tr>
+    </tbody></table>
+    <p>无论结果如何，都把结果目录提交，然后告诉 AI："Reading 偏差实验跑完了，更新 roadmap 进度"。</p>
+  `));
+
+  $("#app").innerHTML = html.join("");
+  bind();
+}
+
+function cmd(text) {
+  return `<div class="cmd"><pre>${esc(text)}</pre><button class="copy" data-copy="${esc(text)}">复制</button></div>`;
+}
+
+function jobBox(kind) {
+  const j = S.job;
+  if (!j || j.kind !== kind) return "";
+  const done = j.log.map((l) => l.match(/Completed (\d+)\/(\d+) calls/)).filter(Boolean).pop();
+  const bar = kind === "run" && done ? `<div class="progress" aria-label="进度"><div style="width:${(100 * done[1]) / done[2]}%"></div></div><p class="small">${done[1]} / ${done[2]} 次调用</p>` : "";
+  let verdict = "";
+  if (!j.running) {
+    if (j.exitCode === 0) verdict = `<div class="ok-box">完成。</div>`;
+    else if (kind === "run" && j.exitCode === 2) verdict = `<div class="err-box">实验跑完了，但至少一项没通过。见下面的报告。</div>`;
+    else verdict = `<div class="err-box">失败（退出码 ${j.exitCode}）。看日志最后几行。</div>`;
+  }
+  return `${bar}${j.running ? `<p class="small"><span class="rec-dot"></span> 运行中…</p>` : verdict}<pre class="log" id="log-${kind}">${esc(j.log.join("\n"))}</pre>`;
+}
+
+function runCard(run) {
+  const badges = run.comparisons
+    ? run.comparisons.map((c) => `${c.condition} ${B(c.pass ? "PASS" : "FAIL", c.pass ? "ok" : "err")}`).join(" ")
+    : B("未完成", "warn");
+  return `<details ${run === S.reports.runs[0] ? "open" : ""}><summary><code>${esc(run.name)}</code> ${badges}</summary>
+    ${run.report ? `<pre>${esc(run.report)}</pre>` : `<p class="muted small">没有 report.md（运行未完成）。</p>`}</details>`;
+}
+
+/* ---------- one recording ---------- */
+function instructions(r) {
+  const outside = r.otherErrors.map((e) => `<b>${esc(e.quote)}</b>（${OUTSIDE[e.quote.toLowerCase()]?.hint || e.kind}）`).join("、");
+  const lines = [];
+  if (r.testedTag === "th_sound" && r.weaknessPresent) lines.push("把<b>标红的 8 个词</b>里的 th 读成 t 或 d，每次都要清楚地读错；其余 th 词（绿色下划线）全部读准。");
+  if (r.testedTag === "th_sound" && !r.weaknessPresent) lines.push("<b>所有 th 词</b>（绿色下划线）都读准，包括 the、they、with 这类小词。");
+  if (r.testedTag === "linking" && r.weaknessPresent) lines.push("在每个<b>红色竖线 |</b> 处明显断开（短停顿或重新起音）；其余地方自然流畅。");
+  if (r.testedTag === "linking" && !r.weaknessPresent) lines.push("<b>‿ 处全部连读</b>，除了标点处，任何地方都不要停顿。");
+  if (outside) lines.push(`橙色的词按提示故意读错：${outside}。这是"测试范围外的已知错误"。`);
+  lines.push("安静环境，一遍读完，正常语速，不剪辑。除了规定的地方，其余尽量读得自然。");
+  return `<ul>${lines.map((l) => `<li>${l}</li>`).join("")}</ul>`;
+}
+
+function markWord(word, r) {
+  const lw = word.toLowerCase();
+  if (r.otherErrors.some((e) => e.quote.toLowerCase() === lw)) {
+    return `<mark class="other">${esc(word)}<span class="n">${esc(OUTSIDE[lw]?.hint || "故意读错")}</span></mark>`;
+  }
+  if (r.testedTag === "th_sound") {
+    if (r.weaknessPresent && TH_SUBS[lw]) return `<mark class="err">${esc(word)}<span class="n">→ ${esc(TH_SUBS[lw])}</span></mark>`;
+    if (/th/i.test(word)) return `<mark class="ok">${esc(word)}</mark>`;
+  }
+  return esc(word);
+}
+const markRun = (text, r) => text.split(/(\w+)/).map((part, i) => (i % 2 ? markWord(part, r) : esc(part))).join("");
+
+function renderPassage(r) {
+  const text = S.draft.passages[r.passage];
+  if (r.testedTag !== "linking") return markRun(text, r);
+  const ranges = [];
+  for (const phrase of LINKS) {
+    const m = new RegExp(`\\b${phrase.replace(/ /g, "\\s+")}\\b`, "i").exec(text);
+    if (m && !ranges.some((x) => m.index < x.end && x.start < m.index + m[0].length)) {
+      ranges.push({ start: m.index, end: m.index + m[0].length });
+    }
+  }
+  ranges.sort((a, b) => a.start - b.start);
+  const sep = r.weaknessPresent ? `<span class="brk">|</span>` : `<span class="lnk">‿</span>`;
+  let out = "", at = 0;
+  for (const x of ranges) {
+    out += markRun(text.slice(at, x.start), r);
+    out += text.slice(x.start, x.end).split(/\s+/).map((w) => markRun(w, r)).join(r.weaknessPresent ? ` ${sep} ` : sep);
+    at = x.end;
+  }
+  return out + markRun(text.slice(at), r);
+}
+
+function checkItems(r) {
+  const items = [];
+  if (r.testedTag === "th_sound" && r.weaknessPresent) {
+    for (const [w, s] of Object.entries(TH_SUBS)) items.push(`${w === "thursday" ? "Thursday" : w} 读成了 "${s}"`);
+    items.push("其余 th 词都读准了");
+  }
+  if (r.testedTag === "th_sound" && !r.weaknessPresent) items.push("逐个听了每个 th 词，全部读准，没有一个读成 t/d");
+  if (r.testedTag === "linking" && r.weaknessPresent) {
+    for (const p of LINKS) items.push(`${p.replace(/ /g, " | ")} 处明显断开`);
+    items.push("其余地方流畅，没有多余停顿");
+  }
+  if (r.testedTag === "linking" && !r.weaknessPresent) {
+    items.push("逐个听了 10 处 ‿，全部连读");
+    items.push("除标点外没有任何停顿");
+  }
+  for (const e of r.otherErrors) items.push(`${e.quote}：${OUTSIDE[e.quote.toLowerCase()]?.hint || e.kind}`);
+  items.push("一遍录完，没有剪辑");
+  return items;
+}
+
+function groundTruthLine(r, listener, notes) {
+  const tag = r.testedTag === "th_sound";
+  const method = tag
+    ? (r.weaknessPresent ? "scripted (th→t/d on 8 listed words: Thursday, three, brothers, their, thought, weather, thick, nothing)" : "scripted (every th word read correctly)")
+    : (r.weaknessPresent ? "scripted (clear break at the 10 listed linking boundaries)" : "scripted (all 10 listed boundaries linked; breaks only at punctuation)");
+  const heard = tag
+    ? (r.weaknessPresent ? "all 8 substitutions present, no other th errors" : "no th errors")
+    : (r.weaknessPresent ? "all 10 breaks present, otherwise fluent" : "all boundaries linked, no breaks outside punctuation");
+  const outside = r.otherErrors.map((e) => OUTSIDE[e.quote.toLowerCase()]?.gt || `${e.kind} on "${e.quote}"`).join("; ") || "none";
+  return `Method: ${method}. One continuous take. Listen-check: ${listener}, ${today()}: ${heard}. Unscripted: ${notes || "none"}. Scripted outside tag: ${outside}.`;
+}
+
+function recCard(r, lock) {
+  const audio = S.audio[r.id];
+  const done = recDone(r);
+  const state = done ? B("完成", "ok") : audio ? B("待听检", "warn") : B("未录", "");
+  const speaker = r.speaker === "speaker-a" ? "读者 A" : r.speaker === "speaker-b" ? "读者 B" : r.speaker;
+  const weak = r.weaknessPresent ? B("有弱点", "err") : B("无弱点", "ok");
+  const checks = ui.checks[r.id] || (ui.checks[r.id] = new Set());
+  const items = checkItems(r);
+  const isRec = ui.recording?.id === r.id;
+  const canCheck = audio && !lock;
+  return `<details class="rec" data-id="${r.id}" ${ui.open === r.id ? "open" : ""}>
+    <summary><span class="rec-id">${r.id}</span> ${state} <span class="small muted">${speaker} · ${r.testedTag} · </span>${weak}</summary>
+    <div class="rec-body">
+      <h3>怎么读</h3>${instructions(r)}
+      <div class="passage">${renderPassage(r)}</div>
+      <h3>录音</h3>
+      <div class="row">
+        ${isRec
+          ? `<span class="rec-dot"></span> <span id="timer">0:00</span> <button class="primary" data-act="stop">停止并保存</button>`
+          : `<button class="primary" data-act="record" ${lock || ui.recording ? "disabled" : ""}>${audio ? "重录" : "开始录音"}</button>
+             <label class="small"><input type="file" accept="audio/*" data-act="upload" ${lock ? "disabled" : ""} hidden><button data-act="pick" ${lock ? "disabled" : ""}>或上传手机录音…</button></label>`}
+      </div>
+      ${audio ? `<audio controls preload="metadata" src="/api/audio/${r.id}?v=${audio.bytes}-${r.durationSeconds}"></audio>
+        <p class="small muted">${esc(audio.file)} · ${r.durationSeconds} 秒 · ${(audio.bytes / 1024).toFixed(0)} KB</p>` : ""}
+      <h3>听检 ${audio ? "" : `<span class="small muted">（录完才能做）</span>`}</h3>
+      ${done ? `<div class="ok-box small"><b>已记录的标准答案：</b><br>${esc(r.groundTruth)}</div>` : ""}
+      ${!done ? `
+        ${items.map((it, i) => `<label class="check"><input type="checkbox" data-check="${i}" ${checks.has(i) ? "checked" : ""} ${canCheck ? "" : "disabled"}><span>${esc(it)}</span></label>`).join("")}
+        <div class="row"><label class="small" for="notes-${r.id}">规定之外的口误（范围外的可以接受，照实写；没有就空着）</label>
+          <input type="text" id="notes-${r.id}" data-notes value="${esc(ui.notes[r.id] || "")}" placeholder="none" ${canCheck ? "" : "disabled"}></div>
+        <div class="row"><button class="primary" data-act="confirm" disabled>全部做到了，记录听检结果</button>
+          <span class="small muted" data-hint></span></div>` : ""}
+    </div></details>`;
+}
+
+/* ---------- audio ---------- */
+function encodeWav(samples, rate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2), v = new DataView(buf);
+  const w = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); v.setUint32(4, 36 + samples.length * 2, true); w(8, "WAVE"); w(12, "fmt ");
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true);
+  v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data");
+  v.setUint32(40, samples.length * 2, true);
+  for (let i = 0; i < samples.length; i++) { const s = Math.max(-1, Math.min(1, samples[i])); v.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true); }
+  return new Blob([buf], { type: "audio/wav" });
+}
+async function decode(blob) {
+  const ctx = new AudioContext();
+  try { return await ctx.decodeAudioData(await blob.arrayBuffer()); } finally { ctx.close(); }
+}
+/** Mono 16 kHz 16-bit WAV: a format the grader CLIs accept, whatever the browser recorded. */
+async function toWav(decoded) {
+  const rate = 16000;
+  const off = new OfflineAudioContext(1, Math.ceil(decoded.duration * rate), rate);
+  const src = off.createBufferSource(); src.buffer = decoded; src.connect(off.destination); src.start();
+  return encodeWav((await off.startRendering()).getChannelData(0), rate);
+}
+async function upload(id, blob, ext, duration) {
+  await api(`/api/audio/${id}?ext=${encodeURIComponent(ext)}&duration=${duration}`, { method: "POST", body: blob });
+  ui.checks[id] = new Set(); ui.notes[id] = "";
+  toast("已保存录音。现在做听检。");
+  await refresh();
+}
+async function startRecording(id) {
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+  } catch { toast("无法使用麦克风：请在浏览器里允许麦克风权限。"); return; }
+  const recorder = new MediaRecorder(stream), chunks = [];
+  recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+  recorder.onstop = async () => {
+    stream.getTracks().forEach((t) => t.stop());
+    clearInterval(ui.recording?.timer); ui.recording = null;
+    try {
+      const decoded = await decode(new Blob(chunks, { type: recorder.mimeType }));
+      if (decoded.duration < 3) { toast("录音太短，没有保存。"); render(); return; }
+      await upload(id, await toWav(decoded), ".wav", decoded.duration.toFixed(2));
+    } catch (e) { toast(`保存失败：${e.message}`); render(); }
+  };
+  const started = Date.now();
+  ui.recording = { id, recorder, timer: setInterval(() => {
+    const s = Math.floor((Date.now() - started) / 1000), t = $("#timer");
+    if (t) t.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  }, 250) };
+  recorder.start();
+  render();
+}
+async function uploadFile(id, file) {
+  const ext = (file.name.match(/\.[a-z0-9]+$/i)?.[0] || "").toLowerCase();
+  let decoded = null;
+  try { decoded = await decode(file); } catch { /* not decodable here; may still be a valid upload */ }
+  if ([".wav", ".m4a", ".mp3", ".webm", ".ogg"].includes(ext)) {
+    let duration = decoded?.duration;
+    if (!duration) duration = Number(prompt("浏览器读不出这个文件的时长，请输入秒数：", ""));
+    if (!(duration > 0)) { toast("没有有效时长，未保存。"); return; }
+    await upload(id, file, ext, duration.toFixed(2));
+  } else if (decoded) {
+    await upload(id, await toWav(decoded), ".wav", decoded.duration.toFixed(2));
+  } else {
+    toast("不支持这个格式：请用 m4a、mp3、wav、webm 或 ogg。");
+  }
+}
+
+/* ---------- jobs ---------- */
+async function startJob(kind, extra = {}) {
+  try { await postJson("/api/job", { kind, ...extra }); await refresh(); }
+  catch (e) { toast(e.message); }
+}
+let polling = false;
+async function pollJob() {
+  if (polling) return; polling = true;
+  try {
+    while (true) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const next = await api("/api/state");
+      const finished = S.job?.running && !next.job?.running;
+      S = next;
+      if (finished || !S.job?.running) { render(); break; }
+      const log = $(`#log-${S.job.kind}`);
+      if (log) { const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 20; render(); const l2 = $(`#log-${S.job.kind}`); if (l2 && atEnd) l2.scrollTop = l2.scrollHeight; }
+    }
+  } finally { polling = false; }
+}
+
+/* ---------- events ---------- */
+async function saveDecisions(patch) {
+  try { await postJson("/api/draft", { ownerDecisions: { ...decisions(), ...patch, decidedAt: today() } }); await refresh(); }
+  catch (e) { toast(e.message); }
+}
+/** Updates only the confirm control, so listening to the take is never interrupted by a re-render. */
+function updateConfirm(card) {
+  const button = card.querySelector("[data-act=confirm]");
+  if (!button) return;
+  const total = card.querySelectorAll("[data-check]").length;
+  const ticked = ui.checks[card.dataset.id]?.size || 0;
+  const audio = S.audio[card.dataset.id];
+  button.disabled = !(audio && !frozen() && ticked === total && ui.listener.trim());
+  card.querySelector("[data-hint]").textContent = !audio ? "" : !ui.listener.trim() ? "先在上面填听检人化名。"
+    : ticked < total ? "有一项没做到？那就重录。" : "";
+}
+
+function bind() {
+  document.querySelectorAll("details.rec").forEach((el) => el.addEventListener("toggle", () => {
+    if (el.open) ui.open = el.dataset.id; else if (ui.open === el.dataset.id) ui.open = null;
+  }));
+  $("#consent")?.addEventListener("change", (e) => saveDecisions({ speakerConsent: e.target.checked }));
+  document.querySelectorAll("input[name=shape]").forEach((el) => el.addEventListener("change", () => saveDecisions({ briefShape: el.value })));
+  $("#use-model")?.addEventListener("click", async () => {
+    try { await postJson("/api/draft", { model: S.productionModel }); await refresh(); } catch (e) { toast(e.message); }
+  });
+  $("#listener")?.addEventListener("input", (e) => {
+    ui.listener = e.target.value;
+    document.querySelectorAll("details.rec").forEach(updateConfirm);
+    try { localStorage.setItem("biasWizardListener", ui.listener); } catch { /* optional convenience */ }
+  });
+  document.querySelectorAll("details.rec").forEach(updateConfirm);
+  document.querySelectorAll("details.rec").forEach((card) => {
+    const id = card.dataset.id, r = S.draft.recordings.find((x) => x.id === id);
+    card.querySelectorAll("[data-check]").forEach((box) => box.addEventListener("change", () => {
+      const set = ui.checks[id]; const i = Number(box.dataset.check);
+      if (box.checked) set.add(i); else set.delete(i);
+      updateConfirm(card);
+    }));
+    card.querySelector("[data-notes]")?.addEventListener("input", (e) => (ui.notes[id] = e.target.value));
+    card.querySelector("[data-act=record]")?.addEventListener("click", () => startRecording(id));
+    card.querySelector("[data-act=stop]")?.addEventListener("click", () => ui.recording?.recorder.stop());
+    const fileInput = card.querySelector("[data-act=upload]");
+    card.querySelector("[data-act=pick]")?.addEventListener("click", (e) => { e.preventDefault(); fileInput.click(); });
+    fileInput?.addEventListener("change", () => fileInput.files[0] && uploadFile(id, fileInput.files[0]).catch((e) => toast(e.message)));
+    card.querySelector("[data-act=confirm]")?.addEventListener("click", async () => {
+      const line = groundTruthLine(r, ui.listener.trim(), (ui.notes[id] || "").trim());
+      try { await postJson("/api/draft", { recordings: [{ id, groundTruth: line }] }); toast("听检结果已记录。"); await refresh(); }
+      catch (e) { toast(e.message); }
+    });
+  });
+  $("#freeze")?.addEventListener("click", async () => {
+    if (!confirm("冻结后第 5 步提交，录音和听检结果就不能再改了。继续？")) return;
+    try { await postJson("/api/draft", { briefDate: today() }); await startJob("prepare"); } catch (e) { toast(e.message); }
+  });
+  $("#recheck")?.addEventListener("click", refresh);
+  $("#prelim-id")?.addEventListener("change", (e) => (ui.prelimId = e.target.value));
+  $("#prelim")?.addEventListener("click", () => {
+    if (confirm(`对 ${ui.prelimId} 运行 15 次模型调用？`)) startJob("prelim", { recordingId: ui.prelimId });
+  });
+  $("#run")?.addEventListener("click", () => {
+    if (confirm("开始正式实验：120 次模型调用，几分钟。结果无论好坏都要保留并报告。继续？")) startJob("run");
+  });
+  document.querySelectorAll("button.copy").forEach((b) => b.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(b.dataset.copy); toast("已复制。"); } catch { toast("复制失败，请手动选中。"); }
+  }));
+}
+
+refresh().catch((e) => { $("#app").innerHTML = `<div class="err-box">${esc(e.message)}</div>`; });
+</script>
+</body>
+</html>
