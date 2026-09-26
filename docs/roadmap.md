@@ -202,22 +202,64 @@ acceptance is deliberately not claimed here.
 
 ## Next
 
-- **Mapdown — create with an external AI (authorized 2026-08-08, not started).** Validate the
-  product direction “AI-generated structure → Mapdown visualization” without putting a model
-  inside Mapdown. Add a **Create with AI** flow for people learning a new subject or researching
-  a topic: the user enters the topic, copies a model-agnostic prompt that defines Mapdown's
-  supported Markdown outline format, sends it to an AI of their choice, then pastes the returned
-  Markdown directly into Mapdown and creates a local editable map. Acceptance: (a) the prompt
-  requires exactly one level-1 root heading, unordered-list descendants and indentation-based
-  hierarchy, and asks for Markdown only — no explanation or code fence; (b) the pasted text is
-  validated by the same parser as file import, with actionable errors and no mutation of the
-  current map on failure; (c) a valid result opens immediately as a new locally saved map while
-  the previous map remains recoverable; (d) the flow works with at least two external AI
-  products and requires no account, API key or network request from Mapdown; and (e) the flow is
-  keyboard- and screen-reader-operable at desktop and mobile widths. Explicitly excluded:
-  built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
-  and server-side rendering. Those remain separate directions requiring their own evidence and
-  authorization.
+**Order is priority** (owner, 2026-09-25). The reasoning: learning value first, and work that waits
+on nothing ahead of work that waits on the Reading gate. Mapdown's authorized item moved to Later
+the same day because Mapdown is a side project.
+
+- **Writing — targeted practice after feedback (authorized 2026-09-25, not started).** Item 1 of
+  the practice-loop entry in `docs/exploration.md`. Today a learner reads a correction and moves
+  on, and nothing checks whether they can now use the point themselves. This item adds one
+  optional, short practice on a single annotation, in the same sitting. It deliberately keeps the
+  Writing Coach rule that the coach never rewrites the learner's text *before the learner has
+  tried*.
+  - **Acceptance.**
+    - (a) **Entry.** On a completed feedback round for a signed-in learner, every `critical` or
+      `improvement` annotation whose `quoted_text` is found in the submitted text offers
+      "Practise this". Strengths do not. Starting a practice is optional and never blocks revising
+      or resubmitting.
+    - (b) **Step 1: fix it.** The learner rewrites the quoted text. The model judges it
+      acceptable or not, with a one-line reason in the feedback language. Any correct rewrite
+      passes, not only one wording. The learner may try once more. A reference version appears
+      only after the learner has submitted an attempt.
+    - (c) **Step 2: use it again.** The model gives one new situation that tests the same point,
+      on a different topic and without reusing the original sentence. The learner writes one
+      sentence, judged the same way as step 1.
+    - (d) **Record, skip, dispute.** Each item stores its source (article, round and annotation),
+      the learner's answers, the verdicts and the timestamps. The learner can skip at any step, or
+      mark "this correction was wrong". That mark is stored and ends the item.
+    - (e) **Context, not measurement.** Under
+      [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md), nothing is
+      written to `learner_tag_observations`, the profile or the CEFR estimate. Practice results
+      are not added to grader briefs in this item either.
+    - (f) **Model calls.** All calls go through a new task in `llm.server.ts`, pinned like every
+      other task. Each submitted answer gets at most one judgement call. The new situation takes
+      one generation call. A failed call shows a retry and never loses the learner's text.
+    - (g) **Owner-readable outcome.** A documented read-only query reports how many items were
+      started, finished, skipped and disputed. That number decides whether the retell item below
+      and the delayed re-check proceed.
+    - (h) **Interface.** Chinese and English interfaces both work, following ADR 0011. The flow
+      can be operated by keyboard and screen reader at desktop and mobile widths.
+    - (i) **Verification.** Unit tests cover the judgement normaliser and item state
+      transitions, and prompt fixtures cover both steps. A signed-in browser check covers the
+      flow. `pnpm test`, typechecks, lint (0 errors) and both builds pass.
+    - (j) **Docs.** A practice section in `docs/tools/writing.md`, and a changelog entry marked
+      `in_review`.
+  - **Excluded.** The delayed re-check days later, which waits on Stage 2 below; a review queue
+    across sessions; practice sourced from Dictation or Reading; anonymous trials; scores,
+    streaks or XP; and showing categories to learners.
+- **English Studio UX batch (authorized 2026-09-25, not started).** Four open sections of
+  [`ux-follow-ups-2026-07-30.md`](ux-follow-ups-2026-07-30.md), whose requirements and acceptance
+  criteria apply as written there:
+  - §2: Translate's source editor grows with long input.
+  - §3C: Dictation shows the sentence audio's duration.
+  - §3D: Dictation discloses Enter and Shift+Enter next to Check.
+  - §5: Reading's "Add text" moves into the "Your texts" section.
+  - **Acceptance.** Those sections' criteria; new strings in both interface languages; desktop,
+    tablet and mobile widths plus keyboard paths checked in the browser; `pnpm test`, typechecks,
+    lint (0 errors) and the web build pass; the status table in that file updated and a changelog
+    entry marked `in_review`.
+  - **Excluded.** §4 (return-control placement), which has not been verified as still wrong, and
+    §6 (Speech height), which asks for an investigation first.
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the
@@ -239,6 +281,13 @@ acceptance is deliberately not claimed here.
   anchoring spike is re-run with them and passes; and (f) no migration, no measurement change, and
   no learner-facing surface change. Explicitly excluded: backfilling categories into stored
   feedback, Writing observation rows, and showing categories to learners.
+- **Retell after listening or reading, with one follow-up question (queued 2026-09-25; not
+  specified).** Item 2 of the practice-loop entry in `docs/exploration.md`. It starts only after
+  the targeted-practice item above reports its outcome (g), and only once acceptance criteria are
+  written and approved; until then it is not authorized work. Constraints already agreed:
+  - The typed version comes first.
+  - It is scored on meaning, with its own rubric.
+  - Its results are feedback, not measurement.
 - Fold **writing** into the ability profile. Writing reaches the shared learner surfaces only as
   Home's Continue/Recent entries: it writes nothing to the profile — no observations, counters, or
   CEFR signal — because it has no tag vocabulary; a prompt is not a passage. The mechanism is
@@ -252,6 +301,24 @@ acceptance is deliberately not claimed here.
 
 ## Later
 
+- **Mapdown — create with an external AI (authorized 2026-08-08, not started; moved from Next
+  2026-09-25).** Owner decision: Mapdown is a side project. The authorization and criteria stand,
+  so it can move back without being re-specified. Validate the
+  product direction “AI-generated structure → Mapdown visualization” without putting a model
+  inside Mapdown. Add a **Create with AI** flow for people learning a new subject or researching
+  a topic: the user enters the topic, copies a model-agnostic prompt that defines Mapdown's
+  supported Markdown outline format, sends it to an AI of their choice, then pastes the returned
+  Markdown directly into Mapdown and creates a local editable map. Acceptance: (a) the prompt
+  requires exactly one level-1 root heading, unordered-list descendants and indentation-based
+  hierarchy, and asks for Markdown only — no explanation or code fence; (b) the pasted text is
+  validated by the same parser as file import, with actionable errors and no mutation of the
+  current map on failure; (c) a valid result opens immediately as a new locally saved map while
+  the previous map remains recoverable; (d) the flow works with at least two external AI
+  products and requires no account, API key or network request from Mapdown; and (e) the flow is
+  keyboard- and screen-reader-operable at desktop and mobile widths. Explicitly excluded:
+  built-in model calls, prompt-provider integrations, Agent/MCP/HTTP APIs, publish/share URLs,
+  and server-side rendering. Those remain separate directions requiring their own evidence and
+  authorization.
 - Long-document translation: chunked parallel translation; raise signed-in limit to ~100k
   chars. (Streaming output — the other half of this item — shipped 2026-07-30; see `docs/changelog.md`.)
 - Faster first-token: evaluate Groq (or similar) for the translate task via the
