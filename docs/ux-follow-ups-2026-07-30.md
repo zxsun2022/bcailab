@@ -2,6 +2,23 @@
 
 Status: recorded for product review; not scheduled for implementation.
 
+## Status check (2026-09-25)
+
+Checked against `docs/changelog.md`, `docs/roadmap.md` and the current code. Items marked open
+are still unscheduled; this table does not schedule them.
+
+| Section | Status | Evidence |
+|---|---|---|
+| 1. Writing material-led entry | **Done** | Writing prompt bank and guided entry, accepted 2026-08-15 (roadmap accepted work, item A) |
+| 2. Translate source editor growth | Open | `routes/translate.tsx` still renders a fixed `rows={12}` textarea |
+| 3A. Dictation CEFR section spacing | **Done** | Changelog 2026-08-10, "Dictation catalogue band spacing" |
+| 3B. Dictation step navigation | **Done** | *Dictation sentence navigator*, accepted 2026-09-23 |
+| 3C. Dictation audio duration | Open | The session shows playback progress but no duration label |
+| 3D. Check shortcut discoverability | Open | No Enter / Shift+Enter hint in the Dictation messages |
+| 4. Return controls placement | Not verified | Needs a visual pass across Reading, Dictation and Writing detail pages |
+| 5. Reading "Add text" into "Your texts" | Open | `routes/reading._index.tsx` still places it in the page header action |
+| 6. Speech compose height | Partly addressed | Changelog 2026-08-11 sized the editor so Generate stays reachable; the investigation this section asks for was not recorded |
+
 This note captures a set of learner-facing observations made on 2026-07-30. It separates
 the desired experience from an implementation choice so the work can be planned without
 silently expanding the current iteration. It does not reprioritise `docs/roadmap.md`.
