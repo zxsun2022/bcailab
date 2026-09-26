@@ -851,6 +851,10 @@ export const en = {
   "writingDetail.editTitle": "Edit title",
   "writingDetail.showPanel": "Show feedback panel",
   "writingDetail.hidePanel": "Hide feedback panel",
+  "writingDetail.collapsedPending": "Feedback is being prepared. The feedback panel is hidden.",
+  "writingDetail.collapsedReady": "Round {round} feedback is ready: {count} points to work on.",
+  "writingDetail.collapsedUnavailable": "The feedback panel is hidden.",
+  "writingDetail.showFeedback": "Show feedback",
   "writingDetail.viewingRound": "Viewing Round {round} of {latest}",
   "writingDetail.backToLatest": "Back to latest",
   "writingDetail.recovered":

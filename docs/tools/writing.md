@@ -103,6 +103,9 @@ navigation; article history and revision controls belong to Writing surfaces.
   article column recenters within the remaining space when the feedback rail collapses.
   `WritingDetailAside` owns round navigation (`New Revision`, latest, older rounds) and feedback;
   its collapse preference uses `writing-aside-collapsed`. At narrow widths feedback renders inline.
+  Because that preference persists and desktop feedback lives only in the rail, a collapsed rail
+  shows a one-line note under the title (feedback preparing / ready with its count / hidden) with
+  a **Show feedback** button, and the rail reopens by itself when pending feedback completes.
 - **Returning and history:** breadcrumbs lead back to Writing/collection context. Session history
   is managed on Writing pages, not injected into the global product navigation.
 

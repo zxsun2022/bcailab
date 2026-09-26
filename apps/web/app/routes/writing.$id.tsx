@@ -401,6 +401,15 @@ function WritingArticlePageReady({
     }
   }, []);
 
+  const setAsideCollapsedPersisted = React.useCallback((next: boolean) => {
+    setAsideCollapsed(next);
+    try {
+      localStorage.setItem(ASIDE_COLLAPSED_KEY, String(next));
+    } catch {
+      // localStorage may be unavailable in private browsing contexts.
+    }
+  }, []);
+
   const handleAsideToggle = React.useCallback(() => {
     setAsideCollapsed((current) => {
       const next = !current;
@@ -450,6 +459,18 @@ function WritingArticlePageReady({
       titleInputRef.current.select();
     }
   }, [editingTitle]);
+
+  // On desktop the feedback lives only in the aside, and its collapsed state is remembered across
+  // visits. So when feedback arrives while it is collapsed, open it: otherwise the round looks as
+  // if it simply ended without feedback.
+  const previousFeedbackStatus = React.useRef(liveActiveRevision?.feedback_status);
+  React.useEffect(() => {
+    const status = liveActiveRevision?.feedback_status;
+    if (previousFeedbackStatus.current === "pending" && status === "completed" && asideCollapsed) {
+      setAsideCollapsedPersisted(false);
+    }
+    previousFeedbackStatus.current = status;
+  }, [liveActiveRevision?.feedback_status, asideCollapsed, setAsideCollapsedPersisted]);
 
   const liveIsPending = !isViewingPastRound && liveActiveRevision?.feedback_status === "pending";
   const latestRevisionEntry = liveRevisions.find((revision) => revision.round_number === liveLatestRound) ?? null;
@@ -627,6 +648,18 @@ function WritingArticlePageReady({
     setPracticeItems((current) => ({ ...current, [item.annotationIndex]: item }));
   }, []);
   const activeAnnotation = practice && practiceIndex !== null ? liveActiveFeedback?.annotations[practiceIndex] ?? null : null;
+
+  const collapsedNote = (() => {
+    if (!asideCollapsed || isComposeView || !liveActiveRevision) return null;
+    if (liveIsPending && !liveIsStalePending) return t("writingDetail.collapsedPending");
+    if (liveActiveFeedback) {
+      return t("writingDetail.collapsedReady", {
+        round: liveActiveRevision.round_number,
+        count: liveActiveFeedback.annotations.filter((a) => a.severity !== "strength").length
+      });
+    }
+    return t("writingDetail.collapsedUnavailable");
+  })();
 
   const displayTitle = liveTitle || t("writingDetail.untitled");
   const collection = assignment?.taskType === "academic_task_1"
@@ -812,6 +845,20 @@ function WritingArticlePageReady({
                 </button>
               </div>
             </div>
+
+            {collapsedNote ? (
+              <div className="writing-collapsed-feedback-note" role="status">
+                <span>{collapsedNote}</span>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  aria-controls={ASIDE_PANEL_ID}
+                  onClick={() => setAsideCollapsedPersisted(false)}
+                >
+                  {t("writingDetail.showFeedback")}
+                </button>
+              </div>
+            ) : null}
 
             {isViewingPastRound && liveActiveRevision ? (
               <div className="writing-past-round-banner">

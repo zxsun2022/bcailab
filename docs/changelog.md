@@ -9,6 +9,22 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-25 — **in_review: Writing feedback no longer disappears behind a collapsed panel.**
+  Owner report: "writing is never evaluated locally". The local D1 showed the round completed on
+  `gemini-3.8-flash` in about six seconds; the owner's browser had `writing-aside-collapsed=true`
+  stored from an earlier visit, and on desktop the feedback renders only in that rail, so the
+  page looked finished with no feedback. A collapsed rail now shows a note under the title
+  (preparing / ready with the number of points / hidden) with **Show feedback**, and reopens
+  itself when pending feedback completes. Checked on the fixture: note visible at desktop width,
+  a new revision submitted with the rail collapsed reopened it once feedback arrived.
+- 2026-09-25 — **in_review: integration fixture's Home checks match Home v3.1.** `pnpm
+  test:integration` failed on main at "Continue is primary when both actions exist", so none of
+  the Writing, Dictation or Reading checks after it ran. The check was stale, not the product:
+  Home v3.1 (d) made the recommendation under a Continue a whole-row link (`today-strip-link`)
+  instead of a second button, and the labels became "Continue dictation" / "Start dictation".
+  The assertions now check exactly one primary button, the strip link beside a Continue, and its
+  absence without one. `pnpm test:integration`: 79 assertions pass.
+
 - 2026-09-25 — **in_review: Writing targeted practice after feedback.** Roadmap Next item 1.
   - **What.** On a completed round, each critical/improvement annotation whose quote is in the
     text offers "Practise this". A panel above the essay runs two steps: fix the quoted text,
@@ -29,9 +45,6 @@ make the final transition; see `AGENTS.md`.
     Ctrl+Enter; the Chinese interface; a failed call keeping the typed answer; the state
     persisting across reload; 375px with no horizontal overflow and focus moved to the panel;
     dark mode.
-  - **Known unrelated failure.** `pnpm test:integration` currently stops at a Home check
-    ("Continue is primary when both actions exist") on clean main as well; the practice checks
-    were run with Home skipped. Tracked separately.
   - **Owner decision flagged.** The practice model is Flash-Lite (a narrow check, not an essay
     evaluation). Changing it is a one-line routing change.
 

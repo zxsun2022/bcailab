@@ -7658,6 +7658,11 @@ select.input:focus {
   margin-top: var(--space-lg);
 }
 
+/* Desktop only: below 1024px the feedback is already shown under the draft. */
+.writing-collapsed-feedback-note {
+  display: none;
+}
+
 /* --- Responsive --- */
 
 @media (min-width: 1024px) {
@@ -7805,6 +7810,19 @@ select.input:focus {
 
   .writing-feedback-mobile-only {
     display: none;
+  }
+
+  .writing-collapsed-feedback-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--copper);
+    border-radius: 4px;
+    font-size: 14px;
   }
 }
 
