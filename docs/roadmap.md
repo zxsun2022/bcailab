@@ -271,8 +271,8 @@ acceptance is deliberately not claimed here.
   reasoning: [ADR 0005](decisions/0005-reading-grader-stays-single-call.md).
 - ~~Chinese UI (at least Translate + landing pages)~~ — promoted to "Now — Chinese interface for
   Chinese-speaking learners" (owner requirement, 2026-09-22), at a wider scope than this entry
-  described. [ADR 0003](decisions/0003-defer-chinese-ui.md) is superseded by
-  [ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md).
+  described; stages 1–3 accepted 2026-09-22. [ADR 0003](decisions/0003-defer-chinese-ui.md) is
+  superseded by [ADR 0011](decisions/0011-chinese-ui-same-url-feedback-follows-interface.md).
 - Paid tier (quota/model config already has an `anonymous/free/paid` shape).
 - Posts product landing page (currently links straight into the tool).
 - **Dictation v2 — level-adaptive material matching.** Retrieve from the tagged library rather
@@ -293,12 +293,12 @@ acceptance is deliberately not claimed here.
 - Engineering quality (remaining): vitest for LLM-output parsers; audio Range request
   support. ESLint, the evaluation-history N+1 query, session cleanup cron, and session
   secret rotation were promoted to "Now — Engineering quality iteration" (authorized
-  2026-08-15) with acceptance criteria.
+  2026-08-15, since accepted) with acceptance criteria.
 - ~~Profile settings (avatar + nickname) for email-OTP users~~ — promoted to
-  "Now — Account passwords and profile" (authorized 2026-08-18), which delivers profile
-  editing plus optional passwords.
+  "Now — Account passwords and profile" (authorized and accepted 2026-08-18), which delivers
+  profile editing plus optional passwords.
 - ~~**Library expansion — keep going.**~~ — promoted to "Now — Material library expansion"
-  (authorized 2026-08-27), which carries the scope and acceptance criteria. The reasoning below
+  (authorized 2026-08-27, accepted 2026-09-18), which carries the scope and acceptance criteria. The reasoning below
   is kept because it is the reasoning that item inherits. First batch shipped 2026-07-28
   (20 → 40 passages, ten per band). The IA v2 design assumes material eventually grows ~100× (roughly 500 per band),
   because at five per band a motivated learner exhausted their level in two sittings and the

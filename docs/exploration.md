@@ -97,7 +97,8 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   1. **The profile is blind in two of four skills.** Writing contributes only counters because it
      has no tag vocabulary (Next), and Dictation passes `practiceSeconds: 0` because nothing
      times an attempt (Next, authorized 2026-08-12; in_review 2026-09-18). A queue built now would
-     schedule on half the evidence while presenting itself as informed.
+     schedule on half the evidence while presenting itself as informed. *(Update: the Dictation
+     duration gap closed — accepted 2026-09-21. The Writing vocabulary gap remains.)*
   2. **Material is too thin to schedule over.** Ten passages per band, against a design
      assumption of roughly 500. A Today queue over that repeats within days, and a visibly
      repetitive queue is worse than no queue: it teaches the learner that the personalisation
@@ -114,7 +115,7 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
   objects in volume **without** first requiring a 100× material expansion.
   Suggested order if this is ever promoted, each step independently useful: (a) an enrolment
   unit, which needs no measurement at all — see the entry below, added later and ordered
-  *before* this list rather than inside it; (b) close the two measurement gaps already in Next,
+  *before* this list rather than inside it; (b) close the two measurement gaps already in Next (Dictation duration closed 2026-09-21),
   so the profile covers what the learner actually does; (c) decide whether a lookup/encounter
   entry point becomes the learning-object source; (d) only then a bounded Today over the
   existing seam. Today is the *result* of those, not a substitute for them. Nothing here has

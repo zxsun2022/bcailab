@@ -1,6 +1,9 @@
 # Dictation v1 — Technical Design
 
-Status: **in progress** (owner confirmed scope 2026-07-20). §11 steps 1–3 are done
+Status: **shipped 2026-07-21** — see `docs/changelog.md`; current behaviour lives in
+`docs/tools/dictation.md`. The status recorded while it was being built follows, kept as history.
+
+Build-time status: **in progress** (owner confirmed scope 2026-07-20). §11 steps 1–3 are done
 (migration 0011, `@bcailab/db` helpers, `feature-quota.server.ts`, `dictation-diff.ts`,
 seed scripts, and 20 published passages in production D1/R2); routes, quota wiring,
 LLM feedback, and doc sync remain.

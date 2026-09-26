@@ -1,6 +1,9 @@
 # English Studio — IA v2: Coach Home (final)
 
-Status: **final specification, approved direction — ready to implement** once the owner
+Status: **implemented 2026-07-28** (all three phases, PR #17; see `docs/changelog.md`). The
+status below is the one this specification carried before implementation, kept as history.
+
+Pre-implementation status: **final specification, approved direction — ready to implement** once the owner
 signs off on this text. Written 2026-07-27 after two external review rounds and three
 prototype revisions. Supersedes the deferred half of `docs/archive/english-studio-ia-design.md` (v1)
 and all earlier drafts of this file.

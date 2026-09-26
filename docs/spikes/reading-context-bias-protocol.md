@@ -1,6 +1,6 @@
 # Reading context bias experiment
 
-Status: **tooling in_review; experiment not run**. Updated 2026-09-16.
+Status: **tooling accepted 2026-09-21; experiment not run**. Updated 2026-09-25.
 The roadmap's Stage 1 criterion (d) owns the thresholds and rollout decision. This document
 explains the tools; it does not change those decisions or enable Reading's new brief.
 
