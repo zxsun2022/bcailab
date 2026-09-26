@@ -9,7 +9,13 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
-- 2026-09-25 — **in_review: free entry points made explicit.** Owner decisions the same day: the
+- 2026-09-25 — **accepted: owner acceptance of five items.** The owner verified and accepted
+  Writing targeted practice (#84), the collapsed-feedback-panel fix (#84), the integration
+  fixture's Home checks (#84), the English Studio UX batch (#85) and free entry points (#86).
+  The three roadmap items moved to the accepted history. The Reading bias wizard (#82) stays
+  in_review until it has been used for a real run.
+
+- 2026-09-25 — **accepted (2026-09-25): free entry points made explicit.** Owner decisions the same day: the
   marker appears only on the homepage and `/english`, and `/english` leads with dictation.
   - **Chip.** A registry-generated chip, "No account needed: Dictation · Translate · Free to try
     first: Reading · Writing", with each name linking to its signed-out destination. It replaces
@@ -24,7 +30,7 @@ make the final transition; see `AGENTS.md`.
     and the chip fit the first screen with no horizontal overflow. Signed in, there is no chip
     and `/english` still redirects to Home.
 
-- 2026-09-25 — **in_review: English Studio UX batch** (roadmap Next item 2; ux-follow-ups §2,
+- 2026-09-25 — **accepted (2026-09-25): English Studio UX batch** (roadmap Next item 2; ux-follow-ups §2,
   §3C, §3D, §5).
   - **Translate.** The source box is sized to its content on desktop, so a long source and its
     translation are read by scrolling the page; it shrinks back when cleared and refits on
@@ -46,7 +52,7 @@ make the final transition; see `AGENTS.md`.
     texts" for a user with texts and one without. Unit tests, typechecks, lint (0 errors), both
     builds and `pnpm test:integration` pass.
 
-- 2026-09-25 — **in_review: Writing feedback no longer disappears behind a collapsed panel.**
+- 2026-09-25 — **accepted (2026-09-25): Writing feedback no longer disappears behind a collapsed panel.**
   Owner report: "writing is never evaluated locally". The local D1 showed the round completed on
   `gemini-3.8-flash` in about six seconds; the owner's browser had `writing-aside-collapsed=true`
   stored from an earlier visit, and on desktop the feedback renders only in that rail, so the
@@ -54,7 +60,7 @@ make the final transition; see `AGENTS.md`.
   (preparing / ready with the number of points / hidden) with **Show feedback**, and reopens
   itself when pending feedback completes. Checked on the fixture: note visible at desktop width,
   a new revision submitted with the rail collapsed reopened it once feedback arrived.
-- 2026-09-25 — **in_review: integration fixture's Home checks match Home v3.1.** `pnpm
+- 2026-09-25 — **accepted (2026-09-25): integration fixture's Home checks match Home v3.1.** `pnpm
   test:integration` failed on main at "Continue is primary when both actions exist", so none of
   the Writing, Dictation or Reading checks after it ran. The check was stale, not the product:
   Home v3.1 (d) made the recommendation under a Continue a whole-row link (`today-strip-link`)
@@ -62,7 +68,7 @@ make the final transition; see `AGENTS.md`.
   The assertions now check exactly one primary button, the strip link beside a Continue, and its
   absence without one. `pnpm test:integration`: 79 assertions pass.
 
-- 2026-09-25 — **in_review: Writing targeted practice after feedback.** Roadmap Next item 1.
+- 2026-09-25 — **accepted (2026-09-25): Writing targeted practice after feedback.** Roadmap Next item 1.
   - **What.** On a completed round, each critical/improvement annotation whose quote is in the
     text offers "Practise this". A panel above the essay runs two steps: fix the quoted text,
     then use the same point once in a generated new situation. Each step has two tries, a

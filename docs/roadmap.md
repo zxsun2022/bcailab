@@ -210,83 +210,6 @@ acceptance is deliberately not claimed here.
 on nothing ahead of work that waits on the Reading gate. Mapdown's authorized item moved to Later
 the same day because Mapdown is a side project.
 
-- **Writing — targeted practice after feedback (authorized 2026-09-25, not started).** Item 1 of
-  the practice-loop entry in `docs/exploration.md`. Today a learner reads a correction and moves
-  on, and nothing checks whether they can now use the point themselves. This item adds one
-  optional, short practice on a single annotation, in the same sitting. It deliberately keeps the
-  Writing Coach rule that the coach never rewrites the learner's text *before the learner has
-  tried*.
-  - **Acceptance.**
-    - (a) **Entry.** On a completed feedback round for a signed-in learner, every `critical` or
-      `improvement` annotation whose `quoted_text` is found in the submitted text offers
-      "Practise this". Strengths do not. Starting a practice is optional and never blocks revising
-      or resubmitting.
-    - (b) **Step 1: fix it.** The learner rewrites the quoted text. The model judges it
-      acceptable or not, with a one-line reason in the feedback language. Any correct rewrite
-      passes, not only one wording. The learner may try once more. A reference version appears
-      only after the learner has submitted an attempt.
-    - (c) **Step 2: use it again.** The model gives one new situation that tests the same point,
-      on a different topic and without reusing the original sentence. The learner writes one
-      sentence, judged the same way as step 1.
-    - (d) **Record, skip, dispute.** Each item stores its source (article, round and annotation),
-      the learner's answers, the verdicts and the timestamps. The learner can skip at any step, or
-      mark "this correction was wrong". That mark is stored and ends the item.
-    - (e) **Context, not measurement.** Under
-      [ADR 0010](decisions/0010-grader-context-is-separate-from-measurement.md), nothing is
-      written to `learner_tag_observations`, the profile or the CEFR estimate. Practice results
-      are not added to grader briefs in this item either.
-    - (f) **Model calls.** All calls go through a new task in `llm.server.ts`, pinned like every
-      other task. Each submitted answer gets at most one judgement call. The new situation takes
-      one generation call. A failed call shows a retry and never loses the learner's text.
-    - (g) **Owner-readable outcome.** A documented read-only query reports how many items were
-      started, finished, skipped and disputed. That number decides whether the retell item below
-      and the delayed re-check proceed.
-    - (h) **Interface.** Chinese and English interfaces both work, following ADR 0011. The flow
-      can be operated by keyboard and screen reader at desktop and mobile widths.
-    - (i) **Verification.** Unit tests cover the judgement normaliser and item state
-      transitions, and prompt fixtures cover both steps. A signed-in browser check covers the
-      flow. `pnpm test`, typechecks, lint (0 errors) and both builds pass.
-    - (j) **Docs.** A practice section in `docs/tools/writing.md`, and a changelog entry marked
-      `in_review`.
-  - **Progress.** in_review (2026-09-25): all of (a)–(j) implemented; evidence in
-    `docs/changelog.md`. Migration `0024` must be applied to production before the deploy.
-  - **Excluded.** The delayed re-check days later, which waits on Stage 2 below; a review queue
-    across sessions; practice sourced from Dictation or Reading; anonymous trials; scores,
-    streaks or XP; and showing categories to learners.
-- **English Studio UX batch (authorized 2026-09-25, not started).** Four open sections of
-  [`ux-follow-ups-2026-07-30.md`](ux-follow-ups-2026-07-30.md), whose requirements and acceptance
-  criteria apply as written there:
-  - §2: Translate's source editor grows with long input.
-  - §3C: Dictation shows the sentence audio's duration.
-  - §3D: Dictation discloses Enter and Shift+Enter next to Check.
-  - §5: Reading's "Add text" moves into the "Your texts" section.
-  - **Acceptance.** Those sections' criteria; new strings in both interface languages; desktop,
-    tablet and mobile widths plus keyboard paths checked in the browser; `pnpm test`, typechecks,
-    lint (0 errors) and the web build pass; the status table in that file updated and a changelog
-    entry marked `in_review`.
-  - **Excluded.** §4 (return-control placement), which has not been verified as still wrong, and
-    §6 (Speech height), which asks for an investigation first.
-  - **Progress.** in_review (2026-09-25): all four sections done; evidence in `docs/changelog.md`.
-- **Free entry points made explicit** (owner-raised 2026-07-23; scoped 2026-09-25). The
-  presentation half of the access model: the registry's `access: public | trial | auth` field
-  already decides where each card leads, and this makes it visible to a signed-out visitor.
-  - **Owner decisions (2026-09-25).**
-    - The marker appears only on the two landing pages, the homepage and `/english`, as a chip
-      under the hero. Tool pages and the global header stay as they are.
-    - `/english`'s primary action is "Start dictation — no account", with Sign in as the
-      secondary action.
-  - **Acceptance.**
-    - (a) One chip component lists the open and trial modules. It is generated from the
-      registry, links to each module's signed-out destination, and leaves out planned modules.
-    - (b) The homepage's hand-written access sentence is replaced by the chip. `/english` shows
-      the chip, the two actions above, and a per-card access tag derived from `access`.
-    - (c) The static "Free to try" module tag is removed, because it labelled fully open modules
-      as trials.
-    - (d) Signed-in visitors see no chip.
-    - (e) Both interface languages are supported.
-    - (f) The pages are checked in the browser at desktop and 375px.
-    - (g) Unit tests cover the derivation.
-  - **Progress.** in_review (2026-09-25); evidence in `docs/changelog.md`.
 - **Learner context Stage 2 — structured feedback categories** (owner-authorized 2026-09-15;
   starts only after "Now — Learner context for graders" is accepted). Writing annotations and
   Dictation error patterns gain an optional `category` from one closed list, so the learner brief
@@ -414,8 +337,20 @@ the same day because Mapdown is a side project.
 
 These entries are historical, not the active queue. Their original scope, evidence, caveats
 and recorded acceptance are preserved verbatim in [accepted roadmap history](roadmap-accepted-history.md).
-The 2026-09-18, 2026-09-21, 2026-09-22 and 2026-09-23 entries were accepted by the owner before being moved here; the older ones were
+The 2026-09-18, 2026-09-21, 2026-09-22, 2026-09-23 and 2026-09-25 entries were accepted by the owner before being moved here; the older ones were
 not newly accepted by any documentation move.
+
+<a id="next--writing-targeted-practice-after-feedback"></a>
+
+- **Writing: targeted practice after feedback — accepted (2026-09-25)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#next--writing-targeted-practice-after-feedback--accepted-2026-09-25); [delivery record](changelog.md).
+
+<a id="next--english-studio-ux-batch"></a>
+
+- **English Studio UX batch — accepted (2026-09-25)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#next--english-studio-ux-batch--accepted-2026-09-25); [delivery record](changelog.md).
+
+<a id="next--free-entry-points-made-explicit"></a>
+
+- **Free entry points made explicit — accepted (2026-09-25)** — already accepted. [Original scope and evidence](roadmap-accepted-history.md#next--free-entry-points-made-explicit--accepted-2026-09-25); [delivery record](changelog.md).
 
 <a id="now--home-v31-fewer-words"></a>
 
