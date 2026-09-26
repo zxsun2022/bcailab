@@ -248,6 +248,8 @@ the same day because Mapdown is a side project.
       flow. `pnpm test`, typechecks, lint (0 errors) and both builds pass.
     - (j) **Docs.** A practice section in `docs/tools/writing.md`, and a changelog entry marked
       `in_review`.
+  - **Progress.** in_review (2026-09-25): all of (a)–(j) implemented; evidence in
+    `docs/changelog.md`. Migration `0024` must be applied to production before the deploy.
   - **Excluded.** The delayed re-check days later, which waits on Stage 2 below; a review queue
     across sessions; practice sourced from Dictation or Reading; anonymous trials; scores,
     streaks or XP; and showing categories to learners.

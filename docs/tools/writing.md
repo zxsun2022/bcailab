@@ -53,6 +53,7 @@ material stay English and carry `lang="en"`.
 | Writing settings (legacy) | `/writing/settings` | 301 redirect to the shared `/settings` page. |
 | Article detail | `/writing/:id` | Fixed article context + draft body + feedback aside with round navigation. |
 | Status resource | `/writing/:id/status` | Auth required. JSON endpoint for feedback status polling. |
+| Practice resource | `/writing/:id/practice` | Auth required, POST only. Targeted practice on one annotation — see below. |
 | Anonymous trial | `/writing/trial` | **Public.** One-shot feedback with nothing persisted — see below. |
 
 ## Anonymous Trial
@@ -369,6 +370,12 @@ Follows the same async pattern as Reading:
 | `apps/web/app/routes/writing.settings.tsx` | Route | Legacy redirect to the shared `/settings` page |
 | `apps/web/app/routes/writing.$id.tsx` | Route | Article detail: editor + feedback + actions |
 | `apps/web/app/routes/writing.$id_.status.ts` | Route | Feedback status polling endpoint |
+| `migrations/0024_writing_practice.sql` | Migration | Create `writing_practice_items` |
+| `packages/db/src/writing-practice.ts` | Package | Practice item storage with versioned writes |
+| `apps/web/app/routes/writing.$id_.practice.ts` | Route | Practice actions: start, answer, step 2, skip, dispute |
+| `apps/web/app/utils/writing-practice.ts` | Shared | Practice state machine, eligibility, prompts, output normalisers |
+| `apps/web/app/utils/writing-practice.server.ts` | Server | Practice orchestration and model calls |
+| `apps/web/app/components/WritingPractice.tsx` | Component | The practice panel in the center stage |
 | `apps/web/app/utils/writing-eval.server.ts` | Server | Gemini prompt construction, response parsing, fallback |
 | `apps/web/app/utils/writing-prompt.server.ts` | Server | Materialize validated prompt rows into immutable snapshots |
 | `apps/web/app/utils/writing-agents.ts` | Shared | Coach definitions (rubric, tone, constraints) |
@@ -401,6 +408,52 @@ Assembly adds two bounded D1 reads inside the existing evaluation task, with no 
 no stored brief, and a 1,800-character ceiling. If assembly fails, feedback proceeds without it.
 Logs contain only counts and fixed failure messages. No output schema, measurement, CEFR
 resolution or feedback-generation/retry behavior changes.
+
+## Targeted practice after feedback
+
+Roadmap Next item 1, authorized 2026-09-25. A short practice on one annotation, in the same
+sitting, so the learner uses the correction themselves instead of only reading it.
+
+- **Entry.** On a completed round, outside the compose view, each `critical` or `improvement`
+  annotation whose `quoted_text` occurs in the submitted text shows **Practise this**. Strengths
+  and quotes the text does not contain never do. The label changes to continue / done / skipped
+  / marked wrong once an item exists. Practice never blocks revising.
+- **Panel.** Opens above the essay in the center stage (one instance, so the aside and the
+  mobile feedback copy share it), scrolls into view and moves focus to its heading.
+- **Step 1 — fix it.** The answer box starts from the quoted text. The model judges the answer
+  acceptable or not, with a one-sentence reason in the feedback language; any correct wording
+  passes. Two tries. The reference version is sent to the browser only once the step is over.
+- **Step 2 — use it again.** One generated situation on a different topic, which must not
+  repeat the quoted sentence (a situation that does is rejected as invalid output). One English
+  sentence, judged the same way, two tries. Ending step 2 finishes the item.
+- **Skip / "This correction is wrong".** Either ends an open item; the second is recorded as
+  `disputed`, the signal that the feedback itself was wrong.
+- **Model calls.** Task `writing_practice` (Flash-Lite). One call per submitted answer and one
+  for step 2's situation; none to start, skip or dispute. Validation runs before any call, so an
+  empty answer or a concluded step costs nothing. A failed call returns an error, changes
+  nothing and the browser keeps the typed answer.
+- **Storage.** `writing_practice_items`, one row per user, round, feedback generation and
+  annotation index (unique, so starting twice returns the same item). The annotation is copied
+  into the row because a feedback retry replaces `feedback_json`. Attempts are an append-only
+  JSON array; every write is conditional on the row's `version`, so a double submit cannot
+  record two answers as one. Items of an older feedback generation are not shown against newer
+  feedback.
+- **Not measurement.** Under ADR 0010 practice writes nothing to `learner_tag_observations`, the
+  profile or CEFR, and is not added to grader briefs.
+- **Resilience.** If the table is missing (code deployed ahead of its migration), the round still
+  renders without practice. Logs carry intent, item id and error class only — never answers or
+  model output.
+
+### Outcome query (roadmap criterion (g))
+
+Read-only; run against production with an explicit target (ADR 0008):
+
+```bash
+pnpm exec wrangler d1 execute bcailab-db --remote --command "SELECT COUNT(*) AS started, SUM(status = 'finished') AS finished, SUM(status = 'skipped') AS skipped, SUM(status = 'disputed') AS disputed, SUM(status IN ('fix','transfer')) AS open, COUNT(DISTINCT user_id) AS learners FROM writing_practice_items"
+```
+
+`finished` over `started` is the completion rate; `disputed` counts feedback the learner judged
+wrong. These numbers decide whether the retell item and the delayed re-check proceed.
 
 ## Configuration
 

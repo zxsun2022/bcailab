@@ -9,6 +9,32 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-25 — **in_review: Writing targeted practice after feedback.** Roadmap Next item 1.
+  - **What.** On a completed round, each critical/improvement annotation whose quote is in the
+    text offers "Practise this". A panel above the essay runs two steps: fix the quoted text,
+    then use the same point once in a generated new situation. Each step has two tries, a
+    one-sentence verdict in the feedback language, and a reference shown only once the step is
+    over. The learner can skip, or mark the correction as wrong (`disputed`).
+  - **How.** Migration `0024_writing_practice.sql` (new table only — apply before deploying,
+    ADR 0008); POST resource `/writing/:id/practice`; new model task `writing_practice` on
+    Flash-Lite; one call per answer, one for step 2, none for start/skip/dispute; versioned
+    writes; the round renders without practice if the table is missing. Nothing is written as
+    measurement (ADR 0010). Outcome query in `docs/tools/writing.md`.
+  - **Evidence.** 21 new unit tests (state machine, reference withholding, eligibility,
+    normalisers, prompt fixtures, SQL scoping and version guard). 17 new HTTP/D1 checks in the
+    integration fixture, with a deterministic fake judge: idempotent start, account isolation,
+    ineligible annotations refused, a failed model call changes nothing, validation before any
+    call, reference withheld then revealed, step 2 once, finish/skip/dispute transitions, no
+    measurement writes. In the browser on the fixture: the full flow in English with
+    Ctrl+Enter; the Chinese interface; a failed call keeping the typed answer; the state
+    persisting across reload; 375px with no horizontal overflow and focus moved to the panel;
+    dark mode.
+  - **Known unrelated failure.** `pnpm test:integration` currently stops at a Home check
+    ("Continue is primary when both actions exist") on clean main as well; the practice checks
+    were run with Home skipped. Tracked separately.
+  - **Owner decision flagged.** The practice model is Flash-Lite (a narrow check, not an essay
+    evaluation). Changing it is a one-line routing change.
+
 - 2026-09-25 — **in_review: guided local page for the Reading bias gate.** Owner request: turn
   the remaining half of *Now — Learner context for graders* into a page that walks the owner
   through it. `pnpm bias:wizard` serves `scripts/grader-bias/wizard.ts` on `127.0.0.1:4321`: the

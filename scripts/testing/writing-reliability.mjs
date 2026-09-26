@@ -6,7 +6,7 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer } from '../../apps/web/node_modules/vite/dist/node/index.js';
 import remixDev from '../../apps/web/node_modules/@remix-run/dev/dist/index.js';
 import wrangler from '../../node_modules/wrangler/wrangler-dist/cli.js';
-import { checkWriting } from './writing-checks.mjs';
+import { checkWriting, checkPractice } from './writing-checks.mjs';
 import { checkDictation } from './dictation-checks.mjs';
 import { checkReading } from './reading-checks.mjs';
 import { seedHome, faultDb, checkHome } from './home-reliability.mjs';
@@ -28,12 +28,34 @@ const feedback = { annotations: [], round_summary: { critical_count: 0, improvem
 // Reading evaluation requests only (identified by the Reading prompt's opening line), so other
 // model calls — the learner-model naming pass, Writing feedback — do not blur the count.
 let readingEvalCalls = 0;
+// Writing practice (targeted practice after feedback): a deterministic stand-in for the judge
+// and the situation writer. An answer containing " for " is right; "FAILMODEL" makes the call fail.
+const practiceReply = prompt => {
+  if (prompt.startsWith('You write one short practice task')) return { situation: 'Say in one sentence how long your friend has lived in her flat (six months).' };
+  const answer = prompt.split("## Learner's answer\n").pop() ?? '';
+  const acceptable = / for /i.test(answer);
+  return { acceptable, reason: acceptable ? 'Right: "for" goes with a length of time.' : 'Not yet: a length of time needs "for".', reference: 'I have lived here for three years.' };
+};
+let practiceCalls = 0;
 const model = createHttpServer(async (req, res) => {
   let body = '';
   for await (const chunk of req) body += chunk;
   if (body.includes('professional English reading and recitation coach')) readingEvalCalls++;
+  const prompt = JSON.parse(body || '{}').contents?.[0]?.parts?.[0]?.text ?? '';
+  if (prompt.startsWith('You check one short practice answer') || prompt.startsWith('You write one short practice task')) {
+    practiceCalls++;
+    if (prompt.includes('FAILMODEL')) { res.statusCode = 500; res.end('synthetic failure'); return; }
+    setTimeout(() => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(practiceReply(prompt)) }] } }] })); }, 300);
+    return;
+  }
   setTimeout(() => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify(feedback) }] } }] })); }, 4000);
 });
+// A completed round with one practisable problem, one whose quote is not in the text, and a strength.
+const practiceFeedback = { annotations: [
+  { severity: 'critical', dimension: 'grammar', quoted_text: 'I have been here since three years.', diagnosis: 'Use "for" with a length of time, and "since" with a starting point.', guiding_question: 'Is "three years" a starting point or a length of time?' },
+  { severity: 'improvement', dimension: 'vocabulary', quoted_text: 'a sentence that is not in the draft', diagnosis: 'Synthetic: its quote is missing, so it cannot be practised.', guiding_question: 'Which word is more precise?' },
+  { severity: 'strength', dimension: 'coherence', quoted_text: 'My city is small but friendly.', diagnosis: 'Clear topic sentence.', guiding_question: '' }
+], round_summary: { critical_count: 1, improvement_count: 1, strengths_count: 1, overall_comment: 'Synthetic practice round.', band_estimate: 'B1' }, delta: null };
 let runtime, initialization;
 const background = new Set();
 let loseNextResponse = false;
@@ -47,7 +69,9 @@ async function initialize(env) {
   await db.batch([
     db.prepare("INSERT INTO users(id,email,name) VALUES ('test-a','a@example.invalid','Test A'),('test-b','b@example.invalid','Test B'),('test-cold','cold@example.invalid','Cold'),('test-recommend','recommend@example.invalid','Recommend')"),
     db.prepare("INSERT INTO writing_articles(id,user_id,agent_type,title) VALUES ('retry-article','test-a','general','Retry fixture')"),
-    db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status) VALUES ('retry-round','retry-article','test-a',1,'This is a synthetic draft with enough words to exercise the writing feedback flow.',15,'failed')")
+    db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status) VALUES ('retry-round','retry-article','test-a',1,'This is a synthetic draft with enough words to exercise the writing feedback flow.',15,'failed')"),
+    db.prepare("INSERT INTO writing_articles(id,user_id,agent_type,title) VALUES ('practice-article','test-a','general','Practice fixture')"),
+    db.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status,feedback_json) VALUES ('practice-round','practice-article','test-a',1,'I have been here since three years. My city is small but friendly.',13,'completed',?)").bind(JSON.stringify(practiceFeedback))
   ]);
   await seedHome(db);
   await db.prepare("INSERT INTO esl_learner_profiles(id,user_id,cefr_declared,total_attempts) VALUES ('recommend-profile','test-recommend','B2',1)").run();
@@ -88,6 +112,12 @@ const fixture = { name: 'synthetic-fixture', configureServer(server) {
         res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return;
       }
       if (url.pathname === '/__test/lose-next-response') { loseNextResponse = true; res.statusCode = 302; res.setHeader('Location', '/writing/new'); res.end(); return; }
+      if (url.pathname === '/__test/practice-new-round') {
+        const next = await runtime.env.DB.prepare("SELECT COALESCE(MAX(round_number), 0) + 1 AS n FROM writing_revisions WHERE article_id = 'practice-article'").first();
+        await runtime.env.DB.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status,feedback_json) SELECT ?, article_id, user_id, ?, user_text, word_count, 'completed', feedback_json FROM writing_revisions WHERE id = 'practice-round'").bind(`practice-round-${next.n}`, next.n).run();
+        res.statusCode = 302; res.setHeader('Location', '/writing/practice-article'); res.end(); return;
+      }
+      if (url.pathname === '/__test/practice-calls') { res.setHeader('Content-Type','text/plain'); res.end(String(practiceCalls)); return; }
       if (url.pathname === '/__test/poll-count') { res.setHeader('Content-Type','text/plain'); res.end(String(statusRequests)); return; }
       if (url.pathname === '/__test/advance-round') {
         await runtime.env.DB.prepare("INSERT INTO writing_revisions(id,article_id,user_id,round_number,user_text,word_count,feedback_status,feedback_json) VALUES ('advanced-round','retry-article','test-a',2,'A new round saved in a different browser tab.',9,'completed',?)").bind(JSON.stringify(feedback)).run();
@@ -113,7 +143,7 @@ try {
   await server.listen();
   await fetch('http://127.0.0.1:5191/writing/new', { redirect: 'manual' });
   if (process.argv.includes('--check')) {
-    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background), ...await checkDictation(server, root, runtime), ...await checkReading(server, root, runtime, background, () => readingEvalCalls)];
+    const checks = [...await checkHome(server, root, runtime), ...await checkWriting(server, root, runtime, background), ...await checkPractice(server, root, runtime, () => practiceCalls), ...await checkDictation(server, root, runtime), ...await checkReading(server, root, runtime, background, () => readingEvalCalls)];
     console.log(`PASS D1/HTTP: ${checks.length} assertions on fresh migrated D1 and a fake model.`);
     checks.forEach(label => console.log('  PASS ' + label));
   } else {

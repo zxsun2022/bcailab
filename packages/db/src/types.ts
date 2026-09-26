@@ -121,6 +121,24 @@ export type WritingRevision = {
   created_at: string;
 };
 
+export type WritingPracticeItem = {
+  id: string;
+  user_id: string;
+  article_id: string;
+  revision_id: string;
+  feedback_generation: number;
+  annotation_index: number;
+  annotation_json: string;
+  feedback_language: "en" | "zh";
+  status: "fix" | "transfer" | "finished" | "skipped" | "disputed";
+  transfer_prompt: string | null;
+  attempts_json: string;
+  version: number;
+  created_at: string;
+  updated_at: string;
+  ended_at: string | null;
+};
+
 export type GoogleProfile = {
   sub: string;
   email?: string;

@@ -22,7 +22,10 @@ import {
   WritingEssayPromptField,
   WritingGuidePanel
 } from "~/components/WritingEditor";
-import { WritingFeedbackPanel } from "~/components/WritingFeedback";
+import { WritingFeedbackPanel, type WritingFeedbackPractice } from "~/components/WritingFeedback";
+import { WritingPractice } from "~/components/WritingPractice";
+import { loadRoundPractice } from "~/utils/writing-practice.server";
+import { practiceTargets, type PracticeView } from "~/utils/writing-practice";
 import { WritingDetailAside, type AsideRound } from "~/components/WritingDetailAside";
 import { WritingPromptMaterial } from "~/components/WritingPromptMaterial";
 import { StudioBreadcrumbs } from "~/components/StudioBreadcrumbs";
@@ -129,8 +132,29 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
       activeRevision &&
       Date.now() - new Date((activeRevision.feedback_started_at ?? activeRevision.created_at) + "Z").getTime() > PENDING_STALE_MS;
 
+    // Practice is optional on this page: if its table is missing (a deploy that ran ahead of its
+    // migration, ADR 0008), the round still renders, just without practice.
+    let practice: { available: boolean; generation: number; items: PracticeView[] } = {
+      available: false, generation: 0, items: []
+    };
+    if (activeRevision && !isComposeView) {
+      try {
+        const round = await loadRoundPractice(context.env.DB, {
+          userId: user.id,
+          revision: activeRevision,
+          feedback: activeFeedback
+        });
+        practice = { available: true, generation: activeRevision.feedback_generation, items: round.items };
+      } catch (error) {
+        console.warn("writing.detail.loader: practice unavailable", {
+          errorClass: error instanceof Error ? error.name : "unknown"
+        });
+      }
+    }
+
     return json({
       schemaReady: true as const,
+      practice,
       userId: user.id,
       baseRevision: latestRevision?.id ?? null,
       article: {
@@ -178,7 +202,8 @@ export const loader = async ({ request, context, params }: LoaderFunctionArgs) =
         isPending: false,
         isStalePending: false,
         latestRound: 0,
-        latestText: ""
+        latestText: "",
+        practice: { available: false, generation: 0, items: [] }
       },
       { status: 503 }
     );
@@ -355,6 +380,10 @@ function WritingArticlePageReady({
   const titleFetcher = useFetcher<ActionData>();
   const retryFetcher = useFetcher<ActionData>();
   const titleInputRef = React.useRef<HTMLInputElement>(null);
+  const [practiceItems, setPracticeItems] = React.useState<Record<number, PracticeView>>(() =>
+    Object.fromEntries(data.practice.items.map((item) => [item.annotationIndex, item])));
+  const [practiceIndex, setPracticeIndex] = React.useState<number | null>(null);
+  const practiceRef = React.useRef<HTMLDivElement>(null);
 
   const fullAgent = getWritingAgentOrDefault(agent.id);
   const t = useT();
@@ -579,6 +608,26 @@ function WritingArticlePageReady({
     }
   };
 
+  // Practice belongs to one feedback generation. A retry replaces the feedback, so items loaded for
+  // the old generation no longer describe the annotations on screen.
+  const practiceGenerationMatches = liveActiveRevision?.feedback_generation === data.practice.generation;
+  const practice: WritingFeedbackPractice | null =
+    data.practice.available && !isComposeView && liveActiveRevision?.feedback_status === "completed" && liveActiveFeedback
+      ? {
+          targets: practiceTargets(liveActiveFeedback, liveActiveRevision.user_text),
+          items: practiceGenerationMatches ? practiceItems : {},
+          activeIndex: practiceIndex,
+          onPractise: (index) => {
+            setPracticeIndex(index);
+            window.requestAnimationFrame(() => practiceRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
+          }
+        }
+      : null;
+  const handlePracticeItem = React.useCallback((item: PracticeView) => {
+    setPracticeItems((current) => ({ ...current, [item.annotationIndex]: item }));
+  }, []);
+  const activeAnnotation = practice && practiceIndex !== null ? liveActiveFeedback?.annotations[practiceIndex] ?? null : null;
+
   const displayTitle = liveTitle || t("writingDetail.untitled");
   const collection = assignment?.taskType === "academic_task_1"
     ? { label: t("writing.collection.task1.title"), to: "/writing/library?category=task1" }
@@ -682,6 +731,7 @@ function WritingArticlePageReady({
           feedback={liveActiveFeedback}
           roundNumber={liveActiveRevision.round_number}
           assessmentPrefix={fullAgent.assessmentPrefix}
+          practice={practice}
         />
       );
     }
@@ -808,6 +858,21 @@ function WritingArticlePageReady({
             </submitFetcher.Form>
           ) : liveActiveRevision ? (
             <div className="writing-readonly-view">
+              {practice && activeAnnotation && practiceIndex !== null ? (
+                <div ref={practiceRef}>
+                  <WritingPractice
+                    key={`${liveActiveRevision.id}:${practiceIndex}`}
+                    articleId={article.id}
+                    revisionId={liveActiveRevision.id}
+                    annotationIndex={practiceIndex}
+                    annotation={activeAnnotation}
+                    item={practice.items[practiceIndex] ?? null}
+                    feedbackLanguage={feedbackLanguage}
+                    onItem={handlePracticeItem}
+                    onClose={() => setPracticeIndex(null)}
+                  />
+                </div>
+              ) : null}
               <WritingGuidePanel agent={fullAgent} />
               <WritingEssayPromptField value={essayPrompt} readOnly />
               {assignment ? <WritingPromptMaterial assignment={assignment} /> : null}

@@ -31,7 +31,8 @@ export type LlmTask =
   | "title_generation"
   | "dictation_generate"
   | "dictation_feedback"
-  | "learner_profile_naming";
+  | "learner_profile_naming"
+  | "writing_practice";
 
 export const TASK_MODELS: Record<LlmTask, string> = {
   translate: LITE_MODEL,
@@ -47,7 +48,10 @@ export const TASK_MODELS: Record<LlmTask, string> = {
   dictation_feedback: LITE_MODEL,
   // Names the deterministic tag-mastery aggregate for the learner; interpretation only,
   // never deciding whether a weakness exists (learner-model design §6.4).
-  learner_profile_naming: LITE_MODEL
+  learner_profile_naming: LITE_MODEL,
+  // Targeted practice after Writing feedback: judges one short answer against one known point,
+  // and writes one new situation for it. A narrow check, not an essay evaluation, so Flash-Lite.
+  writing_practice: LITE_MODEL
 };
 
 export const resolveModelForTask = (task: LlmTask): string => TASK_MODELS[task];
