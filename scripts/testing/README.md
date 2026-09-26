@@ -29,6 +29,13 @@ All `/__test/` handlers belong to this test server, never to production routes.
   80 A1 passages and 50 more recent completed attempts. The query parameter
   `fixtureFailure=profile|history|library` injects an individual DB read failure.
 
+- Writing practice: open `/writing/practice-article`. Only the critical annotation offers
+  "Practise this" (the improvement's quote is not in the text; the strength never qualifies).
+  The fake judge accepts an answer containing " for "; an answer containing `FAILMODEL` makes
+  the call fail, which must leave the typed answer and the tries unchanged.
+  `/__test/practice-new-round` adds another completed round for a fresh item, and
+  `/__test/practice-calls` counts practice model calls.
+
 ## Automated D1/HTTP checks
 
 To start, check and stop the fixture automatically:
@@ -37,8 +44,8 @@ To start, check and stop the fixture automatically:
 pnpm test:integration
 ```
 
-This runs the Home assertions below plus first-submit replay, account isolation and feedback
-generation checks through actual HTTP actions. It uses the same fake model and fresh D1, exits
+This runs the Home assertions below plus first-submit replay, account isolation, feedback
+generation and Writing practice checks through actual HTTP actions. It uses the same fake model and fresh D1, exits
 nonzero on failure and removes its temporary configuration. `verify:web` and `verify` include it.
 See [verification scope](../../docs/verification.md) for prerequisites and remaining manual checks.
 

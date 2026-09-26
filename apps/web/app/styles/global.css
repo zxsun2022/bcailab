@@ -7177,6 +7177,164 @@ select.input:focus {
   font-style: italic;
 }
 
+.writing-annotation-practice {
+  margin-top: 8px;
+}
+
+.writing-annotation-practice[aria-pressed="true"] {
+  border-color: var(--copper);
+  color: var(--copper);
+}
+
+/* --- Targeted practice (center stage, above the essay) --- */
+
+.writing-practice {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--copper);
+  border-radius: 4px;
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+  scroll-margin-top: var(--space-lg);
+}
+
+.writing-practice-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 8px;
+}
+
+.writing-practice-title {
+  font-size: 16px;
+  margin: 0;
+}
+
+.writing-practice-title:focus {
+  outline: none;
+}
+
+.writing-practice-title:focus-visible {
+  outline: 2px solid var(--copper);
+  outline-offset: 2px;
+}
+
+.writing-practice-intro p,
+.writing-practice-task {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+
+.writing-practice-step {
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.writing-practice-step-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+
+.writing-practice-attempt {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 3px;
+  margin: 6px 0;
+}
+
+.writing-practice-attempt.is-pass {
+  background: var(--color-success-surface);
+}
+
+.writing-practice-attempt.is-miss {
+  background: var(--color-warning-surface);
+}
+
+.writing-practice-answer {
+  margin: 0 0 4px;
+}
+
+.writing-practice-verdict {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.writing-practice-verdict-label,
+.writing-practice-reference-label {
+  font-weight: 600;
+}
+
+.writing-practice-attempt.is-pass .writing-practice-verdict-label {
+  color: var(--color-success);
+}
+
+.writing-practice-attempt.is-miss .writing-practice-verdict-label {
+  color: var(--color-warning);
+}
+
+.writing-practice-reference {
+  font-size: 14px;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+
+.writing-practice-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.writing-practice-input {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg-card);
+  color: var(--text);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.writing-practice-input:focus {
+  outline: none;
+  border-color: var(--copper);
+}
+
+.writing-practice-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: 8px;
+}
+
+.writing-practice-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.writing-practice-status:not(:empty) {
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: var(--space-sm);
+}
+
+.writing-practice-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
 /* --- Delta --- */
 
 .writing-delta {
@@ -7500,6 +7658,11 @@ select.input:focus {
   margin-top: var(--space-lg);
 }
 
+/* Desktop only: below 1024px the feedback is already shown under the draft. */
+.writing-collapsed-feedback-note {
+  display: none;
+}
+
 /* --- Responsive --- */
 
 @media (min-width: 1024px) {
@@ -7647,6 +7810,19 @@ select.input:focus {
 
   .writing-feedback-mobile-only {
     display: none;
+  }
+
+  .writing-collapsed-feedback-note {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    margin-top: var(--space-sm);
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--copper);
+    border-radius: 4px;
+    font-size: 14px;
   }
 }
 

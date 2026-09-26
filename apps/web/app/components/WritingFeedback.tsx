@@ -5,11 +5,21 @@ import type {
 } from "~/utils/writing-eval.server";
 import { useT } from "~/i18n/context";
 import { writingAssessmentLabel, writingDimensionLabel } from "~/utils/writing-agent-copy";
+import type { PracticeView } from "~/utils/writing-practice";
+
+/** Present only where practice is offered: a completed round, outside the compose view. */
+export type WritingFeedbackPractice = {
+  targets: number[];
+  items: Record<number, PracticeView>;
+  activeIndex: number | null;
+  onPractise: (annotationIndex: number) => void;
+};
 
 type WritingFeedbackProps = {
   feedback: WritingFeedbackType;
   roundNumber: number;
   assessmentPrefix?: string | null;
+  practice?: WritingFeedbackPractice | null;
 };
 
 const severityConfig = {
@@ -18,9 +28,26 @@ const severityConfig = {
   strength: { labelKey: "writingFeedback.strength", className: "is-strength" }
 } as const;
 
-function AnnotationCard({ annotation }: { annotation: WritingAnnotation }) {
+const practiceLabelKey = (item: PracticeView | undefined) => {
+  if (!item) return "writingPractice.cta" as const;
+  if (item.status === "finished") return "writingPractice.ctaDone" as const;
+  if (item.status === "skipped") return "writingPractice.ctaSkipped" as const;
+  if (item.status === "disputed") return "writingPractice.ctaDisputed" as const;
+  return "writingPractice.ctaContinue" as const;
+};
+
+function AnnotationCard({
+  annotation,
+  index,
+  practice
+}: {
+  annotation: WritingAnnotation;
+  index: number;
+  practice?: WritingFeedbackPractice | null;
+}) {
   const t = useT();
   const config = severityConfig[annotation.severity];
+  const canPractise = Boolean(practice?.targets.includes(index));
   return (
     <div className={`writing-annotation ${config.className}`}>
       <div className="writing-annotation-head">
@@ -33,6 +60,16 @@ function AnnotationCard({ annotation }: { annotation: WritingAnnotation }) {
       <p className="writing-annotation-diagnosis">{annotation.diagnosis}</p>
       {annotation.guiding_question ? (
         <p className="writing-annotation-question">{annotation.guiding_question}</p>
+      ) : null}
+      {practice && canPractise ? (
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm writing-annotation-practice"
+          aria-pressed={practice.activeIndex === index}
+          onClick={() => practice.onPractise(index)}
+        >
+          {t(practiceLabelKey(practice.items[index]))}
+        </button>
       ) : null}
     </div>
   );
@@ -81,14 +118,17 @@ function DeltaSection({ delta }: { delta: WritingDelta }) {
 export function WritingFeedbackPanel({
   feedback,
   roundNumber,
-  assessmentPrefix
+  assessmentPrefix,
+  practice
 }: WritingFeedbackProps) {
   void roundNumber;
   const t = useT();
+  // Grouping keeps each annotation's index in the stored array: practice items refer to it.
+  const indexed = feedback.annotations.map((annotation, index) => ({ annotation, index }));
   const grouped = {
-    critical: feedback.annotations.filter((a) => a.severity === "critical"),
-    improvement: feedback.annotations.filter((a) => a.severity === "improvement"),
-    strength: feedback.annotations.filter((a) => a.severity === "strength")
+    critical: indexed.filter(({ annotation }) => annotation.severity === "critical"),
+    improvement: indexed.filter(({ annotation }) => annotation.severity === "improvement"),
+    strength: indexed.filter(({ annotation }) => annotation.severity === "strength")
   };
   const assessmentText = writingAssessmentLabel(
     t,
@@ -105,8 +145,8 @@ export function WritingFeedbackPanel({
         if (items.length === 0) return null;
         return (
           <div key={severity} className="writing-annotation-group">
-            {items.map((annotation, i) => (
-              <AnnotationCard key={i} annotation={annotation} />
+            {items.map(({ annotation, index }) => (
+              <AnnotationCard key={index} annotation={annotation} index={index} practice={practice} />
             ))}
           </div>
         );

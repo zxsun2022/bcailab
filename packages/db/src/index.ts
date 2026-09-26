@@ -8,6 +8,7 @@ export * from "./tts";
 export * from "./reading";
 export * from "./learner";
 export * from "./writing";
+export * from "./writing-practice";
 export * from "./usage";
 export * from "./dictation";
 export * from "./passages";

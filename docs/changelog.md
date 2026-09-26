@@ -9,6 +9,45 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-25 — **in_review: Writing feedback no longer disappears behind a collapsed panel.**
+  Owner report: "writing is never evaluated locally". The local D1 showed the round completed on
+  `gemini-3.8-flash` in about six seconds; the owner's browser had `writing-aside-collapsed=true`
+  stored from an earlier visit, and on desktop the feedback renders only in that rail, so the
+  page looked finished with no feedback. A collapsed rail now shows a note under the title
+  (preparing / ready with the number of points / hidden) with **Show feedback**, and reopens
+  itself when pending feedback completes. Checked on the fixture: note visible at desktop width,
+  a new revision submitted with the rail collapsed reopened it once feedback arrived.
+- 2026-09-25 — **in_review: integration fixture's Home checks match Home v3.1.** `pnpm
+  test:integration` failed on main at "Continue is primary when both actions exist", so none of
+  the Writing, Dictation or Reading checks after it ran. The check was stale, not the product:
+  Home v3.1 (d) made the recommendation under a Continue a whole-row link (`today-strip-link`)
+  instead of a second button, and the labels became "Continue dictation" / "Start dictation".
+  The assertions now check exactly one primary button, the strip link beside a Continue, and its
+  absence without one. `pnpm test:integration`: 79 assertions pass.
+
+- 2026-09-25 — **in_review: Writing targeted practice after feedback.** Roadmap Next item 1.
+  - **What.** On a completed round, each critical/improvement annotation whose quote is in the
+    text offers "Practise this". A panel above the essay runs two steps: fix the quoted text,
+    then use the same point once in a generated new situation. Each step has two tries, a
+    one-sentence verdict in the feedback language, and a reference shown only once the step is
+    over. The learner can skip, or mark the correction as wrong (`disputed`).
+  - **How.** Migration `0024_writing_practice.sql` (new table only — apply before deploying,
+    ADR 0008); POST resource `/writing/:id/practice`; new model task `writing_practice` on
+    Flash-Lite; one call per answer, one for step 2, none for start/skip/dispute; versioned
+    writes; the round renders without practice if the table is missing. Nothing is written as
+    measurement (ADR 0010). Outcome query in `docs/tools/writing.md`.
+  - **Evidence.** 21 new unit tests (state machine, reference withholding, eligibility,
+    normalisers, prompt fixtures, SQL scoping and version guard). 17 new HTTP/D1 checks in the
+    integration fixture, with a deterministic fake judge: idempotent start, account isolation,
+    ineligible annotations refused, a failed model call changes nothing, validation before any
+    call, reference withheld then revealed, step 2 once, finish/skip/dispute transitions, no
+    measurement writes. In the browser on the fixture: the full flow in English with
+    Ctrl+Enter; the Chinese interface; a failed call keeping the typed answer; the state
+    persisting across reload; 375px with no horizontal overflow and focus moved to the panel;
+    dark mode.
+  - **Owner decision flagged.** The practice model is Flash-Lite (a narrow check, not an essay
+    evaluation). Changing it is a one-line routing change.
+
 - 2026-09-25 — **in_review: guided local page for the Reading bias gate.** Owner request: turn
   the remaining half of *Now — Learner context for graders* into a page that walks the owner
   through it. `pnpm bias:wizard` serves `scripts/grader-bias/wizard.ts` on `127.0.0.1:4321`: the
