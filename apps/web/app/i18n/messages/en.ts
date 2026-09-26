@@ -87,7 +87,6 @@ export const en = {
     "Planned: contextual explanations that connect back to your reading and writing practice.",
   "moduleTag.listening": "Listening",
   "moduleTag.scoring": "Scoring",
-  "moduleTag.freeToTry": "Free to try",
   "moduleTag.speaking": "Speaking",
   "moduleTag.evaluation": "Evaluation",
   "moduleTag.writing": "Writing",
@@ -99,6 +98,9 @@ export const en = {
   "moduleAccess.public": "No account",
   "moduleAccess.trial": "Free to try",
   "moduleAccess.auth": "Account",
+  "freeAccess.open": "No account needed:",
+  "freeAccess.trial": "Free to try first:",
+  "english.startDictation": "Start dictation — no account",
 
   // --- homepage ---
   "home.eyebrow": "English Studio — from bcailab",
@@ -109,8 +111,6 @@ export const en = {
   "home.openStudio": "Open English Studio",
   "home.tryTranslate": "Try Translate — no account",
   "home.seeInside": "See what’s inside",
-  "home.access":
-    "Translate and Dictation are open to everyone. Reading and Writing include a free trial before you sign in.",
   "home.loginHint": "Please sign in to access the tools.",
   "home.inside": "Inside English Studio",
   "home.planned": "Planned",
@@ -137,7 +137,6 @@ export const en = {
     "One workspace for focused English practice — read, write, listen, speak, and translate with AI feedback along the way.",
   "english.desc":
     "English Studio brings the lab’s language tools together in one place. Practice through real workflows: recite a passage and learn what needs work; revise an essay with an AI coach; turn text into audio for listening and shadowing; and translate without leaving your workspace.",
-  "english.signInToStart": "Sign in to start",
   "english.modules": "Modules",
   "english.soon": "Soon",
   "english.noteTitle": "One account, shared progress",

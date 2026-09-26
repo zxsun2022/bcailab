@@ -6,12 +6,16 @@ import { getOptionalUser } from "~/utils/auth.server";
 import { openLoginPopup } from "~/utils/login-popup";
 import {
   ENGLISH_MODULES,
+  moduleAccessKey,
   moduleCopy,
   resolveEnglishModuleDestination,
   type EnglishModule
 } from "~/english-modules";
+import { FreeAccessChip } from "~/components/FreeAccessChip";
 import { useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
+
+const DICTATION_ROUTE = ENGLISH_MODULES.find((mod) => mod.id === "dictation")!.route;
 
 const MODULE_GROUPS = [
   { id: "practice", labelKey: "common.practice" },
@@ -65,9 +69,19 @@ export default function EnglishLanding() {
         <p className="landing-tagline">{t("english.tagline")}</p>
         <p className="landing-desc">{t("english.desc")}</p>
         {!user ? (
-          <button type="button" className="landing-cta" onClick={() => openLoginPopup()}>
-            {t("english.signInToStart")}
-          </button>
+          <>
+            {/* Dictation first: no account, no microphone, instant feedback, and it doubles as
+                the level estimate (learner-model notes §1). Sign-in is the quieter second. */}
+            <div className="landing-actions">
+              <Link to={DICTATION_ROUTE} className="landing-cta">
+                {t("english.startDictation")}
+              </Link>
+              <button type="button" className="landing-cta is-secondary" onClick={() => openLoginPopup()}>
+                {t("common.signIn")}
+              </button>
+            </div>
+            <FreeAccessChip className="landing-access" />
+          </>
         ) : null}
       </section>
 
@@ -103,6 +117,11 @@ export default function EnglishLanding() {
                         <p className="landing-module-desc">{copy.description}</p>
                         <p className="landing-module-detail">{copy.detail}</p>
                         <div className="home-tool-tags">
+                          {mod.status === "active" && !user ? (
+                            <span className={`home-tool-tag is-access is-${mod.access}`}>
+                              {t(moduleAccessKey(mod.access))}
+                            </span>
+                          ) : null}
                           {copy.tags.map((tag) => (
                             <span key={tag} className="home-tool-tag">
                               {tag}

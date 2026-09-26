@@ -9,6 +9,21 @@ written at the time each item shipped. Newest first.
 Only the owner marks work done. An agent that finishes an item reports it and lets the owner
 make the final transition; see `AGENTS.md`.
 
+- 2026-09-25 — **in_review: free entry points made explicit.** Owner decisions the same day: the
+  marker appears only on the homepage and `/english`, and `/english` leads with dictation.
+  - **Chip.** A registry-generated chip, "No account needed: Dictation · Translate · Free to try
+    first: Reading · Writing", with each name linking to its signed-out destination. It replaces
+    the homepage's hand-written access sentence and appears under the `/english` hero.
+  - **`/english` hero.** "Start dictation — no account" is now the primary action; Sign in is
+    secondary. It used to offer "Sign in to start" only.
+  - **`/english` cards.** Each card carries its real access tag (No account / Free to try /
+    Account). The static "Free to try" module tag is removed, because it labelled Dictation and
+    Translate, which need no account at all, as trials.
+  - **Evidence.** New unit tests for `freeEntryPoints()`. In the browser, signed out, both pages
+    in Chinese and English: the chip links match the card destinations. At 375px both actions
+    and the chip fit the first screen with no horizontal overflow. Signed in, there is no chip
+    and `/english` still redirects to Home.
+
 - 2026-09-25 — **in_review: English Studio UX batch** (roadmap Next item 2; ux-follow-ups §2,
   §3C, §3D, §5).
   - **Translate.** The source box is sized to its content on desktop, so a long source and its

@@ -267,10 +267,26 @@ the same day because Mapdown is a side project.
   - **Excluded.** §4 (return-control placement), which has not been verified as still wrong, and
     §6 (Speech height), which asks for an investigation first.
   - **Progress.** in_review (2026-09-25): all four sections done; evidence in `docs/changelog.md`.
-- **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
-  is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
-  `access: public | trial | auth` field is what makes free entry consistent — so this item is the
-  presentation half, and it follows the colour work.
+- **Free entry points made explicit** (owner-raised 2026-07-23; scoped 2026-09-25). The
+  presentation half of the access model: the registry's `access: public | trial | auth` field
+  already decides where each card leads, and this makes it visible to a signed-out visitor.
+  - **Owner decisions (2026-09-25).**
+    - The marker appears only on the two landing pages, the homepage and `/english`, as a chip
+      under the hero. Tool pages and the global header stay as they are.
+    - `/english`'s primary action is "Start dictation — no account", with Sign in as the
+      secondary action.
+  - **Acceptance.**
+    - (a) One chip component lists the open and trial modules. It is generated from the
+      registry, links to each module's signed-out destination, and leaves out planned modules.
+    - (b) The homepage's hand-written access sentence is replaced by the chip. `/english` shows
+      the chip, the two actions above, and a per-card access tag derived from `access`.
+    - (c) The static "Free to try" module tag is removed, because it labelled fully open modules
+      as trials.
+    - (d) Signed-in visitors see no chip.
+    - (e) Both interface languages are supported.
+    - (f) The pages are checked in the browser at desktop and 375px.
+    - (g) Unit tests cover the derivation.
+  - **Progress.** in_review (2026-09-25); evidence in `docs/changelog.md`.
 - **Learner context Stage 2 — structured feedback categories** (owner-authorized 2026-09-15;
   starts only after "Now — Learner context for graders" is accepted). Writing annotations and
   Dictation error patterns gain an optional `category` from one closed list, so the learner brief

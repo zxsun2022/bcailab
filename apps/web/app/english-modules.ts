@@ -13,7 +13,6 @@ export type EnglishModuleId =
 export type EnglishModuleTag =
   | "listening"
   | "scoring"
-  | "freeToTry"
   | "speaking"
   | "evaluation"
   | "writing"
@@ -49,7 +48,7 @@ export const ENGLISH_MODULES: readonly EnglishModule[] = [
     access: "public",
     group: "practice",
     status: "active",
-    tags: ["listening", "scoring", "freeToTry"]
+    tags: ["listening", "scoring"]
   },
   {
     id: "reading",
@@ -58,7 +57,7 @@ export const ENGLISH_MODULES: readonly EnglishModule[] = [
     access: "trial",
     group: "practice",
     status: "active",
-    tags: ["speaking", "evaluation", "freeToTry"]
+    tags: ["speaking", "evaluation"]
   },
   {
     id: "writing",
@@ -67,7 +66,7 @@ export const ENGLISH_MODULES: readonly EnglishModule[] = [
     access: "trial",
     group: "practice",
     status: "active",
-    tags: ["writing", "feedback", "freeToTry"]
+    tags: ["writing", "feedback"]
   },
   {
     id: "translate",
@@ -75,7 +74,7 @@ export const ENGLISH_MODULES: readonly EnglishModule[] = [
     access: "public",
     group: "utility",
     status: "active",
-    tags: ["translation", "llm", "freeToTry"]
+    tags: ["translation", "llm"]
   },
   {
     id: "speech",
@@ -123,3 +122,20 @@ export function resolveEnglishModuleDestination(
   }
   return { href: module.route, requiresLogin: true };
 }
+
+/** What a signed-out visitor may do with a module, in the words the cards use. */
+export const moduleAccessKey = (access: EnglishModuleAccess): MessageKey =>
+  (({ public: "moduleAccess.public", trial: "moduleAccess.trial", auth: "moduleAccess.auth" }) as const)[access];
+
+/**
+ * The modules a signed-out visitor can use right now, derived from `access` so the landing pages
+ * never restate the list by hand (docs/access-model.md). Open ones work without an account; trial
+ * ones offer a limited trial before sign-in. Planned modules are neither.
+ */
+export const freeEntryPoints = (modules: readonly EnglishModule[] = ENGLISH_MODULES) => {
+  const active = modules.filter((module) => module.status === "active");
+  return {
+    open: active.filter((module) => module.access === "public"),
+    trial: active.filter((module) => module.access === "trial")
+  };
+};
