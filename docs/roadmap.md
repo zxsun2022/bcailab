@@ -199,6 +199,10 @@ acceptance is deliberately not claimed here.
   the registered manifest (hashes, offsets, and the candidate brief rendered by the production
   learner-context code). Two owner decisions precede recording: the pinned model, and whether the
   tags-only brief it renders is Reading's first rollout shape (reading notes have no renderer yet).
+- **Guided local page for the gate — in_review (2026-09-25).** Owner request. `pnpm bias:wizard`
+  walks the owner through the decisions, recording, listen-check, freezing, pre-registration and
+  both runs, using the kit's existing scripts. A convenience over the corpus kit, not a change to
+  the protocol or thresholds; the recordings and the experiment are still owed.
 
 ## Next
 

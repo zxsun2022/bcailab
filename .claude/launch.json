@@ -4,20 +4,37 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev"],
+      "runtimeArgs": [
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "mapdown",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "mapdown", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "mapdown",
+        "dev"
+      ],
       "port": 5174
     },
     {
       "name": "web-fixture",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["test:browser:fixture"],
+      "runtimeArgs": [
+        "test:browser:fixture"
+      ],
       "port": 5191
+    },
+    {
+      "name": "bias-wizard",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "bias:wizard"
+      ],
+      "port": 4321,
+      "url": "http://127.0.0.1:4321"
     }
   ]
 }
