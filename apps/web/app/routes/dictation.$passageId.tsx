@@ -30,14 +30,7 @@ import {
   type ReviewableResult,
   type SentenceResult
 } from "~/utils/dictation-progress";
-import {
-  canOpen,
-  frontierOf,
-  returnTargetOf,
-  stepsFor,
-  viewModeOf,
-  type Step
-} from "~/utils/dictation-steps";
+import { canOpen, clipDurationLabel, frontierOf, returnTargetOf, stepsFor, type Step, viewModeOf } from "~/utils/dictation-steps";
 import { openLoginPopup } from "~/utils/login-popup";
 import { useT } from "~/i18n/context";
 import { metaTranslator } from "~/i18n/meta";
@@ -586,6 +579,8 @@ export default function DictationSession() {
     attemptId: string | null;
   } | null>(null);
   const [speed, setSpeed] = React.useState(1);
+  const [clipSeconds, setClipSeconds] = React.useState<number | null>(null);
+  const actionRef = React.useRef<HTMLButtonElement | null>(null);
   // Anonymous visitors who are already out of quota see the gate before starting;
   // the action returns the same gate if the limit is hit between load and first check.
   const [gate, setGate] = React.useState<string | null>(
@@ -682,6 +677,7 @@ export default function DictationSession() {
   React.useEffect(() => {
     setAudioState("idle");
     setProgress(0);
+    setClipSeconds(null);
     // Only a sentence still to be answered plays by itself; a reviewed one waits to be asked.
     if (checked[current]) return;
     if (startedRef.current) play();
@@ -704,6 +700,9 @@ export default function DictationSession() {
         ...prev,
         [data.idx]: { accuracy: data.accuracy, ops: data.ops, reference: data.reference }
       }));
+      // A checked answer is disabled, which drops focus to the page, so Enter did nothing.
+      // Hand focus to the next action instead: Enter then advances, as the hint says.
+      window.requestAnimationFrame(() => actionRef.current?.focus());
     }
     if ("intent" in data && data.intent === "complete") {
       setSummary({ accuracy: data.accuracy, results: data.results, attemptId: data.attemptId });
@@ -870,6 +869,8 @@ export default function DictationSession() {
             const el = event.currentTarget;
             if (el.duration > 0) setProgress(el.currentTime / el.duration);
           }}
+          onLoadedMetadata={(event) => setClipSeconds(event.currentTarget.duration)}
+          onDurationChange={(event) => setClipSeconds(event.currentTarget.duration)}
           onError={() => setAudioState("idle")}
         />
       ) : null}
@@ -912,6 +913,13 @@ export default function DictationSession() {
           ))}
         </div>
 
+        {clipDurationLabel(clipSeconds, speed) ? (
+          <span className="dictation-duration">
+            <span className="sr-only">{t("dictation.duration")} </span>
+            {clipDurationLabel(clipSeconds, speed)}
+          </span>
+        ) : null}
+
         {currentPlays > 1 ? (
           <span className="dictation-play-count">
             {t("dictation.listens", { count: currentPlays })}
@@ -946,7 +954,13 @@ export default function DictationSession() {
         placeholder={t("dictation.placeholder")}
         rows={3}
         disabled={Boolean(currentChecked)}
+        aria-describedby={mode === "review" ? undefined : "dictation-answer-keys"}
       />
+      {mode === "review" ? null : (
+        <p id="dictation-answer-keys" className="dictation-keys">
+          {currentChecked ? t("dictation.keysNext") : t("dictation.keysCheck")}
+        </p>
+      )}
 
       {currentChecked ? (
         <div className="dictation-feedback">
@@ -972,7 +986,7 @@ export default function DictationSession() {
             {t("dictation.backToCurrent", { n: returnTargetOf(total, frontier) + 1 })}
           </button>
         ) : currentChecked ? (
-          <button type="button" className="btn btn-primary" onClick={next} disabled={busy}>
+          <button ref={actionRef} type="button" className="btn btn-primary" onClick={next} disabled={busy}>
             {isLast ? (busy ? t("dictation.scoring") : t("dictation.finish")) : t("dictation.nextSentence")}
           </button>
         ) : (

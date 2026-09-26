@@ -266,6 +266,7 @@ the same day because Mapdown is a side project.
     entry marked `in_review`.
   - **Excluded.** §4 (return-control placement), which has not been verified as still wrong, and
     §6 (Speech height), which asks for an investigation first.
+  - **Progress.** in_review (2026-09-25): all four sections done; evidence in `docs/changelog.md`.
 - **Free entry points made explicit** (owner-raised 2026-07-23): header + hero chip showing what
   is usable without an account. Its *data* half already lands in IA Phase 1 — the registry's
   `access: public | trial | auth` field is what makes free entry consistent — so this item is the

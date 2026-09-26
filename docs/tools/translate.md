@@ -57,8 +57,13 @@ Defined in `apps/web/app/utils/translate-quota.server.ts`; counters live in the 
   source/language/result snapshot.
 - **Stable layout**: the translate workspace has a fixed responsive width, so adding or removing
   translation output does not resize the two-pane container.
-- **Mobile order**: source language → source input → Translate action → output. The input gives
-  page scrolling back after roughly 40dvh; output avoids a short nested scroll. On completion,
+- **Source grows with its text**: on desktop the source box is as tall as its content, so a long
+  source and its translation are read by scrolling the page, never inside the box; both panes
+  stay top-aligned. It shrinks back when text is removed and refits on resize.
+- **Mobile order**: source language → source input → Translate action → output. While composing,
+  the input gives page scrolling back after roughly 34dvh, keeping the action near the first
+  viewport; once a result exists it grows with its content like desktop. Output avoids a short
+  nested scroll. On completion,
   the output scrolls into view only when it is off-screen and respects reduced motion.
 - **Provider failures**: model or upstream failures render the inline retry message rather than
   an error page. Both paths deliberately answer with a normal 200 body because Cloudflare may

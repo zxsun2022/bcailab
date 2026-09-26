@@ -200,6 +200,9 @@ export const zh: Record<MessageKey, string> = {
   "dictation.nextSentence": "下一句",
   "dictation.checking": "检查中…",
   "dictation.check": "检查",
+  "dictation.duration": "时长",
+  "dictation.keysCheck": "Enter 检查 · Shift+Enter 换行",
+  "dictation.keysNext": "按 Enter 进入下一步",
 
   // --- sign-in popup ---
   "login.title": "登录 bcailab",

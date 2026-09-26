@@ -189,15 +189,9 @@ export default function ReadingCatalogue() {
 
   return (
     <StudioPage width="wide">
-      <StudioPageHeader
-        title={t("reading.title")}
-        description={t("reading.description")}
-        action={
-          <Link to="/reading/new" className="btn btn-primary btn-sm">
-            {t("reading.addText")}
-          </Link>
-        }
-      />
+      {/* No page-wide action: adding text changes the learner's own collection, not the
+          curated library, so the action lives in "Your texts" (ux-follow-ups §5). */}
+      <StudioPageHeader title={t("reading.title")} description={t("reading.description")} />
 
       <StudioPageBody className="passage-catalogue">
         {recent.length > 0 ? (
@@ -279,6 +273,9 @@ export default function ReadingCatalogue() {
             <h2 className="passage-own-title">{t("reading.yourTexts")}</h2>
             <p className="passage-own-blurb">{t("reading.yourTextsBlurb")}</p>
           </div>
+          <Link to="/reading/new" className="btn btn-primary btn-sm">
+            {t("reading.addText")}
+          </Link>
         </div>
         {own.length === 0 ? (
           <p className="passage-own-empty">{t("reading.noOwnTexts")}</p>

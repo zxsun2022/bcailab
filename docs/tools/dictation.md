@@ -75,7 +75,13 @@ sentence lookup joins the passage, so unpublished or soft-deleted material stops
 
 Range requests are not supported in v1 (clips are a few seconds); it stays on the Later
 engineering list. Playback speed is client-side `playbackRate` (0.75× / 1×), not a second
-synthesis.
+synthesis. Beside the controls the page shows the clip's length (`m:ss`, at the chosen speed)
+once the browser has read its metadata, and nothing before that.
+
+**Keyboard.** Under the answer box a hint says Enter checks and Shift+Enter adds a line (hidden
+on touch devices and while reviewing). A checked answer is disabled, so after a check focus moves
+to the Next / Finish button and Enter advances; before 2026-09-25 focus fell to the page and
+Enter did nothing.
 
 **Playback never starts on its own when the page loads.** Landing on a session is not
 consent to hear audio, and browser autoplay policy would make it inconsistent anyway

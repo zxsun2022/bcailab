@@ -10,13 +10,13 @@ are still unscheduled; this table does not schedule them.
 | Section | Status | Evidence |
 |---|---|---|
 | 1. Writing material-led entry | **Done** | Writing prompt bank and guided entry, accepted 2026-08-15 (roadmap accepted work, item A) |
-| 2. Translate source editor growth | Open | `routes/translate.tsx` still renders a fixed `rows={12}` textarea |
+| 2. Translate source editor growth | **Done (in_review)** | 2026-09-25 UX batch: the source is content-sized on desktop, and on mobile once a result exists |
 | 3A. Dictation CEFR section spacing | **Done** | Changelog 2026-08-10, "Dictation catalogue band spacing" |
 | 3B. Dictation step navigation | **Done** | *Dictation sentence navigator*, accepted 2026-09-23 |
-| 3C. Dictation audio duration | Open | The session shows playback progress but no duration label |
-| 3D. Check shortcut discoverability | Open | No Enter / Shift+Enter hint in the Dictation messages |
+| 3C. Dictation audio duration | **Done (in_review)** | 2026-09-25 UX batch: `m:ss` beside the controls after metadata loads, following the speed |
+| 3D. Check shortcut discoverability | **Done (in_review)** | 2026-09-25 UX batch: hint under the answer; also fixed Enter not advancing after a check |
 | 4. Return controls placement | Not verified | Needs a visual pass across Reading, Dictation and Writing detail pages |
-| 5. Reading "Add text" into "Your texts" | Open | `routes/reading._index.tsx` still places it in the page header action |
+| 5. Reading "Add text" into "Your texts" | **Done (in_review)** | 2026-09-25 UX batch: in the Your texts header, empty and populated |
 | 6. Speech compose height | Partly addressed | Changelog 2026-08-11 sized the editor so Generate stays reachable; the investigation this section asks for was not recorded |
 
 This note captures a set of learner-facing observations made on 2026-07-30. It separates

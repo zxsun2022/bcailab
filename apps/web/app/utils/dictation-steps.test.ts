@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canOpen, frontierOf, returnTargetOf, stepsFor, viewModeOf } from "./dictation-steps";
+import { canOpen, clipDurationLabel, frontierOf, returnTargetOf, stepsFor, viewModeOf } from "./dictation-steps";
 
 const checkedSet = (...indexes: number[]) => (index: number) => indexes.includes(index);
 
@@ -76,5 +76,23 @@ describe("returnTargetOf", () => {
 
   it("returns to the last sentence once all are checked, where Finish lives", () => {
     expect(returnTargetOf(5, 5)).toBe(4);
+  });
+});
+
+describe("clipDurationLabel", () => {
+  it("formats the clip length as m:ss", () => {
+    expect(clipDurationLabel(4.2, 1)).toBe("0:04");
+    expect(clipDurationLabel(75, 1)).toBe("1:15");
+  });
+
+  it("follows the playback speed", () => {
+    expect(clipDurationLabel(6, 0.75)).toBe("0:08");
+  });
+
+  it("never shows less than a second or a guess before metadata loads", () => {
+    expect(clipDurationLabel(0.3, 1)).toBe("0:01");
+    expect(clipDurationLabel(null, 1)).toBeNull();
+    expect(clipDurationLabel(Number.NaN, 1)).toBeNull();
+    expect(clipDurationLabel(Number.POSITIVE_INFINITY, 1)).toBeNull();
   });
 });

@@ -9,7 +9,7 @@ Checkpoint status (March 5, 2026): **Reading / Recitation v2 redesign complete**
 |------|-------|---------------|
 | ESL home (legacy) | `/esl` | Auth required. Redirects to `/reading`. |
 | Reading layout | `/reading` | Layout route with left sidebar (own passages + library). |
-| Reading catalogue | `/reading` (index) | The graded library by band (your band open and marked, others folded, none locked), practice state on each card, then your own texts as a secondary section. |
+| Reading catalogue | `/reading` (index) | The graded library by band (your band open and marked, others folded, none locked), practice state on each card, then your own texts as a secondary section. **Add text** sits in that section's header, not the page header: it adds to the learner's own collection, not the curated library. |
 | New passage | `/reading/new` | Paste your own text and submit the first attempt in one page. |
 | Reading progress | `/reading/progress` | Progress dashboard inside the center canvas with score trends, averages, and recent notes. |
 | Reading settings (legacy) | `/reading/settings` | 301 redirect to the shared `/settings` page. |

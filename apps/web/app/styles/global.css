@@ -2529,6 +2529,12 @@ select.input:focus {
     resize: vertical;
   }
 
+  /* Once a result exists the source grows with it instead of scrolling inside the box. */
+  .translate-board.has-result .translate-input {
+    max-height: none;
+    overflow-y: hidden;
+  }
+
   .translate-output {
     min-height: 132px;
     overflow-y: visible;
@@ -9378,6 +9384,13 @@ select.input:focus {
   transition: transform 0.1s linear;
 }
 
+.dictation-duration {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .dictation-play-count {
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -9502,6 +9515,19 @@ select.input:focus {
   font-size: 0.9375rem;
   color: var(--text-muted);
   font-style: italic;
+}
+
+.dictation-keys {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+/* Touch keyboards have no Shift+Enter to speak of; the hint is for physical keyboards. */
+@media (hover: none) and (pointer: coarse) {
+  .dictation-keys {
+    display: none;
+  }
 }
 
 .dictation-actions {
