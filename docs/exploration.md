@@ -244,6 +244,9 @@ Recorded 2026-07-21 so they are not forgotten — none are urgent.
 - **Close the practice loop — from "understood the correction" to "can use it days later"**
   (owner discussion 2026-09-24, merging an in-repo review with an external AI review; *proposal
   only, not authorized*).
+  **Update 2026-09-25:** item 1 is authorized as the first Next item in `docs/roadmap.md`,
+  item 2 is queued behind it there, and item 3 still waits on Stage 2. Items 3 and 4 remain
+  proposals.
   中文摘要：English Studio 的专项练习基础不错，但缺"理解 → 自己表达 → 隔几天还能用出来"这条链。
   建议顺序：① Writing 反馈后的当场针对练习；② 听/读后复述 + 一次追问（先打字，后录音）；
   ③ 隔几天换题复查（依赖 Stage 2 分类）；④ Translate 里"练会这个表达"。验收看延迟后在新内容上的表现，
